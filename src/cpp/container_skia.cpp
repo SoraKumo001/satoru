@@ -201,17 +201,14 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
         si.y = (float)shadow.y.val();
         si.inset = false;
         
-        int index = -1;
-        for (int j = 0; j < (int)m_usedShadows.size(); ++j) {
-            const auto& s = m_usedShadows[j];
-            if (s.color == si.color && s.blur == si.blur && s.x == si.x && s.y == si.y && s.inset == si.inset) {
-                index = j + 1;
-                break;
-            }
-        }
-        if (index == -1) {
+        int index = 0;
+        auto it = m_shadowToIndex.find(si);
+        if (it == m_shadowToIndex.end()) {
             m_usedShadows.push_back(si);
             index = (int)m_usedShadows.size();
+            m_shadowToIndex[si] = index;
+        } else {
+            index = it->second;
         }
 
         SkPaint shadowPaint = paint;
@@ -322,18 +319,14 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
         si.box_pos = pos;
         si.box_radius = radius;
         
-        int index = -1;
-        for (int j = 0; j < (int)m_usedShadows.size(); ++j) {
-            const auto& s = m_usedShadows[j];
-            if (s.color == si.color && s.blur == si.blur && s.x == si.x && s.y == si.y && s.inset == si.inset && 
-                s.box_pos.x == si.box_pos.x && s.box_pos.y == si.box_pos.y && s.box_pos.width == si.box_pos.width && s.box_pos.height == si.box_pos.height) {
-                index = j + 1;
-                break;
-            }
-        }
-        if (index == -1) {
+        int index = 0;
+        auto it = m_shadowToIndex.find(si);
+        if (it == m_shadowToIndex.end()) {
             m_usedShadows.push_back(si);
             index = (int)m_usedShadows.size();
+            m_shadowToIndex[si] = index;
+        } else {
+            index = it->second;
         }
 
         SkPaint paint;

@@ -5,8 +5,12 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    watch: {
+      ignored: ['**/external/**']
+    },
     fs: {
-      allow: ['.']
+      allow: ['.'],
+      deny: ['.??*', '**/external/**']
     }
   },
   build: {

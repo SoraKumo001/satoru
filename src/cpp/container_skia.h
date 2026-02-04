@@ -11,6 +11,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <tuple>
 
 struct font_info {
     SkFont* font;
@@ -25,6 +26,14 @@ struct shadow_info {
     bool inset;
     litehtml::position box_pos;
     litehtml::border_radiuses box_radius;
+
+    auto as_tuple() const {
+        return std::make_tuple(color.red, color.green, color.blue, color.alpha, blur, x, y, inset, 
+                               box_pos.x, box_pos.y, box_pos.width, box_pos.height);
+    }
+    bool operator<(const shadow_info& other) const {
+        return as_tuple() < other.as_tuple();
+    }
 };
 
 struct image_draw_info {
@@ -46,6 +55,7 @@ class container_skia : public litehtml::document_container {
     std::map<std::string, int> m_imageUrlToIndex;
 
     std::vector<shadow_info> m_usedShadows;
+    std::map<shadow_info, int> m_shadowToIndex;
     std::vector<image_draw_info> m_usedImageDraws;
 
 public:
@@ -77,7 +87,6 @@ public:
     virtual void draw_linear_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::linear_gradient& gradient) override;
     virtual void draw_radial_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::radial_gradient& gradient) override;
     virtual void draw_conic_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::conic_gradient& gradient) override {}
-
     virtual void draw_borders(litehtml::uint_ptr hdc, const litehtml::borders& borders, const litehtml::position& draw_pos, bool root) override;
 
     virtual litehtml::pixel_t pt_to_px(float pt) const override;

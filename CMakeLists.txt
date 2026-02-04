@@ -6,6 +6,27 @@ set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "C:/emsdk/upstream/emscripten/cmake/Modules/P
 
 project(satoru_wasm)
 
+# --- Restore SkUserConfig.h if missing ---
+set(SK_USER_CONFIG_PATH "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/config/SkUserConfig.h")
+if(NOT EXISTS "${SK_USER_CONFIG_PATH}")
+    message(STATUS "Restoring missing SkUserConfig.h...")
+    file(WRITE "${SK_USER_CONFIG_PATH}"
+"#ifndef SkUserConfig_DEFINED\n"
+"#define SkUserConfig_DEFINED\n\n"
+"// Minimal config for Wasm\n"
+"#ifndef SK_SUPPORT_GPU\n"
+"#define SK_SUPPORT_GPU 0\n"
+"#endif\n\n"
+"#ifndef SK_SUPPORT_PDF\n"
+"#define SK_SUPPORT_PDF 0\n"
+"#endif\n\n"
+"#ifndef SK_ENABLE_SVG\n"
+"#define SK_ENABLE_SVG\n"
+"#endif\n\n"
+"#endif\n"
+    )
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 
 set(LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/libs")

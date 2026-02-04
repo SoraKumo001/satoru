@@ -20,5 +20,9 @@
   },
   "dependencies": {
     "canvaskit-wasm": "^0.39.1"
-  }
+  },
+  "main": "index.js",
+  "repository": "https://github.com/SoraKumo001/satoru",
+  "author": "SoraKumo <info@croud.jp>",
+  "license": "MIT"
 }

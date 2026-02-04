@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 
 // Path to a sample font in the repo
-const FONT_PATH = path.resolve(__dirname, '../external/skia/modules/canvaskit/fonts/NotoMono-Regular.ttf');
+const FONT_PATH = path.resolve(__dirname, '../external/skia/resources/fonts/Roboto-Regular.ttf');
 const ASSET_HTML_PATH = path.resolve(__dirname, 'assets/test.html');
 const WASM_JS_PATH = path.resolve(__dirname, '../public/satoru.js');
 const WASM_BINARY_PATH = path.resolve(__dirname, '../public/satoru.wasm');
@@ -25,19 +25,21 @@ async function runTest() {
         instance._init_engine();
 
         if (fs.existsSync(FONT_PATH)) {
+            console.log(`Loading font: Roboto-Regular.ttf`);
             const fontData = fs.readFileSync(FONT_PATH);
             const fontPtr = instance._malloc(fontData.length);
             instance.HEAPU8.set(new Uint8Array(fontData), fontPtr);
-            const fontName = "NotoMono";
+            const fontName = "Roboto";
             const fontNamePtr = instance._malloc(fontName.length + 1);
             instance.stringToUTF8(fontName, fontNamePtr, fontName.length + 1);
             instance._load_font(fontNamePtr, fontPtr, fontData.length);
             instance._free(fontPtr);
             instance._free(fontNamePtr);
+        } else {
+            console.warn(`Font not found at ${FONT_PATH}`);
         }
 
         // --- Load Test Image ---
-        // Create a simple 1x1 Red PNG in base64
         const base64Png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
         const imgBuffer = Buffer.from(base64Png, 'base64');
         const imgPtr = instance._malloc(imgBuffer.length);
@@ -66,6 +68,7 @@ async function runTest() {
         const htmlBuffer = Buffer.from(html + '\0', 'utf8');
         const htmlPtr = instance._malloc(htmlBuffer.length);
         instance.HEAPU8.set(htmlBuffer, htmlPtr);
+        // Fixed 800 width, auto height
         const svgPtr = instance._html_to_svg(htmlPtr, 800, 0);
         const svg = instance.UTF8ToString(svgPtr);
         

@@ -30,6 +30,7 @@ include_directories(
     "external/skia/src/text"
     "external/skia/src/utils"
     "external/skia/src/codec"
+    "external/skia/src/encode"
 )
 
 link_directories("${VCPKG_INSTALLED_DIR}/lib")
@@ -54,27 +55,42 @@ file(GLOB SKIA_CORE_SRC
     "external/skia/src/xml/*.cpp"
     "external/skia/src/text/*.cpp"
     "external/skia/modules/skcms/skcms.cc"
-    "external/skia/src/encode/SkPngEncoder.cpp"
+    # --- Selected Encode Files ---
+    "external/skia/src/encode/SkEncoder.cpp"
+    "external/skia/src/encode/SkPngEncoderImpl.cpp"
+    "external/skia/src/encode/SkPngEncoderBase.cpp"
+    "external/skia/src/encode/SkICC.cpp"
     # --- Selected Codec Files (Minimal for PNG) ---
     "external/skia/src/codec/SkCodec.cpp"
+    "external/skia/src/codec/SkCodecColorProfile.cpp"
     "external/skia/src/codec/SkCodecImageGenerator.cpp"
     "external/skia/src/codec/SkImageGenerator_FromEncoded.cpp"
     "external/skia/src/codec/SkEncodedInfo.cpp"
     "external/skia/src/codec/SkPngCodec.cpp"
     "external/skia/src/codec/SkPngCodecBase.cpp"
+    "external/skia/src/codec/SkPngCompositeChunkReader.cpp"
     "external/skia/src/codec/SkParseEncodedOrigin.cpp"
     "external/skia/src/codec/SkMaskSwizzler.cpp"
     "external/skia/src/codec/SkSwizzler.cpp"
     "external/skia/src/codec/SkSampler.cpp"
     "external/skia/src/codec/SkColorPalette.cpp"
     "external/skia/src/codec/SkPixmapUtils.cpp"
+    "external/skia/src/codec/SkHdrMetadata.cpp"
 )
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkPDF.*|.*SkGPU.*")
 
-add_executable(main src/cpp/main.cpp src/cpp/skia_stubs.cpp ${SKIA_CORE_SRC})
+# Application sources
+set(APP_SRC
+    src/cpp/main.cpp
+    src/cpp/container_skia.cpp
+    src/cpp/utils.cpp
+    src/cpp/skia_stubs.cpp
+)
 
-# Compiler flags: Standard exceptions (JS based)
+add_executable(main ${APP_SRC} ${SKIA_CORE_SRC})
+
+# Compiler flags
 target_compile_options(main PRIVATE 
     -Wno-switch 
     -Wno-macro-redefined 
@@ -90,6 +106,7 @@ target_compile_definitions(main PRIVATE
     SK_SUPPORT_GPU=0 
     SK_ENABLE_SVG=1
     SK_CODEC_DECODES_PNG
+    SK_ENCODE_PNG
 )
 
 set_target_properties(main PROPERTIES

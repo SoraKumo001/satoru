@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "test": "tsx ./test/test_wasm",
     "cmake-configure": "powershell -Command \"if (Test-Path build-wasm) { Remove-Item -Recurse -Force build-wasm }; mkdir build-wasm; cd build-wasm; C:\\\\emsdk\\\\emsdk.ps1 activate latest; cmake .. -G 'Unix Makefiles' -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=C:/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DVCPKG_TARGET_TRIPLET=wasm32-emscripten\"",
     "cmake-build": "powershell -Command \"cd build-wasm; C:\\emsdk\\emsdk.ps1 activate latest; emmake make -j16\"",
     "compile-wasm": "npm run cmake-configure && npm run cmake-build"

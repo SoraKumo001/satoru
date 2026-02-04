@@ -27,6 +27,9 @@ class container_skia : public litehtml::document_container {
     std::vector<sk_sp<SkTypeface>>& m_fallbackTypefaces;
     std::map<std::string, image_info>& m_imageCache;
 
+    std::vector<std::string> m_usedImages;
+    std::map<std::string, int> m_imageUrlToIndex;
+
 public:
     container_skia(int w, int h, SkCanvas* canvas,
                   sk_sp<SkFontMgr>& fontMgr,
@@ -37,6 +40,9 @@ public:
 
     void set_canvas(SkCanvas* canvas) { m_canvas = canvas; }
     void set_height(int h) { m_height = h; }
+
+    size_t get_image_count() const { return m_usedImages.size(); }
+    std::string get_image_url(int index) const { return m_usedImages[index - 1]; }
 
     // litehtml::document_container members
     virtual litehtml::uint_ptr create_font(const litehtml::font_description& desc, const litehtml::document* doc, litehtml::font_metrics* fm) override;

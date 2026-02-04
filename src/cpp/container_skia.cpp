@@ -6,8 +6,10 @@
 #include "include/core/SkPath.h"
 #include "include/core/SkRRect.h"
 #include "include/core/SkShader.h"
+#include "include/core/SkSpan.h"
 #include "include/effects/SkGradient.h"
 #include "include/effects/SkImageFilters.h"
+#include "include/effects/SkDashPathEffect.h"
 #include "include/codec/SkPngDecoder.h"
 #include "include/codec/SkCodec.h"
 #include "include/core/SkBitmap.h"
@@ -240,6 +242,17 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
     SkRRect rrect;
     rrect.setRectRadii(rect, radii);
 
+    auto apply_style = [&](SkPaint& p, litehtml::border_style style, float width) {
+        if (style == litehtml::border_style_dashed) {
+            const SkScalar intervals[] = {width * 3, width * 2};
+            p.setPathEffect(SkDashPathEffect::Make(SkSpan(intervals), 0));
+        } else if (style == litehtml::border_style_dotted) {
+            const SkScalar intervals[] = {width, width};
+            p.setPathEffect(SkDashPathEffect::Make(SkSpan(intervals), 0));
+            p.setStrokeCap(SkPaint::kRound_Cap);
+        }
+    };
+
     m_canvas->save();
     m_canvas->clipRRect(rrect, true);
 
@@ -253,6 +266,7 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
             p.setStyle(SkPaint::kStroke_Style);
             p.setStrokeWidth((float)borders.top.width * 2.0f);
             p.setColor(SkColorSetARGB(borders.top.color.alpha, borders.top.color.red, borders.top.color.green, borders.top.color.blue));
+            apply_style(p, borders.top.style, (float)borders.top.width);
             m_canvas->drawRRect(rrect, p);
         }
     }
@@ -264,6 +278,7 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                 p.setStyle(SkPaint::kStroke_Style);
                 p.setStrokeWidth((float)b.width * 2.0f);
                 p.setColor(SkColorSetARGB(b.color.alpha, b.color.red, b.color.green, b.color.blue));
+                apply_style(p, b.style, (float)b.width);
                 m_canvas->drawLine(x1, y1, x2, y2, p);
             }
         };
@@ -406,83 +421,28 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
     if (!m_canvas) return;
     
     auto it = m_imageCache.find(url);
-    if (it != m_imageCache.end() && it->second.image) {
-        sk_sp<SkImage> img = it->second.image;
-        
-        SkTileMode tileX = SkTileMode::kDecal;
-        SkTileMode tileY = SkTileMode::kDecal;
-
-        switch (layer.repeat) {
-            case litehtml::background_repeat_repeat:
-                tileX = SkTileMode::kRepeat;
-                tileY = SkTileMode::kRepeat;
-                break;
-            case litehtml::background_repeat_repeat_x:
-                tileX = SkTileMode::kRepeat;
-                tileY = SkTileMode::kDecal;
-                break;
-            case litehtml::background_repeat_repeat_y:
-                tileX = SkTileMode::kDecal;
-                tileY = SkTileMode::kRepeat;
-                break;
-            case litehtml::background_repeat_no_repeat:
-                tileX = SkTileMode::kDecal;
-                tileY = SkTileMode::kDecal;
-                break;
+    if (it != m_imageCache.end()) {
+        int index = 0;
+        auto idxIt = m_imageUrlToIndex.find(url);
+        if (idxIt == m_imageUrlToIndex.end()) {
+            m_usedImages.push_back(url);
+            index = (int)m_usedImages.size();
+            m_imageUrlToIndex[url] = index;
+        } else {
+            index = idxIt->second;
         }
 
-        SkMatrix matrix;
-        float scaleX = (float)layer.origin_box.width / (float)img->width();
-        float scaleY = (float)layer.origin_box.height / (float)img->height();
-        matrix.setScaleTranslate(scaleX, scaleY, (float)layer.origin_box.x, (float)layer.origin_box.y);
-
-        auto shader = img->makeShader(tileX, tileY, SkSamplingOptions(), matrix);
-        
         SkPaint paint;
-        paint.setShader(shader);
-        paint.setAntiAlias(true);
-
+        paint.setAntiAlias(false); 
+        paint.setColor(SkColorSetARGB(255, 0, 0, index));
+        
         SkRect rect = SkRect::MakeXYWH((float)layer.border_box.x, (float)layer.border_box.y, (float)layer.border_box.width, (float)layer.border_box.height);
-        SkVector radii[4] = {
-            {(float)layer.border_radius.top_left_x, (float)layer.border_radius.top_left_y},
-            {(float)layer.border_radius.top_right_x, (float)layer.border_radius.top_right_y},
-            {(float)layer.border_radius.bottom_right_x, (float)layer.border_radius.bottom_right_y},
-            {(float)layer.border_radius.bottom_left_x, (float)layer.border_radius.bottom_left_y}
-        };
-        SkRRect rrect;
-        rrect.setRectRadii(rect, radii);
-
-        m_canvas->drawRRect(rrect, paint);
+        m_canvas->drawRect(rect, paint);
     }
 }
 
 void container_skia::load_image(const char* src, const char* baseurl, bool redraw_on_ready) {
     if (!src) return;
-    std::string s_src = src;
-    if (m_imageCache.find(s_src) != m_imageCache.end()) return;
-
-    if (s_src.substr(0, 5) == "data:") {
-        size_t comma_pos = s_src.find(',');
-        if (comma_pos != std::string::npos) {
-            std::string base64_data = s_src.substr(comma_pos + 1);
-            std::vector<uint8_t> decoded = base64_decode(base64_data);
-            if (!decoded.empty()) {
-                sk_sp<SkData> data = SkData::MakeWithCopy(decoded.data(), decoded.size());
-                std::unique_ptr<SkCodec> codec = SkPngDecoder::Decode(data, nullptr);
-                if (codec) {
-                    SkBitmap bitmap;
-                    bitmap.allocPixels(codec->getInfo());
-                    if (codec->getPixels(codec->getInfo(), bitmap.getPixels(), bitmap.rowBytes()) == SkCodec::kSuccess) {
-                        image_info info;
-                        info.image = bitmap.asImage();
-                        info.width = info.image->width();
-                        info.height = info.image->height();
-                        m_imageCache[s_src] = info;
-                    }
-                }
-            }
-        }
-    }
 }
 
 void container_skia::set_clip(const litehtml::position& pos, const litehtml::border_radiuses& bdr_radius) {

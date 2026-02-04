@@ -7,7 +7,6 @@ async function init() {
         const Module = await createSatoruModule({
             locateFile: (path: string) => {
                 if (path.endsWith('.wasm')) {
-                    // Use relative path for better portability in dist
                     return './satoru.wasm';
                 }
                 return path;
@@ -16,12 +15,10 @@ async function init() {
         Module._init_engine();
         
         const loadFont = async (name: string, url: string) => {
-            console.log(`Loading font: ${name} from ${url}`);
             const resp = await fetch(url);
             const buffer = await resp.arrayBuffer();
             const data = new Uint8Array(buffer);
             
-            // Modern Emscripten string passing
             const nameLen = Module.lengthBytesUTF8(name) + 1;
             const namePtr = Module._malloc(nameLen);
             Module.stringToUTF8(name, namePtr, nameLen);
@@ -33,7 +30,6 @@ async function init() {
             
             Module._free(namePtr);
             Module._free(dataPtr);
-            console.log(`Font ${name} load call finished.`);
         };
 
         const app = document.getElementById('app');
@@ -87,6 +83,7 @@ async function init() {
                                 <option value="04-japanese-rendering.html">04-japanese-rendering.html</option>
                                 <option value="05-ui-components.html">05-ui-components.html</option>
                                 <option value="06-complex-layout.html">06-complex-layout.html</option>
+                                <option value="07-image-embedding.html">07-image-embedding.html</option>
                             </select>
                         </fieldset>
                     </div>
@@ -143,6 +140,41 @@ async function init() {
                 }
             };
 
+            const preloadImages = async (html: string) => {
+                Module._clear_images();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const images = Array.from(doc.querySelectorAll('img'));
+                
+                // Find background images in inline styles
+                const bgMatches = html.matchAll(/background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g);
+                const dataUrls = new Set<string>();
+                for (const img of images) {
+                    if (img.src.startsWith('data:')) dataUrls.add(img.src);
+                }
+                for (const match of bgMatches) {
+                    dataUrls.add(match[1]);
+                }
+
+                await Promise.all(Array.from(dataUrls).map(async (url) => {
+                    return new Promise<void>((resolve) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const name = url;
+                            Module.ccall(
+                                'load_image',
+                                null,
+                                ['string', 'string', 'number', 'number'],
+                                [name, url, img.width, img.height]
+                            );
+                            resolve();
+                        };
+                        img.onerror = () => resolve();
+                        img.src = url;
+                    });
+                }));
+            };
+
             const performConversion = async () => {
                 const htmlStr = htmlInput.value;
                 const width = parseInt(canvasWidthInput.value) || 800;
@@ -155,7 +187,7 @@ async function init() {
                 convertBtn.disabled = true;
                 convertBtn.style.opacity = '0.7';
 
-                // Small delay to ensure UI updates
+                await preloadImages(htmlStr);
                 await new Promise(resolve => setTimeout(resolve, 50));
 
                 try {
@@ -185,14 +217,12 @@ async function init() {
             const NOTO_700 = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-700-normal.woff2';
 
             const loadAllFonts = async () => {
-                console.log('Starting fonts load...');
                 await Promise.all([
                     loadFont('Roboto', ROBOTO_400),
                     loadFont('Roboto', ROBOTO_700),
                     loadFont('Noto Sans JP', NOTO_400),
                     loadFont('Noto Sans JP', NOTO_700)
                 ]);
-                console.log('Fonts loaded successfully.');
             };
 
             // Auto-load default fonts
@@ -225,9 +255,9 @@ async function init() {
   <p style="font-size: 20px; color: #0d47a1; font-family: 'Noto Sans JP'; margin-top: 20px; font-weight: 700;">
     日本語の太字（Bold）も表示可能です。
   </p>
-  <p style="font-size: 18px; color: #1565c0; font-family: 'Noto Sans JP'; font-weight: 400;">
-    こちらは通常の太さ（Regular）の日本語です。
-  </p>
+  <div style="text-align: center; margin-top: 20px;">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAALUlEQVRYR+3QQREAAAzCQJ9/aaYpAtpAn7Z6AgICAgICAgICAgICAgICAgICAj8WpAEBArZunQAAAABJRU5ErkJggg==" style="width: 64px; height: 64px; border: 2px solid white; border-radius: 8px;" />
+  </div>
 </div>`;
             updatePreview();
 

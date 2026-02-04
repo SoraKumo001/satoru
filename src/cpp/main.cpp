@@ -8,6 +8,7 @@
 #include "include/core/SkData.h"
 #include "include/core/SkStream.h"
 #include "include/core/SkBitmap.h"
+#include "include/core/SkImage.h"
 #include "include/ports/SkFontMgr_empty.h"
 #include "include/svg/SkSVGCanvas.h"
 #include "include/codec/SkPngDecoder.h"
@@ -20,6 +21,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <regex>
 
 static sk_sp<SkFontMgr> g_fontMgr;
 static std::map<std::string, std::vector<sk_sp<SkTypeface>>> g_typefaceCache;
@@ -48,28 +50,13 @@ extern "C" {
     }
 
     EMSCRIPTEN_KEEPALIVE
-    void load_image(const char* name, const uint8_t* data, int size, int width, int height) {
-        if (!name || !data || size <= 0) return;
+    void load_image(const char* name, const char* data_url, int width, int height) {
+        if (!name || !data_url) return;
         
-        sk_sp<SkData> skData = SkData::MakeWithCopy(data, size);
-        std::unique_ptr<SkCodec> codec = SkPngDecoder::Decode(skData, nullptr);
-        if (codec) {
-            SkBitmap bitmap;
-            bitmap.allocPixels(codec->getInfo());
-            if (codec->getPixels(codec->getInfo(), bitmap.getPixels(), bitmap.rowBytes()) == SkCodec::kSuccess) {
-                image_info info;
-                info.image = bitmap.asImage();
-                info.width = (width > 0) ? width : info.image->width();
-                info.height = (height > 0) ? height : info.image->height();
-                g_imageCache[std::string(name)] = info;
-                return;
-            }
-        }
-
         image_info info;
         info.width = width;
         info.height = height;
-        info.image = nullptr;
+        info.data_url = std::string(data_url);
         g_imageCache[std::string(name)] = info;
     }
 
@@ -91,10 +78,10 @@ extern "C" {
         container_skia container(width, initial_height, nullptr, 
                                  g_fontMgr, g_typefaceCache, g_defaultTypeface, g_fallbackTypefaces, g_imageCache);
         
-        // Merge standard master_css with our fixes
         std::string css = litehtml::master_css;
         css += "\nbr { display: -litehtml-br !important; }\n";
         css += "* { box-sizing: border-box; }\n";
+        css += "button { text-align: center; }\n";
 
         litehtml::document::ptr doc = litehtml::document::createFromString(html, &container, css.c_str());
         if (!doc) return "";
@@ -117,10 +104,52 @@ extern "C" {
 
         canvas.reset();
 
-        static std::string svg_out;
         sk_sp<SkData> data = stream.detachAsData();
-        svg_out.assign((const char*)data->data(), data->size());
+        std::string svg_str((const char*)data->data(), data->size());
 
-        return svg_out.c_str();
+        // Post-process SVG to replace marker rectangles with actual images
+        std::regex rect_regex("<rect ([^>]*?)/?>");
+        auto words_begin = std::sregex_iterator(svg_str.begin(), svg_str.end(), rect_regex);
+        auto words_end = std::sregex_iterator();
+
+        std::string processed_svg;
+        size_t last_pos = 0;
+
+        for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+            std::smatch match = *i;
+            std::string attributes = match[1].str();
+            
+            bool found = false;
+            std::string data_url;
+            for (int j = 1; j <= (int)container.get_image_count(); ++j) {
+                char hex_upper[16], hex_lower[16], rgb[32];
+                sprintf(hex_upper, "#0000%02X", j);
+                sprintf(hex_lower, "#0000%02x", j);
+                sprintf(rgb, "rgb(0,0,%d)", j);
+                
+                if (attributes.find(hex_upper) != std::string::npos || 
+                    attributes.find(hex_lower) != std::string::npos || 
+                    attributes.find(rgb) != std::string::npos) {
+                    found = true;
+                    data_url = g_imageCache[container.get_image_url(j)].data_url;
+                    break;
+                }
+            }
+
+            processed_svg += svg_str.substr(last_pos, match.position() - last_pos);
+            if (found) {
+                std::regex fill_regex("fill=\"(.*?)\"");
+                std::string new_attributes = std::regex_replace(attributes, fill_regex, "");
+                processed_svg += "<image " + new_attributes + " xlink:href=\"" + data_url + "\"/>";
+            } else {
+                processed_svg += match.str();
+            }
+            last_pos = match.position() + match.length();
+        }
+        processed_svg += svg_str.substr(last_pos);
+
+        static std::string final_out;
+        final_out = processed_svg;
+        return final_out.c_str();
     }
 }

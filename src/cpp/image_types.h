@@ -3,11 +3,12 @@
 
 #include "include/core/SkImage.h"
 #include "include/core/SkRefCnt.h"
+#include <string>
 
 struct image_info {
-    sk_sp<SkImage> image;
     int width;
     int height;
+    std::string data_url;
 };
 
 #endif // IMAGE_TYPES_H

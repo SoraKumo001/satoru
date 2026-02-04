@@ -5,12 +5,10 @@
     "freetype",
     "litehtml",
     "gumbo",
-    {
-      "name": "skia",
-      "default-features": false,
-      "features": [
-        "freetype"
-      ]
-    }
+    "zlib",
+    "libpng",
+    "bzip2",
+    "brotli",
+    "expat"
   ]
 }

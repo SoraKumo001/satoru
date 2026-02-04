@@ -7,8 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "cmake-configure": "powershell -Command \"if (!(Test-Path build-wasm)) { mkdir build-wasm }; cd build-wasm; C:\\emsdk\\emsdk.ps1 activate latest; emcmake cmake .. -G 'Unix Makefiles'\"",
-    "cmake-build": "powershell -Command \"cd build-wasm; C:\\emsdk\\emsdk.ps1 activate latest; emmake make -j8\"",
+    "cmake-configure": "powershell -Command \"if (Test-Path build-wasm) { Remove-Item -Recurse -Force build-wasm }; mkdir build-wasm; cd build-wasm; C:\\emsdk\\emsdk.ps1 activate latest; emcmake cmake .. -G 'Unix Makefiles'\"",
+    "cmake-build": "powershell -Command \"cd build-wasm; C:\\emsdk\\emsdk.ps1 activate latest; emmake make -j16\"",
     "compile-wasm": "npm run cmake-configure && npm run cmake-build"
   },
   "devDependencies": {

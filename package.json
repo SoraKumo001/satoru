@@ -1,0 +1,17 @@
+{
+  "name": "satoru",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "cmake-configure": "powershell -Command \"if (!(Test-Path build-wasm)) { mkdir build-wasm }; cd build-wasm; C:\\emsdk\\emsdk.ps1 activate latest; emcmake cmake .. -G 'Unix Makefiles' \"-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake\" \"-DVCPKG_TARGET_TRIPLET=wasm32-emscripten\"\"",
+    "cmake-build": "powershell -Command \"cd build-wasm; C:\\emsdk\\emsdk.ps1 activate latest; emmake make\"",
+    "compile-wasm": "npm run cmake-configure && npm run cmake-build"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vite": "^4.0.0"
+  }
+}

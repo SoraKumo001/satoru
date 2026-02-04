@@ -22,7 +22,7 @@ class container_skia : public litehtml::document_container {
     int m_width;
     int m_height;
     sk_sp<SkFontMgr>& m_fontMgr;
-    std::map<std::string, sk_sp<SkTypeface>>& m_typefaceCache;
+    std::map<std::string, std::vector<sk_sp<SkTypeface>>>& m_typefaceCache;
     sk_sp<SkTypeface>& m_defaultTypeface;
     std::vector<sk_sp<SkTypeface>>& m_fallbackTypefaces;
     std::map<std::string, image_info>& m_imageCache;
@@ -30,7 +30,7 @@ class container_skia : public litehtml::document_container {
 public:
     container_skia(int w, int h, SkCanvas* canvas,
                   sk_sp<SkFontMgr>& fontMgr,
-                  std::map<std::string, sk_sp<SkTypeface>>& typefaceCache,
+                  std::map<std::string, std::vector<sk_sp<SkTypeface>>>& typefaceCache,
                   sk_sp<SkTypeface>& defaultTypeface,
                   std::vector<sk_sp<SkTypeface>>& fallbackTypefaces,
                   std::map<std::string, image_info>& imageCache);

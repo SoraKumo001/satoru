@@ -19,7 +19,7 @@
 
 container_skia::container_skia(int w, int h, SkCanvas* canvas,
                              sk_sp<SkFontMgr>& fontMgr,
-                             std::map<std::string, sk_sp<SkTypeface>>& typefaceCache,
+                             std::map<std::string, std::vector<sk_sp<SkTypeface>>>& typefaceCache,
                              sk_sp<SkTypeface>& defaultTypeface,
                              std::vector<sk_sp<SkTypeface>>& fallbackTypefaces,
                              std::map<std::string, image_info>& imageCache)
@@ -33,7 +33,23 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
     sk_sp<SkTypeface> typeface;
     
     auto it = m_typefaceCache.find(cleanedName);
-    if (it != m_typefaceCache.end()) typeface = it->second;
+    if (it != m_typefaceCache.end()) {
+        const auto& variations = it->second;
+        if (!variations.empty()) {
+            int bestScore = -1;
+            for (const auto& tf : variations) {
+                SkFontStyle tfStyle = tf->fontStyle();
+                int score = 0;
+                if ((int)tfStyle.slant() == (int)desc.style) score += 1000;
+                int weightDiff = std::abs(tfStyle.weight() - desc.weight);
+                score += (1000 - weightDiff);
+                if (score > bestScore) {
+                    bestScore = score;
+                    typeface = tf;
+                }
+            }
+        }
+    }
     
     if (!typeface) {
         if (m_defaultTypeface) typeface = m_defaultTypeface;
@@ -44,7 +60,13 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
 
     SkFont* font = new SkFont(typeface, (float)desc.size);
     font->setSubpixel(true);
-    font->setEdging(SkFont::Edging::kAntiAlias); font->setHinting(SkFontHinting::kNone); font->setLinearMetrics(true);
+    font->setEdging(SkFont::Edging::kAntiAlias); 
+    font->setHinting(SkFontHinting::kNone); 
+    font->setLinearMetrics(true);
+
+    if (desc.style == litehtml::font_style_italic && typeface->fontStyle().slant() == SkFontStyle::kUpright_Slant) {
+        font->setSkewX(-0.25f);
+    }
     
     if (fm) {
         SkFontMetrics skFm;
@@ -106,8 +128,6 @@ litehtml::pixel_t container_skia::text_width(const char* text, litehtml::uint_pt
         }
     }
     
-    // Using a tiny constant padding (0.1px) to avoid precision-based overflow, 
-    // but avoiding ceil() to prevent cumulative layout shifts in words.
     return (litehtml::pixel_t)(total_width + 0.5f);
 }
 
@@ -120,6 +140,15 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
     paint.setAntiAlias(true);
     paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     
+    float actualWeight = (float)baseFont->getTypeface()->fontStyle().weight();
+    float requestedWeight = (float)fi->desc.weight;
+    if (requestedWeight > actualWeight) {
+        float strokeWidth = (requestedWeight - actualWeight) * baseFont->getSize() / 7500.0f;
+        paint.setStyle(SkPaint::kStrokeAndFill_Style);
+        paint.setStrokeWidth(strokeWidth);
+        paint.setStrokeJoin(SkPaint::kRound_Join);
+    }
+
     SkFontMetrics skFm;
     baseFont->getMetrics(&skFm);
     float baseline_y = (float)pos.y - skFm.fAscent;

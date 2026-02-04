@@ -179,20 +179,30 @@ async function init() {
                 }
             };
 
-            const NOTO_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2';
-            const ROBOTO_URL = 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2';
+            const ROBOTO_400 = 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2';
+            const ROBOTO_700 = 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2';
+            const NOTO_400 = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2';
+            const NOTO_700 = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-700-normal.woff2';
 
-            // Auto-load default fonts (Roboto & Noto Sans JP)
+            const loadAllFonts = async () => {
+                console.log('Starting fonts load...');
+                await Promise.all([
+                    loadFont('Roboto', ROBOTO_400),
+                    loadFont('Roboto', ROBOTO_700),
+                    loadFont('Noto Sans JP', NOTO_400),
+                    loadFont('Noto Sans JP', NOTO_700)
+                ]);
+                console.log('Fonts loaded successfully.');
+            };
+
+            // Auto-load default fonts
             (async () => {
                 try {
                     if (loadFontBtn) {
                         loadFontBtn.setAttribute('disabled', 'true');
                         loadFontBtn.innerText = 'Loading Fonts...';
                     }
-                    await Promise.all([
-                        loadFont('Roboto', ROBOTO_URL),
-                        loadFont('Noto Sans JP', NOTO_URL)
-                    ]);
+                    await loadAllFonts();
                     if (loadFontBtn) loadFontBtn.innerText = 'Fonts Loaded \u2713';
                     performConversion();
                 } catch (e) {
@@ -207,13 +217,16 @@ async function init() {
             // Initial content
             htmlInput.value = `
 <div style="padding: 40px; background-color: #e3f2fd; border: 5px solid #2196f3; border-radius: 24px;">
-  <h1 style="color: #0d47a1; font-family: 'Roboto'; font-size: 48px; text-align: center; margin-bottom: 10px;">Outline Fonts in Wasm</h1>
-  <p style="font-size: 22px; color: #1565c0; line-height: 1.5; font-family: 'Roboto';">
+  <h1 style="color: #0d47a1; font-family: 'Roboto'; font-size: 48px; text-align: center; margin-bottom: 10px; font-weight: 700;">Outline Fonts in Wasm</h1>
+  <p style="font-size: 22px; color: #1565c0; line-height: 1.5; font-family: 'Roboto'; font-weight: 400;">
     This SVG is rendered using <b>Skia's SVG Canvas</b>. 
     The text is precisely measured and positioned using <b>FreeType</b> metrics.
   </p>
-  <p style="font-size: 20px; color: #0d47a1; font-family: 'Noto Sans JP'; margin-top: 20px;">
-    日本語の表示も可能です（Noto Sans JPをロード済み）。
+  <p style="font-size: 20px; color: #0d47a1; font-family: 'Noto Sans JP'; margin-top: 20px; font-weight: 700;">
+    日本語の太字（Bold）も表示可能です。
+  </p>
+  <p style="font-size: 18px; color: #1565c0; font-family: 'Noto Sans JP'; font-weight: 400;">
+    こちらは通常の太さ（Regular）の日本語です。
   </p>
 </div>`;
             updatePreview();
@@ -240,10 +253,7 @@ async function init() {
                 loadFontBtn.innerText = 'Loading...';
                 loadFontBtn.setAttribute('disabled', 'true');
                 try {
-                    await Promise.all([
-                        loadFont('Roboto', ROBOTO_URL),
-                        loadFont('Noto Sans JP', NOTO_URL)
-                    ]);
+                    await loadAllFonts();
                     loadFontBtn.innerText = 'Fonts Loaded \u2713';
                     performConversion();
                 } catch (e) {

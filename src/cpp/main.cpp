@@ -22,7 +22,7 @@
 #include <map>
 
 static sk_sp<SkFontMgr> g_fontMgr;
-static std::map<std::string, sk_sp<SkTypeface>> g_typefaceCache;
+static std::map<std::string, std::vector<sk_sp<SkTypeface>>> g_typefaceCache;
 static sk_sp<SkTypeface> g_defaultTypeface;
 static std::vector<sk_sp<SkTypeface>> g_fallbackTypefaces;
 static std::map<std::string, image_info> g_imageCache;
@@ -41,7 +41,7 @@ extern "C" {
         sk_sp<SkData> skData = SkData::MakeWithCopy(data, size);
         sk_sp<SkTypeface> typeface = g_fontMgr->makeFromData(skData);
         if (typeface) {
-            g_typefaceCache[cleanedName] = typeface;
+            g_typefaceCache[cleanedName].push_back(typeface);
             if (!g_defaultTypeface) g_defaultTypeface = typeface;
             g_fallbackTypefaces.push_back(typeface);
         }

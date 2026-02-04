@@ -23,11 +23,13 @@ include_directories(
     "external/skia/include/effects"
     "external/skia/include/svg"
     "external/skia/include/encode"
+    "external/skia/include/codec"
     "external/skia/modules/skcms"
     "external/skia/src/core"
     "external/skia/src/base"
     "external/skia/src/text"
     "external/skia/src/utils"
+    "external/skia/src/codec"
 )
 
 link_directories("${VCPKG_INSTALLED_DIR}/lib")
@@ -53,6 +55,19 @@ file(GLOB SKIA_CORE_SRC
     "external/skia/src/text/*.cpp"
     "external/skia/modules/skcms/skcms.cc"
     "external/skia/src/encode/SkPngEncoder.cpp"
+    # --- Selected Codec Files (Minimal for PNG) ---
+    "external/skia/src/codec/SkCodec.cpp"
+    "external/skia/src/codec/SkCodecImageGenerator.cpp"
+    "external/skia/src/codec/SkImageGenerator_FromEncoded.cpp"
+    "external/skia/src/codec/SkEncodedInfo.cpp"
+    "external/skia/src/codec/SkPngCodec.cpp"
+    "external/skia/src/codec/SkPngCodecBase.cpp"
+    "external/skia/src/codec/SkParseEncodedOrigin.cpp"
+    "external/skia/src/codec/SkMaskSwizzler.cpp"
+    "external/skia/src/codec/SkSwizzler.cpp"
+    "external/skia/src/codec/SkSampler.cpp"
+    "external/skia/src/codec/SkColorPalette.cpp"
+    "external/skia/src/codec/SkPixmapUtils.cpp"
 )
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkPDF.*|.*SkGPU.*")
@@ -74,6 +89,7 @@ target_compile_definitions(main PRIVATE
     SK_SUPPORT_PDF=0 
     SK_SUPPORT_GPU=0 
     SK_ENABLE_SVG=1
+    SK_CODEC_DECODES_PNG
 )
 
 set_target_properties(main PROPERTIES
@@ -106,7 +122,7 @@ target_link_options(main PRIVATE
     "-sERROR_ON_UNDEFINED_SYMBOLS=0"
     "-sWARN_ON_UNDEFINED_SYMBOLS=0"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','getValue','setValue','HEAPU8','stringToUTF8','lengthBytesUTF8']"
-    "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_malloc','_free','_load_font','_clear_fonts']"
+    "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_malloc','_free','_load_font','_clear_fonts','_load_image','_clear_images']"
     "-o${CMAKE_CURRENT_SOURCE_DIR}/public/satoru.js"
     "-sALLOW_MEMORY_GROWTH=1"
 )

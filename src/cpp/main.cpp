@@ -14,15 +14,24 @@
 #include "include/ports/SkFontMgr_empty.h"
 #include "include/svg/SkSVGCanvas.h"
 #include "include/core/SkStream.h"
+#include "include/core/SkImage.h"
+#include "include/codec/SkPngDecoder.h"
 #include <string>
 #include <vector>
 #include <map>
 #include <cstdio>
 #include <algorithm>
 
+struct image_info {
+    sk_sp<SkImage> image;
+    int width;
+    int height;
+};
+
 static sk_sp<SkFontMgr> g_fontMgr;
 static std::map<std::string, sk_sp<SkTypeface>> g_typefaceCache;
 static sk_sp<SkTypeface> g_defaultTypeface;
+static std::map<std::string, image_info> g_imageCache;
 
 // Stronger helper to remove all kinds of quotes and extra characters
 std::string clean_font_name(const char* name) {
@@ -42,8 +51,12 @@ std::string clean_font_name(const char* name) {
 class container_skia : public litehtml::document_container {
     SkCanvas* m_canvas;
     int m_width;
+    int m_height;
 public:
-    container_skia(int w, SkCanvas* canvas) : m_width(w), m_canvas(canvas) {}
+    container_skia(int w, int h, SkCanvas* canvas) : m_width(w), m_height(h), m_canvas(canvas) {}
+
+    void set_canvas(SkCanvas* canvas) { m_canvas = canvas; }
+    void set_height(int h) { m_height = h; }
 
     litehtml::uint_ptr create_font(const char* faceName, int size, int weight, litehtml::font_style italic, unsigned int decoration, litehtml::font_metrics* fm) override {
         std::string cleanedName = clean_font_name(faceName);
@@ -106,6 +119,18 @@ public:
     void draw_background(litehtml::uint_ptr hdc, const std::vector<litehtml::background_paint>& bg) override {
         if (!m_canvas) return;
         for(const auto& paint : bg) {
+            if (!paint.image.empty()) {
+                std::string url = paint.image;
+                if (url.find("url('") == 0) url = url.substr(5, url.length() - 7);
+                else if (url.find("url(") == 0) url = url.substr(4, url.length() - 5);
+                
+                auto it = g_imageCache.find(url);
+                if (it != g_imageCache.end() && it->second.image) {
+                    SkRect rect = SkRect::MakeXYWH((float)paint.border_box.x, (float)paint.border_box.y, (float)paint.border_box.width, (float)paint.border_box.height);
+                    m_canvas->drawImageRect(it->second.image, rect, SkSamplingOptions(), nullptr);
+                }
+            }
+
             SkPaint skPaint;
             skPaint.setAntiAlias(true);
             skPaint.setColor(SkColorSetARGB(paint.color.alpha, paint.color.red, paint.color.green, paint.color.blue));
@@ -149,22 +174,32 @@ public:
     int pt_to_px(int pt) const override { return pt; }
     int get_default_font_size() const override { return 16; }
     const char* get_default_font_name() const override { return "sans-serif"; }
+
     void load_image(const char* src, const char* baseurl, bool redraw_on_ready) override {}
-    void get_image_size(const char* src, const char* baseurl, litehtml::size& sz) override {}
+
+    void get_image_size(const char* src, const char* baseurl, litehtml::size& sz) override {
+        std::string key = src;
+        auto it = g_imageCache.find(key);
+        if (it != g_imageCache.end()) {
+            sz.width = it->second.width;
+            sz.height = it->second.height;
+        }
+    }
+
     void set_caption(const char* caption) override {}
     void set_base_url(const char* base_url) override {}
     void on_anchor_click(const char* url, const litehtml::element::ptr& el) override {}
     void set_cursor(const char* cursor) override {}
     void transform_text(litehtml::string& text, litehtml::text_transform tt) override {}
     void import_css(litehtml::string& text, const litehtml::string& url, litehtml::string& baseurl) override {}
-    void get_client_rect(litehtml::position& client) const override { client.width = m_width; client.height = 10000; }
+    void get_client_rect(litehtml::position& client) const override { client.x = 0; client.y = 0; client.width = m_width; client.height = m_height; }
     litehtml::element::ptr create_element(const char* tag_name, const litehtml::string_map& attributes, const litehtml::document::ptr& doc) override { return nullptr; }
     void get_media_features(litehtml::media_features& features) const override {
         features.type = litehtml::media_type_screen;
         features.width = m_width;
-        features.height = 10000;
+        features.height = m_height;
         features.device_width = m_width;
-        features.device_height = 10000;
+        features.device_height = m_height;
         features.color = 8;
         features.monochrome = 0;
         features.color_index = 256;
@@ -181,6 +216,7 @@ extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void init_engine() {
         SkGraphics::Init();
+        SkPngDecoder::Decoder();
         g_fontMgr = SkFontMgr_New_Custom_Empty();
     }
 
@@ -196,6 +232,25 @@ extern "C" {
     }
 
     EMSCRIPTEN_KEEPALIVE
+    void load_image(const char* name, const uint8_t* data, int size, int width, int height) {
+        if (!name || !data || size <= 0) return;
+        
+        image_info info;
+        info.width = width;
+        info.height = height;
+        
+        sk_sp<SkData> skData = SkData::MakeWithCopy(data, size);
+        info.image = SkImages::DeferredFromEncodedData(skData);
+        
+        g_imageCache[std::string(name)] = info;
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    void clear_images() {
+        g_imageCache.clear();
+    }
+
+    EMSCRIPTEN_KEEPALIVE
     void clear_fonts() {
         g_typefaceCache.clear();
         g_defaultTypeface = nullptr;
@@ -205,23 +260,22 @@ extern "C" {
     const char* html_to_svg(const char* html, int width, int height) {
         const char* default_css = "html,body { margin: 0; padding: 0; display: block; } div { box-sizing: border-box; }";
         
-        container_skia measureContainer(width, nullptr);
-        litehtml::document::ptr doc = litehtml::document::createFromString(html, &measureContainer, default_css);
+        int initial_height = (height > 0) ? height : 1000;
+        container_skia container(width, initial_height, nullptr);
+        litehtml::document::ptr doc = litehtml::document::createFromString(html, &container, default_css);
         doc->render(width);
         
         int content_height = (height > 0) ? height : doc->height();
-        if (content_height < 10) content_height = 500;
+        if (content_height < 1) content_height = 1;
+        
+        container.set_height(content_height);
 
         SkDynamicMemoryWStream stream;
         SkRect bounds = SkRect::MakeWH((float)width, (float)content_height);
         std::unique_ptr<SkCanvas> canvas = SkSVGCanvas::Make(bounds, &stream);
 
-        container_skia container(width, canvas.get());
-        doc = litehtml::document::createFromString(html, &container, default_css);
-        doc->render(width);
-        
-        litehtml::position clip(0, 0, width, content_height);
-        doc->draw(0, 0, 0, &clip);
+        container.set_canvas(canvas.get());
+        doc->draw(0, 0, 0, nullptr);
 
         canvas.reset();
 

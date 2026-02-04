@@ -72,6 +72,18 @@ async function init() {
                             <textarea id="svgSource" style="width: 100%; height: 250px; font-family: monospace; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; background: #fdfdfd;" readonly></textarea>
                         </div>
                     </div>
+
+                    <div style="margin-top: 40px; padding: 20px; border-top: 3px solid #ccc;">
+                        <h3>Stress Test Result (from temp/stress_test.svg)</h3>
+                        <div style="margin-bottom: 10px;">
+                            <button id="loadStressTestBtn" style="padding: 10px 20px; background: #673ab7; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Load Generated SVG
+                            </button>
+                        </div>
+                        <div id="stressTestContainer" style="border: 2px dashed #999; padding: 20px; background: #fff; overflow: auto; min-height: 200px;">
+                            <p style="color: #666; text-align: center;">Click button to load generated SVG</p>
+                        </div>
+                    </div>
                 </div>
             `;
 
@@ -82,13 +94,15 @@ async function init() {
             const svgContainer = document.getElementById('svgContainer');
             const svgSource = document.getElementById('svgSource') as HTMLTextAreaElement;
             const canvasWidthInput = document.getElementById('canvasWidth') as HTMLInputElement;
+            const loadStressTestBtn = document.getElementById('loadStressTestBtn');
+            const stressTestContainer = document.getElementById('stressTestContainer');
 
             loadFontBtn?.addEventListener('click', async () => {
                 loadFontBtn.innerText = 'Loading...';
                 loadFontBtn.setAttribute('disabled', 'true');
                 try {
                     await loadFont('Roboto', 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2');
-                    loadFontBtn.innerText = 'Roboto Loaded ✓';
+                    loadFontBtn.innerText = 'Roboto Loaded \u2713';
                 } catch (e) {
                     console.error('Font load failed:', e);
                     loadFontBtn.innerText = 'Load Failed';
@@ -129,6 +143,23 @@ async function init() {
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+            });
+
+            loadStressTestBtn?.addEventListener('click', async () => {
+                try {
+                    // Fetch the SVG through the symlink created in public/temp
+                    const response = await fetch('/temp/stress_test.svg?t=' + Date.now());
+                    if (!response.ok) throw new Error('Failed to load SVG');
+                    const text = await response.text();
+                    if (stressTestContainer) {
+                        stressTestContainer.innerHTML = text;
+                    }
+                } catch (e) {
+                    console.error('Error loading stress test SVG:', e);
+                    if (stressTestContainer) {
+                        stressTestContainer.innerHTML = '<p style="color: red;">Failed to load stress_test.svg. Make sure the symlink exists and the file was generated.</p>';
+                    }
+                }
             });
         }
     } catch (e) {

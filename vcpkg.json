@@ -4,6 +4,13 @@
   "dependencies": [
     "freetype",
     "litehtml",
-    "gumbo"
+    "gumbo",
+    {
+      "name": "skia",
+      "default-features": false,
+      "features": [
+        "freetype"
+      ]
+    }
   ]
 }

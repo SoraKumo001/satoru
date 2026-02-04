@@ -39,6 +39,35 @@ async function init() {
         const app = document.getElementById('app');
         if (app) {
             app.innerHTML = `
+                <style>
+                    .loading-overlay {
+                        position: absolute;
+                        top: 0; left: 0; right: 0; bottom: 0;
+                        background: rgba(255, 255, 255, 0.7);
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        z-index: 10;
+                        border-radius: 8px;
+                        font-weight: bold;
+                        color: #2196F3;
+                        backdrop-filter: blur(2px);
+                    }
+                    .spinner {
+                        width: 40px;
+                        height: 40px;
+                        border: 4px solid #f3f3f3;
+                        border-top: 4px solid #2196F3;
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                        margin-right: 15px;
+                    }
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                    #svgContainer { position: relative; }
+                </style>
                 <div style="padding: 20px; font-family: sans-serif; max-width: 1000px; margin: 0 auto; background: #fafafa; min-height: 100vh;">
                     <h2 style="color: #2196F3; border-bottom: 2px solid #2196F3; padding-bottom: 10px;">Satoru Engine: HTML to Pure SVG</h2>
                     
@@ -57,6 +86,7 @@ async function init() {
                                 <option value="03-flexbox-layout.html">03-flexbox-layout.html</option>
                                 <option value="04-japanese-rendering.html">04-japanese-rendering.html</option>
                                 <option value="05-ui-components.html">05-ui-components.html</option>
+                                <option value="06-complex-layout.html">06-complex-layout.html</option>
                             </select>
                         </fieldset>
                     </div>
@@ -94,12 +124,12 @@ async function init() {
                 </div>
             `;
 
-            const convertBtn = document.getElementById('convertBtn');
+            const convertBtn = document.getElementById('convertBtn') as HTMLButtonElement;
             const loadFontBtn = document.getElementById('loadFontBtn');
             const downloadBtn = document.getElementById('downloadBtn');
             const htmlInput = document.getElementById('htmlInput') as HTMLTextAreaElement;
             const htmlPreview = document.getElementById('htmlPreview') as HTMLIFrameElement;
-            const svgContainer = document.getElementById('svgContainer');
+            const svgContainer = document.getElementById('svgContainer') as HTMLDivElement;
             const svgSource = document.getElementById('svgSource') as HTMLTextAreaElement;
             const canvasWidthInput = document.getElementById('canvasWidth') as HTMLInputElement;
             const assetSelect = document.getElementById('assetSelect') as HTMLSelectElement;
@@ -113,9 +143,20 @@ async function init() {
                 }
             };
 
-            const performConversion = () => {
+            const performConversion = async () => {
                 const htmlStr = htmlInput.value;
                 const width = parseInt(canvasWidthInput.value) || 800;
+
+                // Show loading effect
+                const loadingOverlay = document.createElement('div');
+                loadingOverlay.className = 'loading-overlay';
+                loadingOverlay.innerHTML = '<div class="spinner"></div> Converting...';
+                svgContainer.appendChild(loadingOverlay);
+                convertBtn.disabled = true;
+                convertBtn.style.opacity = '0.7';
+
+                // Small delay to ensure UI updates
+                await new Promise(resolve => setTimeout(resolve, 50));
 
                 try {
                     const svgResult = Module.ccall(
@@ -125,14 +166,16 @@ async function init() {
                         [htmlStr, width, 0]
                     );
                     
-                    if (svgContainer) {
-                        svgContainer.innerHTML = svgResult;
-                        svgContainer.style.background = "#fff";
-                    }
+                    svgContainer.innerHTML = svgResult;
+                    svgContainer.style.background = "#fff";
                     if (svgSource) svgSource.value = svgResult;
                     if (downloadBtn) downloadBtn.style.display = 'block';
                 } catch (err) {
                     console.error('Error during Wasm call:', err);
+                    svgContainer.innerHTML = '<div style="color: red; padding: 20px;">Conversion Failed</div>';
+                } finally {
+                    convertBtn.disabled = false;
+                    convertBtn.style.opacity = '1.0';
                 }
             };
 
@@ -146,14 +189,11 @@ async function init() {
                         loadFontBtn.setAttribute('disabled', 'true');
                         loadFontBtn.innerText = 'Loading Fonts...';
                     }
-                    console.log('Starting default fonts load...');
                     await Promise.all([
                         loadFont('Roboto', ROBOTO_URL),
                         loadFont('Noto Sans JP', NOTO_URL)
                     ]);
-                    console.log('Default fonts loaded successfully.');
                     if (loadFontBtn) loadFontBtn.innerText = 'Fonts Loaded \u2713';
-                    // Trigger initial conversion once fonts are ready
                     performConversion();
                 } catch (e) {
                     console.error('Failed to load default fonts:', e);
@@ -184,13 +224,12 @@ async function init() {
                 const asset = assetSelect.value;
                 if (!asset) return;
                 try {
-                    // Use relative path for fetching assets
                     const resp = await fetch(`./assets/${asset}`);
                     if (!resp.ok) throw new Error('Failed to fetch asset');
                     const text = await resp.text();
                     htmlInput.value = text;
                     updatePreview();
-                    performConversion(); // Auto-convert on asset change
+                    performConversion();
                 } catch (e) {
                     console.error('Error loading asset:', e);
                     alert('Failed to load asset');

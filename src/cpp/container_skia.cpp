@@ -44,7 +44,7 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
 
     SkFont* font = new SkFont(typeface, (float)desc.size);
     font->setSubpixel(true);
-    font->setEdging(SkFont::Edging::kAntiAlias);
+    font->setEdging(SkFont::Edging::kAntiAlias); font->setHinting(SkFontHinting::kNone); font->setLinearMetrics(true);
     
     if (fm) {
         SkFontMetrics skFm;

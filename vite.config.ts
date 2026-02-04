@@ -1,18 +1,16 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  base: './',
   server: {
+    port: 3000,
+    open: true,
     fs: {
-      allow: ['.', './dist']
+      allow: ['.']
     }
-  },
-  optimizeDeps: {
-    // Prevent Vite from trying to optimize the Emscripten output
-    exclude: ['../dist/wasm/main.js']
   },
   build: {
-    commonjsOptions: {
-      include: [/dist\/wasm\/main\.js/],
-    }
+    outDir: 'dist',
+    assetsDir: 'assets',
   }
 });

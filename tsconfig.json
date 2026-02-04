@@ -9,6 +9,5 @@
     "forceConsistentCasingInFileNames": true,
     "allowJs": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["dist/**/*"]
+  "include": ["src/**/*"]
 }

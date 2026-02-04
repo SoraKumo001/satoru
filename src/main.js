@@ -1,41 +1,32 @@
-// Declare the global factory function provided by satoru.js
-declare function createSatoruModule(options?: any): Promise<any>;
-
+"use strict";
 async function init() {
     console.log('Initializing Satoru Engine (Skia + Wasm)...');
     try {
         const Module = await createSatoruModule({
-            locateFile: (path: string) => {
+            locateFile: (path) => {
                 if (path.endsWith('.wasm')) {
-                    // Use relative path for better portability in dist
-                    return './satoru.wasm';
+                    return '/satoru.wasm';
                 }
                 return path;
             }
         });
         Module._init_engine();
-        
-        const loadFont = async (name: string, url: string) => {
+        const loadFont = async (name, url) => {
             console.log(`Loading font: ${name} from ${url}`);
             const resp = await fetch(url);
             const buffer = await resp.arrayBuffer();
             const data = new Uint8Array(buffer);
-            
             // Modern Emscripten string passing
             const nameLen = Module.lengthBytesUTF8(name) + 1;
             const namePtr = Module._malloc(nameLen);
             Module.stringToUTF8(name, namePtr, nameLen);
-            
             const dataPtr = Module._malloc(data.length);
             Module.HEAPU8.set(data, dataPtr);
-            
             Module._load_font(namePtr, dataPtr, data.length);
-            
             Module._free(namePtr);
             Module._free(dataPtr);
             console.log(`Font ${name} load call finished.`);
         };
-
         const app = document.getElementById('app');
         if (app) {
             app.innerHTML = `
@@ -93,17 +84,15 @@ async function init() {
                     </div>
                 </div>
             `;
-
             const convertBtn = document.getElementById('convertBtn');
             const loadFontBtn = document.getElementById('loadFontBtn');
             const downloadBtn = document.getElementById('downloadBtn');
-            const htmlInput = document.getElementById('htmlInput') as HTMLTextAreaElement;
-            const htmlPreview = document.getElementById('htmlPreview') as HTMLIFrameElement;
+            const htmlInput = document.getElementById('htmlInput');
+            const htmlPreview = document.getElementById('htmlPreview');
             const svgContainer = document.getElementById('svgContainer');
-            const svgSource = document.getElementById('svgSource') as HTMLTextAreaElement;
-            const canvasWidthInput = document.getElementById('canvasWidth') as HTMLInputElement;
-            const assetSelect = document.getElementById('assetSelect') as HTMLSelectElement;
-
+            const svgSource = document.getElementById('svgSource');
+            const canvasWidthInput = document.getElementById('canvasWidth');
+            const assetSelect = document.getElementById('assetSelect');
             const updatePreview = () => {
                 const doc = htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
                 if (doc) {
@@ -112,33 +101,26 @@ async function init() {
                     doc.close();
                 }
             };
-
             const performConversion = () => {
                 const htmlStr = htmlInput.value;
                 const width = parseInt(canvasWidthInput.value) || 800;
-
                 try {
-                    const svgResult = Module.ccall(
-                        'html_to_svg', 
-                        'string', 
-                        ['string', 'number', 'number'], 
-                        [htmlStr, width, 0]
-                    );
-                    
+                    const svgResult = Module.ccall('html_to_svg', 'string', ['string', 'number', 'number'], [htmlStr, width, 0]);
                     if (svgContainer) {
                         svgContainer.innerHTML = svgResult;
                         svgContainer.style.background = "#fff";
                     }
-                    if (svgSource) svgSource.value = svgResult;
-                    if (downloadBtn) downloadBtn.style.display = 'block';
-                } catch (err) {
+                    if (svgSource)
+                        svgSource.value = svgResult;
+                    if (downloadBtn)
+                        downloadBtn.style.display = 'block';
+                }
+                catch (err) {
                     console.error('Error during Wasm call:', err);
                 }
             };
-
             const NOTO_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2';
             const ROBOTO_URL = 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2';
-
             // Auto-load default fonts (Roboto & Noto Sans JP)
             (async () => {
                 try {
@@ -152,10 +134,12 @@ async function init() {
                         loadFont('Noto Sans JP', NOTO_URL)
                     ]);
                     console.log('Default fonts loaded successfully.');
-                    if (loadFontBtn) loadFontBtn.innerText = 'Fonts Loaded \u2713';
+                    if (loadFontBtn)
+                        loadFontBtn.innerText = 'Fonts Loaded \u2713';
                     // Trigger initial conversion once fonts are ready
                     performConversion();
-                } catch (e) {
+                }
+                catch (e) {
                     console.error('Failed to load default fonts:', e);
                     if (loadFontBtn) {
                         loadFontBtn.innerText = 'Font Load Failed';
@@ -163,7 +147,6 @@ async function init() {
                     }
                 }
             })();
-
             // Initial content
             htmlInput.value = `
 <div style="padding: 40px; background-color: #e3f2fd; border: 5px solid #2196f3; border-radius: 24px;">
@@ -177,26 +160,25 @@ async function init() {
   </p>
 </div>`;
             updatePreview();
-
             htmlInput.addEventListener('input', updatePreview);
-
             assetSelect?.addEventListener('change', async () => {
                 const asset = assetSelect.value;
-                if (!asset) return;
+                if (!asset)
+                    return;
                 try {
-                    // Use relative path for fetching assets
-                    const resp = await fetch(`./assets/${asset}`);
-                    if (!resp.ok) throw new Error('Failed to fetch asset');
+                    const resp = await fetch(`/assets/${asset}`);
+                    if (!resp.ok)
+                        throw new Error('Failed to fetch asset');
                     const text = await resp.text();
                     htmlInput.value = text;
                     updatePreview();
                     performConversion(); // Auto-convert on asset change
-                } catch (e) {
+                }
+                catch (e) {
                     console.error('Error loading asset:', e);
                     alert('Failed to load asset');
                 }
             });
-
             loadFontBtn?.addEventListener('click', async () => {
                 loadFontBtn.innerText = 'Loading...';
                 loadFontBtn.setAttribute('disabled', 'true');
@@ -207,15 +189,14 @@ async function init() {
                     ]);
                     loadFontBtn.innerText = 'Fonts Loaded \u2713';
                     performConversion();
-                } catch (e) {
+                }
+                catch (e) {
                     console.error('Font load failed:', e);
                     loadFontBtn.innerText = 'Load Failed';
                     loadFontBtn.removeAttribute('disabled');
                 }
             });
-
             convertBtn?.addEventListener('click', performConversion);
-
             downloadBtn?.addEventListener('click', () => {
                 const blob = new Blob([svgSource.value], { type: 'image/svg+xml' });
                 const url = URL.createObjectURL(blob);
@@ -228,9 +209,9 @@ async function init() {
                 URL.revokeObjectURL(url);
             });
         }
-    } catch (e) {
+    }
+    catch (e) {
         console.error('Failed to load Wasm module:', e);
     }
 }
-
 init();

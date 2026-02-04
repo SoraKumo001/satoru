@@ -12,6 +12,7 @@
 #include "include/codec/SkCodec.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkData.h"
+#include "src/base/SkUTF.h"
 #include <algorithm>
 #include <cmath>
 
@@ -19,10 +20,12 @@ container_skia::container_skia(int w, int h, SkCanvas* canvas,
                              sk_sp<SkFontMgr>& fontMgr,
                              std::map<std::string, sk_sp<SkTypeface>>& typefaceCache,
                              sk_sp<SkTypeface>& defaultTypeface,
+                             std::vector<sk_sp<SkTypeface>>& fallbackTypefaces,
                              std::map<std::string, image_info>& imageCache)
     : m_width(w), m_height(h), m_canvas(canvas),
       m_fontMgr(fontMgr), m_typefaceCache(typefaceCache),
-      m_defaultTypeface(defaultTypeface), m_imageCache(imageCache) {}
+      m_defaultTypeface(defaultTypeface), m_fallbackTypefaces(fallbackTypefaces), 
+      m_imageCache(imageCache) {}
 
 litehtml::uint_ptr container_skia::create_font(const litehtml::font_description& desc, const litehtml::document* doc, litehtml::font_metrics* fm) {
     std::string cleanedName = clean_font_name(desc.family.c_str());
@@ -45,12 +48,13 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
     if (fm) {
         SkFontMetrics skFm;
         font->getMetrics(&skFm);
-        fm->ascent = (int)-skFm.fAscent;
-        fm->descent = (int)skFm.fDescent;
-        fm->height = (int)(-skFm.fAscent + skFm.fDescent + skFm.fLeading);
-        fm->x_height = (int)skFm.fXHeight;
-        fm->font_size = (int)desc.size;
-        if (fm->height <= 0) fm->height = desc.size;
+        // Do not cast to int to maintain precision
+        fm->ascent = -skFm.fAscent;
+        fm->descent = skFm.fDescent;
+        fm->height = -skFm.fAscent + skFm.fDescent + skFm.fLeading;
+        fm->x_height = skFm.fXHeight;
+        fm->font_size = (float)desc.size;
+        if (fm->height <= 0) fm->height = (float)desc.size;
     }
     return (litehtml::uint_ptr)font;
 }
@@ -66,18 +70,44 @@ litehtml::pixel_t container_skia::text_width(const char* text, litehtml::uint_pt
 }
 
 void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtml::uint_ptr hFont, litehtml::web_color color, const litehtml::position& pos) {
-    if (!m_canvas) return;
-    SkFont* font = (SkFont*)hFont;
+    if (!m_canvas || !text || !hFont) return;
+    SkFont* baseFont = (SkFont*)hFont;
     
     SkPaint paint;
     paint.setAntiAlias(true);
     paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     
     SkFontMetrics skFm;
-    font->getMetrics(&skFm);
-    float baseline_y = (float)pos.y - skFm.fAscent;
+    baseFont->getMetrics(&skFm);
     
-    m_canvas->drawSimpleText(text, strlen(text), SkTextEncoding::kUTF8, (float)pos.x, baseline_y, *font, paint);
+    // litehtml passes pos.y as the top of the text box.
+    // The baseline is pos.y + ascent.
+    float baseline_y = (float)pos.y - skFm.fAscent;
+    float current_x = (float)pos.x;
+
+    const char* ptr = text;
+    const char* end = text + strlen(text);
+    while (ptr < end) {
+        const char* prev_ptr = ptr;
+        SkUnichar uni = SkUTF::NextUTF8(&ptr, end);
+        if (uni <= 0) break;
+
+        SkFont* targetFont = baseFont;
+        SkFont fallbackFont;
+        if (baseFont->unicharToGlyph(uni) == 0) {
+            for (auto& fbTypeface : m_fallbackTypefaces) {
+                if (fbTypeface->unicharToGlyph(uni) != 0) {
+                    fallbackFont = *baseFont;
+                    fallbackFont.setTypeface(fbTypeface);
+                    targetFont = &fallbackFont;
+                    break;
+                }
+            }
+        }
+
+        m_canvas->drawSimpleText(&uni, sizeof(SkUnichar), SkTextEncoding::kUTF32, current_x, baseline_y, *targetFont, paint);
+        current_x += targetFont->measureText(&uni, sizeof(SkUnichar), SkTextEncoding::kUTF32);
+    }
 }
 
 void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::borders& borders, const litehtml::position& draw_pos, bool root) {
@@ -93,7 +123,6 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
     SkRRect rrect;
     rrect.setRectRadii(rect, radii);
 
-    // If all borders are the same color, style and width, we can draw them as a single RRect
     if (borders.top.width == borders.bottom.width && borders.top.width == borders.left.width && borders.top.width == borders.right.width &&
         borders.top.color == borders.bottom.color && borders.top.color == borders.left.color && borders.top.color == borders.right.color &&
         borders.top.style == borders.bottom.style && borders.top.style == borders.left.style && borders.top.style == borders.right.style)
@@ -116,7 +145,6 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
         }
     }
 
-    // Fallback to simple lines if they differ
     auto draw_b = [&](float x1, float y1, float x2, float y2, const litehtml::border& b) {
         if (b.width > 0 && b.style != litehtml::border_style_none) {
             SkPaint p;

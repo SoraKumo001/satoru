@@ -23,6 +23,7 @@
 static sk_sp<SkFontMgr> g_fontMgr;
 static std::map<std::string, sk_sp<SkTypeface>> g_typefaceCache;
 static sk_sp<SkTypeface> g_defaultTypeface;
+static std::vector<sk_sp<SkTypeface>> g_fallbackTypefaces;
 static std::map<std::string, image_info> g_imageCache;
 
 const char* master_css = R"##(
@@ -57,6 +58,7 @@ extern "C" {
         if (typeface) {
             g_typefaceCache[cleanedName] = typeface;
             if (!g_defaultTypeface) g_defaultTypeface = typeface;
+            g_fallbackTypefaces.push_back(typeface);
         }
     }
 
@@ -94,6 +96,7 @@ extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void clear_fonts() {
         g_typefaceCache.clear();
+        g_fallbackTypefaces.clear();
         g_defaultTypeface = nullptr;
     }
 
@@ -101,7 +104,7 @@ extern "C" {
     const char* html_to_svg(const char* html, int width, int height) {
         int initial_height = (height > 0) ? height : 1000;
         container_skia container(width, initial_height, nullptr, 
-                                 g_fontMgr, g_typefaceCache, g_defaultTypeface, g_imageCache);
+                                 g_fontMgr, g_typefaceCache, g_defaultTypeface, g_fallbackTypefaces, g_imageCache);
         
         litehtml::document::ptr doc = litehtml::document::createFromString(html, &container, master_css);
         if (!doc) return "";
@@ -126,8 +129,10 @@ extern "C" {
 
         static std::string svg_out;
         sk_sp<SkData> data = stream.detachAsData();
+        // Ensure the string is clean and correctly sized
         svg_out.assign((const char*)data->data(), data->size());
 
+        // Explicitly return as C string (null-terminated by std::string)
         return svg_out.c_str();
     }
 }

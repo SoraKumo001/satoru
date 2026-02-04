@@ -15,6 +15,7 @@ const WASM_BINARY_PATH = path.resolve(__dirname, '../public/satoru.wasm');
 // Font paths
 const ROBOTO_PATH = path.resolve(__dirname, '../external/skia/resources/fonts/Roboto-Regular.ttf');
 const NOTO_JP_PATH = path.resolve(__dirname, '../external/skia/resources/fonts/NotoSansCJK-VF-subset.otf.ttc');
+const MEIRYO_PATH = 'C:/Windows/Fonts/meiryo.ttc';
 
 async function convertAssets() {
     console.log('--- Batch HTML to SVG Conversion Start (with JP font) ---');
@@ -48,6 +49,8 @@ async function convertAssets() {
         loadFont(NOTO_JP_PATH, "Noto Sans CJK JP");
         // Also register as default sans-serif
         loadFont(NOTO_JP_PATH, "sans-serif");
+        // Load system font as fallback
+        loadFont(MEIRYO_PATH, "Meiryo");
 
         if (!fs.existsSync(TEMP_DIR)) {
             fs.mkdirSync(TEMP_DIR, { recursive: true });
@@ -66,7 +69,8 @@ async function convertAssets() {
             instance.HEAPU8.set(htmlBuffer, htmlPtr);
             
             const svgPtr = instance._html_to_svg(htmlPtr, 800, 0);
-            const svg = instance.UTF8ToString(svgPtr);
+            // Remove any null characters that might be appended
+            const svg = instance.UTF8ToString(svgPtr).replace(/\0/g, '');
             
             fs.writeFileSync(outputPath, svg);
             instance._free(htmlPtr);

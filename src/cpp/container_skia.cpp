@@ -194,13 +194,18 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
     float final_width = draw_text_runs(current_x, baseline_y, paint);
 
     for (const auto& shadow : fi->desc.text_shadow) {
+        shadow_info si;
+        si.color = shadow.color;
+        si.blur = (float)shadow.blur.val();
+        si.x = (float)shadow.x.val();
+        si.y = (float)shadow.y.val();
+        si.inset = false;
+        m_usedShadows.push_back(si);
+        int index = (int)m_usedShadows.size();
+
         SkPaint shadowPaint = paint;
-        shadowPaint.setColor(SkColorSetARGB(shadow.color.alpha, shadow.color.red, shadow.color.green, shadow.color.blue));
-        float blur = shadow.blur.val();
-        if (blur > 0) {
-            shadowPaint.setImageFilter(SkImageFilters::Blur(blur, blur, nullptr));
-        }
-        draw_text_runs(current_x + shadow.x.val(), baseline_y + shadow.y.val(), shadowPaint);
+        shadowPaint.setColor(SkColorSetARGB(255, 1, 0, index));
+        draw_text_runs(current_x + si.x, baseline_y + si.y, shadowPaint);
     }
 
     if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
@@ -297,16 +302,20 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
     for (const auto& shadow : shadows) {
         if (shadow.inset != inset_pass) continue;
 
+        shadow_info si;
+        si.color = shadow.color;
+        si.blur = (float)shadow.blur.val();
+        si.x = (float)shadow.x.val();
+        si.y = (float)shadow.y.val();
+        si.inset = shadow.inset;
+        si.box_pos = pos;
+        si.box_radius = radius;
+        m_usedShadows.push_back(si);
+        int index = (int)m_usedShadows.size();
+
         SkPaint paint;
         paint.setAntiAlias(true);
-        paint.setColor(SkColorSetARGB(shadow.color.alpha, shadow.color.red, shadow.color.green, shadow.color.blue));
-        
-        float blur = (float)shadow.blur.val();
-        if (blur > 0) {
-            paint.setImageFilter(SkImageFilters::Blur(blur, blur, nullptr));
-        }
-
-        SkRect rect = SkRect::MakeXYWH((float)pos.x + shadow.x.val(), (float)pos.y + shadow.y.val(), (float)pos.width, (float)pos.height);
+        paint.setColor(SkColorSetARGB(255, 1, 0, index));
         
         SkVector radii[4] = {
             {(float)radius.top_left_x, (float)radius.top_left_y},
@@ -314,19 +323,16 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
             {(float)radius.bottom_right_x, (float)radius.bottom_right_y},
             {(float)radius.bottom_left_x, (float)radius.bottom_left_y}
         };
-        SkRRect rrect;
-        rrect.setRectRadii(rect, radii);
 
         if (shadow.inset) {
-            m_canvas->save();
-            SkRRect clipRRect;
-            clipRRect.setRectRadii(SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height), radii);
-            m_canvas->clipRRect(clipRRect, true);
-            paint.setStyle(SkPaint::kStroke_Style);
-            paint.setStrokeWidth(blur * 2);
+            SkRect rect = SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height);
+            SkRRect rrect;
+            rrect.setRectRadii(rect, radii);
             m_canvas->drawRRect(rrect, paint);
-            m_canvas->restore();
         } else {
+            SkRect rect = SkRect::MakeXYWH((float)pos.x + si.x, (float)pos.y + si.y, (float)pos.width, (float)pos.height);
+            SkRRect rrect;
+            rrect.setRectRadii(rect, radii);
             m_canvas->drawRRect(rrect, paint);
         }
     }

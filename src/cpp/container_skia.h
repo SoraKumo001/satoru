@@ -17,6 +17,16 @@ struct font_info {
     litehtml::font_description desc;
 };
 
+struct shadow_info {
+    litehtml::web_color color;
+    float blur;
+    float x;
+    float y;
+    bool inset;
+    litehtml::position box_pos;
+    litehtml::border_radiuses box_radius;
+};
+
 class container_skia : public litehtml::document_container {
     SkCanvas* m_canvas;
     int m_width;
@@ -29,6 +39,8 @@ class container_skia : public litehtml::document_container {
 
     std::vector<std::string> m_usedImages;
     std::map<std::string, int> m_imageUrlToIndex;
+
+    std::vector<shadow_info> m_usedShadows;
 
 public:
     container_skia(int w, int h, SkCanvas* canvas,
@@ -43,6 +55,9 @@ public:
 
     size_t get_image_count() const { return m_usedImages.size(); }
     std::string get_image_url(int index) const { return m_usedImages[index - 1]; }
+
+    size_t get_shadow_count() const { return m_usedShadows.size(); }
+    const shadow_info& get_shadow_info(int index) const { return m_usedShadows[index - 1]; }
 
     // litehtml::document_container members
     virtual litehtml::uint_ptr create_font(const litehtml::font_description& desc, const litehtml::document* doc, litehtml::font_metrics* fm) override;

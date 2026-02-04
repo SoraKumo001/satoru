@@ -2,39 +2,39 @@
 declare function createSatoruModule(options?: any): Promise<any>;
 
 async function init() {
-    console.log('Initializing Satoru Engine (Skia + Wasm)...');
-    try {
-        const Module = await createSatoruModule({
-            locateFile: (path: string) => {
-                if (path.endsWith('.wasm')) {
-                    return './satoru.wasm';
-                }
-                return path;
-            }
-        });
-        Module._init_engine();
-        
-        const loadFont = async (name: string, url: string) => {
-            const resp = await fetch(url);
-            const buffer = await resp.arrayBuffer();
-            const data = new Uint8Array(buffer);
-            
-            const nameLen = Module.lengthBytesUTF8(name) + 1;
-            const namePtr = Module._malloc(nameLen);
-            Module.stringToUTF8(name, namePtr, nameLen);
-            
-            const dataPtr = Module._malloc(data.length);
-            Module.HEAPU8.set(data, dataPtr);
-            
-            Module._load_font(namePtr, dataPtr, data.length);
-            
-            Module._free(namePtr);
-            Module._free(dataPtr);
-        };
+  console.log("Initializing Satoru Engine (Skia + Wasm)...");
+  try {
+    const Module = await createSatoruModule({
+      locateFile: (path: string) => {
+        if (path.endsWith(".wasm")) {
+          return "./satoru.wasm";
+        }
+        return path;
+      },
+    });
+    Module._init_engine();
 
-        const app = document.getElementById('app');
-        if (app) {
-            app.innerHTML = `
+    const loadFont = async (name: string, url: string) => {
+      const resp = await fetch(url);
+      const buffer = await resp.arrayBuffer();
+      const data = new Uint8Array(buffer);
+
+      const nameLen = Module.lengthBytesUTF8(name) + 1;
+      const namePtr = Module._malloc(nameLen);
+      Module.stringToUTF8(name, namePtr, nameLen);
+
+      const dataPtr = Module._malloc(data.length);
+      Module.HEAPU8.set(data, dataPtr);
+
+      Module._load_font(namePtr, dataPtr, data.length);
+
+      Module._free(namePtr);
+      Module._free(dataPtr);
+    };
+
+    const app = document.getElementById("app");
+    if (app) {
+      app.innerHTML = `
                 <style>
                     .loading-overlay {
                         position: absolute;
@@ -84,6 +84,7 @@ async function init() {
                                 <option value="05-ui-components.html">05-ui-components.html</option>
                                 <option value="06-complex-layout.html">06-complex-layout.html</option>
                                 <option value="07-image-embedding.html">07-image-embedding.html</option>
+                                <option value="08-box-shadow.html">08-box-shadow.html</option>
                             </select>
                         </fieldset>
                     </div>
@@ -121,131 +122,155 @@ async function init() {
                 </div>
             `;
 
-            const convertBtn = document.getElementById('convertBtn') as HTMLButtonElement;
-            const loadFontBtn = document.getElementById('loadFontBtn');
-            const downloadBtn = document.getElementById('downloadBtn');
-            const htmlInput = document.getElementById('htmlInput') as HTMLTextAreaElement;
-            const htmlPreview = document.getElementById('htmlPreview') as HTMLIFrameElement;
-            const svgContainer = document.getElementById('svgContainer') as HTMLDivElement;
-            const svgSource = document.getElementById('svgSource') as HTMLTextAreaElement;
-            const canvasWidthInput = document.getElementById('canvasWidth') as HTMLInputElement;
-            const assetSelect = document.getElementById('assetSelect') as HTMLSelectElement;
+      const convertBtn = document.getElementById(
+        "convertBtn",
+      ) as HTMLButtonElement;
+      const loadFontBtn = document.getElementById("loadFontBtn");
+      const downloadBtn = document.getElementById("downloadBtn");
+      const htmlInput = document.getElementById(
+        "htmlInput",
+      ) as HTMLTextAreaElement;
+      const htmlPreview = document.getElementById(
+        "htmlPreview",
+      ) as HTMLIFrameElement;
+      const svgContainer = document.getElementById(
+        "svgContainer",
+      ) as HTMLDivElement;
+      const svgSource = document.getElementById(
+        "svgSource",
+      ) as HTMLTextAreaElement;
+      const canvasWidthInput = document.getElementById(
+        "canvasWidth",
+      ) as HTMLInputElement;
+      const assetSelect = document.getElementById(
+        "assetSelect",
+      ) as HTMLSelectElement;
 
-            const updatePreview = () => {
-                const doc = htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
-                if (doc) {
-                    doc.open();
-                    doc.write(htmlInput.value);
-                    doc.close();
-                }
-            };
+      const updatePreview = () => {
+        const doc =
+          htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
+        if (doc) {
+          doc.open();
+          doc.write(htmlInput.value);
+          doc.close();
+        }
+      };
 
-            const preloadImages = async (html: string) => {
-                Module._clear_images();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const images = Array.from(doc.querySelectorAll('img'));
-                
-                // Find background images in inline styles
-                const bgMatches = html.matchAll(/background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g);
-                const dataUrls = new Set<string>();
-                for (const img of images) {
-                    if (img.src.startsWith('data:')) dataUrls.add(img.src);
-                }
-                for (const match of bgMatches) {
-                    dataUrls.add(match[1]);
-                }
+      const preloadImages = async (html: string) => {
+        Module._clear_images();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const images = Array.from(doc.querySelectorAll("img"));
 
-                await Promise.all(Array.from(dataUrls).map(async (url) => {
-                    return new Promise<void>((resolve) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const name = url;
-                            Module.ccall(
-                                'load_image',
-                                null,
-                                ['string', 'string', 'number', 'number'],
-                                [name, url, img.width, img.height]
-                            );
-                            resolve();
-                        };
-                        img.onerror = () => resolve();
-                        img.src = url;
-                    });
-                }));
-            };
+        // Find background images in inline styles
+        const bgMatches = html.matchAll(
+          /background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g,
+        );
+        const dataUrls = new Set<string>();
+        for (const img of images) {
+          if (img.src.startsWith("data:")) dataUrls.add(img.src);
+        }
+        for (const match of bgMatches) {
+          dataUrls.add(match[1]);
+        }
 
-            const performConversion = async () => {
-                const htmlStr = htmlInput.value;
-                const width = parseInt(canvasWidthInput.value) || 800;
+        await Promise.all(
+          Array.from(dataUrls).map(async (url) => {
+            return new Promise<void>((resolve) => {
+              const img = new Image();
+              img.onload = () => {
+                const name = url;
+                Module.ccall(
+                  "load_image",
+                  null,
+                  ["string", "string", "number", "number"],
+                  [name, url, img.width, img.height],
+                );
+                resolve();
+              };
+              img.onerror = () => resolve();
+              img.src = url;
+            });
+          }),
+        );
+      };
 
-                // Show loading effect
-                const loadingOverlay = document.createElement('div');
-                loadingOverlay.className = 'loading-overlay';
-                loadingOverlay.innerHTML = '<div class="spinner"></div> Converting...';
-                svgContainer.appendChild(loadingOverlay);
-                convertBtn.disabled = true;
-                convertBtn.style.opacity = '0.7';
+      const performConversion = async () => {
+        const htmlStr = htmlInput.value;
+        const width = parseInt(canvasWidthInput.value) || 800;
 
-                await preloadImages(htmlStr);
-                await new Promise(resolve => setTimeout(resolve, 50));
+        // Show loading effect
+        const loadingOverlay = document.createElement("div");
+        loadingOverlay.className = "loading-overlay";
+        loadingOverlay.innerHTML = '<div class="spinner"></div> Converting...';
+        svgContainer.appendChild(loadingOverlay);
+        convertBtn.disabled = true;
+        convertBtn.style.opacity = "0.7";
 
-                try {
-                    const svgResult = Module.ccall(
-                        'html_to_svg', 
-                        'string', 
-                        ['string', 'number', 'number'], 
-                        [htmlStr, width, 0]
-                    );
-                    
-                    svgContainer.innerHTML = svgResult;
-                    svgContainer.style.background = "#fff";
-                    if (svgSource) svgSource.value = svgResult;
-                    if (downloadBtn) downloadBtn.style.display = 'block';
-                } catch (err) {
-                    console.error('Error during Wasm call:', err);
-                    svgContainer.innerHTML = '<div style="color: red; padding: 20px;">Conversion Failed</div>';
-                } finally {
-                    convertBtn.disabled = false;
-                    convertBtn.style.opacity = '1.0';
-                }
-            };
+        await preloadImages(htmlStr);
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
-            const ROBOTO_400 = 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2';
-            const ROBOTO_700 = 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2';
-            const NOTO_400 = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2';
-            const NOTO_700 = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-700-normal.woff2';
+        try {
+          const svgResult = Module.ccall(
+            "html_to_svg",
+            "string",
+            ["string", "number", "number"],
+            [htmlStr, width, 0],
+          );
 
-            const loadAllFonts = async () => {
-                await Promise.all([
-                    loadFont('Roboto', ROBOTO_400),
-                    loadFont('Roboto', ROBOTO_700),
-                    loadFont('Noto Sans JP', NOTO_400),
-                    loadFont('Noto Sans JP', NOTO_700)
-                ]);
-            };
+          svgContainer.innerHTML = svgResult;
+          svgContainer.style.background = "#fff";
+          if (svgSource) svgSource.value = svgResult;
+          if (downloadBtn) downloadBtn.style.display = "block";
+        } catch (err) {
+          console.error("Error during Wasm call:", err);
+          svgContainer.innerHTML =
+            '<div style="color: red; padding: 20px;">Conversion Failed</div>';
+        } finally {
+          convertBtn.disabled = false;
+          convertBtn.style.opacity = "1.0";
+        }
+      };
 
-            // Auto-load default fonts
-            (async () => {
-                try {
-                    if (loadFontBtn) {
-                        loadFontBtn.setAttribute('disabled', 'true');
-                        loadFontBtn.innerText = 'Loading Fonts...';
-                    }
-                    await loadAllFonts();
-                    if (loadFontBtn) loadFontBtn.innerText = 'Fonts Loaded \u2713';
-                    performConversion();
-                } catch (e) {
-                    console.error('Failed to load default fonts:', e);
-                    if (loadFontBtn) {
-                        loadFontBtn.innerText = 'Font Load Failed';
-                        loadFontBtn.removeAttribute('disabled');
-                    }
-                }
-            })();
+      const ROBOTO_400 =
+        "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2";
+      const ROBOTO_700 =
+        "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2";
+      const NOTO_400 =
+        "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2";
+      const NOTO_700 =
+        "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-700-normal.woff2";
 
-            // Initial content
-            htmlInput.value = `
+      const loadAllFonts = async () => {
+        await Promise.all([
+          loadFont("Roboto", ROBOTO_400),
+          loadFont("Roboto", ROBOTO_700),
+          loadFont("Noto Sans JP", NOTO_400),
+          loadFont("Noto Sans JP", NOTO_700),
+        ]);
+      };
+
+      // Auto-load default fonts
+      (async () => {
+        try {
+          if (loadFontBtn) {
+            loadFontBtn.setAttribute("disabled", "true");
+            loadFontBtn.innerText = "Loading Fonts...";
+          }
+          await loadAllFonts();
+          if (loadFontBtn) loadFontBtn.innerText = "Fonts Loaded \u2713";
+          performConversion();
+        } catch (e) {
+          console.error("Failed to load default fonts:", e);
+          if (loadFontBtn) {
+            loadFontBtn.innerText = "Font Load Failed";
+            loadFontBtn.removeAttribute("disabled");
+          }
+        }
+      })();
+
+      // Initial content
+      htmlInput.value = `
 <div style="padding: 40px; background-color: #e3f2fd; border: 5px solid #2196f3; border-radius: 24px;">
   <h1 style="color: #0d47a1; font-family: 'Roboto'; font-size: 48px; text-align: center; margin-bottom: 10px; font-weight: 700;">Outline Fonts in Wasm</h1>
   <p style="font-size: 22px; color: #1565c0; line-height: 1.5; font-family: 'Roboto'; font-weight: 400;">
@@ -259,57 +284,57 @@ async function init() {
     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAALUlEQVRYR+3QQREAAAzCQJ9/aaYpAtpAn7Z6AgICAgICAgICAgICAgICAgICAj8WpAEBArZunQAAAABJRU5ErkJggg==" style="width: 64px; height: 64px; border: 2px solid white; border-radius: 8px;" />
   </div>
 </div>`;
-            updatePreview();
+      updatePreview();
 
-            htmlInput.addEventListener('input', updatePreview);
+      htmlInput.addEventListener("input", updatePreview);
 
-            assetSelect?.addEventListener('change', async () => {
-                const asset = assetSelect.value;
-                if (!asset) return;
-                try {
-                    const resp = await fetch(`./assets/${asset}`);
-                    if (!resp.ok) throw new Error('Failed to fetch asset');
-                    const text = await resp.text();
-                    htmlInput.value = text;
-                    updatePreview();
-                    performConversion();
-                } catch (e) {
-                    console.error('Error loading asset:', e);
-                    alert('Failed to load asset');
-                }
-            });
-
-            loadFontBtn?.addEventListener('click', async () => {
-                loadFontBtn.innerText = 'Loading...';
-                loadFontBtn.setAttribute('disabled', 'true');
-                try {
-                    await loadAllFonts();
-                    loadFontBtn.innerText = 'Fonts Loaded \u2713';
-                    performConversion();
-                } catch (e) {
-                    console.error('Font load failed:', e);
-                    loadFontBtn.innerText = 'Load Failed';
-                    loadFontBtn.removeAttribute('disabled');
-                }
-            });
-
-            convertBtn?.addEventListener('click', performConversion);
-
-            downloadBtn?.addEventListener('click', () => {
-                const blob = new Blob([svgSource.value], { type: 'image/svg+xml' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'satoru_render.svg';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            });
+      assetSelect?.addEventListener("change", async () => {
+        const asset = assetSelect.value;
+        if (!asset) return;
+        try {
+          const resp = await fetch(`./assets/${asset}`);
+          if (!resp.ok) throw new Error("Failed to fetch asset");
+          const text = await resp.text();
+          htmlInput.value = text;
+          updatePreview();
+          performConversion();
+        } catch (e) {
+          console.error("Error loading asset:", e);
+          alert("Failed to load asset");
         }
-    } catch (e) {
-        console.error('Failed to load Wasm module:', e);
+      });
+
+      loadFontBtn?.addEventListener("click", async () => {
+        loadFontBtn.innerText = "Loading...";
+        loadFontBtn.setAttribute("disabled", "true");
+        try {
+          await loadAllFonts();
+          loadFontBtn.innerText = "Fonts Loaded \u2713";
+          performConversion();
+        } catch (e) {
+          console.error("Font load failed:", e);
+          loadFontBtn.innerText = "Load Failed";
+          loadFontBtn.removeAttribute("disabled");
+        }
+      });
+
+      convertBtn?.addEventListener("click", performConversion);
+
+      downloadBtn?.addEventListener("click", () => {
+        const blob = new Blob([svgSource.value], { type: "image/svg+xml" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "satoru_render.svg";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
     }
+  } catch (e) {
+    console.error("Failed to load Wasm module:", e);
+  }
 }
 
 init();

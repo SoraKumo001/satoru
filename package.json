@@ -15,11 +15,8 @@
   },
   "devDependencies": {
     "http-server": "^14.1.1",
-    "typescript": "^5.5.3",
-    "vite": "^5.4.1"
-  },
-  "dependencies": {
-    "canvaskit-wasm": "^0.39.1"
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
   },
   "main": "index.js",
   "repository": "https://github.com/SoraKumo001/satoru",

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: 'Roboto', 'sans-serif';
+            font-size: 16px;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            width: 760px;
+            background-color: white;
+            padding: 20px;
+            border: 2px solid #ccc;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #eee;
+        }
+        .flex-container {
+            display: flex;
+            gap: 10px;
+            background-color: #eee;
+            padding: 10px;
+        }
+        .flex-item {
+            flex: 1;
+            padding: 10px;
+            background-color: #9575CD;
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .flex-item.double {
+            flex: 2;
+            background-color: #4DB6AC;
+        }
+        .flex-item.orange {
+            background-color: #FF8A65;
+        }
+        .grid-layout {
+            display: inline-block;
+            width: 45%;
+            vertical-align: top;
+            background-color: #FFEBEE;
+            padding: 10px;
+        }
+        .grid-layout.green {
+            background-color: #E8F5E9;
+        }
+        .image-test {
+            margin-top: 20px;
+        }
+        .image-box {
+            width: 100px;
+            height: 100px;
+            border: 1px solid black;
+            background-image: url('test_image.png');
+            background-size: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+        }
+        .absolute-box {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: #FFD54F;
+            padding: 5px 10px;
+            border: 1px solid #FFA000;
+            border-radius: 4px;
+        }
+        h1 {
+            color: #D32F2F;
+            font-size: 24px;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Layout Stress Test</h1>
+        
+        <div class="section">
+            <p>Flexbox (display: flex)</p>
+            <div class="flex-container">
+                <div class="flex-item">Flex 1</div>
+                <div class="flex-item double">Flex 2 (Double size)</div>
+                <div class="flex-item orange">Flex 3</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <p>Multi-column (inline-block)</p>
+            <div class="grid-layout">
+                Column 1: Left column.
+            </div>
+            <div class="grid-layout green">
+                Column 2: Right column.
+                <div style="background-color: #BBDEFB; padding: 5px; margin-top: 5px; border: 1px solid #555;">
+                    Nested Box
+                </div>
+            </div>
+        </div>
+
+        <div class="image-test section">
+            <h1>Image Test</h1>
+            <div class="image-box">
+                BG Image
+            </div>
+        </div>
+
+        <div style="position: relative; height: 100px; border: 1px dashed #aaa; margin-top: 20px;">
+            <p style="padding: 10px;">Positioning</p>
+            <div class="absolute-box">
+                Absolute Bottom-Right
+            </div>
+        </div>
+    </div>
+</body>
+</html>

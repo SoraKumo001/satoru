@@ -1,5 +1,6 @@
 #include <emscripten/emscripten.h>
 #include "litehtml.h"
+#include <litehtml/master_css.h>
 #include "include/core/SkCanvas.h"
 #include "include/core/SkGraphics.h"
 #include "include/core/SkFontMgr.h"
@@ -25,22 +26,6 @@ static std::map<std::string, sk_sp<SkTypeface>> g_typefaceCache;
 static sk_sp<SkTypeface> g_defaultTypeface;
 static std::vector<sk_sp<SkTypeface>> g_fallbackTypefaces;
 static std::map<std::string, image_info> g_imageCache;
-
-const char* master_css = R"##(
-html { display: block; }
-body { display: block; margin: 8px; line-height: 1.6; }
-p { display: block; margin-top: 1em; margin-bottom: 1em; }
-h1 { display: block; font-size: 2em; margin-top: 0.67em; margin-bottom: 0.67em; font-weight: bold; }
-h2 { display: block; font-size: 1.5em; margin-top: 0.83em; margin-bottom: 0.83em; font-weight: bold; }
-h3 { display: block; font-size: 1.17em; margin-top: 1em; margin-bottom: 1em; font-weight: bold; }
-h4 { display: block; font-size: 1em; margin-top: 1.33em; margin-bottom: 1.33em; font-weight: bold; }
-div { display: block; }
-b, strong { font-weight: bold; }
-i, em { font-style: italic; }
-span { display: inline; }
-a { color: blue; text-decoration: underline; }
-* { box-sizing: border-box; }
-)##";
 
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
@@ -106,7 +91,12 @@ extern "C" {
         container_skia container(width, initial_height, nullptr, 
                                  g_fontMgr, g_typefaceCache, g_defaultTypeface, g_fallbackTypefaces, g_imageCache);
         
-        litehtml::document::ptr doc = litehtml::document::createFromString(html, &container, master_css);
+        // Merge standard master_css with our fixes
+        std::string css = litehtml::master_css;
+        css += "\nbr { display: -litehtml-br !important; }\n";
+        css += "* { box-sizing: border-box; }\n";
+
+        litehtml::document::ptr doc = litehtml::document::createFromString(html, &container, css.c_str());
         if (!doc) return "";
         
         doc->render(width);
@@ -129,10 +119,8 @@ extern "C" {
 
         static std::string svg_out;
         sk_sp<SkData> data = stream.detachAsData();
-        // Ensure the string is clean and correctly sized
         svg_out.assign((const char*)data->data(), data->size());
 
-        // Explicitly return as C string (null-terminated by std::string)
         return svg_out.c_str();
     }
 }

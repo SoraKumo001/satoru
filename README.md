@@ -60,4 +60,3 @@ npm run dev
 - [ ] Optimized Asset Separation (JS/Wasm).
 - [ ] Image (`<img>`) support via Wasm-side decoders.
 - [ ] Complex CSS Flexbox/Grid support.
-- [ ] SVG to PNG/WebP export within Wasm.

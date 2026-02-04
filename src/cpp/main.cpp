@@ -1,5 +1,5 @@
 #include <emscripten/emscripten.h>
-#include <litehtml/litehtml.h>
+#include "litehtml.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkGraphics.h"
 #include "include/core/SkFontMgr.h"
@@ -20,7 +20,6 @@
 #include <vector>
 #include <map>
 
-// Global caches (kept here for now, could be further encapsulated)
 static sk_sp<SkFontMgr> g_fontMgr;
 static std::map<std::string, sk_sp<SkTypeface>> g_typefaceCache;
 static sk_sp<SkTypeface> g_defaultTypeface;
@@ -33,9 +32,12 @@ p { display: block; margin-top: 1em; margin-bottom: 1em; }
 h1 { display: block; font-size: 2em; margin-top: 0.67em; margin-bottom: 0.67em; font-weight: bold; }
 h2 { display: block; font-size: 1.5em; margin-top: 0.83em; margin-bottom: 0.83em; font-weight: bold; }
 h3 { display: block; font-size: 1.17em; margin-top: 1em; margin-bottom: 1em; font-weight: bold; }
+h4 { display: block; font-size: 1em; margin-top: 1.33em; margin-bottom: 1.33em; font-weight: bold; }
 div { display: block; }
 b, strong { font-weight: bold; }
 i, em { font-style: italic; }
+span { display: inline; }
+a { color: blue; text-decoration: underline; }
 * { box-sizing: border-box; }
 )##";
 
@@ -102,9 +104,11 @@ extern "C" {
                                  g_fontMgr, g_typefaceCache, g_defaultTypeface, g_imageCache);
         
         litehtml::document::ptr doc = litehtml::document::createFromString(html, &container, master_css);
+        if (!doc) return "";
+        
         doc->render(width);
         
-        int content_height = (height > 0) ? height : doc->height();
+        int content_height = (height > 0) ? height : (int)doc->height();
         if (content_height < 1) content_height = 1;
         
         container.set_height(content_height);
@@ -115,7 +119,8 @@ extern "C" {
         std::unique_ptr<SkCanvas> canvas = SkSVGCanvas::Make(bounds, &stream, SkSVGCanvas::kConvertTextToPaths_Flag);
 
         container.set_canvas(canvas.get());
-        doc->draw(0, 0, 0, nullptr);
+        litehtml::position clip(0, 0, width, content_height);
+        doc->draw(0, 0, 0, &clip);
 
         canvas.reset();
 

@@ -8,12 +8,85 @@ project(satoru_wasm)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(VCPKG_INSTALLED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/wasm32-emscripten")
+set(LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/libs")
+set(LITEHTML_DIR "${LIBS_DIR}/litehtml")
 
-include_directories(
-    "${VCPKG_INSTALLED_DIR}/include"
-    "${VCPKG_INSTALLED_DIR}/include/freetype2"
+# Find dependencies
+find_package(Freetype REQUIRED)
+find_package(PNG REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(expat CONFIG REQUIRED)
+find_package(unofficial-gumbo CONFIG REQUIRED)
+find_package(unofficial-brotli CONFIG REQUIRED)
+find_package(BZip2 REQUIRED)
+
+add_executable(main 
+    src/cpp/main.cpp
+    src/cpp/container_skia.cpp
+    src/cpp/utils.cpp
+    src/cpp/skia_stubs.cpp
+)
+
+# --- Local litehtml Source ---
+file(GLOB LITEHTML_SRC "${LITEHTML_DIR}/src/*.cpp")
+target_sources(main PRIVATE ${LITEHTML_SRC})
+
+# --- Skia Source Selection ---
+file(GLOB SKIA_CORE_SRC 
+    "external/skia/src/core/*.cpp"
+    "external/skia/src/base/*.cpp"
+    "external/skia/src/utils/*.cpp"
+    "external/skia/src/ports/SkFontHost_FreeType.cpp"
+    "external/skia/src/ports/SkFontHost_FreeType_common.cpp"
+    "external/skia/src/ports/SkOSFile_posix.cpp"
+    "external/skia/src/ports/SkMemory_malloc.cpp"
+    "external/skia/src/ports/SkDiscardableMemory_none.cpp"
+    "external/skia/src/ports/SkFontMgr_custom.cpp"
+    "external/skia/src/ports/SkFontMgr_custom_empty.cpp"
+    "external/skia/src/ports/SkDebug_stdio.cpp"
+    "external/skia/src/image/*.cpp"
+    "external/skia/src/shaders/*.cpp"
+    "external/skia/src/shaders/gradients/*.cpp"
+    "external/skia/src/effects/*.cpp"
+    "external/skia/src/effects/imagefilters/*.cpp"
+    "external/skia/src/svg/*.cpp"
+    "external/skia/src/xml/*.cpp"
+    "external/skia/src/text/*.cpp"
+    "external/skia/modules/skcms/skcms.cc"
+    "external/skia/src/encode/SkEncoder.cpp"
+    "external/skia/src/encode/SkPngEncoderImpl.cpp"
+    "external/skia/src/encode/SkPngEncoderBase.cpp"
+    "external/skia/src/encode/SkICC.cpp"
+    "external/skia/src/codec/SkCodec.cpp"
+    "external/skia/src/codec/SkCodecColorProfile.cpp"
+    "external/skia/src/codec/SkCodecImageGenerator.cpp"
+    "external/skia/src/codec/SkImageGenerator_FromEncoded.cpp"
+    "external/skia/src/codec/SkEncodedInfo.cpp"
+    "external/skia/src/codec/SkPngCodec.cpp"
+    "external/skia/src/codec/SkPngCodecBase.cpp"
+    "external/skia/src/codec/SkPngCompositeChunkReader.cpp"
+    "external/skia/src/codec/SkParseEncodedOrigin.cpp"
+    "external/skia/src/codec/SkMaskSwizzler.cpp"
+    "external/skia/src/codec/SkSwizzler.cpp"
+    "external/skia/src/codec/SkSampler.cpp"
+    "external/skia/src/codec/SkColorPalette.cpp"
+    "external/skia/src/codec/SkColorTable.cpp"
+    "external/skia/src/codec/SkPixmapUtils.cpp"
+    "external/skia/src/codec/SkHdrMetadata.cpp"
+)
+list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
+list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkPDF.*|.*SkGPU.*")
+target_sources(main PRIVATE ${SKIA_CORE_SRC})
+
+# Includes
+target_include_directories(main BEFORE PRIVATE
     "src/cpp"
+    "${LITEHTML_DIR}/include"
+    "${LITEHTML_DIR}/include/litehtml"
+    "${LITEHTML_DIR}/src"
+)
+
+target_include_directories(main PRIVATE
     "external/skia"
     "external/skia/include/core"
     "external/skia/include/config"
@@ -33,64 +106,6 @@ include_directories(
     "external/skia/src/encode"
 )
 
-link_directories("${VCPKG_INSTALLED_DIR}/lib")
-
-# --- Skia Source Selection ---
-file(GLOB SKIA_CORE_SRC 
-    "external/skia/src/core/*.cpp"
-    "external/skia/src/base/*.cpp"
-    "external/skia/src/utils/*.cpp"
-    "external/skia/src/ports/SkFontHost_FreeType.cpp"
-    "external/skia/src/ports/SkFontHost_FreeType_common.cpp"
-    "external/skia/src/ports/SkOSFile_posix.cpp"
-    "external/skia/src/ports/SkMemory_malloc.cpp"
-    "external/skia/src/ports/SkDiscardableMemory_none.cpp"
-    "external/skia/src/ports/SkFontMgr_custom.cpp"
-    "external/skia/src/ports/SkFontMgr_custom_empty.cpp"
-    "external/skia/src/ports/SkDebug_stdio.cpp"
-    "external/skia/src/image/*.cpp"
-    "external/skia/src/shaders/*.cpp"
-    "external/skia/src/effects/*.cpp"
-    "external/skia/src/svg/*.cpp"
-    "external/skia/src/xml/*.cpp"
-    "external/skia/src/text/*.cpp"
-    "external/skia/modules/skcms/skcms.cc"
-    # --- Selected Encode Files ---
-    "external/skia/src/encode/SkEncoder.cpp"
-    "external/skia/src/encode/SkPngEncoderImpl.cpp"
-    "external/skia/src/encode/SkPngEncoderBase.cpp"
-    "external/skia/src/encode/SkICC.cpp"
-    # --- Selected Codec Files (Minimal for PNG) ---
-    "external/skia/src/codec/SkCodec.cpp"
-    "external/skia/src/codec/SkCodecColorProfile.cpp"
-    "external/skia/src/codec/SkCodecImageGenerator.cpp"
-    "external/skia/src/codec/SkImageGenerator_FromEncoded.cpp"
-    "external/skia/src/codec/SkEncodedInfo.cpp"
-    "external/skia/src/codec/SkPngCodec.cpp"
-    "external/skia/src/codec/SkPngCodecBase.cpp"
-    "external/skia/src/codec/SkPngCompositeChunkReader.cpp"
-    "external/skia/src/codec/SkParseEncodedOrigin.cpp"
-    "external/skia/src/codec/SkMaskSwizzler.cpp"
-    "external/skia/src/codec/SkSwizzler.cpp"
-    "external/skia/src/codec/SkSampler.cpp"
-    "external/skia/src/codec/SkColorPalette.cpp"
-    "external/skia/src/codec/SkPixmapUtils.cpp"
-    "external/skia/src/codec/SkHdrMetadata.cpp"
-)
-list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
-list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkPDF.*|.*SkGPU.*")
-
-# Application sources
-set(APP_SRC
-    src/cpp/main.cpp
-    src/cpp/container_skia.cpp
-    src/cpp/utils.cpp
-    src/cpp/skia_stubs.cpp
-)
-
-add_executable(main ${APP_SRC} ${SKIA_CORE_SRC})
-
-# Compiler flags
 target_compile_options(main PRIVATE 
     -Wno-switch 
     -Wno-macro-redefined 
@@ -117,16 +132,15 @@ set_target_properties(main PROPERTIES
 
 # Link libraries
 target_link_libraries(main PRIVATE 
-    freetype 
-    litehtml 
-    gumbo 
-    z 
-    png 
-    bz2 
-    brotlidec 
-    brotlienc 
-    brotlicommon 
-    expat
+    Freetype::Freetype
+    PNG::PNG
+    ZLIB::ZLIB
+    expat::expat
+    unofficial::gumbo::gumbo
+    unofficial::brotli::brotlidec
+    unofficial::brotli::brotlienc
+    unofficial::brotli::brotlicommon
+    BZip2::BZip2
 )
 
 target_link_options(main PRIVATE

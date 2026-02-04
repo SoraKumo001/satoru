@@ -27,6 +27,11 @@ struct shadow_info {
     litehtml::border_radiuses box_radius;
 };
 
+struct image_draw_info {
+    std::string url;
+    litehtml::background_layer layer;
+};
+
 class container_skia : public litehtml::document_container {
     SkCanvas* m_canvas;
     int m_width;
@@ -41,6 +46,7 @@ class container_skia : public litehtml::document_container {
     std::map<std::string, int> m_imageUrlToIndex;
 
     std::vector<shadow_info> m_usedShadows;
+    std::vector<image_draw_info> m_usedImageDraws;
 
 public:
     container_skia(int w, int h, SkCanvas* canvas,

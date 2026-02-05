@@ -35,8 +35,9 @@ graph TD
     end
 
     subgraph WASM [Satoru Engine]
-        B --> C[litehtml: Parse HTML/CSS]
-        C --> D[litehtml: Layout / Reflow]
+        B --> C1[gumbo: Parse HTML]
+        C1 --> C2[litehtml: CSS & DOM Tree]
+        C2 --> D[litehtml: Layout / Reflow]
         
         subgraph Drawing [Drawing & Tagging]
             D --> E[Skia: Draw to SkSVGCanvas]

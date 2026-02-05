@@ -148,7 +148,7 @@ static bool is_whitespace_run(const char* s, size_t len) {
 }
 
 void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtml::uint_ptr hFont, litehtml::web_color color, const litehtml::position& pos) {
-    if (!m_canvas || !text || !text[0] || !hFont || is_whitespace_run(text, strlen(text))) return;
+    if (!m_canvas || !text || !text[0] || !hFont) return;
     font_info* fi = (font_info*)hFont;
     SkFont* baseFont = fi->font;
     
@@ -238,6 +238,11 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
 
     // Draw main text
     float final_width = draw_text_runs(current_x, baseline_y, paint);
+
+    if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
+        printf("DEBUG: draw_text '%s' width=%.2f dec=%d\\n", text, final_width, (int)fi->desc.decoration_line);
+        fflush(stdout);
+    }
 
     if (fi->desc.decoration_line != litehtml::text_decoration_line_none && final_width > 0.1f) {
         SkPaint decPaint = paint;
@@ -552,4 +557,39 @@ void container_skia::get_media_features(litehtml::media_features& features) cons
 void container_skia::get_language(litehtml::string& language, litehtml::string& culture) const {
     language = "ja";
     culture = "ja_JP";
+}
+void container_skia::draw_conic_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::conic_gradient& gradient) {
+    if (!m_canvas || layer.border_box.width <= 0.1f || layer.border_box.height <= 0.1f) return;
+
+    std::vector<SkColor4f> colors;
+    std::vector<float> positions;
+    for (const auto& pt : gradient.color_points) {
+        colors.push_back({pt.color.red/255.0f, pt.color.green/255.0f, pt.color.blue/255.0f, pt.color.alpha/255.0f});
+        positions.push_back(pt.offset);
+    }
+
+    SkPoint center = {(float)gradient.position.x, (float)gradient.position.y};
+    
+    // Skia's SweepGradient starts at 0 degrees (pointing right) and goes clockwise.
+    // CSS conic-gradient starts at 0 degrees (pointing up) and goes clockwise.
+    // So we need to apply a -90 degree rotation + the CSS angle.
+    float startAngle = gradient.angle - 90.0f;
+
+    SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(positions), SkTileMode::kClamp), SkGradient::Interpolation());
+    auto shader = SkShaders::SweepGradient(center.x(), center.y(), startAngle, startAngle + 360.0f, skGrad, nullptr);
+    
+    SkPaint paint;
+    paint.setShader(shader);
+    paint.setAntiAlias(true);
+    
+    SkRect rect = SkRect::MakeXYWH((float)layer.border_box.x, (float)layer.border_box.y, (float)layer.border_box.width, (float)layer.border_box.height);
+    SkVector radii[4] = {
+        {(float)layer.border_radius.top_left_x, (float)layer.border_radius.top_left_y},
+        {(float)layer.border_radius.top_right_x, (float)layer.border_radius.top_right_y},
+        {(float)layer.border_radius.bottom_right_x, (float)layer.border_radius.bottom_right_y},
+        {(float)layer.border_radius.bottom_left_x, (float)layer.border_radius.bottom_left_y}
+    };
+    SkRRect rrect;
+    rrect.setRectRadii(rect, radii);
+    m_canvas->drawRRect(rrect, paint);
 }

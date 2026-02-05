@@ -21,7 +21,7 @@ const NOTO_JP_PATH = path.resolve(
   __dirname,
   "../external/skia/resources/fonts/NotoSansCJK-VF-subset.otf.ttc",
 );
-const MS_GOTHIC_PATH = "C:\\Windows\\Fonts\\msgothic.ttc";
+const MS_GOTHIC_PATH = "C:\\\\Windows\\\\Fonts\\\\msgothic.ttc";
 
 async function convertAssets() {
   console.log("--- Batch HTML to SVG Conversion Start ---");
@@ -31,6 +31,8 @@ async function convertAssets() {
     const instance = await createSatoruModule({
       locateFile: (url: string) =>
         url.endsWith(".wasm") ? WASM_BINARY_PATH : url,
+      print: (text: string) => console.log(`[WASM] ${text}`),
+      printErr: (text: string) => console.error(`[WASM ERROR] ${text}`),
     });
 
     instance._init_engine();

@@ -9,8 +9,8 @@
     "preview": "vite preview",
     "serve": "http-server dist -p 8080 -o",
     "test": "tsx ./test/convert_assets",
-    "cmake-configure": "powershell -Command \"if (Test-Path build-wasm) { Remove-Item -Recurse -Force build-wasm }; mkdir build-wasm; cd build-wasm; C:\\\\emsdk\\\\emsdk.ps1 activate latest; cmake .. -G 'Unix Makefiles' -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=C:/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DVCPKG_TARGET_TRIPLET=wasm32-emscripten\"",
-    "cmake-build": "powershell -Command \"cd build-wasm; C:\\\\emsdk\\\\emsdk.ps1 activate latest; emmake make -j16\"",
+    "cmake-configure": "tsx ./scripts/build-wasm.ts configure",
+    "cmake-build": "tsx ./scripts/build-wasm.ts build",
     "compile-wasm": "npm run cmake-configure && npm run cmake-build"
   },
   "devDependencies": {

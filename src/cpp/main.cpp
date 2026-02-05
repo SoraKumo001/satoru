@@ -20,6 +20,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <cstdio>
 
 static sk_sp<SkFontMgr> g_fontMgr;
 static std::map<std::string, std::vector<sk_sp<SkTypeface>>> g_typefaceCache;
@@ -41,6 +42,8 @@ inline int parse_hex4(const char* p) {
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void init_engine() {
+        printf("DEBUG: init_engine called\n");
+        fflush(stdout);
         SkGraphics::Init();
         g_fontMgr = SkFontMgr_New_Custom_Empty();
     }
@@ -115,7 +118,6 @@ extern "C" {
 
         sk_sp<SkData> data = stream.detachAsData();
         std::string svg_str((const char*)data->data(), data->size());
-        const char* svg_ptr = svg_str.c_str();
         size_t svg_len = svg_str.length();
 
         std::set<int> used_shadow_indices;

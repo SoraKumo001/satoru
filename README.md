@@ -17,13 +17,12 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
   - Box model (margin, padding, border).
   - **Border Radius**: Accurate rounded corners using SVG arc commands.
   - **Box Shadow**: High-quality shadows using SVG filters and Gaussian blur.
-  - **Font Family**: Intelligent font matching with automated name cleaning.
+  - **Text Decoration**: Supports `underline`, `line-through`, `overline` with `solid`, `dotted`, and `dashed` styles. Lines remain continuous even over whitespace.
 - **Efficient Image Handling**:
-  - **Host-side Decoding**: Image decoding is handled by the JavaScript environment (browser/Node.js), keeping the Wasm binary lean.
-  - **SVG Embedding**: Automatically embeds images as Data URLs with proper clipping paths.
-- **Optimized Build Architecture**:
-  - **Lightweight Wasm**: Removed redundant decoders (PNG/ZLIB) from the Wasm module to reduce binary size.
-  - **High-Speed Compilation**: CMake optimized for parallel building (`-j16`).
+  - **Pre-loading Architecture**: The host environment (JS/TS) extracts and registers image Data URLs into the Wasm image cache *before* rendering starts.
+  - **Host-side Decoding**: Image decoding is handled by the JavaScript environment, keeping the Wasm binary lean.
+- **Wasm-to-Node Logging Bridge**: Real-time console output from Wasm `printf` is captured and formatted by the Node.js/TS runner.
+- **Cross-Platform Build System**: A unified TypeScript-based build script (`scripts/build-wasm.ts`) handles configuration and compilation across Windows, macOS, and Linux.
 
 ## 🛠 Tech Stack
 
@@ -40,6 +39,34 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 - [emsdk](https://github.com/emscripten-core/emsdk) (Targeting `latest`)
 - [vcpkg](https://vcpkg.io/) (Wasm32-emscripten triplet)
 
+#### Environment Variables
+
+The build script requires the following environment variables:
+
+- `EMSDK`: Path to your emscripten SDK directory.
+- `VCPKG_ROOT`: Path to your vcpkg directory.
+
+**Windows (PowerShell):**
+```powershell
+[System.Environment]::SetEnvironmentVariable('EMSDK', 'C:\emsdk', 'User')
+[System.Environment]::SetEnvironmentVariable('VCPKG_ROOT', 'C:\vcpkg', 'User')
+```
+
+**macOS / Linux:**
+```bash
+export EMSDK=$HOME/emsdk
+export VCPKG_ROOT=$HOME/vcpkg
+```
+
+**VS Code Setup (Local):**
+Since `.vscode` is ignored by git, add this to your local `.vscode/settings.json`:
+```json
+{
+    "terminal.integrated.env.windows": { "EMSDK": "C:/emsdk", "VCPKG_ROOT": "C:/vcpkg" },
+    "terminal.integrated.env.osx": { "EMSDK": "${env:HOME}/emsdk", "VCPKG_ROOT": "${env:HOME}/vcpkg" }
+}
+```
+
 ### Commands
 
 ```bash
@@ -49,27 +76,29 @@ npm run compile-wasm
 # Incremental build (Fast C++ changes)
 npm run cmake-build
 
-# Run batch conversion test (Converts HTML assets to SVG)
+# Run batch conversion test (Converts HTML assets to SVG with Logging)
 npm test
 
-# Start dev environment (Vite)
+# Start dev environment (Vite with side-by-side comparison UI)
 npm run dev
 ```
 
 ## 🧩 Solved Challenges
 
-- **Invalid SVG Structure**: Fixed a regression where `<defs>` were inserted outside the root `<svg>` tag, ensuring standard-compliant XML output.
-- **Stable Handling of Large Data URLs**: Refactored the SVG post-processing scanner to handle massive image Data URLs using safe string concatenation and index-based scanning instead of fragile regex.
-- **Precision Rendering**: Standardized on `%.2f` precision for SVG coordinates and arc parameters to ensure perfect alignment and visual consistency.
+- **Continuous Text Decoration**: Fixed the issue where underlines disappeared on space characters by allowing the layout engine to process whitespace-only runs for decoration drawing.
+- **Wasm Logging**: Established a robust logging bridge by implementing `print` and `printErr` callbacks in the Emscripten module, enabling easier C++ debugging within Node.js.
+- **Cross-Platform Pathing**: Migrated from shell-specific build commands to a Node.js-based build system, resolving inconsistencies between PowerShell and bash.
+- **SVG Structure Stability**: Ensured `<defs>` are always injected inside the root `<svg>` tag even with complex embedded assets.
 
-## 📅 Roadmap
+## 🗺 Roadmap
 
 - [x] Dynamic Custom Font Support.
 - [x] Border Radius & Advanced Box Styling.
 - [x] Box Shadow support.
-- [x] Optimized Asset Separation (JS/Wasm).
-- [x] Efficient Image (`<img>`) embedding (JS-side decoding).
+- [x] Text Decoration Styles (Dotted/Dashed).
 - [x] Japanese Language Rendering.
-- [ ] CSS Gradient support (Linear/Radial).
-- [ ] Optional SVG `<text>` element output (Text-to-Path is current default).
-- [ ] Complex CSS Flexbox/Grid support.
+- [x] Cross-platform build script.
+- [x] Basic Linear, Radial & Conic Gradient support.
+- [ ] SVG Path Shorthand Optimization (Minimize SVG size).
+- [ ] Optional SVG `<text>` element output.
+- [ ] Complex CSS Flexbox/Grid support - *In Progress (via litehtml)*.

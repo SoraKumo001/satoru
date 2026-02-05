@@ -17,16 +17,40 @@ const ROBOTO_PATH = path.resolve(
   __dirname,
   "../external/skia/resources/fonts/Roboto-Regular.ttf",
 );
-const NOTO_JP_PATH = path.resolve(
-  __dirname,
-  "../external/skia/resources/fonts/NotoSansCJK-VF-subset.otf.ttc",
-);
-const MS_GOTHIC_PATH = "C:\\\\Windows\\\\Fonts\\\\msgothic.ttc";
+
+// Using the same fonts as main.ts
+const ROBOTO_400 = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2";
+const NOTO_JP_400 = "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2";
+
+const FONT_MAP = [
+  { name: "Roboto", url: ROBOTO_400, path: path.join(TEMP_DIR, "Roboto-400.woff2") },
+  { name: "Noto Sans JP", url: NOTO_JP_400, path: path.join(TEMP_DIR, "NotoSansJP-400.woff2") },
+  { name: "sans-serif", url: NOTO_JP_400, path: path.join(TEMP_DIR, "NotoSansJP-400.woff2") },
+];
+
+async function downloadFont(url: string, dest: string) {
+  if (fs.existsSync(dest)) return;
+  console.log(`Downloading font from ${url}...`);
+  const response = await fetch(url);
+  if (!response.ok)
+    throw new Error(`Failed to download font: ${response.statusText}`);
+  const arrayBuffer = await response.arrayBuffer();
+  fs.writeFileSync(dest, Buffer.from(arrayBuffer));
+  console.log(`Font saved to ${dest}`);
+}
 
 async function convertAssets() {
   console.log("--- Batch HTML to SVG Conversion Start ---");
 
+  if (!fs.existsSync(TEMP_DIR)) {
+    fs.mkdirSync(TEMP_DIR, { recursive: true });
+  }
+
   try {
+    for (const font of FONT_MAP) {
+      await downloadFont(font.url, font.path);
+    }
+
     const createSatoruModule = require(WASM_JS_PATH);
     const instance = await createSatoruModule({
       locateFile: (url: string) =>
@@ -56,19 +80,9 @@ async function convertAssets() {
       }
     };
 
-    loadFont(ROBOTO_PATH, "Roboto");
-    // Register as default
-    loadFont(ROBOTO_PATH, "sans-serif");
-
-    // Japanese fonts
-    loadFont(NOTO_JP_PATH, "Noto Sans JP");
-    loadFont(MS_GOTHIC_PATH, "MS Gothic");
-    // Register MS Gothic as a fallback for generic families if needed
-    loadFont(MS_GOTHIC_PATH, "serif");
-    loadFont(MS_GOTHIC_PATH, "monospace");
-
-    if (!fs.existsSync(TEMP_DIR)) {
-      fs.mkdirSync(TEMP_DIR, { recursive: true });
+    // Load downloaded fonts
+    for (const font of FONT_MAP) {
+      loadFont(font.path, font.name);
     }
 
     const files = fs.readdirSync(ASSETS_DIR).filter((f) => f.endsWith(".html"));
@@ -83,10 +97,11 @@ async function convertAssets() {
       // Preload images (data URLs)
       instance._clear_images();
       const dataUrls = new Set<string>();
-      
+
       const imgRegex = /<img[^>]+src=["'](data:image\/[^'"]+)["']/g;
-      const bgRegex = /background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g;
-      
+      const bgRegex =
+        /background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g;
+
       let match;
       while ((match = imgRegex.exec(html)) !== null) dataUrls.add(match[1]);
       while ((match = bgRegex.exec(html)) !== null) dataUrls.add(match[1]);
@@ -94,10 +109,10 @@ async function convertAssets() {
       for (const url of dataUrls) {
         const name = url;
         instance.ccall(
-            'load_image',
-            null,
-            ['string', 'string', 'number', 'number'],
-            [name, url, 0, 0]
+          "load_image",
+          null,
+          ["string", "string", "number", "number"],
+          [name, url, 0, 0],
         );
       }
 

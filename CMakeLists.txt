@@ -39,11 +39,13 @@ find_package(unofficial-gumbo CONFIG REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
 find_package(BZip2 REQUIRED)
 
-add_executable(main 
+add_executable(main
     src/cpp/main.cpp
     src/cpp/container_skia.cpp
     src/cpp/utils.cpp
     src/cpp/skia_stubs.cpp
+    src/cpp/satoru_context.cpp
+    src/cpp/svg_renderer.cpp
 )
 
 # --- Local litehtml Source ---
@@ -51,7 +53,7 @@ file(GLOB LITEHTML_SRC "${LITEHTML_DIR}/src/*.cpp")
 target_sources(main PRIVATE ${LITEHTML_SRC})
 
 # --- Skia Source Selection ---
-file(GLOB SKIA_CORE_SRC 
+file(GLOB SKIA_CORE_SRC
     "external/skia/src/core/*.cpp"
     "external/skia/src/base/*.cpp"
     "external/skia/src/utils/*.cpp"
@@ -101,19 +103,20 @@ target_include_directories(main PRIVATE
     "external/skia/src/utils"
 )
 
-target_compile_options(main PRIVATE 
-    -Wno-switch 
-    -Wno-macro-redefined 
-    -Wno-unused-function 
+target_compile_options(main PRIVATE
+    -Wno-switch
+    -Wno-macro-redefined
+    -Wno-unused-function
     -fexceptions
+    -msimd128
 )
 
-target_compile_definitions(main PRIVATE 
-    SK_RELEASE 
-    SK_GAMMA_SRGB 
-    SK_HAS_FREETYPE_SUPPORT 
-    SK_SUPPORT_PDF=0 
-    SK_SUPPORT_GPU=0 
+target_compile_definitions(main PRIVATE
+    SK_RELEASE
+    SK_GAMMA_SRGB
+    SK_HAS_FREETYPE_SUPPORT
+    SK_SUPPORT_PDF=0
+    SK_SUPPORT_GPU=0
     SK_ENABLE_SVG=1
 )
 
@@ -124,7 +127,7 @@ set_target_properties(main PROPERTIES
 )
 
 # Link libraries
-target_link_libraries(main PRIVATE 
+target_link_libraries(main PRIVATE
     Freetype::Freetype
     expat::expat
     unofficial::gumbo::gumbo
@@ -136,6 +139,7 @@ target_link_libraries(main PRIVATE
 
 target_link_options(main PRIVATE
     "-fexceptions"
+    "-msimd128"
     "-sSUPPORT_LONGJMP=emscripten"
     "-sDISABLE_EXCEPTION_CATCHING=0"
     "-sMODULARIZE=1"
@@ -144,7 +148,7 @@ target_link_options(main PRIVATE
     "-sERROR_ON_UNDEFINED_SYMBOLS=0"
     "-sWARN_ON_UNDEFINED_SYMBOLS=0"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','getValue','setValue','HEAPU8','stringToUTF8','lengthBytesUTF8']"
-    "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_malloc','_free','_load_font','_clear_fonts','_load_image','_clear_images']"
+    "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_malloc','_free','_load_font','_clear_fonts','_load_image','_clear_images']"      
     "-o${CMAKE_CURRENT_SOURCE_DIR}/public/satoru.js"
     "-sALLOW_MEMORY_GROWTH=1"
 )

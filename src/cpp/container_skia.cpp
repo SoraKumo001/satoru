@@ -17,23 +17,15 @@
 #include <cmath>
 #include <cstdio>
 
-container_skia::container_skia(int w, int h, SkCanvas* canvas,
-                             sk_sp<SkFontMgr>& fontMgr,
-                             std::map<std::string, std::vector<sk_sp<SkTypeface>>>& typefaceCache,
-                             sk_sp<SkTypeface>& defaultTypeface,
-                             std::vector<sk_sp<SkTypeface>>& fallbackTypefaces,
-                             std::map<std::string, image_info>& imageCache)
-    : m_width(w), m_height(h), m_canvas(canvas),
-      m_fontMgr(fontMgr), m_typefaceCache(typefaceCache),
-      m_defaultTypeface(defaultTypeface), m_fallbackTypefaces(fallbackTypefaces), 
-      m_imageCache(imageCache) {}
+container_skia::container_skia(int w, int h, SkCanvas* canvas, SatoruContext& context)
+    : m_width(w), m_height(h), m_canvas(canvas), m_context(context) {}
 
 litehtml::uint_ptr container_skia::create_font(const litehtml::font_description& desc, const litehtml::document* doc, litehtml::font_metrics* fm) {
     std::string cleanedName = clean_font_name(desc.family.c_str());
     sk_sp<SkTypeface> typeface;
-    
-    auto it = m_typefaceCache.find(cleanedName);
-    if (it != m_typefaceCache.end()) {
+
+    auto it = m_context.typefaceCache.find(cleanedName);
+    if (it != m_context.typefaceCache.end()) {
         const auto& variations = it->second;
         if (!variations.empty()) {
             int bestScore = -1;
@@ -50,24 +42,24 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
             }
         }
     }
-    
+
     if (!typeface) {
-        if (m_defaultTypeface) typeface = m_defaultTypeface;
-        else typeface = m_fontMgr->legacyMakeTypeface(nullptr, SkFontStyle(desc.weight, SkFontStyle::kNormal_Width, (SkFontStyle::Slant)desc.style));
+        if (m_context.defaultTypeface) typeface = m_context.defaultTypeface;
+        else typeface = m_context.fontMgr->legacyMakeTypeface(nullptr, SkFontStyle(desc.weight, SkFontStyle::kNormal_Width, (SkFontStyle::Slant)desc.style));
     }
-    
+
     if (!typeface) return 0;
 
     SkFont* font = new SkFont(typeface, (float)desc.size);
     font->setSubpixel(true);
-    font->setEdging(SkFont::Edging::kAntiAlias); 
-    font->setHinting(SkFontHinting::kNone); 
+    font->setEdging(SkFont::Edging::kAntiAlias);
+    font->setHinting(SkFontHinting::kNone);
     font->setLinearMetrics(true);
 
     if (desc.style == litehtml::font_style_italic && typeface->fontStyle().slant() == SkFontStyle::kUpright_Slant) {
         font->setSkewX(-0.25f);
     }
-    
+
     if (fm) {
         SkFontMetrics skFm;
         font->getMetrics(&skFm);
@@ -97,16 +89,16 @@ litehtml::pixel_t container_skia::text_width(const char* text, litehtml::uint_pt
     if (!text || !hFont) return 0;
     font_info* fi = (font_info*)hFont;
     SkFont* baseFont = fi->font;
-    
+
     float total_width = 0;
     const char* ptr = text;
     const char* end = text + strlen(text);
-    
+
     while (ptr < end) {
         const char* run_start = ptr;
         const char* temp_ptr = ptr;
         SkUnichar first_uni = SkUTF::NextUTF8(&temp_ptr, end);
-        
+
         if (baseFont->unicharToGlyph(first_uni) != 0) {
             while (ptr < end) {
                 const char* next_ptr = ptr;
@@ -118,7 +110,7 @@ litehtml::pixel_t container_skia::text_width(const char* text, litehtml::uint_pt
         } else {
             SkUnichar uni = SkUTF::NextUTF8(&ptr, end);
             SkFont targetFont = *baseFont;
-            for (auto& fbTypeface : m_fallbackTypefaces) {
+            for (auto& fbTypeface : m_context.fallbackTypefaces) {
                 if (fbTypeface->unicharToGlyph(uni) != 0) {
                     targetFont.setTypeface(fbTypeface);
                     break;
@@ -127,7 +119,7 @@ litehtml::pixel_t container_skia::text_width(const char* text, litehtml::uint_pt
             total_width += targetFont.measureText(&uni, sizeof(SkUnichar), SkTextEncoding::kUTF32);
         }
     }
-    
+
     return (litehtml::pixel_t)(total_width + 0.5f);
 }
 
@@ -151,11 +143,11 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
     if (!m_canvas || !text || !text[0] || !hFont) return;
     font_info* fi = (font_info*)hFont;
     SkFont* baseFont = fi->font;
-    
+
     SkPaint paint;
     paint.setAntiAlias(true);
     paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
-    
+
     float actualWeight = (float)baseFont->getTypeface()->fontStyle().weight();
     float requestedWeight = (float)fi->desc.weight;
     if (requestedWeight > actualWeight) {
@@ -175,12 +167,12 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
         const char* end = text + strlen(text);
         float cx = offset_x;
         bool skip_draw = (SkColorGetA(p.getColor()) == 0);
-        
+
         while (ptr < end) {
             const char* run_start = ptr;
             const char* temp_ptr = ptr;
             SkUnichar first_uni = SkUTF::NextUTF8(&temp_ptr, end);
-            
+
             if (baseFont->unicharToGlyph(first_uni) != 0) {
                 while (ptr < end) {
                     const char* next_ptr = ptr;
@@ -195,7 +187,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
             } else {
                 SkUnichar uni = SkUTF::NextUTF8(&ptr, end);
                 SkFont targetFont = *baseFont;
-                for (auto& fbTypeface : m_fallbackTypefaces) {
+                for (auto& fbTypeface : m_context.fallbackTypefaces) {
                     if (fbTypeface->unicharToGlyph(uni) != 0) {
                         targetFont.setTypeface(fbTypeface);
                         break;
@@ -220,7 +212,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
         si.x = (float)shadow.x.val();
         si.y = (float)shadow.y.val();
         si.inset = false;
-        
+
         int index = 0;
         auto it = m_shadowToIndex.find(si);
         if (it == m_shadowToIndex.end()) {
@@ -232,7 +224,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
         }
 
         SkPaint shadowPaint = paint;
-        shadowPaint.setColor(SkColorSetARGB(255, 1, (index >> 8) & 0xFF, index & 0xFF));
+        shadowPaint.setColor(SkColorSetARGB(255, 0xFC, (index >> 8) & 0xFF, index & 0xFF));
         draw_text_runs(current_x + si.x, baseline_y + si.y, shadowPaint);
     }
 
@@ -306,16 +298,16 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
     m_canvas->save();
     m_canvas->clipRRect(rrect, true);
 
-    if (borders.top.width == borders.bottom.width && borders.top.width == borders.left.width && borders.top.width == borders.right.width &&
-        borders.top.color == borders.bottom.color && borders.top.color == borders.left.color && borders.top.color == borders.right.color &&
-        borders.top.style == borders.bottom.style && borders.top.style == borders.left.style && borders.top.style == borders.right.style)
+    if (borders.top.width == borders.bottom.width && borders.top.width == borders.left.width && borders.top.width == borders.right.width && 
+        borders.top.color == borders.bottom.color && borders.top.color == borders.left.color && borders.top.color == borders.right.color && 
+        borders.top.style == borders.bottom.style && borders.top.style == borders.left.style && borders.top.style == borders.right.style)   
     {
         if (borders.top.width > 0 && borders.top.style != litehtml::border_style_none && borders.top.color.alpha > 0) {
             SkPaint p;
             p.setAntiAlias(true);
             p.setStyle(SkPaint::kStroke_Style);
             p.setStrokeWidth((float)borders.top.width * 2.0f);
-            p.setColor(SkColorSetARGB(borders.top.color.alpha, borders.top.color.red, borders.top.color.green, borders.top.color.blue));
+            p.setColor(SkColorSetARGB(borders.top.color.alpha, borders.top.color.red, borders.top.color.green, borders.top.color.blue));    
             apply_style(p, borders.top.style, (float)borders.top.width);
             m_canvas->drawRRect(rrect, p);
         }
@@ -333,7 +325,7 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
             }
         };
 
-        if (borders.top.width > 0) draw_b((float)draw_pos.x, (float)draw_pos.y, (float)draw_pos.right(), (float)draw_pos.y, borders.top);
+        if (borders.top.width > 0) draw_b((float)draw_pos.x, (float)draw_pos.y, (float)draw_pos.right(), (float)draw_pos.y, borders.top);   
         if (borders.bottom.width > 0) draw_b((float)draw_pos.x, (float)draw_pos.bottom(), (float)draw_pos.right(), (float)draw_pos.bottom(), borders.bottom);
         if (borders.left.width > 0) draw_b((float)draw_pos.x, (float)draw_pos.y, (float)draw_pos.x, (float)draw_pos.bottom(), borders.left);
         if (borders.right.width > 0) draw_b((float)draw_pos.right(), (float)draw_pos.y, (float)draw_pos.right(), (float)draw_pos.bottom(), borders.right);
@@ -355,7 +347,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
         si.inset = shadow.inset;
         si.box_pos = pos;
         si.box_radius = radius;
-        
+
         int index = 0;
         auto it = m_shadowToIndex.find(si);
         if (it == m_shadowToIndex.end()) {
@@ -368,8 +360,8 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
 
         SkPaint paint;
         paint.setAntiAlias(true);
-        paint.setColor(SkColorSetARGB(255, 1, (index >> 8) & 0xFF, index & 0xFF));
-        
+        paint.setColor(SkColorSetARGB(255, 0xFC, (index >> 8) & 0xFF, index & 0xFF));
+
         SkVector radii[4] = {
             {(float)radius.top_left_x, (float)radius.top_left_y},
             {(float)radius.top_right_x, (float)radius.top_right_y},
@@ -408,11 +400,11 @@ void container_skia::draw_linear_gradient(litehtml::uint_ptr hdc, const litehtml
 
     SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(positions), SkTileMode::kClamp), SkGradient::Interpolation());
     auto shader = SkShaders::LinearGradient(pts, skGrad);
-    
+
     SkPaint paint;
     paint.setShader(shader);
     paint.setAntiAlias(true);
-    
+
     SkRect rect = SkRect::MakeXYWH((float)layer.border_box.x, (float)layer.border_box.y, (float)layer.border_box.width, (float)layer.border_box.height);
     SkVector radii[4] = {
         {(float)layer.border_radius.top_left_x, (float)layer.border_radius.top_left_y},
@@ -440,20 +432,20 @@ void container_skia::draw_radial_gradient(litehtml::uint_ptr hdc, const litehtml
     float ry = (float)gradient.radius.y;
 
     SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(positions), SkTileMode::kClamp), SkGradient::Interpolation());
-    
-    // To support elliptical gradients (rx != ry), we create a circular gradient 
+
+    // To support elliptical gradients (rx != ry), we create a circular gradient
     // at origin with radius 1.0 and scale it using a local matrix.
     SkMatrix matrix;
     matrix.setScale(rx, ry);
     matrix.postTranslate(center.x(), center.y());
-    
+
     // Create radial gradient at (0,0) with radius 1, transformed by matrix
     auto shader = SkShaders::RadialGradient({0, 0}, 1.0f, skGrad, &matrix);
-    
+
     SkPaint paint;
     paint.setShader(shader);
     paint.setAntiAlias(true);
-    
+
     SkRect rect = SkRect::MakeXYWH((float)layer.border_box.x, (float)layer.border_box.y, (float)layer.border_box.width, (float)layer.border_box.height);
     SkVector radii[4] = {
         {(float)layer.border_radius.top_left_x, (float)layer.border_radius.top_left_y},
@@ -466,13 +458,13 @@ void container_skia::draw_radial_gradient(litehtml::uint_ptr hdc, const litehtml
     m_canvas->drawRRect(rrect, paint);
 }
 
-void container_skia::draw_solid_fill(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::web_color& color) {
+void container_skia::draw_solid_fill(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::web_color& color) {   
     if (!m_canvas || color.alpha == 0 || layer.border_box.width <= 0.1f || layer.border_box.height <= 0.1f) return;
-    
+
     SkPaint paint;
     paint.setAntiAlias(true);
     paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
-    
+
     SkRect rect = SkRect::MakeXYWH((float)layer.border_box.x, (float)layer.border_box.y, (float)layer.border_box.width, (float)layer.border_box.height);
     SkVector radii[4] = {
         {(float)layer.border_radius.top_left_x, (float)layer.border_radius.top_left_y},
@@ -487,20 +479,20 @@ void container_skia::draw_solid_fill(litehtml::uint_ptr hdc, const litehtml::bac
 
 void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const std::string& url, const std::string& base_url) {
     if (!m_canvas || layer.border_box.width <= 0.1f || layer.border_box.height <= 0.1f) return;
-    
-    auto it = m_imageCache.find(url);
-    if (it != m_imageCache.end()) {
+
+    auto it = m_context.imageCache.find(url);
+    if (it != m_context.imageCache.end()) {
         image_draw_info idi;
         idi.url = url;
         idi.layer = layer;
-        
+
         m_usedImageDraws.push_back(idi);
         int index = (int)m_usedImageDraws.size();
 
         SkPaint paint;
-        paint.setAntiAlias(false); 
-        paint.setColor(SkColorSetARGB(255, 0, (index >> 8) & 0xFF, index & 0xFF));
-        
+        paint.setAntiAlias(false);
+        paint.setColor(SkColorSetARGB(255, 0xFB, (index >> 8) & 0xFF, index & 0xFF));
+
         SkRect rect = SkRect::MakeXYWH((float)layer.border_box.x, (float)layer.border_box.y, (float)layer.border_box.width, (float)layer.border_box.height);
         m_canvas->drawRect(rect, paint);
     }
@@ -513,7 +505,7 @@ void container_skia::load_image(const char* src, const char* baseurl, bool redra
 void container_skia::set_clip(const litehtml::position& pos, const litehtml::border_radiuses& bdr_radius) {
     if (!m_canvas || pos.width <= 0.1f || pos.height <= 0.1f) return;
     m_canvas->save();
-    
+
     SkRect rect = SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height);
     if (bdr_radius.top_left_x > 0 || bdr_radius.top_right_x > 0) {
         SkVector radii[4] = {
@@ -540,8 +532,8 @@ const char* container_skia::get_default_font_name() const { return "sans-serif";
 
 void container_skia::get_image_size(const char* src, const char* baseurl, litehtml::size& sz) {
     std::string key = src;
-    auto it = m_imageCache.find(key);
-    if (it != m_imageCache.end()) {
+    auto it = m_context.imageCache.find(key);
+    if (it != m_context.imageCache.end()) {
         sz.width = it->second.width;
         sz.height = it->second.height;
     }
@@ -578,7 +570,7 @@ void container_skia::draw_conic_gradient(litehtml::uint_ptr hdc, const litehtml:
     }
 
     SkPoint center = {(float)gradient.position.x, (float)gradient.position.y};
-    
+
     // Skia's SweepGradient starts at 0 degrees (pointing right) and goes clockwise.
     // CSS conic-gradient starts at 0 degrees (pointing up) and goes clockwise.
     // So we need to apply a -90 degree rotation + the CSS angle.
@@ -586,11 +578,11 @@ void container_skia::draw_conic_gradient(litehtml::uint_ptr hdc, const litehtml:
 
     SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(positions), SkTileMode::kClamp), SkGradient::Interpolation());
     auto shader = SkShaders::SweepGradient(center, startAngle, startAngle + 360.0f, skGrad, nullptr);
-    
+
     SkPaint paint;
     paint.setShader(shader);
     paint.setAntiAlias(true);
-    
+
     SkRect rect = SkRect::MakeXYWH((float)layer.border_box.x, (float)layer.border_box.y, (float)layer.border_box.width, (float)layer.border_box.height);
     SkVector radii[4] = {
         {(float)layer.border_radius.top_left_x, (float)layer.border_radius.top_left_y},

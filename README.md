@@ -24,6 +24,45 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 - **Wasm-to-Node Logging Bridge**: Real-time console output from Wasm `printf` is captured and formatted by the Node.js/TS runner.
 - **Cross-Platform Build System**: A unified TypeScript-based build script (`scripts/build-wasm.ts`) handles configuration and compilation across Windows, macOS, and Linux.
 
+## 🛠 Conversion Flow
+
+The following diagram illustrates how Satoru converts HTML/CSS into a pure SVG string:
+
+```mermaid
+graph TD
+    subgraph Frontend [Browser / Node.js]
+        A[Load Fonts & Preload Images] --> B[Call html_to_svg]
+    end
+
+    subgraph WASM [Satoru Engine]
+        B --> C[litehtml: Parse HTML/CSS]
+        C --> D[litehtml: Layout / Reflow]
+        
+        subgraph Drawing [Drawing & Tagging]
+            D --> E[Skia: Draw to SkSVGCanvas]
+            E --> F1[Vector Paths & Text]
+            E --> F2[Images tagged as #FBxxxx]
+            E --> F3[Shadows tagged as #FCxxxx]
+        end
+        
+        F1 & F2 & F3 --> G[Raw SVG String]
+        
+        subgraph PostProcess [Post-processing]
+            G --> H[Scan for tags & Generate Defs]
+            H --> I[Inject &lt;filter&gt; & &lt;clipPath&gt;]
+            I --> J[Replace tags with &lt;image&gt; / &lt;g&gt;]
+            J --> K[Remove empty/zero-sized paths]
+        end
+    end
+
+    K --> L[Final Vector SVG Output]
+    
+    style Frontend fill:#e1f5fe,stroke:#01579b
+    style WASM fill:#fff3e0,stroke:#e65100
+    style Drawing fill:#f3e5f5,stroke:#4a148c
+    style PostProcess fill:#e8f5e9,stroke:#1b5e20
+```
+
 ## 🛠 Tech Stack
 
 - **Graphics**: [Skia](https://skia.org/) (Subset compiled from source for Wasm)

@@ -3,6 +3,7 @@
 #include "include/core/SkGraphics.h"
 #include "include/ports/SkFontMgr_empty.h"
 #include "include/core/SkData.h"
+#include "include/codec/SkCodec.h"
 
 void SatoruContext::init() {
     SkGraphics::Init();
@@ -27,6 +28,15 @@ void SatoruContext::loadImage(const char* name, const char* data_url, int width,
     info.width = width;
     info.height = height;
     info.data_url = std::string(data_url);
+
+    std::string urlStr(data_url);
+    size_t commaPos = urlStr.find(',');
+    if (commaPos != std::string::npos) {
+        std::string base64Data = urlStr.substr(commaPos + 1);
+        std::vector<uint8_t> decoded = base64_decode(base64Data);
+        sk_sp<SkData> data = SkData::MakeWithCopy(decoded.data(), decoded.size());
+        info.skImage = SkImages::DeferredFromEncodedData(data);
+    }
 
     imageCache[std::string(name)] = info;
 }

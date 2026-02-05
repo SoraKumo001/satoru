@@ -24,12 +24,13 @@ struct shadow_info {
     float blur;
     float x;
     float y;
+    float spread;
     bool inset;
     litehtml::position box_pos;
     litehtml::border_radiuses box_radius;
 
     auto as_tuple() const {
-        return std::make_tuple(color.red, color.green, color.blue, color.alpha, blur, x, y, inset,
+        return std::make_tuple(color.red, color.green, color.blue, color.alpha, blur, x, y, spread, inset,
                                box_pos.x, box_pos.y, box_pos.width, box_pos.height);
     }
     bool operator<(const shadow_info& other) const {
@@ -54,9 +55,10 @@ class container_skia : public litehtml::document_container {
     std::vector<shadow_info> m_usedShadows;
     std::map<shadow_info, int> m_shadowToIndex;
     std::vector<image_draw_info> m_usedImageDraws;
+    bool m_tagging;
 
 public:
-    container_skia(int w, int h, SkCanvas* canvas, SatoruContext& context);
+    container_skia(int w, int h, SkCanvas* canvas, SatoruContext& context, bool tagging = false);
 
     void set_canvas(SkCanvas* canvas) { m_canvas = canvas; }
     void set_height(int h) { m_height = h; }

@@ -4,9 +4,12 @@
 #include "include/core/SkPaint.h"
 #include "include/core/SkFontMetrics.h"
 #include "include/core/SkPath.h"
+#include "include/core/SkPathBuilder.h"
 #include "include/core/SkRRect.h"
 #include "include/core/SkShader.h"
 #include "include/core/SkSpan.h"
+#include "include/core/SkMaskFilter.h"
+#include "include/core/SkBlurTypes.h"
 #include "include/effects/SkGradient.h"
 #include "include/effects/SkImageFilters.h"
 #include "include/effects/SkDashPathEffect.h"
@@ -17,8 +20,8 @@
 #include <cmath>
 #include <cstdio>
 
-container_skia::container_skia(int w, int h, SkCanvas* canvas, SatoruContext& context)
-    : m_width(w), m_height(h), m_canvas(canvas), m_context(context) {}
+container_skia::container_skia(int w, int h, SkCanvas* canvas, SatoruContext& context, bool tagging)
+    : m_width(w), m_height(h), m_canvas(canvas), m_context(context), m_tagging(tagging) {}
 
 litehtml::uint_ptr container_skia::create_font(const litehtml::font_description& desc, const litehtml::document* doc, litehtml::font_metrics* fm) {
     std::string cleanedName = clean_font_name(desc.family.c_str());
@@ -206,26 +209,34 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
     for (int i = (int)fi->desc.text_shadow.size() - 1; i >= 0; --i) {
         const auto& shadow = fi->desc.text_shadow[i];
         if (shadow.color.alpha == 0) continue;
-        shadow_info si;
-        si.color = shadow.color;
-        si.blur = (float)shadow.blur.val();
-        si.x = (float)shadow.x.val();
-        si.y = (float)shadow.y.val();
-        si.inset = false;
-
-        int index = 0;
-        auto it = m_shadowToIndex.find(si);
-        if (it == m_shadowToIndex.end()) {
-            m_usedShadows.push_back(si);
-            index = (int)m_usedShadows.size();
-            m_shadowToIndex[si] = index;
-        } else {
-            index = it->second;
-        }
-
+        
         SkPaint shadowPaint = paint;
-        shadowPaint.setColor(SkColorSetARGB(255, 0xFC, (index >> 8) & 0xFF, index & 0xFF));
-        draw_text_runs(current_x + si.x, baseline_y + si.y, shadowPaint);
+        if (m_tagging) {
+            shadow_info si;
+            si.color = shadow.color;
+            si.blur = (float)shadow.blur.val();
+            si.x = (float)shadow.x.val();
+            si.y = (float)shadow.y.val();
+            si.spread = 0; // Text shadow doesn't have spread
+            si.inset = false;
+
+            int index = 0;
+            auto it = m_shadowToIndex.find(si);
+            if (it == m_shadowToIndex.end()) {
+                m_usedShadows.push_back(si);
+                index = (int)m_usedShadows.size();
+                m_shadowToIndex[si] = index;
+            } else {
+                index = it->second;
+            }
+            shadowPaint.setColor(SkColorSetARGB(255, 0xFC, (index >> 8) & 0xFF, index & 0xFF));
+        } else {
+            shadowPaint.setColor(SkColorSetARGB(shadow.color.alpha, shadow.color.red, shadow.color.green, shadow.color.blue));
+            if (shadow.blur.val() > 0) {
+                shadowPaint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, (float)shadow.blur.val() * 0.5f));
+            }
+        }
+        draw_text_runs(current_x + (float)shadow.x.val(), baseline_y + (float)shadow.y.val(), shadowPaint);
     }
 
     // Draw main text
@@ -334,28 +345,36 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
     for (const auto& shadow : shadows) {
         if (shadow.inset != inset_pass || shadow.color.alpha == 0) continue;
 
-        shadow_info si;
-        si.color = shadow.color;
-        si.blur = (float)shadow.blur.val();
-        si.x = (float)shadow.x.val();
-        si.y = (float)shadow.y.val();
-        si.inset = shadow.inset;
-        si.box_pos = pos;
-        si.box_radius = radius;
-
-        int index = 0;
-        auto it = m_shadowToIndex.find(si);
-        if (it == m_shadowToIndex.end()) {
-            m_usedShadows.push_back(si);
-            index = (int)m_usedShadows.size();
-            m_shadowToIndex[si] = index;
-        } else {
-            index = it->second;
-        }
-
         SkPaint paint;
         paint.setAntiAlias(true);
-        paint.setColor(SkColorSetARGB(255, 0xFC, (index >> 8) & 0xFF, index & 0xFF));
+
+        if (m_tagging) {
+            shadow_info si;
+            si.color = shadow.color;
+            si.blur = (float)shadow.blur.val();
+            si.x = (float)shadow.x.val();
+            si.y = (float)shadow.y.val();
+            si.spread = (float)shadow.spread.val();
+            si.inset = shadow.inset;
+            si.box_pos = pos;
+            si.box_radius = radius;
+
+            int index = 0;
+            auto it = m_shadowToIndex.find(si);
+            if (it == m_shadowToIndex.end()) {
+                m_usedShadows.push_back(si);
+                index = (int)m_usedShadows.size();
+                m_shadowToIndex[si] = index;
+            } else {
+                index = it->second;
+            }
+            paint.setColor(SkColorSetARGB(255, 0xFC, (index >> 8) & 0xFF, index & 0xFF));
+        } else {
+            paint.setColor(SkColorSetARGB(shadow.color.alpha, shadow.color.red, shadow.color.green, shadow.color.blue));
+            if (shadow.blur.val() > 0) {
+                paint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, (float)shadow.blur.val() * 0.5f));
+            }
+        }
 
         SkVector radii[4] = {
             {(float)radius.top_left_x, (float)radius.top_left_y},
@@ -364,16 +383,43 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
             {(float)radius.bottom_left_x, (float)radius.bottom_left_y}
         };
 
+        SkRect baseRect = SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height);
+        SkRRect baseRRect;
+        baseRRect.setRectRadii(baseRect, radii);
+
+        float spread = (float)shadow.spread.val();
+
         if (shadow.inset) {
-            SkRect rect = SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height);
-            SkRRect rrect;
-            rrect.setRectRadii(rect, radii);
-            m_canvas->drawRRect(rrect, paint);
+            m_canvas->save();
+            m_canvas->clipRRect(baseRRect, true);
+            
+            SkRect hugeRect = baseRect;
+            float margin = (float)shadow.blur.val() * 3.0f + std::abs(spread) + std::abs((float)shadow.x.val()) + std::abs((float)shadow.y.val());
+            hugeRect.outset(margin + 100.0f, margin + 100.0f);
+
+            SkRRect holeRRect = baseRRect;
+            holeRRect.inset(spread, spread);
+            holeRRect.offset((float)shadow.x.val(), (float)shadow.y.val());
+
+            SkPath path = SkPathBuilder().setFillType(SkPathFillType::kEvenOdd)
+                                         .addRect(hugeRect)
+                                         .addRRect(holeRRect)
+                                         .detach();
+
+            m_canvas->drawPath(path, paint);
+            m_canvas->restore();
         } else {
-            SkRect rect = SkRect::MakeXYWH((float)pos.x + si.x, (float)pos.y + si.y, (float)pos.width, (float)pos.height);
-            SkRRect rrect;
-            rrect.setRectRadii(rect, radii);
-            m_canvas->drawRRect(rrect, paint);
+            SkRect shadowRect = baseRect;
+            shadowRect.outset(spread, spread);
+            shadowRect.offset((float)shadow.x.val(), (float)shadow.y.val());
+            
+            SkRRect shadowRRect;
+            SkVector shadowRadii[4];
+            for(int i=0; i<4; ++i) {
+                shadowRadii[i].set(std::max(0.0f, radii[i].fX + spread), std::max(0.0f, radii[i].fY + spread));
+            }
+            shadowRRect.setRectRadii(shadowRect, shadowRadii);
+            m_canvas->drawRRect(shadowRRect, paint);
         }
     }
 }
@@ -477,19 +523,28 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
 
     auto it = m_context.imageCache.find(url);
     if (it != m_context.imageCache.end()) {
-        image_draw_info idi;
-        idi.url = url;
-        idi.layer = layer;
+        const auto& info = it->second;
 
-        m_usedImageDraws.push_back(idi);
-        int index = (int)m_usedImageDraws.size();
+        if (m_tagging) {
+            image_draw_info idi;
+            idi.url = url;
+            idi.layer = layer;
 
-        SkPaint paint;
-        paint.setAntiAlias(false);
-        paint.setColor(SkColorSetARGB(255, 0xFB, (index >> 8) & 0xFF, index & 0xFF));
+            m_usedImageDraws.push_back(idi);
+            int index = (int)m_usedImageDraws.size();
 
-        SkRect rect = SkRect::MakeXYWH((float)layer.border_box.x, (float)layer.border_box.y, (float)layer.border_box.width, (float)layer.border_box.height);
-        m_canvas->drawRect(rect, paint);
+            SkPaint paint;
+            paint.setAntiAlias(false);
+            paint.setColor(SkColorSetARGB(255, 0xFB, (index >> 8) & 0xFF, index & 0xFF));
+
+            SkRect rect = SkRect::MakeXYWH((float)layer.border_box.x, (float)layer.border_box.y, (float)layer.border_box.width, (float)layer.border_box.height);
+            m_canvas->drawRect(rect, paint);
+        } else {
+            if (info.skImage) {
+                SkRect rect = SkRect::MakeXYWH((float)layer.origin_box.x, (float)layer.origin_box.y, (float)layer.origin_box.width, (float)layer.origin_box.height);
+                m_canvas->drawImageRect(info.skImage, rect, SkSamplingOptions());
+            }
+        }
     }
 }
 

@@ -27,7 +27,7 @@ inline int parse_hex4(const char* p) {
 
 std::string renderHtmlToSvg(const char* html, int width, int height, SatoruContext& context) {
     int initial_height = (height > 0) ? height : 1000;
-    container_skia container(width, initial_height, nullptr, context);
+    container_skia container(width, initial_height, nullptr, context, true);
 
     std::string css = litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";

@@ -131,8 +131,7 @@ target_include_directories(main PRIVATE
 )
 
 target_compile_options(main PRIVATE
-    -O3
-    -flto
+    -O2
     -Wno-switch
     -Wno-macro-redefined
     -Wno-unused-function
@@ -171,8 +170,7 @@ target_link_libraries(main PRIVATE
 )
 
 target_link_options(main PRIVATE
-    "-O3"
-    "-flto"
+    "-O2"
     "-fexceptions"
     "-msimd128"
     "-sSUPPORT_LONGJMP=emscripten"

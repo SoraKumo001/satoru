@@ -17,6 +17,11 @@ const ROBOTO_PATH = path.resolve(
   __dirname,
   "../external/skia/resources/fonts/Roboto-Regular.ttf",
 );
+const NOTO_JP_PATH = path.resolve(
+  __dirname,
+  "../external/skia/resources/fonts/NotoSansCJK-VF-subset.otf.ttc",
+);
+const MS_GOTHIC_PATH = "C:\\Windows\\Fonts\\msgothic.ttc";
 
 async function convertAssets() {
   console.log("--- Batch HTML to SVG Conversion Start ---");
@@ -52,6 +57,13 @@ async function convertAssets() {
     loadFont(ROBOTO_PATH, "Roboto");
     // Register as default
     loadFont(ROBOTO_PATH, "sans-serif");
+
+    // Japanese fonts
+    loadFont(NOTO_JP_PATH, "Noto Sans JP");
+    loadFont(MS_GOTHIC_PATH, "MS Gothic");
+    // Register MS Gothic as a fallback for generic families if needed
+    loadFont(MS_GOTHIC_PATH, "serif");
+    loadFont(MS_GOTHIC_PATH, "monospace");
 
     if (!fs.existsSync(TEMP_DIR)) {
       fs.mkdirSync(TEMP_DIR, { recursive: true });

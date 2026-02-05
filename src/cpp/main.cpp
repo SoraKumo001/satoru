@@ -19,7 +19,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <regex>
 #include <set>
 
 static sk_sp<SkFontMgr> g_fontMgr;
@@ -27,6 +26,17 @@ static std::map<std::string, std::vector<sk_sp<SkTypeface>>> g_typefaceCache;
 static sk_sp<SkTypeface> g_defaultTypeface;
 static std::vector<sk_sp<SkTypeface>> g_fallbackTypefaces;
 static std::map<std::string, image_info> g_imageCache;
+
+inline int hex_to_int(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    return 0;
+}
+
+inline int parse_hex4(const char* p) {
+    return (hex_to_int(p[0]) << 12) | (hex_to_int(p[1]) << 8) | (hex_to_int(p[2]) << 4) | hex_to_int(p[3]);
+}
 
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
@@ -105,48 +115,41 @@ extern "C" {
 
         sk_sp<SkData> data = stream.detachAsData();
         std::string svg_str((const char*)data->data(), data->size());
+        const char* svg_ptr = svg_str.c_str();
+        size_t svg_len = svg_str.length();
 
-        // Post-process SVG
+        // 1. Fast pre-scan for markers to build indices
         std::set<int> used_shadow_indices;
         std::set<int> used_image_indices;
-        static const std::regex shd_marker_scan_regex(R"raw((?:fill|stroke)="#01([0-9A-Fa-f]{4})")raw");
-        static const std::regex img_marker_scan_regex(R"raw((?:fill|stroke)="#00([0-9A-Fa-f]{4})")raw");
         
-        auto shd_scan_begin = std::sregex_iterator(svg_str.begin(), svg_str.end(), shd_marker_scan_regex);
-        auto scan_end = std::sregex_iterator();
-        for (std::sregex_iterator i = shd_scan_begin; i != scan_end; ++i) {
-            used_shadow_indices.insert(std::stoi((*i)[1].str(), nullptr, 16));
+        for (size_t i = 0; i + 6 < svg_len; ++i) {
+            if (svg_ptr[i] == '#' && svg_ptr[i+1] == '0') {
+                if (svg_ptr[i+2] == '0') { // Image #00xxxx
+                    used_image_indices.insert(parse_hex4(svg_ptr + i + 3));
+                    i += 6;
+                } else if (svg_ptr[i+2] == '1') { // Shadow #01xxxx
+                    used_shadow_indices.insert(parse_hex4(svg_ptr + i + 3));
+                    i += 6;
+                }
+            }
         }
 
-        auto img_scan_begin = std::sregex_iterator(svg_str.begin(), svg_str.end(), img_marker_scan_regex);
-        for (std::sregex_iterator i = img_scan_begin; i != scan_end; ++i) {
-            used_image_indices.insert(std::stoi((*i)[1].str(), nullptr, 16));
-        }
-
+        // 2. Generate <defs>
         std::string defs = "<defs>";
         for (int idx : used_shadow_indices) {
             const auto& si = container.get_shadow_info(idx);
-            
             if (si.blur > 0) {
-                char filter_id[64];
-                sprintf(filter_id, "shadow_filter_%d", idx);
-                defs += "<filter id=\"";
-                defs += filter_id;
-                defs += "\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">";
-                defs += "<feGaussianBlur stdDeviation=\"";
-                char dev[32];
-                sprintf(dev, "%.2f", si.blur * 0.5f);
-                defs += dev;
-                defs += "\"/>";
+                char buf[256];
+                sprintf(buf, "<filter id=\"shadow_filter_%d\" x=\"-50%%\" y=\"-50%%\" width=\"200%%\" height=\"200%%\">", idx);
+                defs += buf;
+                sprintf(buf, "<feGaussianBlur stdDeviation=\"%.2f\"/>", si.blur * 0.5f);
+                defs += buf;
                 defs += "</filter>";
             }
-
             if (si.inset) {
-                char clip_id[64];
-                sprintf(clip_id, "shadow_clip_%d", idx);
-                defs += "<clipPath id=\"";
-                defs += clip_id;
-                defs += "\">";
+                char buf[128];
+                sprintf(buf, "<clipPath id=\"shadow_clip_%d\">", idx);
+                defs += buf;
                 if (si.box_radius.top_left_x > 0 || si.box_radius.top_right_x > 0 || si.box_radius.bottom_left_x > 0 || si.box_radius.bottom_right_x > 0) {
                     char path_data[512];
                     sprintf(path_data, "M%.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f Z",
@@ -159,11 +162,9 @@ extern "C" {
                         (float)si.box_radius.bottom_left_x, (float)si.box_radius.bottom_left_y, (float)-si.box_radius.bottom_left_x, (float)-si.box_radius.bottom_left_y,
                         (float)-(si.box_pos.height - si.box_radius.top_left_y - si.box_radius.bottom_left_y),
                         (float)si.box_radius.top_left_x, (float)si.box_radius.top_left_y, (float)si.box_radius.top_left_x, (float)-si.box_radius.top_left_y);
-                    defs += "<path d=\"";
-                    defs += path_data;
-                    defs += "\"/>";
+                    defs += "<path d=\""; defs += path_data; defs += "\"/>";
                 } else {
-                    char rect_data[256];
+                    char rect_data[128];
                     sprintf(rect_data, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\"/>",
                         (float)si.box_pos.x, (float)si.box_pos.y, (float)si.box_pos.width, (float)si.box_pos.height);
                     defs += rect_data;
@@ -171,18 +172,13 @@ extern "C" {
                 defs += "</clipPath>";
             }
         }
-
         for (int idx : used_image_indices) {
             const auto& idi = container.get_image_draw_info(idx);
-            
-            // Handle rounded corners for image
             const auto& br = idi.layer.border_radius;
             if (br.top_left_x > 0 || br.top_right_x > 0 || br.bottom_left_x > 0 || br.bottom_right_x > 0) {
-                char clip_id[64];
-                sprintf(clip_id, "image_clip_%d", idx);
-                defs += "<clipPath id=\"";
-                defs += clip_id;
-                defs += "\">";
+                char buf[128];
+                sprintf(buf, "<clipPath id=\"image_clip_%d\">", idx);
+                defs += buf;
                 char path_data[512];
                 sprintf(path_data, "M%.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f Z",
                     (float)idi.layer.border_box.x + br.top_left_x, (float)idi.layer.border_box.y,
@@ -194,148 +190,123 @@ extern "C" {
                     (float)br.bottom_left_x, (float)br.bottom_left_y, (float)-br.bottom_left_x, (float)-br.bottom_left_y,
                     (float)-(idi.layer.border_box.height - br.top_left_y - br.bottom_left_y),
                     (float)br.top_left_x, (float)br.top_left_y, (float)br.top_left_x, (float)-br.top_left_y);
-                defs += "<path d=\"";
-                defs += path_data;
-                defs += "\"/>";
+                defs += "<path d=\""; defs += path_data; defs += "\"/>";
                 defs += "</clipPath>";
             }
         }
         defs += "</defs>";
 
-        static const std::regex tag_regex(R"raw(<(rect|path|image|circle|ellipse) ([^>]*?)/?>)raw");
-        static const std::regex img_marker_regex(R"raw(#00([0-9A-Fa-f]{4}))raw");
-        static const std::regex shd_marker_regex(R"raw(#01([0-9A-Fa-f]{4}))raw");
-        static const std::regex fill_attr_regex(R"raw(fill="#00[0-9A-Fa-f]{4}")raw");
+        // 3. Process tags and replace markers
+        std::string final_out;
+        final_out.reserve(svg_len + defs.size() + 1024);
 
-        auto tags_begin = std::sregex_iterator(svg_str.begin(), svg_str.end(), tag_regex);
-        auto tags_end = std::sregex_iterator();
+        size_t svg_tag_start = svg_str.find("<svg");
+        if (svg_tag_start == std::string::npos) return "";
+        size_t svg_tag_end = svg_str.find('>', svg_tag_start);
+        if (svg_tag_end == std::string::npos) return "";
+        
+        final_out.append(svg_str.substr(0, svg_tag_end + 1));
+        final_out.append(defs);
 
-        std::string processed_svg;
-        processed_svg.reserve(svg_str.size() + defs.size());
-
-        size_t last_pos = 0;
-
-        size_t svg_tag_end = svg_str.find('>', svg_str.find("<svg"));
-        if (svg_tag_end != std::string::npos) {
-            processed_svg.append(svg_str.data(), svg_tag_end + 1);
-            processed_svg.append(defs);
-            last_pos = svg_tag_end + 1;
-        }
-
-        for (std::sregex_iterator i = tags_begin; i != tags_end; ++i) {
-            const std::smatch& match = *i;
-            const std::string& attributes = match[2].str();
+        size_t cur = svg_tag_end + 1;
+        while (cur < svg_len) {
+            size_t tag_start = svg_str.find('<', cur);
+            if (tag_start == std::string::npos) {
+                final_out.append(svg_str.substr(cur));
+                break;
+            }
+            final_out.append(svg_str.substr(cur, tag_start - cur));
             
-            processed_svg.append(svg_str.data() + last_pos, match.position() - last_pos);
-
-            // Fast-path: check if any marker exists in attributes
-            if (attributes.find("#0") == std::string::npos) {
-                processed_svg.append(match[0].str());
+            size_t tag_end = svg_str.find('>', tag_start);
+            if (tag_end == std::string::npos) {
+                final_out.append(svg_str.substr(tag_start));
+                break;
+            }
+            
+            std::string tag = svg_str.substr(tag_start, tag_end - tag_start + 1);
+            size_t m_pos = tag.find("#0");
+            
+            if (m_pos == std::string::npos) {
+                final_out.append(tag);
             } else {
-                std::smatch img_match;
-                if (std::regex_search(attributes, img_match, img_marker_regex)) {
-                    int img_idx = std::stoi(img_match[1].str(), nullptr, 16);
-                    const auto& idi = container.get_image_draw_info(img_idx);
+                if (tag[m_pos + 2] == '0') { // Image #00xxxx
+                    int idx = parse_hex4(tag.c_str() + m_pos + 3);
+                    const auto& idi = container.get_image_draw_info(idx);
                     std::string data_url = g_imageCache[idi.url].data_url;
                     
-                    // Replace marker with image tag, keeping other attributes
-                    std::string new_tag = match[0].str();
-                    new_tag = std::regex_replace(new_tag, std::regex(R"raw(<(rect|path|image|circle|ellipse))raw"), "<image");
-                    new_tag = std::regex_replace(new_tag, fill_attr_regex, "");
-                    
-                    // Set image coordinates and size based on origin_box
-                    char pos_attrs[256];
-                    sprintf(pos_attrs, "x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\"",
-                        (float)idi.layer.origin_box.x, (float)idi.layer.origin_box.y, 
+                    char img_coords[256];
+                    sprintf(img_coords, "<image x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" xlink:href=\"",
+                        (float)idi.layer.origin_box.x, (float)idi.layer.origin_box.y,
                         (float)idi.layer.origin_box.width, (float)idi.layer.origin_box.height);
                     
-                    new_tag = std::regex_replace(new_tag, std::regex(R"raw(x="[^"]*")raw"), "");
-                    new_tag = std::regex_replace(new_tag, std::regex(R"raw(y="[^"]*")raw"), "");
-                    new_tag = std::regex_replace(new_tag, std::regex(R"raw(width="[^"]*")raw"), "");
-                    new_tag = std::regex_replace(new_tag, std::regex(R"raw(height="[^"]*")raw"), "");
+                    std::string img_tag = img_coords;
+                    img_tag += data_url;
+                    img_tag += "\"/>";
                     
-                    size_t first_space = new_tag.find(' ');
-                    if (first_space != std::string::npos) {
-                        new_tag.insert(first_space + 1, std::string(pos_attrs) + " ");
-                    }
-
-                    static const std::regex self_close_regex(R"raw(/>)raw");
-                    if (std::regex_search(new_tag, self_close_regex)) {
-                        new_tag = std::regex_replace(new_tag, self_close_regex, " xlink:href=\"" + data_url + "\"/>");
-                    } else {
-                        size_t last_gt = new_tag.find_last_of('>');
-                        if (last_gt != std::string::npos) {
-                            new_tag.insert(last_gt, " xlink:href=\"" + data_url + "\" /");
-                        }
-                    }
-
-                    // Wrap with clipPath if needed
                     const auto& br = idi.layer.border_radius;
                     if (br.top_left_x > 0 || br.top_right_x > 0 || br.bottom_left_x > 0 || br.bottom_right_x > 0) {
-                        char clip_url[64];
-                        sprintf(clip_url, "url(#image_clip_%d)", img_idx);
-                        new_tag = "<g clip-path=\"" + std::string(clip_url) + "\">" + new_tag + "</g>";
-                    }
-                    
-                    processed_svg += new_tag;
-                } else {
-                    std::smatch shd_match;
-                    if (std::regex_search(attributes, shd_match, shd_marker_regex)) {
-                        int shd_idx = std::stoi(shd_match[1].str(), nullptr, 16);
-                        const auto& si = container.get_shadow_info(shd_idx);
-                        char color_str[64];
-                        sprintf(color_str, "rgba(%d,%d,%d,%.2f)", si.color.red, si.color.green, si.color.blue, si.color.alpha / 255.0f);
-                        
-                        std::string new_tag = match[0].str();
-                        new_tag = std::regex_replace(new_tag, shd_marker_regex, color_str);
-                        
-                        if (si.inset) {
-                            char path_data[512];
-                            if (si.box_radius.top_left_x > 0 || si.box_radius.top_right_x > 0 || si.box_radius.bottom_left_x > 0 || si.box_radius.bottom_right_x > 0) {
-                                sprintf(path_data, "M%.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f Z",
-                                    (float)si.box_pos.x + si.x + si.box_radius.top_left_x, (float)si.box_pos.y + si.y,
-                                    (float)si.box_pos.width - si.box_radius.top_left_x - si.box_radius.top_right_x,
-                                    (float)si.box_radius.top_right_x, (float)si.box_radius.top_right_y, (float)si.box_radius.top_right_x, (float)si.box_radius.top_right_y,
-                                    (float)si.box_pos.height - si.box_radius.top_right_y - si.box_radius.bottom_right_y,
-                                    (float)si.box_radius.bottom_right_x, (float)si.box_radius.bottom_right_y, (float)-si.box_radius.bottom_right_x, (float)si.box_radius.bottom_right_y,
-                                    (float)-(si.box_pos.width - si.box_radius.bottom_left_x - si.box_radius.bottom_right_x),
-                                    (float)si.box_radius.bottom_left_x, (float)si.box_radius.bottom_left_y, (float)-si.box_radius.bottom_left_x, (float)-si.box_radius.bottom_left_y,
-                                    (float)-(si.box_pos.height - si.box_radius.top_left_y - si.box_radius.bottom_left_y),
-                                    (float)si.box_radius.top_left_x, (float)si.box_radius.top_left_y, (float)si.box_radius.top_left_x, (float)-si.box_radius.top_left_y);
-                                new_tag = "<path d=\"" + std::string(path_data) + "\" fill=\"none\" stroke=\"" + color_str + "\" stroke-width=\"" + std::to_string(si.blur * 2) + "\"/>";
-                            } else {
-                                char rect_data[256];
-                                sprintf(rect_data, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" fill=\"none\" stroke=\"%s\" stroke-width=\"%.2f\"/>",
-                                    (float)si.box_pos.x + si.x - si.blur, (float)si.box_pos.y + si.y - si.blur,
-                                    (float)si.box_pos.width + si.blur * 2, (float)si.box_pos.height + si.blur * 2,
-                                    color_str, si.blur * 2);
-                                new_tag = rect_data;
-                            }
-                        }
-
-                        std::string wrapper = new_tag;
-                        if (si.blur > 0) {
-                            char filter_url[64];
-                            sprintf(filter_url, "url(#shadow_filter_%d)", shd_idx);
-                            wrapper = "<g filter=\"" + std::string(filter_url) + "\">" + wrapper + "</g>";
-                        }
-                        if (si.inset) {
-                            char clip_url[64];
-                            sprintf(clip_url, "url(#shadow_clip_%d)", shd_idx);
-                            wrapper = "<g clip-path=\"" + std::string(clip_url) + "\">" + wrapper + "</g>";
-                        }
-                        processed_svg += wrapper;
+                        char buf[128];
+                        sprintf(buf, "<g clip-path=\"url(#image_clip_%d)\">", idx);
+                        final_out += buf; final_out += img_tag; final_out += "</g>";
                     } else {
-                        processed_svg.append(match[0].str());
+                        final_out += img_tag;
                     }
+                } else if (tag[m_pos + 2] == '1') { // Shadow #01xxxx
+                    int idx = parse_hex4(tag.c_str() + m_pos + 3);
+                    const auto& si = container.get_shadow_info(idx);
+                    char color_str[64];
+                    sprintf(color_str, "rgba(%d,%d,%d,%.2f)", si.color.red, si.color.green, si.color.blue, si.color.alpha / 255.0f);
+                    
+                    tag.replace(m_pos, 7, color_str);
+                    
+                    if (si.inset) {
+                        std::string inset_tag;
+                        if (si.box_radius.top_left_x > 0 || si.box_radius.top_right_x > 0 || si.box_radius.bottom_left_x > 0 || si.box_radius.bottom_right_x > 0) {
+                            char path_data[512];
+                            sprintf(path_data, "M%.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f Z",
+                                (float)si.box_pos.x + si.x + si.box_radius.top_left_x, (float)si.box_pos.y + si.y,
+                                (float)si.box_pos.width - si.box_radius.top_left_x - si.box_radius.top_right_x,
+                                (float)si.box_radius.top_right_x, (float)si.box_radius.top_right_y, (float)si.box_radius.top_right_x, (float)si.box_radius.top_right_y,
+                                (float)si.box_pos.height - si.box_radius.top_right_y - si.box_radius.bottom_right_y,
+                                (float)si.box_radius.bottom_right_x, (float)si.box_radius.bottom_right_y, (float)-si.box_radius.bottom_right_x, (float)si.box_radius.bottom_right_y,
+                                (float)-(si.box_pos.width - si.box_radius.bottom_left_x - si.box_radius.bottom_right_x),
+                                (float)si.box_radius.bottom_left_x, (float)si.box_radius.bottom_left_y, (float)-si.box_radius.bottom_left_x, (float)-si.box_radius.bottom_left_y,
+                                (float)-(si.box_pos.height - si.box_radius.top_left_y - si.box_radius.bottom_left_y),
+                                (float)si.box_radius.top_left_x, (float)si.box_radius.top_left_y, (float)si.box_radius.top_left_x, (float)-si.box_radius.top_left_y);
+                            char path_tag[1024];
+                            sprintf(path_tag, "<path d=\"%s\" fill=\"none\" stroke=\"%s\" stroke-width=\"%.2f\"/>", path_data, color_str, si.blur * 2.0f);
+                            inset_tag = path_tag;
+                        } else {
+                            char rect_tag[1024];
+                            sprintf(rect_tag, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" fill=\"none\" stroke=\"%s\" stroke-width=\"%.2f\"/>",
+                                (float)si.box_pos.x + si.x - si.blur, (float)si.box_pos.y + si.y - si.blur,
+                                (float)si.box_pos.width + si.blur * 2, (float)si.box_pos.height + si.blur * 2,
+                                color_str, si.blur * 2.0f);
+                            inset_tag = rect_tag;
+                        }
+                        tag = inset_tag;
+                    }
+
+                    if (si.blur > 0) {
+                        char buf[64]; sprintf(buf, "<g filter=\"url(#shadow_filter_%d)\">", idx);
+                        final_out += buf;
+                    }
+                    if (si.inset) {
+                        char buf[64]; sprintf(buf, "<g clip-path=\"url(#shadow_clip_%d)\">", idx);
+                        final_out += buf;
+                    }
+                    final_out += tag;
+                    if (si.inset) final_out += "</g>";
+                    if (si.blur > 0) final_out += "</g>";
+                } else {
+                    final_out.append(tag);
                 }
             }
-            last_pos = match.position() + match.length();
+            cur = tag_end + 1;
         }
-        processed_svg.append(svg_str.data() + last_pos, svg_str.size() - last_pos);
 
-        static std::string final_out;
-        final_out = processed_svg;
-        return final_out.c_str();
+        static std::string static_out;
+        static_out = final_out;
+        return static_out.c_str();
     }
 }

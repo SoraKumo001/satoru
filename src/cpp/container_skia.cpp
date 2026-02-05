@@ -436,10 +436,19 @@ void container_skia::draw_radial_gradient(litehtml::uint_ptr hdc, const litehtml
     }
 
     SkPoint center = {(float)gradient.position.x, (float)gradient.position.y};
-    float radius = (float)gradient.radius.x;
+    float rx = (float)gradient.radius.x;
+    float ry = (float)gradient.radius.y;
 
     SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(positions), SkTileMode::kClamp), SkGradient::Interpolation());
-    auto shader = SkShaders::RadialGradient(center, radius, skGrad);
+    
+    // To support elliptical gradients (rx != ry), we create a circular gradient 
+    // at origin with radius 1.0 and scale it using a local matrix.
+    SkMatrix matrix;
+    matrix.setScale(rx, ry);
+    matrix.postTranslate(center.x(), center.y());
+    
+    // Create radial gradient at (0,0) with radius 1, transformed by matrix
+    auto shader = SkShaders::RadialGradient({0, 0}, 1.0f, skGrad, &matrix);
     
     SkPaint paint;
     paint.setShader(shader);
@@ -576,7 +585,7 @@ void container_skia::draw_conic_gradient(litehtml::uint_ptr hdc, const litehtml:
     float startAngle = gradient.angle - 90.0f;
 
     SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(positions), SkTileMode::kClamp), SkGradient::Interpolation());
-    auto shader = SkShaders::SweepGradient(center.x(), center.y(), startAngle, startAngle + 360.0f, skGrad, nullptr);
+    auto shader = SkShaders::SweepGradient(center, startAngle, startAngle + 360.0f, skGrad, nullptr);
     
     SkPaint paint;
     paint.setShader(shader);

@@ -39,3 +39,32 @@ To prevent `Hash Mismatch` errors when using `edit_file` or `write_file`, strict
 2. Re-read the file using `read_file`.
 3. Verify the exact content of the lines you intend to change.
 4. Retry the edit with the newly confirmed content.
+
+## Project Context: Satoru
+
+### 1. Overview
+
+**Satoru** is an HTML/CSS to SVG converter running in WebAssembly (WASM). It leverages `litehtml` for layout/rendering and `Skia` for drawing, outputting an SVG string.
+
+### 2. Build System
+
+- **Command:** `npm run cmake-build`
+- **Mechanism:** Uses `scripts/build-wasm.ts` (executed via `tsx`) to handle build configuration and execution.
+  - **Do NOT** write raw shell scripts for building; rely on this TypeScript abstraction to ensure cross-platform compatibility (Windows/Linux/macOS).
+- **Environment:** Requires `EMSDK` (Emscripten) and `VCPKG_ROOT` environment variables.
+
+### 3. Testing & Development
+
+- **Test:** `npm test` converts HTML assets in `public/assets/` to SVGs in `temp/`.
+- **UI:** `index.html` / `src/main.ts` provides a split-view comparison.
+- **Logging:** C++ `printf` / `std::cout` is bridged to Node.js/Console via Emscripten's `print` hook. Use `fflush(stdout)` or `\n` to flush.
+
+### 4. Implementation Details
+
+- **Images:** Decoded in JavaScript/TypeScript host and passed to WASM as Data URLs via a preloading cache. WASM does not fetch images directly.
+- **SVG Output:** Skia's `SkSVGCanvas` is used. We filter out empty paths (`<path d="" />`) in `main.cpp` to reduce bloat.
+- **Gradients:**
+  - **Linear/Radial:** Implemented via standard Skia shaders.
+  - **Conic:** Implemented via `SkShaders::SweepGradient` with rotation adjustments.
+  - **Elliptical Radial:** Handled via `SkMatrix` scaling on a unit circle gradient.
+- **Text Decoration:** Custom handling in `draw_text` to support `dotted`, `dashed`, `wavy` (TODO), and correct skipping of whitespace for continuous lines.

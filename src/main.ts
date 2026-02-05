@@ -64,13 +64,13 @@ async function init() {
                     }
                     #svgContainer { position: relative; }
                 </style>
-                <div style="padding: 20px; font-family: sans-serif; max-width: 1000px; margin: 0 auto; background: #fafafa; min-height: 100vh;">
+                <div style="padding: 20px; font-family: sans-serif; max-width: 1200px; margin: 0 auto; background: #fafafa; min-height: 100vh;">
                     <h2 style="color: #2196F3; border-bottom: 2px solid #2196F3; padding-bottom: 10px;">Satoru Engine: HTML to Pure SVG</h2>
                     
                     <div style="display: flex; gap: 20px; margin-bottom: 20px;">
                         <fieldset style="flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white;">
                             <legend style="font-weight: bold;">Canvas & Fonts</legend>
-                            <label>Width: <input type="number" id="canvasWidth" value="800" style="width: 80px;"></label>
+                            <label>Width: <input type="number" id="canvasWidth" value="580" style="width: 80px;"></label>
                             <button id="loadFontBtn" style="margin-left: 20px; padding: 5px 10px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 4px;">Loading Fonts...</button>
                         </fieldset>
                         <fieldset style="flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white;">
@@ -85,39 +85,39 @@ async function init() {
                                 <option value="06-complex-layout.html">06-complex-layout.html</option>
                                 <option value="07-image-embedding.html">07-image-embedding.html</option>
                                 <option value="08-box-shadow.html">08-box-shadow.html</option>
+                                <option value="09-complex-layout.html">09-complex-layout.html</option>
                             </select>
                         </fieldset>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
-                        <div>
-                            <h3>HTML Input:</h3>
-                            <textarea id="htmlInput" style="width: 100%; height: 300px; font-family: monospace; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box;"></textarea>
-                        </div>
-                        <div>
-                            <h3>HTML Live Preview (iframe):</h3>
-                            <div style="border: 1px solid #ccc; border-radius: 4px; height: 300px; background: white; overflow: hidden;">
-                                <iframe id="htmlPreview" style="width: 100%; height: 100%; border: none;"></iframe>
-                            </div>
-                        </div>
+                    <div style="margin-bottom: 15px;">
+                        <h3>HTML Input:</h3>
+                        <textarea id="htmlInput" style="width: 100%; height: 150px; font-family: monospace; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box;"></textarea>
                     </div>
 
                     <button id="convertBtn" style="padding: 15px 30px; font-size: 20px; cursor: pointer; background: #2196F3; color: white; border: none; border-radius: 4px; width: 100%; font-weight: bold; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(33, 150, 243, 0.3);">Generate Vector SVG</button>
                     
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 20px;">
+                        <div>
+                            <h3>HTML Live Preview (iframe):</h3>
+                            <div style="border: 1px solid #ccc; border-radius: 4px; height: 500px; background: white; overflow: hidden; box-sizing: border-box;">
+                                <iframe id="htmlPreview" style="width: 100%; height: 100%; border: none;"></iframe>
+                            </div>
+                        </div>
                         <div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <h3>SVG Render Preview:</h3>
                                 <button id="downloadBtn" style="display: none; background: #FF9800; color: white; border: none; padding: 6px 15px; cursor: pointer; border-radius: 4px;">Download .svg</button>
                             </div>
-                            <div id="svgContainer" style="border: 1px solid #ddd; background: #eee; padding: 20px; border-radius: 8px; min-height: 300px; display: flex; justify-content: center; overflow: auto;">
-                                <div style="color: #999; margin-top: 120px;">Result will appear here</div>
+                            <div id="svgContainer" style="border: 1px solid #ddd; background: #eee; border-radius: 8px; height: 500px; display: flex;  overflow: auto; box-sizing: border-box;">
+                                <div style="color: #999; margin-top: 200px;">Result will appear here</div>
                             </div>
                         </div>
-                        <div>
-                            <h3>SVG Output Source:</h3>
-                            <textarea id="svgSource" style="width: 100%; height: 250px; font-family: monospace; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; background: #fdfdfd;" readonly></textarea>
-                        </div>
+                    </div>
+
+                    <div>
+                        <h3>SVG Output Source:</h3>
+                        <textarea id="svgSource" style="width: 100%; height: 150px; font-family: monospace; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; background: #fdfdfd;" readonly></textarea>
                     </div>
                 </div>
             `;
@@ -197,7 +197,7 @@ async function init() {
 
       const performConversion = async () => {
         const htmlStr = htmlInput.value;
-        const width = parseInt(canvasWidthInput.value) || 800;
+        const width = parseInt(canvasWidthInput.value) || 580;
 
         // Show loading effect
         const loadingOverlay = document.createElement("div");
@@ -211,12 +211,15 @@ async function init() {
         await new Promise((resolve) => setTimeout(resolve, 50));
 
         try {
-          const svgResult = Module.ccall(
+          let svgResult = Module.ccall(
             "html_to_svg",
             "string",
             ["string", "number", "number"],
             [htmlStr, width, 0],
           );
+
+          // Force SVG to show overflowing content (e.g. shadows)
+          svgResult = svgResult.replace("<svg", '<svg style="overflow:visible"');
 
           svgContainer.innerHTML = svgResult;
           svgContainer.style.background = "#fff";

@@ -6,7 +6,14 @@ export default defineConfig({
     port: 3000,
     open: true,
     watch: {
-      ignored: ["**/!(src|public)/**"],
+      ignored: [
+        "**/node_modules/**",
+        "**/external/**",
+        "**/build-wasm/**",
+        "**/vcpkg_installed/**",
+        "**/temp/**",
+        "**/dist/**",
+      ],
     },
   },
   build: {

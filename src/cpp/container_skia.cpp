@@ -131,8 +131,24 @@ litehtml::pixel_t container_skia::text_width(const char* text, litehtml::uint_pt
     return (litehtml::pixel_t)(total_width + 0.5f);
 }
 
+static bool is_whitespace_uni(SkUnichar uni) {
+    return uni <= 32 || uni == 0xA0 || uni == 0x3000 || (uni >= 0x2000 && uni <= 0x200A) || uni == 0x202F || uni == 0x205F;
+}
+
+static bool is_whitespace_run(const char* s, size_t len) {
+    const char* ptr = s;
+    const char* end = s + len;
+    while (ptr < end) {
+        const char* temp_ptr = ptr;
+        SkUnichar uni = SkUTF::NextUTF8(&temp_ptr, end);
+        if (!is_whitespace_uni(uni)) return false;
+        ptr = temp_ptr;
+    }
+    return true;
+}
+
 void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtml::uint_ptr hFont, litehtml::web_color color, const litehtml::position& pos) {
-    if (!m_canvas || !text || !hFont) return;
+    if (!m_canvas || !text || !text[0] || !hFont || is_whitespace_run(text, strlen(text))) return;
     font_info* fi = (font_info*)hFont;
     SkFont* baseFont = fi->font;
     
@@ -158,6 +174,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
         const char* ptr = text;
         const char* end = text + strlen(text);
         float cx = offset_x;
+        bool skip_draw = (SkColorGetA(p.getColor()) == 0);
         
         while (ptr < end) {
             const char* run_start = ptr;
@@ -171,7 +188,9 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
                     if (uni <= 0 || baseFont->unicharToGlyph(uni) == 0) break;
                     ptr = next_ptr;
                 }
-                m_canvas->drawSimpleText(run_start, ptr - run_start, SkTextEncoding::kUTF8, cx, offset_y, *baseFont, p);
+                if (!skip_draw) {
+                    m_canvas->drawSimpleText(run_start, ptr - run_start, SkTextEncoding::kUTF8, cx, offset_y, *baseFont, p);
+                }
                 cx += baseFont->measureText(run_start, ptr - run_start, SkTextEncoding::kUTF8);
             } else {
                 SkUnichar uni = SkUTF::NextUTF8(&ptr, end);
@@ -182,16 +201,19 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
                         break;
                     }
                 }
-                m_canvas->drawSimpleText(&uni, sizeof(SkUnichar), SkTextEncoding::kUTF32, cx, offset_y, targetFont, p);
+                if (!skip_draw) {
+                    m_canvas->drawSimpleText(&uni, sizeof(SkUnichar), SkTextEncoding::kUTF32, cx, offset_y, targetFont, p);
+                }
                 cx += targetFont.measureText(&uni, sizeof(SkUnichar), SkTextEncoding::kUTF32);
             }
         }
         return cx - offset_x;
     };
 
-    float final_width = draw_text_runs(current_x, baseline_y, paint);
-
-    for (const auto& shadow : fi->desc.text_shadow) {
+    // Draw shadows first (behind text)
+    for (int i = (int)fi->desc.text_shadow.size() - 1; i >= 0; --i) {
+        const auto& shadow = fi->desc.text_shadow[i];
+        if (shadow.color.alpha == 0) continue;
         shadow_info si;
         si.color = shadow.color;
         si.blur = (float)shadow.blur.val();
@@ -214,7 +236,10 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
         draw_text_runs(current_x + si.x, baseline_y + si.y, shadowPaint);
     }
 
-    if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
+    // Draw main text
+    float final_width = draw_text_runs(current_x, baseline_y, paint);
+
+    if (fi->desc.decoration_line != litehtml::text_decoration_line_none && final_width > 0.1f) {
         SkPaint decPaint = paint;
         if (fi->desc.decoration_color != litehtml::web_color::current_color) {
             decPaint.setColor(SkColorSetARGB(fi->desc.decoration_color.alpha, fi->desc.decoration_color.red, fi->desc.decoration_color.green, fi->desc.decoration_color.blue));
@@ -241,7 +266,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
 }
 
 void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::borders& borders, const litehtml::position& draw_pos, bool root) {
-    if (!m_canvas) return;
+    if (!m_canvas || draw_pos.width <= 0.1f || draw_pos.height <= 0.1f) return;
 
     SkRect rect = SkRect::MakeXYWH((float)draw_pos.x, (float)draw_pos.y, (float)draw_pos.width, (float)draw_pos.height);
     SkVector radii[4] = {
@@ -271,7 +296,7 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
         borders.top.color == borders.bottom.color && borders.top.color == borders.left.color && borders.top.color == borders.right.color &&
         borders.top.style == borders.bottom.style && borders.top.style == borders.left.style && borders.top.style == borders.right.style)
     {
-        if (borders.top.width > 0 && borders.top.style != litehtml::border_style_none) {
+        if (borders.top.width > 0 && borders.top.style != litehtml::border_style_none && borders.top.color.alpha > 0) {
             SkPaint p;
             p.setAntiAlias(true);
             p.setStyle(SkPaint::kStroke_Style);
@@ -283,7 +308,7 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
     }
     else {
         auto draw_b = [&](float x1, float y1, float x2, float y2, const litehtml::border& b) {
-            if (b.width > 0 && b.style != litehtml::border_style_none) {
+            if (b.width > 0 && b.style != litehtml::border_style_none && b.color.alpha > 0) {
                 SkPaint p;
                 p.setAntiAlias(true);
                 p.setStyle(SkPaint::kStroke_Style);
@@ -303,10 +328,10 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
 }
 
 void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::shadow_vector& shadows, const litehtml::position& pos, const litehtml::border_radiuses& radius, bool inset_pass) {
-    if (!m_canvas || shadows.empty()) return;
+    if (!m_canvas || shadows.empty() || pos.width <= 0.1f || pos.height <= 0.1f) return;
 
     for (const auto& shadow : shadows) {
-        if (shadow.inset != inset_pass) continue;
+        if (shadow.inset != inset_pass || shadow.color.alpha == 0) continue;
 
         shadow_info si;
         si.color = shadow.color;
@@ -353,7 +378,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
 }
 
 void container_skia::draw_linear_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::linear_gradient& gradient) {
-    if (!m_canvas) return;
+    if (!m_canvas || layer.border_box.width <= 0.1f || layer.border_box.height <= 0.1f) return;
 
     std::vector<SkColor4f> colors;
     std::vector<float> positions;
@@ -387,7 +412,7 @@ void container_skia::draw_linear_gradient(litehtml::uint_ptr hdc, const litehtml
 }
 
 void container_skia::draw_radial_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::radial_gradient& gradient) {
-    if (!m_canvas) return;
+    if (!m_canvas || layer.border_box.width <= 0.1f || layer.border_box.height <= 0.1f) return;
 
     std::vector<SkColor4f> colors;
     std::vector<float> positions;
@@ -419,7 +444,7 @@ void container_skia::draw_radial_gradient(litehtml::uint_ptr hdc, const litehtml
 }
 
 void container_skia::draw_solid_fill(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::web_color& color) {
-    if (!m_canvas) return;
+    if (!m_canvas || color.alpha == 0 || layer.border_box.width <= 0.1f || layer.border_box.height <= 0.1f) return;
     
     SkPaint paint;
     paint.setAntiAlias(true);
@@ -438,7 +463,7 @@ void container_skia::draw_solid_fill(litehtml::uint_ptr hdc, const litehtml::bac
 }
 
 void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const std::string& url, const std::string& base_url) {
-    if (!m_canvas) return;
+    if (!m_canvas || layer.border_box.width <= 0.1f || layer.border_box.height <= 0.1f) return;
     
     auto it = m_imageCache.find(url);
     if (it != m_imageCache.end()) {
@@ -463,7 +488,7 @@ void container_skia::load_image(const char* src, const char* baseurl, bool redra
 }
 
 void container_skia::set_clip(const litehtml::position& pos, const litehtml::border_radiuses& bdr_radius) {
-    if (!m_canvas) return;
+    if (!m_canvas || pos.width <= 0.1f || pos.height <= 0.1f) return;
     m_canvas->save();
     
     SkRect rect = SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height);

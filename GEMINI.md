@@ -36,7 +36,7 @@ To prevent `Hash Mismatch` errors when using `edit_file` or `write_file`, strict
 - If you encounter a `Hash Mismatch` error:
 
 1. Stop the current chain.
-2. Re-read the file using `read_file`.
+2. Re-read the file using `get_text_file_contents`.
 3. Verify the exact content of the lines you intend to change.
 4. Retry the edit with the newly confirmed content.
 

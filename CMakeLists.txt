@@ -34,6 +34,8 @@ set(LITEHTML_DIR "${LIBS_DIR}/litehtml")
 
 # Find dependencies
 find_package(Freetype REQUIRED)
+find_package(PNG REQUIRED)
+find_package(ZLIB REQUIRED)
 find_package(expat CONFIG REQUIRED)
 find_package(unofficial-gumbo CONFIG REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
@@ -74,6 +76,26 @@ file(GLOB SKIA_CORE_SRC
     "external/skia/src/xml/*.cpp"
     "external/skia/src/text/*.cpp"
     "external/skia/modules/skcms/skcms.cc"
+    "external/skia/src/encode/SkEncoder.cpp"
+    "external/skia/src/encode/SkPngEncoderImpl.cpp"
+    "external/skia/src/encode/SkPngEncoderBase.cpp"
+    "external/skia/src/encode/SkICC.cpp"
+    "external/skia/src/codec/SkCodec.cpp"
+    "external/skia/src/codec/SkCodecColorProfile.cpp"
+    "external/skia/src/codec/SkCodecImageGenerator.cpp"
+    "external/skia/src/codec/SkImageGenerator_FromEncoded.cpp"
+    "external/skia/src/codec/SkEncodedInfo.cpp"
+    "external/skia/src/codec/SkPngCodec.cpp"
+    "external/skia/src/codec/SkPngCodecBase.cpp"
+    "external/skia/src/codec/SkPngCompositeChunkReader.cpp"
+    "external/skia/src/codec/SkParseEncodedOrigin.cpp"
+    "external/skia/src/codec/SkMaskSwizzler.cpp"
+    "external/skia/src/codec/SkSwizzler.cpp"
+    "external/skia/src/codec/SkSampler.cpp"
+    "external/skia/src/codec/SkColorPalette.cpp"
+    "external/skia/src/codec/SkColorTable.cpp"
+    "external/skia/src/codec/SkPixmapUtils.cpp"
+    "external/skia/src/codec/SkHdrMetadata.cpp"
 )
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkPDF.*|.*SkGPU.*")
@@ -96,11 +118,15 @@ target_include_directories(main PRIVATE
     "external/skia/include/ports"
     "external/skia/include/effects"
     "external/skia/include/svg"
+    "external/skia/include/encode"
+    "external/skia/include/codec"
     "external/skia/modules/skcms"
     "external/skia/src/core"
     "external/skia/src/base"
     "external/skia/src/text"
     "external/skia/src/utils"
+    "external/skia/src/codec"
+    "external/skia/src/encode"
 )
 
 target_compile_options(main PRIVATE
@@ -120,6 +146,8 @@ target_compile_definitions(main PRIVATE
     SK_SUPPORT_PDF=0
     SK_SUPPORT_GPU=0
     SK_ENABLE_SVG=1
+    SK_CODEC_DECODES_PNG
+    SK_ENCODE_PNG
 )
 
 set_target_properties(main PROPERTIES
@@ -131,6 +159,8 @@ set_target_properties(main PROPERTIES
 # Link libraries
 target_link_libraries(main PRIVATE
     Freetype::Freetype
+    PNG::PNG
+    ZLIB::ZLIB
     expat::expat
     unofficial::gumbo::gumbo
     unofficial::brotli::brotlidec

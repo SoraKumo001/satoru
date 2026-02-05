@@ -64,11 +64,11 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
 
     for (size_t i = 0; i + 6 < svg_len; ++i) {
         if (svg_str[i] == '#' && (svg_str[i+1] == 'F' || svg_str[i+1] == 'f')) {
-            if (svg_str[i+2] == 'B' || svg_str[i+2] == 'b') { // Image
+            if (svg_str[i+2] == 'B' || svg_str[i+2] == 'b') { // Image tag #FBxxxx
                 int idx = parse_hex4(svg_str.c_str() + i + 3);
                 used_image_indices.insert(idx);
                 i += 6;
-            } else if (svg_str[i+2] == 'C' || svg_str[i+2] == 'c') { // Shadow
+            } else if (svg_str[i+2] == 'C' || svg_str[i+2] == 'c') { // Shadow tag #FCxxxx
                 int idx = parse_hex4(svg_str.c_str() + i + 3);
                 used_shadow_indices.insert(idx);
                 i += 6;
@@ -80,6 +80,8 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
     for (int idx : used_shadow_indices) {
         if (idx <= 0 || idx > (int)container.get_shadow_count()) continue;
         const auto& si = container.get_shadow_info(idx);
+        
+        // Filter for blur
         if (si.blur > 0) {
             char buf[256];
             sprintf(buf, "<filter id=\"shadow_filter_%d\" x=\"-50%%\" y=\"-50%%\" width=\"200%%\" height=\"200%%\">", idx);
@@ -88,32 +90,37 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
             extra_defs += buf;
             extra_defs += "</filter>";
         }
+
+        // Clip path for inset shadows or knocking out outer shadows
+        char buf[128];
+        sprintf(buf, "<clipPath id=\"shadow_clip_%d\">", idx);
+        extra_defs += buf;
+        
+        char path_data[512];
+        const auto& br = si.box_radius;
+        sprintf(path_data, "M%.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f Z",
+            (float)si.box_pos.x + br.top_left_x, (float)si.box_pos.y,
+            (float)si.box_pos.width - br.top_left_x - br.top_right_x,
+            (float)br.top_right_x, (float)br.top_right_y, (float)br.top_right_x, (float)br.top_right_y,
+            (float)si.box_pos.height - br.top_right_y - br.bottom_right_y,
+            (float)br.bottom_right_x, (float)br.bottom_right_y, (float)-br.bottom_right_x, (float)br.bottom_right_y,
+            (float)-(si.box_pos.width - br.bottom_left_x - br.bottom_right_x),
+            (float)br.bottom_left_x, (float)br.bottom_left_y, (float)-br.bottom_left_x, (float)-br.bottom_left_y,
+            (float)-(si.box_pos.height - br.top_left_y - br.bottom_left_y),
+            (float)br.top_left_x, (float)br.top_left_y, (float)br.top_left_x, (float)-br.top_left_y);
+        
         if (si.inset) {
-            char buf[128];
-            sprintf(buf, "<clipPath id=\"shadow_clip_%d\">", idx);
-            extra_defs += buf;
-            if (si.box_radius.top_left_x > 0 || si.box_radius.top_right_x > 0 || si.box_radius.bottom_left_x > 0 || si.box_radius.bottom_right_x > 0) {
-                char path_data[512];
-                sprintf(path_data, "M%.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f Z",
-                    (float)si.box_pos.x + si.box_radius.top_left_x, (float)si.box_pos.y,
-                    (float)si.box_pos.width - si.box_radius.top_left_x - si.box_radius.top_right_x,
-                    (float)si.box_radius.top_right_x, (float)si.box_radius.top_right_y, (float)si.box_radius.top_right_x, (float)si.box_radius.top_right_y,
-                    (float)si.box_pos.height - si.box_radius.top_right_y - si.box_radius.bottom_right_y,
-                    (float)si.box_radius.bottom_right_x, (float)si.box_radius.bottom_right_y, (float)-si.box_radius.bottom_right_x, (float)si.box_radius.bottom_right_y,
-                    (float)-(si.box_pos.width - si.box_radius.bottom_left_x - si.box_radius.bottom_right_x),
-                    (float)si.box_radius.bottom_left_x, (float)si.box_radius.bottom_left_y, (float)-si.box_radius.bottom_left_x, (float)-si.box_radius.bottom_left_y,
-                    (float)-(si.box_pos.height - si.box_radius.top_left_y - si.box_radius.bottom_left_y),
-                    (float)si.box_radius.top_left_x, (float)si.box_radius.top_left_y, (float)si.box_radius.top_left_x, (float)-si.box_radius.top_left_y);
-                extra_defs += "<path d=\""; extra_defs += path_data; extra_defs += "\"/>";
-            } else {
-                char rect_data[128];
-                sprintf(rect_data, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\"/>",
-                    (float)si.box_pos.x, (float)si.box_pos.y, (float)si.box_pos.width, (float)si.box_pos.height);
-                extra_defs += rect_data;
-            }
-            extra_defs += "</clipPath>";
+            extra_defs += "<path d=\""; extra_defs += path_data; extra_defs += "\"/>";
+        } else {
+            // For outer shadow, we want to clip everything EXCEPT the box area.
+            // SVG doesn't have an easy "inverse clip", so we use a huge rect with a hole.
+            extra_defs += "<path clip-rule=\"evenodd\" d=\"M-10000 -10000 h20000 v20000 h-20000 Z ";
+            extra_defs += path_data;
+            extra_defs += "\"/>";
         }
+        extra_defs += "</clipPath>";
     }
+
     for (int idx : used_image_indices) {
         if (idx <= 0 || idx > (int)container.get_image_count()) continue;
         const auto& idi = container.get_image_draw_info(idx);
@@ -247,6 +254,10 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
             }
         } else if (first_shadow_idx != -1) {
             const auto& si = container.get_shadow_info(first_shadow_idx);
+            // Outer shadows now ALSO get a clip-path to avoid bleeding into the box
+            char buf_clip[64]; sprintf(buf_clip, "<g clip-path=\"url(#shadow_clip_%d)\">", first_shadow_idx);
+            final_out += buf_clip;
+
             if (si.inset) {
                 std::string inset_tag;
                 char color_str[64];
@@ -275,9 +286,7 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
                     inset_tag = rect_tag;
                 }
                 if (si.blur > 0) { char buf[64]; sprintf(buf, "<g filter=\"url(#shadow_filter_%d)\">", first_shadow_idx); final_out += buf; }
-                char buf[64]; sprintf(buf, "<g clip-path=\"url(#shadow_clip_%d)\">", first_shadow_idx); final_out += buf;
                 final_out += inset_tag;
-                final_out += "</g>";
                 if (si.blur > 0) final_out += "</g>";
             } else if (si.blur > 0) {
                 char buf[64]; sprintf(buf, "<g filter=\"url(#shadow_filter_%d)\">", first_shadow_idx);
@@ -285,6 +294,7 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
             } else {
                 final_out += tag;
             }
+            final_out += "</g>"; // End of shadow_clip group
         } else {
             final_out += tag;
         }

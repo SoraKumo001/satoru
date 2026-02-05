@@ -100,7 +100,7 @@ async function init() {
                     <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 20px;">
                         <div>
                             <h3>HTML Live Preview (iframe):</h3>
-                            <div style="border: 1px solid #ccc; border-radius: 4px; height: 500px; background: white; overflow: hidden; box-sizing: border-box;">
+                            <div style="border: 1px solid #ccc; border-radius: 4px; height: 800px; background: white; overflow: hidden; box-sizing: border-box;">
                                 <iframe id="htmlPreview" style="width: 100%; height: 100%; border: none;"></iframe>
                             </div>
                         </div>
@@ -109,7 +109,7 @@ async function init() {
                                 <h3>SVG Render Preview:</h3>
                                 <button id="downloadBtn" style="display: none; background: #FF9800; color: white; border: none; padding: 6px 15px; cursor: pointer; border-radius: 4px;">Download .svg</button>
                             </div>
-                            <div id="svgContainer" style="border: 1px solid #ddd; background: #eee; border-radius: 8px; height: 500px; display: flex;  overflow: auto; box-sizing: border-box;">
+                            <div id="svgContainer" style="border: 1px solid #ddd; background: #eee; border-radius: 8px; height: 800px; display: flex;  overflow: auto; box-sizing: border-box;">
                                 <div style="color: #999; margin-top: 200px;">Result will appear here</div>
                             </div>
                         </div>
@@ -117,7 +117,7 @@ async function init() {
 
                     <div>
                         <h3>SVG Output Source:</h3>
-                        <textarea id="svgSource" style="width: 100%; height: 150px; font-family: monospace; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; background: #fdfdfd;" readonly></textarea>
+                        <textarea id="svgSource" style="width: 100%; height: 300px; font-family: monospace; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; background: #fdfdfd;" readonly></textarea>
                     </div>
                 </div>
             `;
@@ -219,7 +219,10 @@ async function init() {
           );
 
           // Force SVG to show overflowing content (e.g. shadows)
-          svgResult = svgResult.replace("<svg", '<svg style="overflow:visible"');
+          svgResult = svgResult.replace(
+            "<svg",
+            '<svg style="overflow:visible"',
+          );
 
           svgContainer.innerHTML = svgResult;
           svgContainer.style.background = "#fff";

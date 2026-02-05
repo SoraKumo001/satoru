@@ -231,11 +231,6 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
     // Draw main text
     float final_width = draw_text_runs(current_x, baseline_y, paint);
 
-    if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
-        printf("DEBUG: draw_text '%s' width=%.2f dec=%d\\n", text, final_width, (int)fi->desc.decoration_line);
-        fflush(stdout);
-    }
-
     if (fi->desc.decoration_line != litehtml::text_decoration_line_none && final_width > 0.1f) {
         SkPaint decPaint = paint;
         if (fi->desc.decoration_color != litehtml::web_color::current_color) {
@@ -571,7 +566,7 @@ void container_skia::draw_conic_gradient(litehtml::uint_ptr hdc, const litehtml:
 
     SkPoint center = {(float)gradient.position.x, (float)gradient.position.y};
 
-    // Skia's SweepGradient starts at 0 degrees (pointing right) and goes clockwise.
+    // Skia's SweepGradient starts at 0 degrees (pointing right) and goes clockwise island.
     // CSS conic-gradient starts at 0 degrees (pointing up) and goes clockwise.
     // So we need to apply a -90 degree rotation + the CSS angle.
     float startAngle = gradient.angle - 90.0f;

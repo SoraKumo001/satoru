@@ -14,6 +14,23 @@ std::string clean_font_name(const char* name) {
     return result;
 }
 
+std::string base64_encode(const uint8_t* data, size_t len) {
+    std::string out;
+    const char* chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    int val = 0, valb = -6;
+    for (size_t i = 0; i < len; i++) {
+        val = (val << 8) + data[i];
+        valb += 8;
+        while (valb >= 0) {
+            out.push_back(chars[(val >> valb) & 0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6) out.push_back(chars[((val << (6 + valb)) & 0x3F)]);
+    while (out.size() % 4) out.push_back('=');
+    return out;
+}
+
 std::vector<uint8_t> base64_decode(const std::string& in) {
     std::vector<uint8_t> out;
     std::vector<int> T(256, -1);

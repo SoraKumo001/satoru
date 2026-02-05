@@ -40,7 +40,7 @@ async function downloadFont(url: string, dest: string) {
 }
 
 async function convertAssets() {
-  console.log("--- Batch HTML to SVG Conversion Start ---");
+  console.log("--- Batch HTML to SVG & PNG Conversion Start ---");
 
   if (!fs.existsSync(TEMP_DIR)) {
     fs.mkdirSync(TEMP_DIR, { recursive: true });
@@ -89,7 +89,8 @@ async function convertAssets() {
 
     for (const file of files) {
       const inputPath = path.join(ASSETS_DIR, file);
-      const outputPath = path.join(TEMP_DIR, file.replace(".html", ".svg"));
+      const svgOutputPath = path.join(TEMP_DIR, file.replace(".html", ".svg"));
+      const pngOutputPath = path.join(TEMP_DIR, file.replace(".html", ".png"));
 
       console.log(`Converting: ${file} ...`);
       const html = fs.readFileSync(inputPath, "utf8");
@@ -120,14 +121,23 @@ async function convertAssets() {
       const htmlPtr = instance._malloc(htmlBuffer.length);
       instance.HEAPU8.set(htmlBuffer, htmlPtr);
 
+      // SVG Conversion
       const svgPtr = instance._html_to_svg(htmlPtr, 800, 0);
       const svg = instance.UTF8ToString(svgPtr).replace(/\0/g, "");
+      fs.writeFileSync(svgOutputPath, svg);
 
-      fs.writeFileSync(outputPath, svg);
+      // PNG Conversion
+      const pngDataUrlPtr = instance._html_to_png(htmlPtr, 800, 0);
+      const pngDataUrl = instance.UTF8ToString(pngDataUrlPtr).replace(/\0/g, "");
+      if (pngDataUrl.startsWith("data:image/png;base64,")) {
+        const base64Data = pngDataUrl.replace(/^data:image\/png;base64,/, "");
+        fs.writeFileSync(pngOutputPath, Buffer.from(base64Data, "base64"));
+      }
+
       instance._free(htmlPtr);
     }
 
-    console.log(`--- Finished! ${files.length} files converted. ---`);
+    console.log(`--- Finished! ${files.length} files converted to SVG and PNG. ---`);
   } catch (error) {
     console.error("Conversion failed:", error);
   }

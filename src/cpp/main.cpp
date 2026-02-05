@@ -1,6 +1,7 @@
 #include <emscripten/emscripten.h>
 #include "satoru_context.h"
 #include "svg_renderer.h"
+#include "png_renderer.h"
 #include <cstdio>
 
 static SatoruContext g_context;
@@ -37,6 +38,13 @@ extern "C" {
     const char* html_to_svg(const char* html, int width, int height) {
         static std::string static_out;
         static_out = renderHtmlToSvg(html, width, height, g_context);
+        return static_out.c_str();
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    const char* html_to_png(const char* html, int width, int height) {
+        static std::string static_out;
+        static_out = renderHtmlToPng(html, width, height, g_context);
         return static_out.c_str();
     }
 }

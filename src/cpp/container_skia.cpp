@@ -249,6 +249,15 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
         decPaint.setStrokeWidth(thickness);
         decPaint.setStyle(SkPaint::kStroke_Style);
 
+        if (fi->desc.decoration_style == litehtml::text_decoration_style_dashed) {
+            const SkScalar intervals[] = {thickness * 3, thickness * 2};
+            decPaint.setPathEffect(SkDashPathEffect::Make(SkSpan(intervals), 0));
+        } else if (fi->desc.decoration_style == litehtml::text_decoration_style_dotted) {
+            const SkScalar intervals[] = {thickness, thickness};
+            decPaint.setPathEffect(SkDashPathEffect::Make(SkSpan(intervals), 0));
+            decPaint.setStrokeCap(SkPaint::kRound_Cap);
+        }
+
         if (fi->desc.decoration_line & litehtml::text_decoration_line_underline) {
             float uy = baseline_y + (skFm.fUnderlinePosition > 0 ? skFm.fUnderlinePosition : thickness);
             m_canvas->drawLine(current_x, uy, current_x + final_width, uy, decPaint);

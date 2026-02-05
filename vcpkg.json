@@ -3,6 +3,8 @@
   "version-string": "1.0.0",
   "dependencies": [
     "freetype",
+    "libpng",
+    "zlib",
     "litehtml",
     "gumbo",
     "bzip2",

@@ -11,8 +11,6 @@
 #include "include/core/SkImage.h"
 #include "include/ports/SkFontMgr_empty.h"
 #include "include/svg/SkSVGCanvas.h"
-#include "include/codec/SkPngDecoder.h"
-#include "include/codec/SkCodec.h"
 
 #include "image_types.h"
 #include "container_skia.h"
@@ -34,7 +32,6 @@ extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void init_engine() {
         SkGraphics::Init();
-        SkPngDecoder::Decoder();
         g_fontMgr = SkFontMgr_New_Custom_Empty();
     }
 
@@ -58,6 +55,7 @@ extern "C" {
         info.width = width;
         info.height = height;
         info.data_url = std::string(data_url);
+
         g_imageCache[std::string(name)] = info;
     }
 
@@ -110,11 +108,19 @@ extern "C" {
 
         // Post-process SVG
         std::set<int> used_shadow_indices;
-        static const std::regex marker_scan_regex(R"raw((?:fill|stroke)="#01([0-9A-Fa-f]{4})")raw");
-        auto scan_begin = std::sregex_iterator(svg_str.begin(), svg_str.end(), marker_scan_regex);
+        std::set<int> used_image_indices;
+        static const std::regex shd_marker_scan_regex(R"raw((?:fill|stroke)="#01([0-9A-Fa-f]{4})")raw");
+        static const std::regex img_marker_scan_regex(R"raw((?:fill|stroke)="#00([0-9A-Fa-f]{4})")raw");
+        
+        auto shd_scan_begin = std::sregex_iterator(svg_str.begin(), svg_str.end(), shd_marker_scan_regex);
         auto scan_end = std::sregex_iterator();
-        for (std::sregex_iterator i = scan_begin; i != scan_end; ++i) {
+        for (std::sregex_iterator i = shd_scan_begin; i != scan_end; ++i) {
             used_shadow_indices.insert(std::stoi((*i)[1].str(), nullptr, 16));
+        }
+
+        auto img_scan_begin = std::sregex_iterator(svg_str.begin(), svg_str.end(), img_marker_scan_regex);
+        for (std::sregex_iterator i = img_scan_begin; i != scan_end; ++i) {
+            used_image_indices.insert(std::stoi((*i)[1].str(), nullptr, 16));
         }
 
         std::string defs = "<defs>";
@@ -143,30 +149,54 @@ extern "C" {
                 defs += "\">";
                 if (si.box_radius.top_left_x > 0 || si.box_radius.top_right_x > 0 || si.box_radius.bottom_left_x > 0 || si.box_radius.bottom_right_x > 0) {
                     char path_data[512];
-                    sprintf(path_data, "M%d %d h%d q%d 0 %d %d v%d q0 %d %d %d h%d q%d 0 %d %d v%d q0 %d %d %d Z",
-                        (int)(si.box_pos.x + si.box_radius.top_left_x), (int)si.box_pos.y,
-                        (int)(si.box_pos.width - si.box_radius.top_left_x - si.box_radius.top_right_x),
-                        (int)si.box_radius.top_right_x, (int)si.box_radius.top_right_x, (int)si.box_radius.top_right_y,
-                        (int)(si.box_pos.height - si.box_radius.top_right_y - si.box_radius.bottom_right_y),
-                        0, (int)-si.box_radius.bottom_right_x, (int)si.box_radius.bottom_right_y,
-                        (int)-(si.box_pos.width - si.box_radius.bottom_left_x - si.box_radius.bottom_right_x),
-                        (int)-si.box_radius.bottom_left_x, (int)-si.box_radius.bottom_left_x, (int)-si.box_radius.bottom_left_y,
-                        (int)-(si.box_pos.height - si.box_radius.top_left_y - si.box_radius.bottom_left_y),
-                        0, (int)si.box_radius.top_left_x, (int)-si.box_radius.top_left_y);
+                    sprintf(path_data, "M%.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f Z",
+                        (float)si.box_pos.x + si.box_radius.top_left_x, (float)si.box_pos.y,
+                        (float)si.box_pos.width - si.box_radius.top_left_x - si.box_radius.top_right_x,
+                        (float)si.box_radius.top_right_x, (float)si.box_radius.top_right_y, (float)si.box_radius.top_right_x, (float)si.box_radius.top_right_y,
+                        (float)si.box_pos.height - si.box_radius.top_right_y - si.box_radius.bottom_right_y,
+                        (float)si.box_radius.bottom_right_x, (float)si.box_radius.bottom_right_y, (float)-si.box_radius.bottom_right_x, (float)si.box_radius.bottom_right_y,
+                        (float)-(si.box_pos.width - si.box_radius.bottom_left_x - si.box_radius.bottom_right_x),
+                        (float)si.box_radius.bottom_left_x, (float)si.box_radius.bottom_left_y, (float)-si.box_radius.bottom_left_x, (float)-si.box_radius.bottom_left_y,
+                        (float)-(si.box_pos.height - si.box_radius.top_left_y - si.box_radius.bottom_left_y),
+                        (float)si.box_radius.top_left_x, (float)si.box_radius.top_left_y, (float)si.box_radius.top_left_x, (float)-si.box_radius.top_left_y);
                     defs += "<path d=\"";
                     defs += path_data;
                     defs += "\"/>";
                 } else {
-                    defs += "<rect x=\"";
-                    defs += std::to_string((int)si.box_pos.x);
-                    defs += "\" y=\"";
-                    defs += std::to_string((int)si.box_pos.y);
-                    defs += "\" width=\"";
-                    defs += std::to_string((int)si.box_pos.width);
-                    defs += "\" height=\"";
-                    defs += std::to_string((int)si.box_pos.height);
-                    defs += "\"/>";
+                    char rect_data[256];
+                    sprintf(rect_data, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\"/>",
+                        (float)si.box_pos.x, (float)si.box_pos.y, (float)si.box_pos.width, (float)si.box_pos.height);
+                    defs += rect_data;
                 }
+                defs += "</clipPath>";
+            }
+        }
+
+        for (int idx : used_image_indices) {
+            const auto& idi = container.get_image_draw_info(idx);
+            
+            // Handle rounded corners for image
+            const auto& br = idi.layer.border_radius;
+            if (br.top_left_x > 0 || br.top_right_x > 0 || br.bottom_left_x > 0 || br.bottom_right_x > 0) {
+                char clip_id[64];
+                sprintf(clip_id, "image_clip_%d", idx);
+                defs += "<clipPath id=\"";
+                defs += clip_id;
+                defs += "\">";
+                char path_data[512];
+                sprintf(path_data, "M%.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f Z",
+                    (float)idi.layer.border_box.x + br.top_left_x, (float)idi.layer.border_box.y,
+                    (float)idi.layer.border_box.width - br.top_left_x - br.top_right_x,
+                    (float)br.top_right_x, (float)br.top_right_y, (float)br.top_right_x, (float)br.top_right_y,
+                    (float)idi.layer.border_box.height - br.top_right_y - br.bottom_right_y,
+                    (float)br.bottom_right_x, (float)br.bottom_right_y, (float)-br.bottom_right_x, (float)br.bottom_right_y,
+                    (float)-(idi.layer.border_box.width - br.bottom_left_x - br.bottom_right_x),
+                    (float)br.bottom_left_x, (float)br.bottom_left_y, (float)-br.bottom_left_x, (float)-br.bottom_left_y,
+                    (float)-(idi.layer.border_box.height - br.top_left_y - br.bottom_left_y),
+                    (float)br.top_left_x, (float)br.top_left_y, (float)br.top_left_x, (float)-br.top_left_y);
+                defs += "<path d=\"";
+                defs += path_data;
+                defs += "\"/>";
                 defs += "</clipPath>";
             }
         }
@@ -205,13 +235,30 @@ extern "C" {
                 std::smatch img_match;
                 if (std::regex_search(attributes, img_match, img_marker_regex)) {
                     int img_idx = std::stoi(img_match[1].str(), nullptr, 16);
-                    std::string data_url = g_imageCache[container.get_image_url(img_idx)].data_url;
+                    const auto& idi = container.get_image_draw_info(img_idx);
+                    std::string data_url = g_imageCache[idi.url].data_url;
                     
                     // Replace marker with image tag, keeping other attributes
                     std::string new_tag = match[0].str();
                     new_tag = std::regex_replace(new_tag, std::regex(R"raw(<(rect|path|image|circle|ellipse))raw"), "<image");
                     new_tag = std::regex_replace(new_tag, fill_attr_regex, "");
                     
+                    // Set image coordinates and size based on origin_box
+                    char pos_attrs[256];
+                    sprintf(pos_attrs, "x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\"",
+                        (float)idi.layer.origin_box.x, (float)idi.layer.origin_box.y, 
+                        (float)idi.layer.origin_box.width, (float)idi.layer.origin_box.height);
+                    
+                    new_tag = std::regex_replace(new_tag, std::regex(R"raw(x="[^"]*")raw"), "");
+                    new_tag = std::regex_replace(new_tag, std::regex(R"raw(y="[^"]*")raw"), "");
+                    new_tag = std::regex_replace(new_tag, std::regex(R"raw(width="[^"]*")raw"), "");
+                    new_tag = std::regex_replace(new_tag, std::regex(R"raw(height="[^"]*")raw"), "");
+                    
+                    size_t first_space = new_tag.find(' ');
+                    if (first_space != std::string::npos) {
+                        new_tag.insert(first_space + 1, std::string(pos_attrs) + " ");
+                    }
+
                     static const std::regex self_close_regex(R"raw(/>)raw");
                     if (std::regex_search(new_tag, self_close_regex)) {
                         new_tag = std::regex_replace(new_tag, self_close_regex, " xlink:href=\"" + data_url + "\"/>");
@@ -221,6 +268,15 @@ extern "C" {
                             new_tag.insert(last_gt, " xlink:href=\"" + data_url + "\" /");
                         }
                     }
+
+                    // Wrap with clipPath if needed
+                    const auto& br = idi.layer.border_radius;
+                    if (br.top_left_x > 0 || br.top_right_x > 0 || br.bottom_left_x > 0 || br.bottom_right_x > 0) {
+                        char clip_url[64];
+                        sprintf(clip_url, "url(#image_clip_%d)", img_idx);
+                        new_tag = "<g clip-path=\"" + std::string(clip_url) + "\">" + new_tag + "</g>";
+                    }
+                    
                     processed_svg += new_tag;
                 } else {
                     std::smatch shd_match;
@@ -236,23 +292,24 @@ extern "C" {
                         if (si.inset) {
                             char path_data[512];
                             if (si.box_radius.top_left_x > 0 || si.box_radius.top_right_x > 0 || si.box_radius.bottom_left_x > 0 || si.box_radius.bottom_right_x > 0) {
-                                sprintf(path_data, "M%d %d h%d q%d 0 %d %d v%d q0 %d %d %d h%d q%d 0 %d %d v%d q0 %d %d %d Z",
-                                    (int)(si.box_pos.x + (int)si.x + si.box_radius.top_left_x), (int)(si.box_pos.y + (int)si.y),
-                                    (int)(si.box_pos.width - si.box_radius.top_left_x - si.box_radius.top_right_x),
-                                    (int)si.box_radius.top_right_x, (int)si.box_radius.top_right_x, (int)si.box_radius.top_right_y,
-                                    (int)(si.box_pos.height - si.box_radius.top_right_y - si.box_radius.bottom_right_y),
-                                    0, (int)-si.box_radius.bottom_right_x, (int)si.box_radius.bottom_right_y,
-                                    (int)-(si.box_pos.width - si.box_radius.bottom_left_x - si.box_radius.bottom_right_x),
-                                    (int)-si.box_radius.bottom_left_x, (int)-si.box_radius.bottom_left_x, (int)-si.box_radius.bottom_left_y,
-                                    (int)-(si.box_pos.height - si.box_radius.top_left_y - si.box_radius.bottom_left_y),
-                                    0, (int)si.box_radius.top_left_x, (int)-si.box_radius.top_left_y);
+                                sprintf(path_data, "M%.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f Z",
+                                    (float)si.box_pos.x + si.x + si.box_radius.top_left_x, (float)si.box_pos.y + si.y,
+                                    (float)si.box_pos.width - si.box_radius.top_left_x - si.box_radius.top_right_x,
+                                    (float)si.box_radius.top_right_x, (float)si.box_radius.top_right_y, (float)si.box_radius.top_right_x, (float)si.box_radius.top_right_y,
+                                    (float)si.box_pos.height - si.box_radius.top_right_y - si.box_radius.bottom_right_y,
+                                    (float)si.box_radius.bottom_right_x, (float)si.box_radius.bottom_right_y, (float)-si.box_radius.bottom_right_x, (float)si.box_radius.bottom_right_y,
+                                    (float)-(si.box_pos.width - si.box_radius.bottom_left_x - si.box_radius.bottom_right_x),
+                                    (float)si.box_radius.bottom_left_x, (float)si.box_radius.bottom_left_y, (float)-si.box_radius.bottom_left_x, (float)-si.box_radius.bottom_left_y,
+                                    (float)-(si.box_pos.height - si.box_radius.top_left_y - si.box_radius.bottom_left_y),
+                                    (float)si.box_radius.top_left_x, (float)si.box_radius.top_left_y, (float)si.box_radius.top_left_x, (float)-si.box_radius.top_left_y);
                                 new_tag = "<path d=\"" + std::string(path_data) + "\" fill=\"none\" stroke=\"" + color_str + "\" stroke-width=\"" + std::to_string(si.blur * 2) + "\"/>";
                             } else {
-                                new_tag = "<rect x=\"" + std::to_string((int)si.box_pos.x + (int)si.x - (int)si.blur) + 
-                                                 "\" y=\"" + std::to_string((int)si.box_pos.y + (int)si.y - (int)si.blur) + 
-                                                 "\" width=\"" + std::to_string((int)si.box_pos.width + (int)si.blur * 2) + 
-                                                 "\" height=\"" + std::to_string((int)si.box_pos.height + (int)si.blur * 2) + 
-                                                 "\" fill=\"none\" stroke=\"" + color_str + "\" stroke-width=\"" + std::to_string(si.blur * 2) + "\"/>";
+                                char rect_data[256];
+                                sprintf(rect_data, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" fill=\"none\" stroke=\"%s\" stroke-width=\"%.2f\"/>",
+                                    (float)si.box_pos.x + si.x - si.blur, (float)si.box_pos.y + si.y - si.blur,
+                                    (float)si.box_pos.width + si.blur * 2, (float)si.box_pos.height + si.blur * 2,
+                                    color_str, si.blur * 2);
+                                new_tag = rect_data;
                             }
                         }
 

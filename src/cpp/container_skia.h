@@ -69,8 +69,8 @@ public:
     void set_canvas(SkCanvas* canvas) { m_canvas = canvas; }
     void set_height(int h) { m_height = h; }
 
-    size_t get_image_count() const { return m_usedImages.size(); }
-    std::string get_image_url(int index) const { return m_usedImages[index - 1]; }
+    size_t get_image_count() const { return m_usedImageDraws.size(); }
+    const image_draw_info& get_image_draw_info(int index) const { return m_usedImageDraws[index - 1]; }
 
     size_t get_shadow_count() const { return m_usedShadows.size(); }
     const shadow_info& get_shadow_info(int index) const { return m_usedShadows[index - 1]; }

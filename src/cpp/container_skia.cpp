@@ -10,8 +10,6 @@
 #include "include/effects/SkGradient.h"
 #include "include/effects/SkImageFilters.h"
 #include "include/effects/SkDashPathEffect.h"
-#include "include/codec/SkPngDecoder.h"
-#include "include/codec/SkCodec.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkData.h"
 #include "src/base/SkUTF.h"
@@ -444,15 +442,12 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
     
     auto it = m_imageCache.find(url);
     if (it != m_imageCache.end()) {
-        int index = 0;
-        auto idxIt = m_imageUrlToIndex.find(url);
-        if (idxIt == m_imageUrlToIndex.end()) {
-            m_usedImages.push_back(url);
-            index = (int)m_usedImages.size();
-            m_imageUrlToIndex[url] = index;
-        } else {
-            index = idxIt->second;
-        }
+        image_draw_info idi;
+        idi.url = url;
+        idi.layer = layer;
+        
+        m_usedImageDraws.push_back(idi);
+        int index = (int)m_usedImageDraws.size();
 
         SkPaint paint;
         paint.setAntiAlias(false); 

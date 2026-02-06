@@ -43,6 +43,24 @@ if (action === 'configure') {
     run(cmakeCmd, 'build-wasm');
 } else if (action === 'build') {
     run('emmake make -j16', 'build-wasm');
+
+    // Copy artifacts to test-web public for development
+    const srcDir = path.resolve('packages/satoru/dist');
+    const destDir = path.resolve('packages/test-web/public');
+    
+    if (fs.existsSync(srcDir)) {
+        if (!fs.existsSync(destDir)) {
+            fs.mkdirSync(destDir, { recursive: true });
+        }
+        ['satoru.js', 'satoru.wasm'].forEach(file => {
+            const src = path.join(srcDir, file);
+            const dest = path.join(destDir, file);
+            if (fs.existsSync(src)) {
+                fs.copyFileSync(src, dest);
+                console.log(`Copied ${file} to ${destDir}`);
+            }
+        });
+    }
 } else {
     console.error('Usage: tsx scripts/build-wasm.ts [configure|build]');
     process.exit(1);

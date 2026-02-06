@@ -1,23 +1,20 @@
 {
-  "name": "satoru",
+  "name": "satoru-monorepo",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "start": "http-server dist -p 8080 -o",
-    "test": "tsx ./test/convert_assets",
+    "dev": "pnpm --filter @satoru/test-web dev",
+    "build": "pnpm --filter @satoru/core build && pnpm --filter @satoru/test-web build",
+    "test": "pnpm --filter @satoru/core test",
     "wasm:configure": "tsx ./scripts/build-wasm.ts configure",
     "wasm:build": "tsx ./scripts/build-wasm.ts build"
   },
   "devDependencies": {
     "@types/node": "25.2.0",
-    "http-server": "^14.1.1",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1"
+    "tsx": "^4.19.2"
   },
-  "main": "index.js",
   "repository": "https://github.com/SoraKumo001/satoru",
   "author": "SoraKumo <info@croud.jp>",
   "license": "MIT"

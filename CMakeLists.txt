@@ -123,7 +123,7 @@ target_compile_definitions(main PRIVATE
 )
 
 set_target_properties(main PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/public"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/packages/satoru/dist"
     OUTPUT_NAME "satoru"
     SUFFIX ".js"
 )
@@ -155,6 +155,6 @@ target_link_options(main PRIVATE
     "-sWARN_ON_UNDEFINED_SYMBOLS=0"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','getValue','setValue','HEAPU8','stringToUTF8','lengthBytesUTF8']"
     "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_html_to_png','_html_to_png_binary','_get_png_size','_malloc','_free','_load_font','_clear_fonts','_load_image','_clear_images','_get_pixel_color']"
-    "-o${CMAKE_CURRENT_SOURCE_DIR}/public/satoru.js"
+    "-o${CMAKE_CURRENT_SOURCE_DIR}/packages/satoru/dist/satoru.js"
     "-sALLOW_MEMORY_GROWTH=1"
 )

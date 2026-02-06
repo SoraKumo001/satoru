@@ -2,16 +2,16 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
-import { Satoru } from "../src/satoru/index.js";
+import { Satoru } from "../index.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 
-const ASSETS_DIR = path.resolve(__dirname, "../public/assets");
-const TEMP_DIR = path.resolve(__dirname, "../temp");
-const WASM_JS_PATH = path.resolve(__dirname, "../public/satoru.js");
-const WASM_BINARY_PATH = path.resolve(__dirname, "../public/satoru.wasm");
+const ASSETS_DIR = path.resolve(__dirname, "../../test-web/public/assets");
+const TEMP_DIR = path.resolve(__dirname, "../../../temp");
+const WASM_JS_PATH = path.resolve(__dirname, "../dist/satoru.js");
+const WASM_BINARY_PATH = path.resolve(__dirname, "../dist/satoru.wasm");
 
 const ROBOTO_400 = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2";
 const NOTO_JP_400 = "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2";

@@ -1,4 +1,4 @@
-import { Satoru } from "../src/satoru/index.js";
+import { Satoru } from "@satoru/core";
 
 // Declare the global factory function provided by satoru.js
 declare function createSatoruModule(options?: any): Promise<any>;

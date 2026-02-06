@@ -22,15 +22,7 @@ FetchContent_Declare(
   GIT_SHALLOW    TRUE
 )
 
-if(POLICY CMP0169)
-  cmake_policy(SET CMP0169 OLD)
-endif()
-
-FetchContent_GetProperties(skia)
-if(NOT skia_POPULATED AND NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/core/SkCanvas.h")
-  message(STATUS "Populating Skia...")
-  FetchContent_Populate(skia)
-endif()
+FetchContent_MakeAvailable(skia)
 
 # Find dependencies
 find_package(Freetype REQUIRED)

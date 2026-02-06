@@ -6,6 +6,11 @@
 #include "include/core/SkStream.h"
 #include "include/svg/SkSVGCanvas.h"
 #include "include/core/SkData.h"
+#include "include/core/SkBitmap.h"
+#include "include/core/SkImage.h"
+#include "include/encode/SkPngEncoder.h"
+#include "include/effects/SkGradient.h"
+#include "utils.h"
 
 #include <string>
 #include <vector>
@@ -23,6 +28,13 @@ inline int hex_to_int(char c) {
 
 inline int parse_hex4(const char* p) {
     return (hex_to_int(p[0]) << 12) | (hex_to_int(p[1]) << 8) | (hex_to_int(p[2]) << 4) | hex_to_int(p[3]);
+}
+
+static std::string bitmapToDataUrl(const SkBitmap& bitmap) {
+    SkDynamicMemoryWStream stream;
+    if (!SkPngEncoder::Encode(&stream, bitmap.pixmap(), {})) return "";
+    sk_sp<SkData> data = stream.detachAsData();
+    return "data:image/png;base64," + base64_encode((const uint8_t*)data->data(), data->size());
 }
 
 std::string renderHtmlToSvg(const char* html, int width, int height, SatoruContext& context) {
@@ -61,6 +73,7 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
 
     std::set<int> used_shadow_indices;
     std::set<int> used_image_indices;
+    std::set<int> used_conic_indices;
 
     for (size_t i = 0; i + 6 < svg_len; ++i) {
         if (svg_str[i] == '#' && (svg_str[i+1] == 'F' || svg_str[i+1] == 'f')) {
@@ -72,6 +85,10 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
                 int idx = parse_hex4(svg_str.c_str() + i + 3);
                 used_shadow_indices.insert(idx);
                 i += 6;
+            } else if (svg_str[i+2] == 'D' || svg_str[i+2] == 'd') { // Conic Gradient tag #FDxxxx
+                int idx = parse_hex4(svg_str.c_str() + i + 3);
+                used_conic_indices.insert(idx);
+                i += 6;
             }
         }
     }
@@ -81,7 +98,6 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
         if (idx <= 0 || idx > (int)container.get_shadow_count()) continue;
         const auto& si = container.get_shadow_info(idx);
         
-        // Filter for blur
         if (si.blur > 0) {
             char buf[256];
             sprintf(buf, "<filter id=\"shadow_filter_%d\" x=\"-50%%\" y=\"-50%%\" width=\"200%%\" height=\"200%%\">", idx);
@@ -91,7 +107,6 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
             extra_defs += "</filter>";
         }
 
-        // Clip path for inset shadows or knocking out outer shadows
         char buf[128];
         sprintf(buf, "<clipPath id=\"shadow_clip_%d\">", idx);
         extra_defs += buf;
@@ -112,8 +127,6 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
         if (si.inset) {
             extra_defs += "<path d=\""; extra_defs += path_data; extra_defs += "\"/>";
         } else {
-            // For outer shadow, we want to clip everything EXCEPT the box area.
-            // SVG doesn't have an easy "inverse clip", so we use a huge rect with a hole.
             extra_defs += "<path clip-rule=\"evenodd\" d=\"M-10000 -10000 h20000 v20000 h-20000 Z ";
             extra_defs += path_data;
             extra_defs += "\"/>";
@@ -139,6 +152,60 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
                 (float)-(idi.layer.border_box.width - br.bottom_left_x - br.bottom_right_x),
                 (float)br.bottom_left_x, (float)br.bottom_left_y, (float)-br.bottom_left_x, (float)-br.bottom_left_y,
                 (float)-(idi.layer.border_box.height - br.top_left_y - br.bottom_left_y),
+                (float)br.top_left_x, (float)br.top_left_y, (float)br.top_left_x, (float)-br.top_left_y);
+            extra_defs += "<path d=\""; extra_defs += path_data; extra_defs += "\"/>";
+            extra_defs += "</clipPath>";
+        }
+    }
+
+    std::map<int, std::string> conic_data_urls;
+    for (int idx : used_conic_indices) {
+        if (idx <= 0 || idx > (int)container.get_conic_gradient_count()) continue;
+        const auto& cgi = container.get_conic_gradient_info(idx);
+        
+        int w = (int)cgi.layer.border_box.width;
+        int h = (int)cgi.layer.border_box.height;
+        if (w < 1) w = 1; if (h < 1) h = 1;
+
+        SkBitmap bitmap;
+        bitmap.allocN32Pixels(w, h);
+        SkCanvas offscreen(bitmap);
+        offscreen.clear(SK_ColorTRANSPARENT);
+
+        // Render conic gradient to bitmap
+        std::vector<SkColor4f> colors;
+        std::vector<float> positions;
+        for (const auto& pt : cgi.gradient.color_points) {
+            colors.push_back({pt.color.red/255.0f, pt.color.green/255.0f, pt.color.blue/255.0f, pt.color.alpha/255.0f});
+            positions.push_back(pt.offset);
+        }
+        SkPoint center = {(float)cgi.gradient.position.x - cgi.layer.border_box.x, (float)cgi.gradient.position.y - cgi.layer.border_box.y};
+        float startAngle = cgi.gradient.angle - 90.0f;
+        SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(positions), SkTileMode::kClamp), SkGradient::Interpolation());
+        auto shader = SkShaders::SweepGradient(center, startAngle, startAngle + 360.0f, skGrad, nullptr);
+        SkPaint paint;
+        paint.setShader(shader);
+        paint.setAntiAlias(true);
+        offscreen.drawRect(SkRect::MakeWH((float)w, (float)h), paint);
+
+        conic_data_urls[idx] = bitmapToDataUrl(bitmap);
+
+        // Also add clipPath for border radius if needed
+        const auto& br = cgi.layer.border_radius;
+        if (br.top_left_x > 0 || br.top_right_x > 0 || br.bottom_left_x > 0 || br.bottom_right_x > 0) {
+            char buf[128];
+            sprintf(buf, "<clipPath id=\"conic_clip_%d\">", idx);
+            extra_defs += buf;
+            char path_data[512];
+            sprintf(path_data, "M%.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f h%.2f a%.2f %.2f 0 0 1 %.2f %.2f v%.2f a%.2f %.2f 0 0 1 %.2f %.2f Z",
+                (float)cgi.layer.border_box.x + br.top_left_x, (float)cgi.layer.border_box.y,
+                (float)cgi.layer.border_box.width - br.top_left_x - br.top_right_x,
+                (float)br.top_right_x, (float)br.top_right_y, (float)br.top_right_x, (float)br.top_right_y,
+                (float)cgi.layer.border_box.height - br.top_right_y - br.bottom_right_y,
+                (float)br.bottom_right_x, (float)br.bottom_right_y, (float)-br.bottom_right_x, (float)br.bottom_right_y,
+                (float)-(cgi.layer.border_box.width - br.bottom_left_x - br.bottom_right_x),
+                (float)br.bottom_left_x, (float)br.bottom_left_y, (float)-br.bottom_left_x, (float)-br.bottom_left_y,
+                (float)-(cgi.layer.border_box.height - br.top_left_y - br.bottom_left_y),
                 (float)br.top_left_x, (float)br.top_left_y, (float)br.top_left_x, (float)-br.top_left_y);
             extra_defs += "<path d=\""; extra_defs += path_data; extra_defs += "\"/>";
             extra_defs += "</clipPath>";
@@ -199,6 +266,7 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
 
         int first_shadow_idx = -1;
         int first_image_idx = -1;
+        int first_conic_idx = -1;
         size_t tag_cur = 0;
         while (true) {
             tag_cur = tag.find("#", tag_cur);
@@ -224,6 +292,13 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
                     }
                     tag.replace(tag_cur, 7, replacement);
                     tag_cur += replacement.length();
+                } else if (tag[tag_cur + 2] == 'D' || tag[tag_cur + 2] == 'd') { // Conic
+                    int idx = parse_hex4(tag.c_str() + tag_cur + 3);
+                    if (idx > 0 && idx <= (int)container.get_conic_gradient_count()) {
+                        if (first_conic_idx == -1) first_conic_idx = idx;
+                    }
+                    tag.replace(tag_cur, 7, "none");
+                    tag_cur += 4;
                 } else {
                     tag_cur += 1;
                 }
@@ -252,9 +327,28 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
             } else {
                 final_out += img_tag;
             }
+        } else if (first_conic_idx != -1) {
+            const auto& cgi = container.get_conic_gradient_info(first_conic_idx);
+            std::string data_url = conic_data_urls[first_conic_idx];
+            char img_coords[256];
+            sprintf(img_coords, "<image x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" xlink:href=\"",
+                (float)cgi.layer.border_box.x, (float)cgi.layer.border_box.y,
+                (float)cgi.layer.border_box.width, (float)cgi.layer.border_box.height);
+
+            std::string img_tag = img_coords;
+            img_tag += data_url;
+            img_tag += "\"/>";
+
+            const auto& br = cgi.layer.border_radius;
+            if (br.top_left_x > 0 || br.top_right_x > 0 || br.bottom_left_x > 0 || br.bottom_right_x > 0) {
+                char buf[128];
+                sprintf(buf, "<g clip-path=\"url(#conic_clip_%d)\">", first_conic_idx);
+                final_out += buf; final_out += img_tag; final_out += "</g>";
+            } else {
+                final_out += img_tag;
+            }
         } else if (first_shadow_idx != -1) {
             const auto& si = container.get_shadow_info(first_shadow_idx);
-            // Outer shadows now ALSO get a clip-path to avoid bleeding into the box
             char buf_clip[64]; sprintf(buf_clip, "<g clip-path=\"url(#shadow_clip_%d)\">", first_shadow_idx);
             final_out += buf_clip;
 
@@ -294,7 +388,7 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
             } else {
                 final_out += tag;
             }
-            final_out += "</g>"; // End of shadow_clip group
+            final_out += "</g>";
         } else {
             final_out += tag;
         }

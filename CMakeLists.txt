@@ -131,10 +131,7 @@ target_include_directories(main PRIVATE
 )
 
 target_compile_options(main PRIVATE
-    -O2
-    -Wno-switch
-    -Wno-macro-redefined
-    -Wno-unused-function
+    -O3
     -fexceptions
     -msimd128
 )
@@ -170,7 +167,7 @@ target_link_libraries(main PRIVATE
 )
 
 target_link_options(main PRIVATE
-    "-O2"
+    "-O3"
     "-fexceptions"
     "-msimd128"
     "-sSUPPORT_LONGJMP=emscripten"
@@ -181,7 +178,7 @@ target_link_options(main PRIVATE
     "-sERROR_ON_UNDEFINED_SYMBOLS=0"
     "-sWARN_ON_UNDEFINED_SYMBOLS=0"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','getValue','setValue','HEAPU8','stringToUTF8','lengthBytesUTF8']"
-    "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_html_to_png','_malloc','_free','_load_font','_clear_fonts','_load_image','_clear_images']"      
+    "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_html_to_png','_malloc','_free','_load_font','_clear_fonts','_load_image','_clear_images','_get_pixel_color']"      
     "-o${CMAKE_CURRENT_SOURCE_DIR}/public/satoru.js"
     "-sALLOW_MEMORY_GROWTH=1"
 )

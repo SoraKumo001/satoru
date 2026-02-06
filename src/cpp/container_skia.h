@@ -43,6 +43,11 @@ struct image_draw_info {
     litehtml::background_layer layer;
 };
 
+struct conic_gradient_info {
+    litehtml::background_layer layer;
+    litehtml::background_layer::conic_gradient gradient;
+};
+
 class container_skia : public litehtml::document_container {
     SkCanvas* m_canvas;
     int m_width;
@@ -55,6 +60,7 @@ class container_skia : public litehtml::document_container {
     std::vector<shadow_info> m_usedShadows;
     std::map<shadow_info, int> m_shadowToIndex;
     std::vector<image_draw_info> m_usedImageDraws;
+    std::vector<conic_gradient_info> m_usedConicGradients;
     bool m_tagging;
 
 public:
@@ -79,6 +85,15 @@ public:
             return dummy;
         }
         return m_usedShadows[index - 1];
+    }
+
+    size_t get_conic_gradient_count() const { return m_usedConicGradients.size(); }
+    const conic_gradient_info& get_conic_gradient_info(int index) const {
+        if (index <= 0 || index > (int)m_usedConicGradients.size()) {
+            static conic_gradient_info dummy;
+            return dummy;
+        }
+        return m_usedConicGradients[index - 1];
     }
 
     // litehtml::document_container members

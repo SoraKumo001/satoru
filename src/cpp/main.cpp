@@ -2,6 +2,11 @@
 #include "satoru_context.h"
 #include "svg_renderer.h"
 #include "png_renderer.h"
+#include "container_skia.h"
+#include "litehtml.h"
+#include <litehtml/master_css.h>
+#include "include/core/SkCanvas.h"
+#include "include/core/SkBitmap.h"
 #include <cstdio>
 
 static SatoruContext g_context;
@@ -9,8 +14,6 @@ static SatoruContext g_context;
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void init_engine() {
-        printf("DEBUG: init_engine called\n");
-        fflush(stdout);
         g_context.init();
     }
 
@@ -46,5 +49,30 @@ extern "C" {
         static std::string static_out;
         static_out = renderHtmlToPng(html, width, height, g_context);
         return static_out.c_str();
+    }
+
+    // New verification tool
+    EMSCRIPTEN_KEEPALIVE
+    uint32_t get_pixel_color(const char* html, int width, int x, int y) {
+        container_skia container(width, 1000, nullptr, g_context, false);
+        std::string css = litehtml::master_css;
+        css += "\nbr { display: -litehtml-br !important; }\n* { box-sizing: border-box; }\n";
+        
+        litehtml::document::ptr doc = litehtml::document::createFromString(html, &container, css.c_str());
+        if (!doc) return 0;
+        doc->render(width);
+        int h = (int)doc->height();
+        if (h < 1) h = 1;
+
+        SkBitmap bitmap;
+        bitmap.allocN32Pixels(width, h);
+        bitmap.eraseColor(SK_ColorTRANSPARENT);
+        SkCanvas canvas(bitmap);
+        container.set_canvas(&canvas);
+        litehtml::position clip(0, 0, width, h);
+        doc->draw(0, 0, 0, &clip);
+
+        if (x < 0 || x >= width || y < 0 || y >= h) return 0;
+        return (uint32_t)bitmap.getColor(x, y);
     }
 }

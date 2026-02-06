@@ -4,10 +4,14 @@
 #include "include/ports/SkFontMgr_empty.h"
 #include "include/core/SkData.h"
 #include "include/codec/SkCodec.h"
+#include "include/codec/SkPngDecoder.h"
 
 void SatoruContext::init() {
     SkGraphics::Init();
     fontMgr = SkFontMgr_New_Custom_Empty();
+    
+    // Register codecs
+    SkCodecs::Register(SkPngDecoder::Decoder());
 }
 
 void SatoruContext::loadFont(const char* name, const uint8_t* data, int size) {
@@ -36,6 +40,11 @@ void SatoruContext::loadImage(const char* name, const char* data_url, int width,
         std::vector<uint8_t> decoded = base64_decode(base64Data);
         sk_sp<SkData> data = SkData::MakeWithCopy(decoded.data(), decoded.size());
         info.skImage = SkImages::DeferredFromEncodedData(data);
+        
+        if (info.skImage) {
+            if (info.width <= 0) info.width = info.skImage->width();
+            if (info.height <= 0) info.height = info.skImage->height();
+        }
     }
 
     imageCache[std::string(name)] = info;

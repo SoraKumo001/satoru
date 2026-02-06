@@ -10,9 +10,9 @@
 #include "include/core/SkSpan.h"
 #include "include/core/SkMaskFilter.h"
 #include "include/core/SkBlurTypes.h"
+#include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkGradient.h"
 #include "include/effects/SkImageFilters.h"
-#include "include/effects/SkDashPathEffect.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkData.h"
 #include "src/base/SkUTF.h"
@@ -130,18 +130,6 @@ static bool is_whitespace_uni(SkUnichar uni) {
     return uni <= 32 || uni == 0xA0 || uni == 0x3000 || (uni >= 0x2000 && uni <= 0x200A) || uni == 0x202F || uni == 0x205F;
 }
 
-static bool is_whitespace_run(const char* s, size_t len) {
-    const char* ptr = s;
-    const char* end = s + len;
-    while (ptr < end) {
-        const char* temp_ptr = ptr;
-        SkUnichar uni = SkUTF::NextUTF8(&temp_ptr, end);
-        if (!is_whitespace_uni(uni)) return false;
-        ptr = temp_ptr;
-    }
-    return true;
-}
-
 void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtml::uint_ptr hFont, litehtml::web_color color, const litehtml::position& pos) {
     if (!m_canvas || !text || !text[0] || !hFont) return;
     font_info* fi = (font_info*)hFont;
@@ -205,7 +193,6 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
         return cx - offset_x;
     };
 
-    // Draw shadows first (behind text)
     for (int i = (int)fi->desc.text_shadow.size() - 1; i >= 0; --i) {
         const auto& shadow = fi->desc.text_shadow[i];
         if (shadow.color.alpha == 0) continue;
@@ -217,7 +204,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
             si.blur = (float)shadow.blur.val();
             si.x = (float)shadow.x.val();
             si.y = (float)shadow.y.val();
-            si.spread = 0; // Text shadow doesn't have spread
+            si.spread = 0;
             si.inset = false;
 
             int index = 0;
@@ -239,7 +226,6 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
         draw_text_runs(current_x + (float)shadow.x.val(), baseline_y + (float)shadow.y.val(), shadowPaint);
     }
 
-    // Draw main text
     float final_width = draw_text_runs(current_x, baseline_y, paint);
 
     if (fi->desc.decoration_line != litehtml::text_decoration_line_none && final_width > 0.1f) {
@@ -474,13 +460,10 @@ void container_skia::draw_radial_gradient(litehtml::uint_ptr hdc, const litehtml
 
     SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(positions), SkTileMode::kClamp), SkGradient::Interpolation());
 
-    // To support elliptical gradients (rx != ry), we create a circular gradient
-    // at origin with radius 1.0 and scale it using a local matrix.
     SkMatrix matrix;
     matrix.setScale(rx, ry);
     matrix.postTranslate(center.x(), center.y());
 
-    // Create radial gradient at (0,0) with radius 1, transformed by matrix
     auto shader = SkShaders::RadialGradient({0, 0}, 1.0f, skGrad, &matrix);
 
     SkPaint paint;
@@ -525,6 +508,16 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
     if (it != m_context.imageCache.end()) {
         const auto& info = it->second;
 
+        SkRect rect = SkRect::MakeXYWH((float)layer.border_box.x, (float)layer.border_box.y, (float)layer.border_box.width, (float)layer.border_box.height);
+        SkVector radii[4] = {
+            {(float)layer.border_radius.top_left_x, (float)layer.border_radius.top_left_y},
+            {(float)layer.border_radius.top_right_x, (float)layer.border_radius.top_right_y},
+            {(float)layer.border_radius.bottom_right_x, (float)layer.border_radius.bottom_right_y},
+            {(float)layer.border_radius.bottom_left_x, (float)layer.border_radius.bottom_left_y}
+        };
+        SkRRect rrect;
+        rrect.setRectRadii(rect, radii);
+
         if (m_tagging) {
             image_draw_info idi;
             idi.url = url;
@@ -537,20 +530,22 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
             paint.setAntiAlias(false);
             paint.setColor(SkColorSetARGB(255, 0xFB, (index >> 8) & 0xFF, index & 0xFF));
 
-            SkRect rect = SkRect::MakeXYWH((float)layer.border_box.x, (float)layer.border_box.y, (float)layer.border_box.width, (float)layer.border_box.height);
+            m_canvas->save();
+            m_canvas->clipRRect(rrect, true);
             m_canvas->drawRect(rect, paint);
+            m_canvas->restore();
         } else {
             if (info.skImage) {
-                SkRect rect = SkRect::MakeXYWH((float)layer.origin_box.x, (float)layer.origin_box.y, (float)layer.origin_box.width, (float)layer.origin_box.height);
+                m_canvas->save();
+                m_canvas->clipRRect(rrect, true);
                 m_canvas->drawImageRect(info.skImage, rect, SkSamplingOptions());
+                m_canvas->restore();
             }
         }
     }
 }
 
-void container_skia::load_image(const char* src, const char* baseurl, bool redraw_on_ready) {
-    if (!src) return;
-}
+void container_skia::load_image(const char* src, const char* baseurl, bool redraw_on_ready) {}
 
 void container_skia::set_clip(const litehtml::position& pos, const litehtml::border_radiuses& bdr_radius) {
     if (!m_canvas || pos.width <= 0.1f || pos.height <= 0.1f) return;
@@ -609,29 +604,9 @@ void container_skia::get_language(litehtml::string& language, litehtml::string& 
     language = "ja";
     culture = "ja_JP";
 }
+
 void container_skia::draw_conic_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::conic_gradient& gradient) {
     if (!m_canvas || layer.border_box.width <= 0.1f || layer.border_box.height <= 0.1f) return;
-
-    std::vector<SkColor4f> colors;
-    std::vector<float> positions;
-    for (const auto& pt : gradient.color_points) {
-        colors.push_back({pt.color.red/255.0f, pt.color.green/255.0f, pt.color.blue/255.0f, pt.color.alpha/255.0f});
-        positions.push_back(pt.offset);
-    }
-
-    SkPoint center = {(float)gradient.position.x, (float)gradient.position.y};
-
-    // Skia's SweepGradient starts at 0 degrees (pointing right) and goes clockwise island.
-    // CSS conic-gradient starts at 0 degrees (pointing up) and goes clockwise.
-    // So we need to apply a -90 degree rotation + the CSS angle.
-    float startAngle = gradient.angle - 90.0f;
-
-    SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(positions), SkTileMode::kClamp), SkGradient::Interpolation());
-    auto shader = SkShaders::SweepGradient(center, startAngle, startAngle + 360.0f, skGrad, nullptr);
-
-    SkPaint paint;
-    paint.setShader(shader);
-    paint.setAntiAlias(true);
 
     SkRect rect = SkRect::MakeXYWH((float)layer.border_box.x, (float)layer.border_box.y, (float)layer.border_box.width, (float)layer.border_box.height);
     SkVector radii[4] = {
@@ -642,5 +617,41 @@ void container_skia::draw_conic_gradient(litehtml::uint_ptr hdc, const litehtml:
     };
     SkRRect rrect;
     rrect.setRectRadii(rect, radii);
+
+    if (m_tagging) {
+        conic_gradient_info cgi;
+        cgi.layer = layer;
+        cgi.gradient = gradient;
+        m_usedConicGradients.push_back(cgi);
+        int index = (int)m_usedConicGradients.size();
+
+        SkPaint paint;
+        paint.setAntiAlias(false);
+        paint.setColor(SkColorSetARGB(255, 0xFD, (index >> 8) & 0xFF, index & 0xFF));
+
+        m_canvas->save();
+        m_canvas->clipRRect(rrect, true);
+        m_canvas->drawRect(rect, paint);
+        m_canvas->restore();
+        return;
+    }
+
+    std::vector<SkColor4f> colors;
+    std::vector<float> positions;
+    for (const auto& pt : gradient.color_points) {
+        colors.push_back({pt.color.red/255.0f, pt.color.green/255.0f, pt.color.blue/255.0f, pt.color.alpha/255.0f});
+        positions.push_back(pt.offset);
+    }
+
+    SkPoint center = {(float)gradient.position.x, (float)gradient.position.y};
+    float startAngle = gradient.angle - 90.0f;
+
+    SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(positions), SkTileMode::kClamp), SkGradient::Interpolation());
+    auto shader = SkShaders::SweepGradient(center, startAngle, startAngle + 360.0f, skGrad, nullptr);
+
+    SkPaint paint;
+    paint.setShader(shader);
+    paint.setAntiAlias(true);
+
     m_canvas->drawRRect(rrect, paint);
 }

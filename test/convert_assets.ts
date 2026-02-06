@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
+import { Satoru } from "../src/satoru/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,13 +13,6 @@ const TEMP_DIR = path.resolve(__dirname, "../temp");
 const WASM_JS_PATH = path.resolve(__dirname, "../public/satoru.js");
 const WASM_BINARY_PATH = path.resolve(__dirname, "../public/satoru.wasm");
 
-// Font paths
-const ROBOTO_PATH = path.resolve(
-  __dirname,
-  "../external/skia/resources/fonts/Roboto-Regular.ttf",
-);
-
-// Using the same fonts as main.ts
 const ROBOTO_400 = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2";
 const NOTO_JP_400 = "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2";
 
@@ -52,37 +46,22 @@ async function convertAssets() {
     }
 
     const createSatoruModule = require(WASM_JS_PATH);
-    const instance = await createSatoruModule({
+    const satoru = new Satoru(createSatoruModule);
+    
+    await satoru.init({
       locateFile: (url: string) =>
         url.endsWith(".wasm") ? WASM_BINARY_PATH : url,
       print: (text: string) => console.log(`[WASM] ${text}`),
       printErr: (text: string) => console.error(`[WASM ERROR] ${text}`),
     });
 
-    instance._init_engine();
-
-    // Helper to load fonts
-    const loadFont = (filePath: string, fontName: string) => {
-      if (fs.existsSync(filePath)) {
-        console.log(
-          `Loading font: ${fontName} from ${path.basename(filePath)}`,
-        );
-        const fontData = fs.readFileSync(filePath);
-        const fontPtr = instance._malloc(fontData.length);
-        instance.HEAPU8.set(new Uint8Array(fontData), fontPtr);
-        const namePtr = instance._malloc(fontName.length + 1);
-        instance.stringToUTF8(fontName, namePtr, fontName.length + 1);
-        instance._load_font(namePtr, fontPtr, fontData.length);
-        instance._free(fontPtr);
-        instance._free(namePtr);
-      } else {
-        console.warn(`Font not found: ${filePath}`);
-      }
-    };
-
     // Load downloaded fonts
     for (const font of FONT_MAP) {
-      loadFont(font.path, font.name);
+      if (fs.existsSync(font.path)) {
+        console.log(`Loading font: ${font.name} from ${path.basename(font.path)}`);
+        const fontData = fs.readFileSync(font.path);
+        satoru.loadFont(font.name, new Uint8Array(fontData));
+      }
     }
 
     const files = fs.readdirSync(ASSETS_DIR).filter((f) => f.endsWith(".html"));
@@ -95,46 +74,29 @@ async function convertAssets() {
       console.log(`Converting: ${file} ...`);
       const html = fs.readFileSync(inputPath, "utf8");
 
-      // Preload images (data URLs)
-      instance._clear_images();
+      // Preload images
+      satoru.clearImages();
       const dataUrls = new Set<string>();
-
       const imgRegex = /<img[^>]+src=["'](data:image\/[^'"]+)["']/g;
-      const bgRegex =
-        /background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g;
+      const bgRegex = /background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g;
 
       let match;
       while ((match = imgRegex.exec(html)) !== null) dataUrls.add(match[1]);
       while ((match = bgRegex.exec(html)) !== null) dataUrls.add(match[1]);
 
       for (const url of dataUrls) {
-        const name = url;
-        instance.ccall(
-          "load_image",
-          null,
-          ["string", "string", "number", "number"],
-          [name, url, 0, 0],
-        );
+        satoru.loadImage(url, url);
       }
-
-      const htmlBuffer = Buffer.from(html + "\0", "utf8");
-      const htmlPtr = instance._malloc(htmlBuffer.length);
-      instance.HEAPU8.set(htmlBuffer, htmlPtr);
 
       // SVG Conversion
-      const svgPtr = instance._html_to_svg(htmlPtr, 800, 0);
-      const svg = instance.UTF8ToString(svgPtr).replace(/\0/g, "");
+      const svg = satoru.toSvg(html, 800);
       fs.writeFileSync(svgOutputPath, svg);
 
-      // PNG Conversion
-      const pngDataUrlPtr = instance._html_to_png(htmlPtr, 800, 0);
-      const pngDataUrl = instance.UTF8ToString(pngDataUrlPtr).replace(/\0/g, "");
-      if (pngDataUrl.startsWith("data:image/png;base64,")) {
-        const base64Data = pngDataUrl.replace(/^data:image\/png;base64,/, "");
-        fs.writeFileSync(pngOutputPath, Buffer.from(base64Data, "base64"));
+      // PNG Conversion (Binary)
+      const pngBuffer = satoru.toPngBinary(html, 800);
+      if (pngBuffer) {
+        fs.writeFileSync(pngOutputPath, Buffer.from(pngBuffer));
       }
-
-      instance._free(htmlPtr);
     }
 
     console.log(`--- Finished! ${files.length} files converted to SVG and PNG. ---`);

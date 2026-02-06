@@ -1,0 +1,106 @@
+export interface SatoruModule {
+  _init_engine: () => void;
+  _html_to_svg: (htmlPtr: number, width: number, height: number) => number;
+  _html_to_png: (htmlPtr: number, width: number, height: number) => number;
+  _html_to_png_binary: (htmlPtr: number, width: number, height: number) => number;
+  _get_png_size: () => number;
+  _load_font: (namePtr: number, dataPtr: number, size: number) => void;
+  _clear_fonts: () => void;
+  _load_image: (namePtr: number, dataUrlPtr: number, width: number, height: number) => void;
+  _clear_images: () => void;
+  _malloc: (size: number) => number;
+  _free: (ptr: number) => void;
+  UTF8ToString: (ptr: number) => string;
+  stringToUTF8: (str: string, ptr: number, maxBytes: number) => void;
+  lengthBytesUTF8: (str: string) => number;
+  HEAPU8: Uint8Array;
+}
+
+export interface SatoruOptions {
+  locateFile?: (url: string) => string;
+  print?: (text: string) => void;
+  printErr?: (text: string) => void;
+}
+
+export class Satoru {
+  private module: SatoruModule | null = null;
+
+  constructor(private createModule: (options?: any) => Promise<SatoruModule>) {}
+
+  async init(options?: SatoruOptions) {
+    this.module = await this.createModule(options);
+    this.module!._init_engine();
+  }
+
+  private get mod(): SatoruModule {
+    if (!this.module) throw new Error("Satoru not initialized. Call init() first.");
+    return this.module;
+  }
+
+  loadFont(name: string, data: Uint8Array) {
+    const namePtr = this.stringToPtr(name);
+    const dataPtr = this.mod._malloc(data.length);
+    this.mod.HEAPU8.set(data, dataPtr);
+
+    this.mod._load_font(namePtr, dataPtr, data.length);
+
+    this.mod._free(namePtr);
+    this.mod._free(dataPtr);
+  }
+
+  clearFonts() {
+    this.mod._clear_fonts();
+  }
+
+  loadImage(name: string, dataUrl: string, width: number = 0, height: number = 0) {
+    const namePtr = this.stringToPtr(name);
+    const urlPtr = this.stringToPtr(dataUrl);
+
+    this.mod._load_image(namePtr, urlPtr, width, height);
+
+    this.mod._free(namePtr);
+    this.mod._free(urlPtr);
+  }
+
+  clearImages() {
+    this.mod._clear_images();
+  }
+
+  toSvg(html: string, width: number, height: number = 0): string {
+    const htmlPtr = this.stringToPtr(html);
+    const svgPtr = this.mod._html_to_svg(htmlPtr, width, height);
+    const svg = this.mod.UTF8ToString(svgPtr);
+    this.mod._free(htmlPtr);
+    return svg;
+  }
+
+  toPngBinary(html: string, width: number, height: number = 0): Uint8Array | null {
+    const htmlPtr = this.stringToPtr(html);
+    const pngPtr = this.mod._html_to_png_binary(htmlPtr, width, height);
+    const size = this.mod._get_png_size();
+    
+    let result: Uint8Array | null = null;
+    if (pngPtr && size > 0) {
+      // Copy the data from Wasm heap
+      result = new Uint8Array(this.mod.HEAPU8.buffer, pngPtr, size).slice();
+    }
+
+    this.mod._free(htmlPtr);
+    return result;
+  }
+
+  toPngDataUrl(html: string, width: number, height: number = 0): string {
+    const htmlPtr = this.stringToPtr(html);
+    const ptr = this.mod._html_to_png(htmlPtr, width, height);
+    const dataUrl = this.mod.UTF8ToString(ptr);
+    this.mod._free(htmlPtr);
+    return dataUrl;
+  }
+
+  private stringToPtr(str: string): number {
+    const len = this.mod.lengthBytesUTF8(str) + 1;
+    const ptr = this.mod._malloc(len);
+    this.mod.stringToUTF8(str, ptr, len);
+    return ptr;
+  }
+}

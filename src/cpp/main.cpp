@@ -11,6 +11,8 @@
 
 static SatoruContext g_context;
 
+static sk_sp<SkData> g_last_png_data;
+
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void init_engine() {
@@ -49,6 +51,20 @@ extern "C" {
         static std::string static_out;
         static_out = renderHtmlToPng(html, width, height, g_context);
         return static_out.c_str();
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    const uint8_t* html_to_png_binary(const char* html, int width, int height) {
+        g_last_png_data = renderHtmlToPngBinary(html, width, height, g_context);
+        if (g_last_png_data) {
+            return (const uint8_t*)g_last_png_data->data();
+        }
+        return nullptr;
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    int get_png_size() {
+        return g_last_png_data ? (int)g_last_png_data->size() : 0;
     }
 
     // New verification tool

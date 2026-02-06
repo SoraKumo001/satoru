@@ -1,6 +1,6 @@
 // satoru.js and satoru.wasm are in the dist directory
 // @ts-ignore
-import createSatoruModule from "./dist/satoru.js";
+import createSatoruModule from "../dist/satoru.js";
 
 // We don't import wasm here anymore to avoid Vite build errors.
 // Host applications (like Cloudflare Workers or Vite apps) should handle WASM loading.
@@ -30,6 +30,7 @@ export interface SatoruOptions {
   print?: (text: string) => void;
   printErr?: (text: string) => void;
   wasmBinary?: ArrayBuffer | WebAssembly.Module;
+  instantiateWasm?: (imports: any, successCallback: any) => any;
   mainScriptUrlOrBlob?: string;
   noInitialRun?: boolean;
 }

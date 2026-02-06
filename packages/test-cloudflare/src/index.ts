@@ -1,10 +1,10 @@
 import { Satoru } from "satoru";
-// @ts-ignore
-import createSatoruModule from "../../satoru/dist/satoru.js";
-// @ts-ignore
-import wasm from "../../satoru/dist/satoru.wasm";
 
 export interface Env {}
+
+// Cache for font data to avoid re-fetching on every request
+let cachedFont: Uint8Array | null = null;
+const NOTO_JP_400 = "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2";
 
 export default {
   async fetch(
@@ -14,25 +14,37 @@ export default {
   ): Promise<Response> {
     const url = new URL(request.url);
     const html =
-      url.searchParams.get("html") || "<h1>Hello from Cloudflare Workers!</h1>";
+      url.searchParams.get("html") || "<h1>こんにちは！ Satoruからの挨拶です。</h1><p>日本語のレンダリングテストです。</p>";
     const width = parseInt(url.searchParams.get("width") || "800");
 
     try {
-      // Satoru class now uses bundled createSatoruModule by default
-      const satoru = new Satoru(createSatoruModule);
+      // Fetch font if not cached
+      if (!cachedFont) {
+        console.log("Fetching Noto Sans JP...");
+        const response = await fetch(NOTO_JP_400);
+        if (response.ok) {
+          cachedFont = new Uint8Array(await response.arrayBuffer());
+        }
+      }
 
-      await satoru.init({
-        wasmBinary: wasm,
-        locateFile: (path: string) => path,
-      });
+      const satoru = new Satoru();
+      await satoru.init();
 
-      const svg = satoru.toSvg(html, width);
+      // Load font if we have it
+      if (cachedFont) {
+        satoru.loadFont("Noto Sans JP", cachedFont);
+        satoru.loadFont("sans-serif", cachedFont);
+      }
 
-      return new Response(svg, {
-        headers: {
-          "Content-Type": "image/svg+xml",
+      const pngDataUrl = satoru.toPngDataUrl(html, width);
+      return new Response(
+        `<html><body><img src="${pngDataUrl}" /></body></html>`,
+        {
+          headers: {
+            "Content-Type": "text/html",
+          },
         },
-      });
+      );
     } catch (e: any) {
       return new Response(e.stack || e.toString(), { status: 500 });
     }

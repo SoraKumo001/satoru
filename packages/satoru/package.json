@@ -7,11 +7,30 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "workerd": {
+        "types": "./dist/workerd.d.ts",
+        "import": "./dist/workerd.js"
+      },
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./workerd.js": {
+      "types": "./dist/workerd.d.ts",
+      "import": "./dist/workerd.js"
     },
     "./satoru.js": "./dist/satoru.js",
     "./satoru.wasm": "./dist/satoru.wasm"
+  },
+  "typesVersions": {
+    "*": {
+      "workerd": [
+        "./dist/workerd.d.ts"
+      ],
+      "*": [
+        "./dist/index.d.ts"
+      ]
+    }
   },
   "files": [
     "dist"

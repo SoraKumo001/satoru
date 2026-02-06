@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link href="https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+        }
+        .box {
+            width: 100px;
+            height: 100px;
+            background-color: white;
+            border: 1px solid #ccc;
+        }
+        .shadow-basic {
+            box-shadow: 5px 5px 10px rgba(0,0,0,0.5);
+        }
+        .shadow-inset {
+            box-shadow: inset 5px 5px 10px rgba(0,0,0,0.5);
+        }
+        .shadow-complex {
+            box-shadow: 0 0 10px blue, 5px 5px 5px red;
+        }
+        .shadow-rounded {
+            border-radius: 20px;
+            box-shadow: 10px 10px 15px rgba(0,255,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="box shadow-basic">Basic Shadow</div>
+    <div class="box shadow-inset">Inset Shadow</div>
+    <div class="box shadow-complex">Multiple Shadows</div>
+    <div class="box shadow-rounded">Rounded Shadow</div>
+</body>
+</html>

@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "serve": "http-server dist -p 8080 -o",
+    "start": "http-server dist -p 8080 -o",
     "test": "tsx ./test/convert_assets",
     "cmake-configure": "tsx ./scripts/build-wasm.ts configure",
     "cmake-build": "tsx ./scripts/build-wasm.ts build",

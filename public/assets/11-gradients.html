@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link href="https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2" rel="stylesheet">
+    <style>
+        body { font-family: 'Roboto', sans-serif; background: #f0f0f0; }
+        .container { display: flex; flex-wrap: wrap; gap: 20px; }
+        .box {
+            width: 200px;
+            height: 200px;
+            border: 1px solid #ccc;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        /* Radial Gradient - Circle (default) */
+        .radial-circle {
+            background: radial-gradient(circle, red, yellow, green);
+        }
+
+        /* Radial Gradient - Ellipse */
+        .radial-ellipse {
+            background: radial-gradient(ellipse at center, red, yellow, green);
+        }
+        
+        /* Radial Gradient - Ellipse with explicit size */
+        .radial-explicit {
+            background: radial-gradient(ellipse 50% 30% at center, blue, white);
+        }
+
+        /* Conic Gradient */
+        .conic {
+            background: conic-gradient(red, yellow, green, blue, red);
+        }
+
+        /* Conic Gradient - Rotated */
+        .conic-rotated {
+            background: conic-gradient(from 45deg, red, yellow, green, blue, red);
+        }
+        
+        /* Conic Gradient - Hard stops */
+        .conic-stops {
+            background: conic-gradient(
+                red 0deg 90deg,
+                yellow 90deg 180deg,
+                green 180deg 270deg,
+                blue 270deg 360deg
+            );
+        }
+    </style>
+</head>
+<body>
+    <h1>Gradient Tests</h1>
+    <div class="container">
+        <div class="box radial-circle">Radial Circle</div>
+        <div class="box radial-ellipse">Radial Ellipse</div>
+        <div class="box radial-explicit">Radial Explicit</div>
+        <div class="box conic">Conic</div>
+        <div class="box conic-rotated">Conic Rotated</div>
+        <div class="box conic-stops">Conic Stops</div>
+    </div>
+</body>
+</html>

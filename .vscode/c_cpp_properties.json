@@ -18,7 +18,8 @@
         "__EMSCRIPTEN__",
         "EMSCRIPTEN_KEEPALIVE=__attribute__((used))"
       ],
-      "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc",
+      "intelliSenseMode": "windows-gcc-x64",
+      "compilerPath": "${env:EMSDK}/upstream/emscripten/em++.bat",
       "cStandard": "c17",
       "cppStandard": "c++17"
     }

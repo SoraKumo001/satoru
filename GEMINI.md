@@ -31,6 +31,11 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 #### Rule 4: Atomic Operations
 - Prefer small, focused patches over large, sweeping changes. This minimizes the risk of conflicts and makes the editing process more robust.
 
+#### Rule 5: Avoid Double Escaping
+- **CRITICAL:** When providing content for `edit_text_file_contents` or `write_file`, ensure that newlines and quotes are not double-escaped (e.g., `\n` or `\"`).
+- Never copy-paste the raw JSON output from a tool (which contains escaped sequences) as the literal source for a new patch.
+- If a file becomes corrupted with literal `\n` or `\"` strings, immediately use `write_file` with the correct multiline content to restore the entire file.
+
 ### 3. Troubleshooting
 
 - If a `Hash Mismatch` error occurs:
@@ -55,25 +60,34 @@ Use the TypeScript-based build scripts defined in the root `package.json`:
 - `pnpm wasm:build`: Compile C++ to WASM (`packages/satoru/dist/satoru.*`).
 - `pnpm build`: Build all packages (@satoru/core and @satoru/test-web).
 
-**Requirements:** `EMSDK` and `VCPKG_ROOT` environment variables must be set.
+**Skia Optimization:** The `CMakeLists.txt` includes a guard using `FETCHCONTENT_SOURCE_DIR_SKIA`. If `external/skia` exists, it skips network checks. Use `-DSKIA_UPDATE=ON` during configure to pull latest.
 
 ### 3. Testing & Development
 
 - `pnpm test`: Runs `@satoru/core` tests (`packages/satoru/test/convert_assets.ts`).
-- `pnpm dev`: Starts Vite dev server for `@satoru/test-web`.
+- `pnpm dev`: Starts Vite dev server for `@satoru/test-web` (Port 3000).
+    - **Note:** Vite is a persistent process and does not exit.
+    - **Verification:** To verify via CLI/Browser tools, start Vite in a separate process:
+      `Start-Process powershell -ArgumentList "-NoProfile", "-Command", "pnpm dev" -WorkingDirectory "C:\prog\test\satoru"`
+      Wait for initialization (~5s) before navigating to `http://localhost:3000`.
 - **Logs:** C++ `printf` is bridged to JS `console.log`. Ensure `\n` or `fflush(stdout)` is used in C++.
 
 ### 4. Project Structure & Key Files
 
 - `src/cpp/`: Core C++ Engine implementation.
-- `packages/satoru/index.ts`: High-level TypeScript wrapper (`Satoru` class).
-- `assets/`: Source HTML test cases (moved from `packages/test-web/public/assets/`).
+- `packages/satoru/src/index.ts`: TypeScript wrapper and API definitions.
+- `assets/`: Source HTML test cases.
 - `packages/satoru/dist/satoru.*`: Generated WASM artifacts.
 - `.vscode/c_cpp_properties.json`: Cross-platform C++ IntelliSense.
 
 ### 5. Implementation Details
 
+- **High-Level Render API:** `Satoru.render()` supports automated font resolution via an optional `resolveFonts` callback.
 - **Binary Transfer:** PNG data is transferred via a shared buffer. Use `Satoru.toPngBinary()` which handles memory pointers and slicing.
 - **SVG Post-Processing:** SVG output uses Skia's `SkSVGCanvas`. Advanced effects (Shadows/Conics) are post-processed in C++ using specific color tags.
-- **Text:** `litehtml` handles layout; custom `draw_text` in Skia handles rendering including Japanese fonts and text decorations.
+- **On-Demand Font Loading (2-Pass):**
+    1. WASM performs layout and records missing fonts via `get_required_fonts`.
+    2. JS host parses HTML/CSS for `@font-face` and fetches required fonts.
+    3. JS host calls `satoru.loadFont()` to register them in WASM.
+    4. Final rendering is performed with all fonts available.
 - **Images:** Decoded by the JS host and passed as Data URLs. Skia's PNG decoder must be registered in WASM.

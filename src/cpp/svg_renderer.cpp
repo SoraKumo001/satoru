@@ -181,8 +181,10 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
         }
         SkPoint center = {(float)cgi.gradient.position.x - cgi.layer.border_box.x, (float)cgi.gradient.position.y - cgi.layer.border_box.y};
         float startAngle = cgi.gradient.angle - 90.0f;
+        
         SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(positions), SkTileMode::kClamp), SkGradient::Interpolation());
-        auto shader = SkShaders::SweepGradient(center, startAngle, startAngle + 360.0f, skGrad, nullptr);
+        auto shader = SkShaders::SweepGradient(center, startAngle, startAngle + 360.0f, skGrad);
+        
         SkPaint paint;
         paint.setShader(shader);
         paint.setAntiAlias(true);

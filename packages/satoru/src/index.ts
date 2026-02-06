@@ -13,6 +13,7 @@ export interface SatoruModule {
   _html_to_png: (htmlPtr: number, width: number, height: number) => number;
   _html_to_png_binary: (htmlPtr: number, width: number, height: number) => number;
   _get_png_size: () => number;
+  _get_required_fonts: (htmlPtr: number, width: number) => number;
   _load_font: (namePtr: number, dataPtr: number, size: number) => void;
   _clear_fonts: () => void;
   _load_image: (namePtr: number, dataUrlPtr: number, width: number, height: number) => void;
@@ -34,6 +35,13 @@ export interface SatoruOptions {
   mainScriptUrlOrBlob?: string;
   noInitialRun?: boolean;
 }
+
+export interface RequiredFont {
+  name: string;
+  url?: string;
+}
+
+export type FontResolver = (fonts: RequiredFont[]) => Promise<void>;
 
 export class Satoru {
   private module: SatoruModule | null = null;
@@ -84,6 +92,37 @@ export class Satoru {
     this.mod._clear_images();
   }
 
+  /**
+   * High-level render function that handles font resolution automatically.
+   */
+  async render(
+    html: string,
+    width: number,
+    options: {
+      height?: number;
+      format?: "svg" | "png" | "dataurl";
+      resolveFonts?: FontResolver;
+    } = {}
+  ): Promise<string | Uint8Array | null> {
+    const { height = 0, format = "svg", resolveFonts } = options;
+
+    if (resolveFonts) {
+      const required = this.getRequiredFonts(html, width);
+      if (required.length > 0) {
+        await resolveFonts(required);
+      }
+    }
+
+    switch (format) {
+      case "png":
+        return this.toPngBinary(html, width, height);
+      case "dataurl":
+        return this.toPngDataUrl(html, width, height);
+      default:
+        return this.toSvg(html, width, height);
+    }
+  }
+
   toSvg(html: string, width: number, height: number = 0): string {
     const htmlPtr = this.stringToPtr(html);
     const svgPtr = this.mod._html_to_svg(htmlPtr, width, height);
@@ -113,6 +152,20 @@ export class Satoru {
     const dataUrl = this.mod.UTF8ToString(ptr);
     this.mod._free(htmlPtr);
     return dataUrl;
+  }
+
+  getRequiredFonts(html: string, width: number): RequiredFont[] {
+    const htmlPtr = this.stringToPtr(html);
+    const ptr = this.mod._get_required_fonts(htmlPtr, width);
+    const resultStr = this.mod.UTF8ToString(ptr);
+    this.mod._free(htmlPtr);
+    
+    if (!resultStr) return [];
+    
+    return resultStr.split(",").map(part => {
+      const [name, url] = part.split("|");
+      return { name, url };
+    });
   }
 
   private stringToPtr(str: string): number {

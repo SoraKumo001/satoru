@@ -5,6 +5,7 @@
 #include "include/core/SkData.h"
 #include "include/codec/SkCodec.h"
 #include "include/codec/SkPngDecoder.h"
+#include "include/core/SkImage.h"
 
 void SatoruContext::init() {
     SkGraphics::Init();
@@ -58,4 +59,34 @@ void SatoruContext::clearFonts() {
     typefaceCache.clear();
     fallbackTypefaces.clear();
     defaultTypeface = nullptr;
+}
+
+sk_sp<SkTypeface> SatoruContext::get_typeface(const std::string& family, int weight, SkFontStyle::Slant slant) {
+    std::string cleaned = clean_font_name(family.c_str());
+    if (typefaceCache.count(cleaned)) {
+        const auto& list = typefaceCache[cleaned];
+        sk_sp<SkTypeface> bestMatch = nullptr;
+        int minDiff = 1000;
+
+        for (const auto& tf : list) {
+            SkFontStyle style = tf->fontStyle();
+            int diff = std::abs(style.weight() - weight) + (style.slant() == slant ? 0 : 50);
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestMatch = tf;
+            }
+        }
+        if (bestMatch) return bestMatch;
+    }
+    return defaultTypeface;
+}
+
+bool SatoruContext::get_image_size(const std::string& url, int& w, int& h) {
+    auto it = imageCache.find(url);
+    if (it != imageCache.end()) {
+        w = it->second.width;
+        h = it->second.height;
+        return true;
+    }
+    return false;
 }

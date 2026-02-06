@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
-import { Satoru } from "../index.ts";
+import { Satoru } from "../src/index.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,7 +77,7 @@ async function convertAssets() {
       satoru.clearImages();
       const dataUrls = new Set<string>();
       const imgRegex = /<img[^>]+src=["'](data:image\/[^'"]+)["']/g;
-      const bgRegex = /background-image:\s*url\(['"]?(data:image\/[^'"]+)['\"]?\)/g;
+      const bgRegex = /background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g;
 
       let match;
       while ((match = imgRegex.exec(html)) !== null) dataUrls.add(match[1]);

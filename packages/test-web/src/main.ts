@@ -1,4 +1,4 @@
-import { Satoru, createSatoruModule } from "satoru";
+import { Satoru, createSatoruModule, RequiredFont } from "satoru";
 
 async function init() {
   console.log("Initializing Satoru Engine (Skia + Wasm)...");
@@ -145,7 +145,7 @@ async function init() {
         const images = Array.from(doc.querySelectorAll("img"));
 
         const bgMatches = html.matchAll(
-          /background-image:\s*url\(['"]?(data:image\/[^'"]+)['\"]?\)/g,
+          /background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g,
         );
         const dataUrls = new Set<string>();
         for (const img of images) {
@@ -170,39 +170,63 @@ async function init() {
         );
       };
 
+      /**
+       * Simplified font resolver that uses Wasm-provided URLs.
+       */
+      const fontResolver = async (required: RequiredFont[]) => {
+        const toLoad = required.filter(f => f.url);
+        if (toLoad.length > 0) {
+          console.log(`Loading required fonts: ${toLoad.map(f => f.name).join(", ")}`);
+          await Promise.all(
+            toLoad.map(async (font) => {
+              try {
+                const resp = await fetch(font.url!);
+                const buffer = await resp.arrayBuffer();
+                satoru.loadFont(font.name, new Uint8Array(buffer));
+                console.log(`Font loaded: ${font.name} from ${font.url}`);
+              } catch (e) {
+                console.error(`Failed to load font: ${font.name}`, e);
+              }
+            }),
+          );
+        }
+      };
+
       const performConversion = async () => {
         const htmlStr = htmlInput.value;
         const width = parseInt(canvasWidthInput.value) || 580;
 
         const loadingOverlay = document.createElement("div");
         loadingOverlay.className = "loading-overlay";
-        loadingOverlay.innerHTML = '<div class="spinner"></div> Converting...';
+        loadingOverlay.innerHTML = '<div class="spinner"></div> Processing...';
         svgContainer.appendChild(loadingOverlay);
         convertBtn.disabled = true;
         convertBtn.style.opacity = "0.7";
 
-        await preloadImages(htmlStr);
-        await new Promise((resolve) => setTimeout(resolve, 50));
-
         try {
-          let svgResult = satoru.toSvg(htmlStr, width, 0);
+          // Preload images
+          await preloadImages(htmlStr);
+          
+          // Use high-level render with font resolver
+          let svgResult = (await satoru.render(htmlStr, width, {
+            format: "svg",
+            resolveFonts: fontResolver,
+          })) as string;
 
-          svgResult = svgResult.replace(
-            "<svg",
-            '<svg style="overflow:visible"',
-          );
+          svgResult = svgResult.replace("<svg", '<svg style="overflow:visible"');
 
           svgContainer.innerHTML = svgResult;
           svgContainer.style.background = "#fff";
           if (svgSource) svgSource.value = svgResult;
           if (downloadBtn) downloadBtn.style.display = "block";
         } catch (err) {
-          console.error("Error during Wasm call:", err);
+          console.error("Error during conversion:", err);
           svgContainer.innerHTML =
             '<div style="color: red; padding: 20px;">Conversion Failed</div>';
         } finally {
           convertBtn.disabled = false;
           convertBtn.style.opacity = "1.0";
+          if (loadingOverlay.parentNode) loadingOverlay.remove();
         }
       };
 
@@ -254,7 +278,8 @@ async function init() {
   <p style="font-size: 22px; color: #1565c0; line-height: 1.5; font-family: 'Roboto'; font-weight: 400;">
     This SVG is rendered using <b>Skia's SVG Canvas</b>. 
     The text is precisely measured and positioned using <b>FreeType</b> metrics.
-  </p>\n  <p style="font-size: 20px; color: #0d47a1; font-family: 'Noto Sans JP'; margin-top: 20px; font-weight: 700;">
+  </p>
+  <p style="font-size: 20px; color: #0d47a1; font-family: 'Noto Sans JP'; margin-top: 20px; font-weight: 700;">
     日本語の太字（Bold）も表示可能です。
   </p>
   <div style="text-align: center; margin-top: 20px;">

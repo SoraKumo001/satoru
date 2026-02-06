@@ -1,0 +1,2 @@
+読み取ったlink hrefに指定されているフォントをJavaScript側でfetchしてwasm側に投入できるようにしたい
+機能の作成計画を立てて

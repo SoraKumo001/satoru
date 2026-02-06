@@ -10,6 +10,7 @@
 #include "image_types.h"
 #include "satoru_context.h"
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 #include <tuple>
@@ -17,6 +18,16 @@
 struct font_info {
     SkFont* font;
     litehtml::font_description desc;
+};
+
+struct font_request {
+    std::string family;
+    int weight;
+    SkFontStyle::Slant slant;
+
+    bool operator<(const font_request& other) const {
+        return std::tie(family, weight, slant) < std::tie(other.family, other.weight, other.slant);
+    }
 };
 
 struct shadow_info {
@@ -61,6 +72,8 @@ class container_skia : public litehtml::document_container {
     std::map<shadow_info, int> m_shadowToIndex;
     std::vector<image_draw_info> m_usedImageDraws;
     std::vector<conic_gradient_info> m_usedConicGradients;
+    std::set<font_request> m_missingFonts;
+    std::map<font_request, std::string> m_fontFaces;
     bool m_tagging;
 
 public:
@@ -96,6 +109,13 @@ public:
         return m_usedConicGradients[index - 1];
     }
 
+    const std::set<font_request>& get_missing_fonts() const { return m_missingFonts; }
+    void clear_missing_fonts() { m_missingFonts.clear(); }
+    
+    std::string get_font_url(const std::string& family, int weight, SkFontStyle::Slant slant) const;
+
+    void scan_font_faces(const std::string& css);
+
     // litehtml::document_container members
     virtual litehtml::uint_ptr create_font(const litehtml::font_description& desc, const litehtml::document* doc, litehtml::font_metrics* fm) override;
     virtual void delete_font(litehtml::uint_ptr hFont) override;
@@ -126,7 +146,7 @@ public:
     virtual void on_mouse_event(const litehtml::element::ptr& el, litehtml::mouse_event event) override {}
     virtual void set_cursor(const char* cursor) override {}
     virtual void transform_text(litehtml::string& text, litehtml::text_transform tt) override;
-    virtual void import_css(litehtml::string& text, const litehtml::string& url, litehtml::string& baseurl) override {}
+    virtual void import_css(litehtml::string& text, const litehtml::string& url, litehtml::string& baseurl) override;
     virtual void set_clip(const litehtml::position& pos, const litehtml::border_radiuses& bdr_radius) override;
     virtual void del_clip() override;
     virtual void draw_list_marker(litehtml::uint_ptr hdc, const litehtml::list_marker& marker) override {}

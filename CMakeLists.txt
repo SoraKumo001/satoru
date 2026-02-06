@@ -14,6 +14,17 @@ set(SKIA_CONFIG_DIR "${LIBS_DIR}/skia")
 
 # --- Skia Clone Setup ---
 include(FetchContent)
+
+# 更新チェックを制御するオプション (デフォルトOFF)
+option(SKIA_UPDATE "Check for Skia updates" OFF)
+
+# すでにソースが存在し、かつ更新が要求されていない場合
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/core/SkCanvas.h" AND NOT SKIA_UPDATE)
+  # この変数をセットすると FetchContent はダウンロード処理を完全にスキップして、指定ディレクトリを直接使います
+  set(FETCHCONTENT_SOURCE_DIR_SKIA "${CMAKE_CURRENT_SOURCE_DIR}/external/skia")
+  message(STATUS "Using existing Skia source, skipping all FetchContent download steps.")
+endif()
+
 FetchContent_Declare(
   skia
   GIT_REPOSITORY https://github.com/google/skia.git

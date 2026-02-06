@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 
-const ASSETS_DIR = path.resolve(__dirname, "../../test-web/public/assets");
+const ASSETS_DIR = path.resolve(__dirname, "../../../assets");
 const TEMP_DIR = path.resolve(__dirname, "../../../temp");
 const WASM_JS_PATH = path.resolve(__dirname, "../dist/satoru.js");
 const WASM_BINARY_PATH = path.resolve(__dirname, "../dist/satoru.wasm");

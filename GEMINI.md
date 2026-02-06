@@ -67,7 +67,7 @@ Use the TypeScript-based build scripts defined in the root `package.json`:
 
 - `src/cpp/`: Core C++ Engine implementation.
 - `packages/satoru/index.ts`: High-level TypeScript wrapper (`Satoru` class).
-- `packages/test-web/public/assets/`: Source HTML test cases.
+- `assets/`: Source HTML test cases (moved from `packages/test-web/public/assets/`).
 - `packages/satoru/dist/satoru.*`: Generated WASM artifacts.
 - `.vscode/c_cpp_properties.json`: Cross-platform C++ IntelliSense.
 

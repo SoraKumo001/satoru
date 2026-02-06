@@ -44,31 +44,32 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 ### 1. Overview
 
 **Satoru** is a high-fidelity HTML/CSS to SVG/PNG converter running in WebAssembly.
+- **Monorepo:** Organized as pnpm workspaces.
 - **Core:** `litehtml` (Layout) + `Skia` (Rendering).
 - **Target:** WASM via Emscripten.
 
 ### 2. Build System
 
-Use the TypeScript-based build scripts defined in `package.json`:
-- `npm run wasm:configure`: Configure CMake for WASM build.
-- `npm run wasm:build`: Compile C++ to WASM (`public/satoru.js`, `public/satoru.wasm`).
-- `npm run build`: TS/Vite build for the web frontend.
+Use the TypeScript-based build scripts defined in the root `package.json`:
+- `pnpm wasm:configure`: Configure CMake for WASM build.
+- `pnpm wasm:build`: Compile C++ to WASM (`packages/satoru/dist/satoru.*`).
+- `pnpm build`: Build all packages (@satoru/core and @satoru/test-web).
 
 **Requirements:** `EMSDK` and `VCPKG_ROOT` environment variables must be set.
 
 ### 3. Testing & Development
 
-- `npm test`: Runs `test/convert_assets.ts` using `tsx`. Converts `public/assets/*.html` to `temp/`.
-- `npm run dev`: Starts Vite dev server for web-based preview/comparison.
+- `pnpm test`: Runs `@satoru/core` tests (`packages/satoru/test/convert_assets.ts`).
+- `pnpm dev`: Starts Vite dev server for `@satoru/test-web`.
 - **Logs:** C++ `printf` is bridged to JS `console.log`. Ensure `\n` or `fflush(stdout)` is used in C++.
 
 ### 4. Project Structure & Key Files
 
-- `src/cpp/`: C++ Engine implementation.
-- `src/satoru/index.ts`: High-level TypeScript wrapper (`Satoru` class). **Always use this wrapper in JS/TS environments.**
-- `public/assets/`: Source HTML test cases (Git tracked).
-- `public/satoru.*`: Generated WASM artifacts (Git ignored).
-- `.vscode/c_cpp_properties.json`: Cross-platform C++ IntelliSense using `${env:EMSDK}`.
+- `src/cpp/`: Core C++ Engine implementation.
+- `packages/satoru/index.ts`: High-level TypeScript wrapper (`Satoru` class).
+- `packages/test-web/public/assets/`: Source HTML test cases.
+- `packages/satoru/dist/satoru.*`: Generated WASM artifacts.
+- `.vscode/c_cpp_properties.json`: Cross-platform C++ IntelliSense.
 
 ### 5. Implementation Details
 

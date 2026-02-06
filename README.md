@@ -67,7 +67,7 @@ graph TD
 ## 🛠 Usage (TypeScript)
 
 ```typescript
-import { Satoru } from "satoru-wasm";
+import { Satoru } from "@satoru/core";
 
 const satoru = new Satoru();
 await satoru.init();
@@ -86,13 +86,22 @@ const pngBuffer = satoru.toPngBinary('<div style="...">...</div>', {
 // pngBuffer is a Uint8Array containing the PNG file data
 ```
 
-## 🏗 Build & Run
+## 🏗️ Project Structure
+
+This project is organized as a monorepo using pnpm workspaces:
+
+- **`packages/satoru` (`@satoru/core`)**: The core library. Contains the WebAssembly engine, Skia/litehtml integration, and the TypeScript wrapper.
+- **`packages/test-web` (`@satoru/test-web`)**: A web-based development and demonstration UI built with Vite.
+- **`src/cpp`**: Shared C++ source code for the Wasm engine.
+- **`scripts`**: Build automation scripts.
+
+## 🛠️ Build & Run
 
 ### Prerequisites
 
 - [emsdk](https://github.com/emscripten-core/emsdk) (Targeting `latest`)
 - [vcpkg](https://vcpkg.io/) (Wasm32-emscripten triplet)
-- Node.js & pnpm/npm
+- Node.js & pnpm
 
 #### Environment Variables
 
@@ -106,19 +115,22 @@ const pngBuffer = satoru.toPngBinary('<div style="...">...</div>', {
 pnpm install
 
 # 2. Configure WASM build (CMake)
-npm run wasm:configure
+pnpm wasm:configure
 
 # 3. Build WASM artifacts (satoru.js / satoru.wasm)
-npm run wasm:build
+pnpm wasm:build
 
-# 4. Run tests (Convert assets to SVG in temp/)
-npm test
+# 4. Build TypeScript packages
+pnpm build
 
-# 5. Start development UI
-npm run dev
+# 5. Run tests (Convert assets to SVG/PNG in temp/)
+pnpm test
+
+# 6. Start development UI
+pnpm dev
 ```
 
-## 🗺 Roadmap
+## 🗺️ Roadmap
 
 - [x] High-level TypeScript Wrapper API.
 - [x] Binary PNG export support.

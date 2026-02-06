@@ -1,3 +1,0 @@
-[submodule "external/skia"]
-	path = external/skia
-	url = https://github.com/google/skia.git

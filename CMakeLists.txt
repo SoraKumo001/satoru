@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 
 set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 set(VCPKG_TARGET_TRIPLET "wasm32-emscripten" CACHE STRING "")
@@ -11,6 +11,26 @@ set(CMAKE_CXX_STANDARD 17)
 set(LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/libs")
 set(LITEHTML_DIR "${LIBS_DIR}/litehtml")
 set(SKIA_CONFIG_DIR "${LIBS_DIR}/skia")
+
+# --- Skia Clone Setup ---
+include(FetchContent)
+FetchContent_Declare(
+  skia
+  GIT_REPOSITORY https://github.com/google/skia.git
+  GIT_TAG        main
+  SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/external/skia
+  GIT_SHALLOW    TRUE
+)
+
+if(POLICY CMP0169)
+  cmake_policy(SET CMP0169 OLD)
+endif()
+
+FetchContent_GetProperties(skia)
+if(NOT skia_POPULATED AND NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/core/SkCanvas.h")
+  message(STATUS "Populating Skia...")
+  FetchContent_Populate(skia)
+endif()
 
 # Find dependencies
 find_package(Freetype REQUIRED)

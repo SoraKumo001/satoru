@@ -8,9 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "start": "http-server dist -p 8080 -o",
     "test": "tsx ./test/convert_assets",
-    "cmake-configure": "tsx ./scripts/build-wasm.ts configure",
-    "cmake-build": "tsx ./scripts/build-wasm.ts build",
-    "compile-wasm": "npm run cmake-configure && npm run cmake-build"
+    "wasm:configure": "tsx ./scripts/build-wasm.ts configure",
+    "wasm:build": "tsx ./scripts/build-wasm.ts build"
   },
   "devDependencies": {
     "@types/node": "25.2.0",

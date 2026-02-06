@@ -1,76 +1,90 @@
-# Satoru Wasm: High-Performance HTML to SVG Engine
+# Satoru Wasm: High-Performance HTML to SVG/PNG Engine
 
 https://sorakumo001.github.io/satoru/
 
-**Satoru** is a portable, WebAssembly-powered HTML rendering engine. It combines the **Skia Graphics Engine** and **litehtml** to provide high-quality, pixel-perfect SVG generation entirely within WebAssembly.
+**Satoru** is a portable, WebAssembly-powered HTML rendering engine. It combines the **Skia Graphics Engine** and **litehtml** to provide high-quality, pixel-perfect SVG and PNG generation entirely within WebAssembly.
 
 ## 🚀 Project Status: High-Fidelity Rendering Ready
 
-The engine supports full text layout with custom fonts, complex CSS styling, and efficient image embedding.
+The engine supports full text layout with custom fonts, complex CSS styling, and efficient binary data transfer for both vector (SVG) and raster (PNG) outputs.
 
 ### Key Capabilities
 
 - **Pure Wasm Pipeline**: Performs all layout and drawing operations inside Wasm. Zero dependencies on browser DOM or `<canvas>` for rendering.
-- **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime. Text is rendered as vector paths in the resulting SVG.
-- **Japanese Support**: Full support for Japanese rendering with fallback font logic (Noto Sans CJK, MS Gothic).
+- **Dual Output Modes**:
+  - **SVG**: Generates lean, vector-based SVG strings with post-processed effects.
+  - **PNG**: Generates high-quality raster images via Skia, transferred as binary data for maximum performance.
+- **High-Level TS Wrapper**: Includes a `Satoru` class that abstracts Wasm memory management (`malloc`/`free`) and provides a clean async API.
+- **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime.
+- **Japanese Support**: Full support for Japanese rendering with fallback font logic.
 - **Advanced CSS Support**:
-  - Box model (margin, padding, border).
-  - **Border Radius**: Accurate rounded corners using SVG arc commands.
-  - **Box Shadow**: High-quality shadows using SVG filters and Gaussian blur.
-  - **Text Decoration**: Supports `underline`, `line-through`, `overline` with `solid`, `dotted`, and `dashed` styles. Lines remain continuous even over whitespace.
+  - **Box Model**: Margin, padding, border, and accurate **Border Radius**.
+  - **Box Shadow**: High-quality shadows using SVG filters (SVG) or Skia blurs (PNG).
+  - **Gradients**: Linear, Radial, and **Conic** (Sweep) gradient support.
+  - **Text Decoration**: Supports `underline`, `line-through`, `overline` with `solid`, `dotted`, and `dashed` styles.
 - **Efficient Image Handling**:
-  - **Pre-loading Architecture**: The host environment (JS/TS) extracts and registers image Data URLs into the Wasm image cache *before* rendering starts.
+  - **Pre-loading Architecture**: The host registers image Data URLs into the Wasm image cache _before_ rendering.
   - **Host-side Decoding**: Image decoding is handled by the JavaScript environment, keeping the Wasm binary lean.
-- **Wasm-to-Node Logging Bridge**: Real-time console output from Wasm `printf` is captured and formatted by the Node.js/TS runner.
-- **Cross-Platform Build System**: A unified TypeScript-based build script (`scripts/build-wasm.ts`) handles configuration and compilation across Windows, macOS, and Linux.
+- **Cross-Platform Build System**: A unified TypeScript build script handles everything from CMake configuration to Emscripten compilation.
 
-## 🛠 Conversion Flow
+## 🔄 Conversion Flow
 
-The following diagram illustrates how Satoru converts HTML/CSS into a pure SVG string:
+The following diagram illustrates how Satoru processes HTML/CSS into vector or raster outputs:
 
 ```mermaid
 graph TD
-    subgraph Frontend [Browser / Node.js]
-        A[Load Fonts & Preload Images] --> B[Call html_to_svg]
+    subgraph Host [JS/TS Host]
+        A[Load Fonts & Images] --> B[Satoru Wrapper Class]
     end
 
-    subgraph WASM [Satoru Engine]
-        B --> C1[gumbo: Parse HTML]
-        C1 --> C2[litehtml: CSS & DOM Tree]
-        C2 --> D[litehtml: Layout / Reflow]
-        
-        subgraph Drawing [Drawing & Tagging]
-            D --> E[Skia: Draw to SkSVGCanvas]
-            E --> F1[Vector Paths & Text]
-            E --> F2[Images tagged as #FBxxxx]
-            E --> F3[Shadows tagged as #FCxxxx]
+    subgraph WASM [Satoru Wasm Engine]
+        B --> C[Parse HTML/CSS<br/>gumbo + litehtml]
+        C --> D[Compute Layout<br/>litehtml Reflow]
+
+        D --> E{Output Format?}
+
+        subgraph SVG_Path [SVG Vector Pipeline]
+            E -- SVG --> F[SkSVGCanvas: Draw & Tag]
+            F --> G[Post-process String:<br/>Inject Shadows & Gradients]
         end
-        
-        F1 & F2 & F3 --> G[Raw SVG String]
-        
-        subgraph PostProcess [Post-processing]
-            G --> H[Scan for tags & Generate Defs]
-            H --> I[Inject &lt;filter&gt; & &lt;clipPath&gt;]
-            I --> J[Replace tags with &lt;image&gt; / &lt;g&gt;]
-            J --> K[Remove empty/zero-sized paths]
+
+        subgraph PNG_Path [PNG Raster Pipeline]
+            E -- PNG --> H[SkSurface: Rasterize]
+            H --> I[SkImage: Encode to PNG]
+            I --> J[Shared Binary Buffer]
         end
     end
 
-    K --> L[Final Vector SVG Output]
-    
-    style Frontend fill:#e1f5fe,stroke:#01579b
+    G --> K[Final SVG Output]
+    J --> L[Final PNG Binary]
+
+    style Host fill:#e1f5fe,stroke:#01579b
     style WASM fill:#fff3e0,stroke:#e65100
-    style Drawing fill:#f3e5f5,stroke:#4a148c
-    style PostProcess fill:#e8f5e9,stroke:#1b5e20
+    style SVG_Path fill:#f3e5f5,stroke:#4a148c
+    style PNG_Path fill:#e8f5e9,stroke:#1b5e20
 ```
 
-## 🛠 Tech Stack
+## 🛠 Usage (TypeScript)
 
-- **Graphics**: [Skia](https://skia.org/) (Subset compiled from source for Wasm)
-- **HTML Layout**: [litehtml](https://github.com/litehtml/litehtml)
-- **HTML Parser**: [gumbo](https://github.com/google/gumbo-parser)
-- **Font Backend**: [FreeType](https://www.freetype.org/)
-- **Linker Logic**: Emscripten with SJLJ (Longjmp) and Exception support.
+```typescript
+import { Satoru } from "satoru-wasm";
+
+const satoru = new Satoru();
+await satoru.init();
+
+// Load a font
+const fontData = await fetch("font.ttf").then((res) => res.arrayBuffer());
+satoru.loadFont(new Uint8Array(fontData));
+
+// Convert HTML to SVG
+const svg = satoru.toSvg("<h1>Hello World</h1>", { width: 800 });
+
+// Convert HTML to PNG (Binary)
+const pngBuffer = satoru.toPngBinary('<div style="...">...</div>', {
+  width: 400,
+});
+// pngBuffer is a Uint8Array containing the PNG file data
+```
 
 ## 🏗 Build & Run
 
@@ -78,67 +92,44 @@ graph TD
 
 - [emsdk](https://github.com/emscripten-core/emsdk) (Targeting `latest`)
 - [vcpkg](https://vcpkg.io/) (Wasm32-emscripten triplet)
+- Node.js & pnpm/npm
 
 #### Environment Variables
-
-The build script requires the following environment variables:
 
 - `EMSDK`: Path to your emscripten SDK directory.
 - `VCPKG_ROOT`: Path to your vcpkg directory.
 
-**Windows (PowerShell):**
-```powershell
-[System.Environment]::SetEnvironmentVariable('EMSDK', 'C:\emsdk', 'User')
-[System.Environment]::SetEnvironmentVariable('VCPKG_ROOT', 'C:\vcpkg', 'User')
-```
-
-**macOS / Linux:**
-```bash
-export EMSDK=$HOME/emsdk
-export VCPKG_ROOT=$HOME/vcpkg
-```
-
-**VS Code Setup (Local):**
-Since `.vscode` is ignored by git, add this to your local `.vscode/settings.json`:
-```json
-{
-    "terminal.integrated.env.windows": { "EMSDK": "C:/emsdk", "VCPKG_ROOT": "C:/vcpkg" },
-    "terminal.integrated.env.osx": { "EMSDK": "${env:HOME}/emsdk", "VCPKG_ROOT": "${env:HOME}/vcpkg" }
-}
-```
-
 ### Commands
 
 ```bash
-# Full clean rebuild (Deletes build folder and re-compiles everything)
-npm run compile-wasm
+# 1. Install dependencies
+pnpm install
 
-# Incremental build (Fast C++ changes)
-npm run cmake-build
+# 2. Configure WASM build (CMake)
+npm run wasm:configure
 
-# Run batch conversion test (Converts HTML assets to SVG with Logging)
+# 3. Build WASM artifacts (satoru.js / satoru.wasm)
+npm run wasm:build
+
+# 4. Run tests (Convert assets to SVG in temp/)
 npm test
 
-# Start dev environment (Vite with side-by-side comparison UI)
+# 5. Start development UI
 npm run dev
 ```
 
-## 🧩 Solved Challenges
-
-- **Continuous Text Decoration**: Fixed the issue where underlines disappeared on space characters by allowing the layout engine to process whitespace-only runs for decoration drawing.
-- **Wasm Logging**: Established a robust logging bridge by implementing `print` and `printErr` callbacks in the Emscripten module, enabling easier C++ debugging within Node.js.
-- **Cross-Platform Pathing**: Migrated from shell-specific build commands to a Node.js-based build system, resolving inconsistencies between PowerShell and bash.
-- **SVG Structure Stability**: Ensured `<defs>` are always injected inside the root `<svg>` tag even with complex embedded assets.
-
 ## 🗺 Roadmap
 
-- [x] Dynamic Custom Font Support.
-- [x] Border Radius & Advanced Box Styling.
-- [x] Box Shadow support.
-- [x] Text Decoration Styles (Dotted/Dashed).
+- [x] High-level TypeScript Wrapper API.
+- [x] Binary PNG export support.
+- [x] Linear, Radial & Conic Gradient support.
+- [x] Border Radius & Box Shadow.
 - [x] Japanese Language Rendering.
-- [x] Cross-platform build script.
-- [x] Basic Linear, Radial & Conic Gradient support.
-- [ ] SVG Path Shorthand Optimization (Minimize SVG size).
+- [x] Text Decoration Styles (Dotted/Dashed).
+- [ ] SVG Path Shorthand Optimization.
+- [ ] Support for CSS Masks & Filters.
 - [ ] Optional SVG `<text>` element output.
-- [ ] Complex CSS Flexbox/Grid support - *In Progress (via litehtml)*.
+
+## 📄 License
+
+MIT License - SoraKumo <info@croud.jp>

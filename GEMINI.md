@@ -6,65 +6,73 @@ This document defines the operational rules for Gemini when interacting with the
 
 ### 1. Shell Environment: Windows PowerShell
 
-You are operating in a **Windows PowerShell** environment (likely v5.1).
+You are operating in a **Windows PowerShell** environment.
 
-- **Constraint:** The standard PowerShell environment does not support the `&&` or `||` operators for command chaining.
-- **Instruction:** You **MUST** use the semicolon `;` separator for sequential command execution.
-- ❌ **Incorrect:** `mkdir test_dir && cd test_dir`
+- **Constraint:** PowerShell does not support `&&` or `||` for command chaining.
+- **Instruction:** Use the semicolon `;` separator for sequential execution.
 - ✅ **Correct:** `mkdir test_dir ; cd test_dir`
-
-- **Alternative:** If strict error handling is needed (stop on failure), execute commands one by one or use `if ($?) { ... }`.
 
 ### 2. File Editing Protocol (mcp-text-editor)
 
-To prevent `Hash Mismatch` errors when using `edit_file` or `write_file`, strictly adhere to the following sequence:
+When using `get_text_file_contents` and `edit_text_file_contents`, strictly follow these rules to ensure data integrity and avoid `Hash Mismatch` errors.
 
-- **Rule 1: Read Before Write**
-- ALWAYS execute `read_file` on the target file immediately before attempting an edit.
-- Do not rely on your context window for file content; it may be outdated or hallucinated (especially whitespace).
+#### Rule 1: Synchronized Reading
+- Always use `get_text_file_contents` to obtain the current `file_hash` and `range_hash` for the specific lines you intend to edit.
+- Do not rely on cached content or previous reads if any other file operations have occurred.
 
-- **Rule 2: Byte-Perfect `old_text**`
-- When using `edit_file` (search & replace), the `old_text` field must be a **byte-for-byte exact match** of the file content.
-- **Whitespace:** Do NOT change indentation (tabs vs spaces) or trim trailing spaces.
-- **Line Endings:** Respect the existing line endings (CRLF vs LF). Do not normalize them in the `old_text`.
+#### Rule 2: Bottom-to-Top Patching
+- **CRITICAL:** When applying multiple patches to the same file in a single `edit_text_file_contents` call, you **MUST** order the patches from the bottom of the file to the top (descending line numbers).
+- This ensures that line number shifts caused by adding or removing lines in one patch do not invalidate the `line_start`/`line_end` of subsequent patches.
 
-- **Rule 3: Atomic Edits**
-- Prefer replacing smaller, unique blocks of code (e.g., a single function signature or a specific logic block) rather than large chunks. This reduces the risk of hash collisions.
+#### Rule 3: Precise Range Matching
+- The `line_start` and `line_end` in your patch must exactly match the range you read.
+- The `range_hash` must correspond to the content of that exact range at the time of reading.
+
+#### Rule 4: Atomic Operations
+- Prefer small, focused patches over large, sweeping changes. This minimizes the risk of conflicts and makes the editing process more robust.
 
 ### 3. Troubleshooting
 
-- If you encounter a `Hash Mismatch` error:
-
-1. Stop the current chain.
-2. Re-read the file using `get_text_file_contents`.
-3. Verify the exact content of the lines you intend to change.
-4. Retry the edit with the newly confirmed content.
+- If a `Hash Mismatch` error occurs:
+    1. **Stop** the current operation.
+    2. **Re-read** the file ranges using `get_text_file_contents` to get fresh hashes.
+    3. **Verify** the content matches your expectations.
+    4. **Retry** the edit with the new hashes.
 
 ## Project Context: Satoru
 
 ### 1. Overview
 
-**Satoru** is an HTML/CSS to SVG converter running in WebAssembly (WASM). It leverages `litehtml` for layout/rendering and `Skia` for drawing, outputting an SVG string.
+**Satoru** is a high-fidelity HTML/CSS to SVG/PNG converter running in WebAssembly.
+- **Core:** `litehtml` (Layout) + `Skia` (Rendering).
+- **Target:** WASM via Emscripten.
 
 ### 2. Build System
 
-- **Command:** `npm run cmake-build`
-- **Mechanism:** Uses `scripts/build-wasm.ts` (executed via `tsx`) to handle build configuration and execution.
-  - **Do NOT** write raw shell scripts for building; rely on this TypeScript abstraction to ensure cross-platform compatibility (Windows/Linux/macOS).
-- **Environment:** Requires `EMSDK` (Emscripten) and `VCPKG_ROOT` environment variables.
+Use the TypeScript-based build scripts defined in `package.json`:
+- `npm run wasm:configure`: Configure CMake for WASM build.
+- `npm run wasm:build`: Compile C++ to WASM (`public/satoru.js`, `public/satoru.wasm`).
+- `npm run build`: TS/Vite build for the web frontend.
+
+**Requirements:** `EMSDK` and `VCPKG_ROOT` environment variables must be set.
 
 ### 3. Testing & Development
 
-- **Test:** `npm test` converts HTML assets in `public/assets/` to SVGs in `temp/`.
-- **UI:** `index.html` / `src/main.ts` provides a split-view comparison.
-- **Logging:** C++ `printf` / `std::cout` is bridged to Node.js/Console via Emscripten's `print` hook. Use `fflush(stdout)` or `\n` to flush.
+- `npm test`: Runs `test/convert_assets.ts` using `tsx`. Converts `public/assets/*.html` to `temp/`.
+- `npm run dev`: Starts Vite dev server for web-based preview/comparison.
+- **Logs:** C++ `printf` is bridged to JS `console.log`. Ensure `\n` or `fflush(stdout)` is used in C++.
 
-### 4. Implementation Details
+### 4. Project Structure & Key Files
 
-- **Images:** Decoded in JavaScript/TypeScript host and passed to WASM as Data URLs via a preloading cache. WASM does not fetch images directly.
-- **SVG Output:** Skia's `SkSVGCanvas` is used. We filter out empty paths (`<path d="" />`) in `main.cpp` to reduce bloat.
-- **Gradients:**
-  - **Linear/Radial:** Implemented via standard Skia shaders.
-  - **Conic:** Implemented via `SkShaders::SweepGradient` with rotation adjustments.
-  - **Elliptical Radial:** Handled via `SkMatrix` scaling on a unit circle gradient.
-- **Text Decoration:** Custom handling in `draw_text` to support `dotted`, `dashed`, `wavy` (TODO), and correct skipping of whitespace for continuous lines.
+- `src/cpp/`: C++ Engine implementation.
+- `src/satoru/index.ts`: High-level TypeScript wrapper (`Satoru` class). **Always use this wrapper in JS/TS environments.**
+- `public/assets/`: Source HTML test cases (Git tracked).
+- `public/satoru.*`: Generated WASM artifacts (Git ignored).
+- `.vscode/c_cpp_properties.json`: Cross-platform C++ IntelliSense using `${env:EMSDK}`.
+
+### 5. Implementation Details
+
+- **Binary Transfer:** PNG data is transferred via a shared buffer. Use `Satoru.toPngBinary()` which handles memory pointers and slicing.
+- **SVG Post-Processing:** SVG output uses Skia's `SkSVGCanvas`. Advanced effects (Shadows/Conics) are post-processed in C++ using specific color tags.
+- **Text:** `litehtml` handles layout; custom `draw_text` in Skia handles rendering including Japanese fonts and text decorations.
+- **Images:** Decoded by the JS host and passed as Data URLs. Skia's PNG decoder must be registered in WASM.

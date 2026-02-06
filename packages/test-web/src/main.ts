@@ -7,7 +7,7 @@ async function init() {
     await satoru.init({
       locateFile: (path: string) => {
         if (path.endsWith(".wasm")) {
-          return "/satoru.wasm";
+          return "satoru.wasm";
         }
         return path;
       },
@@ -254,8 +254,7 @@ async function init() {
   <p style="font-size: 22px; color: #1565c0; line-height: 1.5; font-family: 'Roboto'; font-weight: 400;">
     This SVG is rendered using <b>Skia's SVG Canvas</b>. 
     The text is precisely measured and positioned using <b>FreeType</b> metrics.
-  </p>
-  <p style="font-size: 20px; color: #0d47a1; font-family: 'Noto Sans JP'; margin-top: 20px; font-weight: 700;">
+  </p>\n  <p style="font-size: 20px; color: #0d47a1; font-family: 'Noto Sans JP'; margin-top: 20px; font-weight: 700;">
     日本語の太字（Bold）も表示可能です。
   </p>
   <div style="text-align: center; margin-top: 20px;">

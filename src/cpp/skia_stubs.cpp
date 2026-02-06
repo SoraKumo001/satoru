@@ -9,7 +9,7 @@ void SkSemaphore::osSignal(int n) {}
 void SkSemaphore::osWait() {}
 
 // Thread ID
-uint32_t SkGetThreadID() { return 0; }
+int64_t SkGetThreadID() { return 0; }
 
 // SkSL
 namespace SkSL {

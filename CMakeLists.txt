@@ -6,31 +6,11 @@ set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "C:/emsdk/upstream/emscripten/cmake/Modules/P
 
 project(satoru_wasm)
 
-# --- Restore SkUserConfig.h if missing ---
-set(SK_USER_CONFIG_PATH "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/config/SkUserConfig.h")
-if(NOT EXISTS "${SK_USER_CONFIG_PATH}")
-    message(STATUS "Restoring missing SkUserConfig.h...")
-    file(WRITE "${SK_USER_CONFIG_PATH}"
-"#ifndef SkUserConfig_DEFINED\n"
-"#define SkUserConfig_DEFINED\n\n"
-"// Minimal config for Wasm\n"
-"#ifndef SK_SUPPORT_GPU\n"
-"#define SK_SUPPORT_GPU 0\n"
-"#endif\n\n"
-"#ifndef SK_SUPPORT_PDF\n"
-"#define SK_SUPPORT_PDF 0\n"
-"#endif\n\n"
-"#ifndef SK_ENABLE_SVG\n"
-"#define SK_ENABLE_SVG\n"
-"#endif\n\n"
-"#endif\n"
-    )
-endif()
-
 set(CMAKE_CXX_STANDARD 17)
 
 set(LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/libs")
 set(LITEHTML_DIR "${LIBS_DIR}/litehtml")
+set(SKIA_CONFIG_DIR "${LIBS_DIR}/skia")
 
 # Find dependencies
 find_package(Freetype REQUIRED)
@@ -71,8 +51,9 @@ file(GLOB SKIA_CORE_SRC
     "external/skia/src/image/*.cpp"
     "external/skia/src/shaders/*.cpp"
     "external/skia/src/shaders/gradients/*.cpp"
-    "external/skia/src/effects/*.cpp"
-    "external/skia/src/effects/imagefilters/*.cpp"
+    "external/skia/src/effects/SkDashPathEffect.cpp"
+    "external/skia/src/effects/SkCornerPathEffect.cpp"
+    "external/skia/src/effects/imagefilters/SkBlurImageFilter.cpp"
     "external/skia/src/svg/*.cpp"
     "external/skia/src/xml/*.cpp"
     "external/skia/src/text/*.cpp"
@@ -108,6 +89,7 @@ target_include_directories(main BEFORE PRIVATE
     "${LITEHTML_DIR}/include"
     "${LITEHTML_DIR}/include/litehtml"
     "${LITEHTML_DIR}/src"
+    "${SKIA_CONFIG_DIR}"
 )
 
 target_include_directories(main PRIVATE
@@ -137,14 +119,7 @@ target_compile_options(main PRIVATE
 )
 
 target_compile_definitions(main PRIVATE
-    SK_RELEASE
-    SK_GAMMA_SRGB
-    SK_HAS_FREETYPE_SUPPORT
-    SK_SUPPORT_PDF=0
-    SK_SUPPORT_GPU=0
-    SK_ENABLE_SVG=1
-    SK_CODEC_DECODES_PNG
-    SK_ENCODE_PNG
+    SK_USER_CONFIG_HEADER="SkUserConfig.h"
 )
 
 set_target_properties(main PROPERTIES
@@ -170,6 +145,7 @@ target_link_options(main PRIVATE
     "-O3"
     "-fexceptions"
     "-msimd128"
+    "-sWASM_BIGINT=1"
     "-sSUPPORT_LONGJMP=emscripten"
     "-sDISABLE_EXCEPTION_CATCHING=0"
     "-sMODULARIZE=1"

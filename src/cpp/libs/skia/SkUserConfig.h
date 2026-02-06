@@ -1,0 +1,29 @@
+#ifndef SkUserConfig_DEFINED
+#define SkUserConfig_DEFINED
+
+// Minimal config for Wasm
+#define SK_RELEASE
+#define SK_GAMMA_SRGB
+#define SK_HAS_FREETYPE_SUPPORT
+#ifndef SK_SUPPORT_GPU
+#define SK_SUPPORT_GPU 0
+#endif
+
+#ifndef SK_SUPPORT_PDF
+#define SK_SUPPORT_PDF 0
+#endif
+
+#ifndef SK_ENABLE_SVG
+#define SK_ENABLE_SVG
+#endif
+
+#define SK_CODEC_DECODES_PNG
+#define SK_ENCODE_PNG
+#define SK_DISABLE_TRACING
+#define SK_DISABLE_LEGACY_SHADER_CONTEXT
+#define SK_DISABLE_LOWP_RASTER_PIPELINE
+#define SK_FORCE_RASTER_PIPELINE_BLITTER
+#define SK_DISABLE_EXOTIC_ENDPOINTS
+#define SK_DISABLE_AAA
+
+#endif

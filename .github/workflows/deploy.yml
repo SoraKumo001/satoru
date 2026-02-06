@@ -17,6 +17,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      VCPKG_ROOT: /usr/local/share/vcpkg
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,13 +44,9 @@ jobs:
 
       - name: Wasm Configure
         run: pnpm wasm:configure
-        env:
-          VCPKG_ROOT: ${{ env.VCPKG_INSTALLATION_ROOT }}
 
       - name: Wasm Build
         run: pnpm wasm:build
-        env:
-          VCPKG_ROOT: ${{ env.VCPKG_INSTALLATION_ROOT }}
 
       - name: Build TS Packages
         run: pnpm run build

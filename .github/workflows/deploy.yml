@@ -24,6 +24,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
+
+      - name: Verify Submodules
+        run: |
+          if [ ! -f "external/skia/include/core/SkFontMgr.h" ]; then
+            echo "Error: Skia submodules not found. Attempting manual update..."
+            git submodule update --init --recursive
+          fi
+          ls -l external/skia/include/core/SkFontMgr.h
 
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14

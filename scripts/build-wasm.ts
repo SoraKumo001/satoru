@@ -20,10 +20,12 @@ const emsdkEnv = isWin ? path.join(EMSDK, 'emsdk_env.bat') : `. ${path.join(EMSD
 const shell = isWin ? 'cmd.exe' : '/bin/sh';
 
 function run(cmd: string, cwd?: string) {
-    // emsdkを有効化してからコマンドを実行
-    const fullCmd = isWin 
-        ? `call "${emsdkEnv}" && emsdk activate latest && ${cmd}`
-        : `${emsdkEnv} && emsdk activate latest && ${cmd}`;
+    // GitHub Actionsの場合はsetup-emsdkが環境設定済みなのでemsdkの有効化をスキップ
+    const fullCmd = process.env.GITHUB_ACTIONS 
+        ? cmd
+        : isWin 
+            ? `call "${emsdkEnv}" && emsdk activate latest && ${cmd}`
+            : `. ${path.join(EMSDK!, 'emsdk_env.sh')} && emsdk activate latest && ${cmd}`;
     
     console.log(`> ${cmd}`);
     execSync(fullCmd, { stdio: 'inherit', shell, cwd });

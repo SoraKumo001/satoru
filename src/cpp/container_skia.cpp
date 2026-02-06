@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cctype>
 
 container_skia::container_skia(int w, int h, SkCanvas* canvas, SatoruContext& context, bool tagging)
     : m_width(w), m_height(h), m_canvas(canvas), m_context(context), m_tagging(tagging) {}
@@ -654,4 +655,46 @@ void container_skia::draw_conic_gradient(litehtml::uint_ptr hdc, const litehtml:
     paint.setAntiAlias(true);
 
     m_canvas->drawRRect(rrect, paint);
+}
+
+void container_skia::transform_text(litehtml::string& text, litehtml::text_transform tt)
+{
+    if (text.empty()) return;
+    switch (tt)
+    {
+    case litehtml::text_transform_uppercase:
+        for (char& c : text)
+        {
+            c = (char)std::toupper((unsigned char)c);
+        }
+        break;
+    case litehtml::text_transform_lowercase:
+        for (char& c : text)
+        {
+            c = (char)std::tolower((unsigned char)c);
+        }
+        break;
+    case litehtml::text_transform_capitalize:
+        {
+            bool first = true;
+            for (char& c : text)
+            {
+                if (std::isspace((unsigned char)c))
+                {
+                    first = true;
+                }
+                else
+                {
+                    if (first)
+                    {
+                        c = (char)std::toupper((unsigned char)c);
+                        first = false;
+                    }
+                }
+            }
+        }
+        break;
+    default:
+        break;
+    }
 }

@@ -125,7 +125,7 @@ public:
     virtual void on_anchor_click(const char* url, const litehtml::element::ptr& el) override {}
     virtual void on_mouse_event(const litehtml::element::ptr& el, litehtml::mouse_event event) override {}
     virtual void set_cursor(const char* cursor) override {}
-    virtual void transform_text(litehtml::string& text, litehtml::text_transform tt) override {}
+    virtual void transform_text(litehtml::string& text, litehtml::text_transform tt) override;
     virtual void import_css(litehtml::string& text, const litehtml::string& url, litehtml::string& baseurl) override {}
     virtual void set_clip(const litehtml::position& pos, const litehtml::border_radiuses& bdr_radius) override;
     virtual void del_clip() override;

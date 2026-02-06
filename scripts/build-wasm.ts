@@ -26,6 +26,15 @@ const emsdkEnv = isWin
   : `. ${path.join(EMSDK, "emsdk_env.sh")}`;
 const shell = isWin ? "cmd.exe" : "/bin/sh";
 
+// Check if ninja is available
+let useNinja = false;
+try {
+  execSync("ninja --version", { stdio: "ignore" });
+  useNinja = true;
+} catch (e) {
+  // Ninja not found
+}
+
 function run(cmd: string, cwd?: string) {
   const fullCmd = process.env.GITHUB_ACTIONS
     ? cmd
@@ -43,15 +52,20 @@ if (action === "configure") {
   }
   fs.mkdirSync("build-wasm");
 
+  const generator = useNinja ? "Ninja" : "Unix Makefiles";
   const cmakeCmd =
-    `cmake .. -G "Unix Makefiles" ` +
+    `cmake .. -G "${generator}" ` +
     `-DCMAKE_TOOLCHAIN_FILE="${vcpkgCmake}" ` +
     `-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${emscriptenCmake}" ` +
     `-DVCPKG_TARGET_TRIPLET=wasm32-emscripten`;
 
   run(cmakeCmd, "build-wasm");
 } else if (action === "build") {
-  run("emmake make -j16", "build-wasm");
+  if (useNinja) {
+    run("ninja", "build-wasm");
+  } else {
+    run("emmake make -j16", "build-wasm");
+  }
 } else {
   console.error("Usage: tsx scripts/build-wasm.ts [configure|build]");
   process.exit(1);

@@ -1,7 +1,4 @@
-import { Satoru } from "@satoru/core";
-
-// Declare the global factory function provided by satoru.js
-declare function createSatoruModule(options?: any): Promise<any>;
+import { Satoru, createSatoruModule } from "satoru";
 
 async function init() {
   console.log("Initializing Satoru Engine (Skia + Wasm)...");
@@ -10,7 +7,7 @@ async function init() {
     await satoru.init({
       locateFile: (path: string) => {
         if (path.endsWith(".wasm")) {
-          return "./satoru.wasm";
+          return "/satoru.wasm";
         }
         return path;
       },
@@ -94,8 +91,8 @@ async function init() {
                                 <h3>SVG Render Preview:</h3>
                                 <button id="downloadBtn" style="display: none; background: #FF9800; color: white; border: none; padding: 6px 15px; cursor: pointer; border-radius: 4px;">Download .svg</button>
                             </div>
-                            <div id=\"svgContainer\" style=\"border: 1px solid #ddd; background: #eee; border-radius: 8px; height: 800px; display: flex;  overflow: auto; box-sizing: border-box;\">
-                                <div style=\"color: #999; margin-top: 200px;\">Result will appear here</div>
+                            <div id="svgContainer" style="border: 1px solid #ddd; background: #eee; border-radius: 8px; height: 800px; display: flex;  overflow: auto; box-sizing: border-box;">
+                                <div style="color: #999; margin-top: 200px;">Result will appear here</div>
                             </div>
                         </div>
                     </div>
@@ -107,18 +104,33 @@ async function init() {
                 </div>
             `;
 
-      const convertBtn = document.getElementById("convertBtn") as HTMLButtonElement;
+      const convertBtn = document.getElementById(
+        "convertBtn",
+      ) as HTMLButtonElement;
       const loadFontBtn = document.getElementById("loadFontBtn");
       const downloadBtn = document.getElementById("downloadBtn");
-      const htmlInput = document.getElementById("htmlInput") as HTMLTextAreaElement;
-      const htmlPreview = document.getElementById("htmlPreview") as HTMLIFrameElement;
-      const svgContainer = document.getElementById("svgContainer") as HTMLDivElement;
-      const svgSource = document.getElementById("svgSource") as HTMLTextAreaElement;
-      const canvasWidthInput = document.getElementById("canvasWidth") as HTMLInputElement;
-      const assetSelect = document.getElementById("assetSelect") as HTMLSelectElement;
+      const htmlInput = document.getElementById(
+        "htmlInput",
+      ) as HTMLTextAreaElement;
+      const htmlPreview = document.getElementById(
+        "htmlPreview",
+      ) as HTMLIFrameElement;
+      const svgContainer = document.getElementById(
+        "svgContainer",
+      ) as HTMLDivElement;
+      const svgSource = document.getElementById(
+        "svgSource",
+      ) as HTMLTextAreaElement;
+      const canvasWidthInput = document.getElementById(
+        "canvasWidth",
+      ) as HTMLInputElement;
+      const assetSelect = document.getElementById(
+        "assetSelect",
+      ) as HTMLSelectElement;
 
       const updatePreview = () => {
-        const doc = htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
+        const doc =
+          htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
         if (doc) {
           doc.open();
           doc.write(htmlInput.value);
@@ -132,7 +144,9 @@ async function init() {
         const doc = parser.parseFromString(html, "text/html");
         const images = Array.from(doc.querySelectorAll("img"));
 
-        const bgMatches = html.matchAll(/background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g);
+        const bgMatches = html.matchAll(
+          /background-image:\s*url\(['"]?(data:image\/[^'"]+)['\"]?\)/g,
+        );
         const dataUrls = new Set<string>();
         for (const img of images) {
           if (img.src.startsWith("data:")) dataUrls.add(img.src);
@@ -173,7 +187,10 @@ async function init() {
         try {
           let svgResult = satoru.toSvg(htmlStr, width, 0);
 
-          svgResult = svgResult.replace("<svg", '<svg style="overflow:visible"');
+          svgResult = svgResult.replace(
+            "<svg",
+            '<svg style="overflow:visible"',
+          );
 
           svgContainer.innerHTML = svgResult;
           svgContainer.style.background = "#fff";
@@ -181,17 +198,22 @@ async function init() {
           if (downloadBtn) downloadBtn.style.display = "block";
         } catch (err) {
           console.error("Error during Wasm call:", err);
-          svgContainer.innerHTML = '<div style="color: red; padding: 20px;">Conversion Failed</div>';
+          svgContainer.innerHTML =
+            '<div style="color: red; padding: 20px;">Conversion Failed</div>';
         } finally {
           convertBtn.disabled = false;
           convertBtn.style.opacity = "1.0";
         }
       };
 
-      const ROBOTO_400 = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2";
-      const ROBOTO_700 = "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2";
-      const NOTO_400 = "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2";
-      const NOTO_700 = "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-700-normal.woff2";
+      const ROBOTO_400 =
+        "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2";
+      const ROBOTO_700 =
+        "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2";
+      const NOTO_400 =
+        "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2";
+      const NOTO_700 =
+        "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-700-normal.woff2";
 
       const loadFont = async (name: string, url: string) => {
         const resp = await fetch(url);

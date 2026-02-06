@@ -1,0 +1,20 @@
+{
+  "name": "test-cloudflare",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "build": "wrangler deploy --dry-run"
+  },
+  "dependencies": {
+    "satoru": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250124.3",
+    "typescript": "^5.9.3",
+    "wrangler": "^3.107.2"
+  }
+}

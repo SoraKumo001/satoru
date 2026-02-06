@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "satoru-test-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-24",
+  "observability": {
+    "enabled": true
+  },
+  "rules": [
+    {
+      "type": "CompiledWasm",
+      "globs": ["**/*.wasm"],
+      "fallthrough": true
+    }
+  ]
+}

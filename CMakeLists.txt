@@ -149,7 +149,7 @@ target_link_options(main PRIVATE
     "-sSUPPORT_LONGJMP=emscripten"
     "-sDISABLE_EXCEPTION_CATCHING=0"
     "-sMODULARIZE=1"
-    "-sEXPORT_ES6=0"
+    "-sEXPORT_ES6=1"
     "-sEXPORT_NAME='createSatoruModule'"
     "-sERROR_ON_UNDEFINED_SYMBOLS=0"
     "-sWARN_ON_UNDEFINED_SYMBOLS=0"

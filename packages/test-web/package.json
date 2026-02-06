@@ -1,5 +1,5 @@
 {
-  "name": "@satoru/test-web",
+  "name": "test-web",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@satoru/core": "workspace:*"
+    "satoru": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

@@ -1,12 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
-import { createRequire } from "module";
+import { fileURLToPath, pathToFileURL } from "url";
 import { Satoru } from "../index.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const require = createRequire(import.meta.url);
 
 const ASSETS_DIR = path.resolve(__dirname, "../../../assets");
 const TEMP_DIR = path.resolve(__dirname, "../../../temp");
@@ -45,7 +43,8 @@ async function convertAssets() {
       await downloadFont(font.url, font.path);
     }
 
-    const createSatoruModule = require(WASM_JS_PATH);
+    // Load ES module using pathToFileURL for Windows compatibility
+    const { default: createSatoruModule } = await import(pathToFileURL(WASM_JS_PATH).href);
     const satoru = new Satoru(createSatoruModule);
     
     await satoru.init({
@@ -78,7 +77,7 @@ async function convertAssets() {
       satoru.clearImages();
       const dataUrls = new Set<string>();
       const imgRegex = /<img[^>]+src=["'](data:image\/[^'"]+)["']/g;
-      const bgRegex = /background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g;
+      const bgRegex = /background-image:\s*url\(['"]?(data:image\/[^'"]+)['\"]?\)/g;
 
       let match;
       while ((match = imgRegex.exec(html)) !== null) dataUrls.add(match[1]);

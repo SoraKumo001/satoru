@@ -67,7 +67,7 @@ graph TD
 ## 🛠 Usage (TypeScript)
 
 ```typescript
-import { Satoru } from "@satoru/core";
+import { Satoru } from "satoru";
 
 const satoru = new Satoru();
 await satoru.init();
@@ -90,8 +90,9 @@ const pngBuffer = satoru.toPngBinary('<div style="...">...</div>', {
 
 This project is organized as a monorepo using pnpm workspaces:
 
-- **`packages/satoru` (`@satoru/core`)**: The core library. Contains the WebAssembly engine, Skia/litehtml integration, and the TypeScript wrapper.
-- **`packages/test-web` (`@satoru/test-web`)**: A web-based development and demonstration UI built with Vite.
+- **`assets/`**: Shared HTML test cases and sample assets used by both tests and the web demo.
+- **`packages/satoru` (`satoru`)**: The core library. Contains the WebAssembly engine, Skia/litehtml integration, and the TypeScript wrapper.
+- **`packages/test-web` (`@satoru/test-web`)**: A web-based development and demonstration UI built with Vite. It serves `assets/` and `satoru` artifacts via Vite's dev server.
 - **`src/cpp`**: Shared C++ source code for the Wasm engine.
 - **`scripts`**: Build automation scripts.
 
@@ -99,7 +100,7 @@ This project is organized as a monorepo using pnpm workspaces:
 
 ### Prerequisites
 
-- [emsdk](https://github.com/emscripten-core/emsdk) (Targeting `latest`)
+- [emsdk](https://github.com/emscripten-core/emsdk) (Targeting `latest` )
 - [vcpkg](https://vcpkg.io/) (Wasm32-emscripten triplet)
 - Node.js & pnpm
 
@@ -142,6 +143,6 @@ pnpm dev
 - [ ] Support for CSS Masks & Filters.
 - [ ] Optional SVG `<text>` element output.
 
-## 📄 License
+## 📜 License
 
 MIT License - SoraKumo <info@croud.jp>

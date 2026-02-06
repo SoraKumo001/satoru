@@ -12,17 +12,7 @@ export default defineConfig({
     port: 3000,
     open: true,
     fs: {
-      allow: ["..", "../../assets", "../satoru/dist"],
-    },
-    watch: {
-      ignored: [
-        "**/node_modules/**",
-        "**/external/**",
-        "**/build-wasm/**",
-        "**/vcpkg_installed/**",
-        "**/temp/**",
-        "**/dist/**",
-      ],
+      allow: ["..", "../../assets", "../satoru"],
     },
   },
   resolve: {
@@ -37,17 +27,30 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
           if (req.url === "/satoru.js" || req.url === "/satoru.wasm") {
-            const artifactPath = path.resolve(__dirname, "../satoru/dist", req.url.substring(1));
+            const artifactPath = path.resolve(
+              __dirname,
+              "../satoru/dist",
+              req.url.substring(1),
+            );
             if (fs.existsSync(artifactPath)) {
-              res.setHeader("Content-Type", req.url.endsWith(".js") ? "application/javascript" : "application/wasm");
+              res.setHeader(
+                "Content-Type",
+                req.url.endsWith(".js")
+                  ? "application/javascript"
+                  : "application/wasm",
+              );
               res.end(fs.readFileSync(artifactPath));
               return;
             }
           }
-          
+
           if (req.url?.startsWith("/assets/")) {
-            const urlPath = req.url.split('?')[0];
-            const assetPath = path.resolve(__dirname, "../../", urlPath.substring(1));
+            const urlPath = req.url.split("?")[0];
+            const assetPath = path.resolve(
+              __dirname,
+              "../../",
+              urlPath.substring(1),
+            );
             if (fs.existsSync(assetPath) && fs.lstatSync(assetPath).isFile()) {
               res.setHeader("Content-Type", getMimeType(assetPath));
               res.end(fs.readFileSync(assetPath));
@@ -63,7 +66,7 @@ export default defineConfig({
         if (!fs.existsSync(distDir)) return;
 
         // satoru artifacts
-        ["satoru.js", "satoru.wasm"].forEach(file => {
+        ["satoru.js", "satoru.wasm"].forEach((file) => {
           const src = path.resolve(__dirname, "../satoru/dist", file);
           const dest = path.resolve(distDir, file);
           if (fs.existsSync(src)) {
@@ -79,7 +82,7 @@ export default defineConfig({
           copyRecursiveSync(srcAssets, destAssets);
           console.log(`Copied assets/ to dist/assets/`);
         }
-      }
+      },
     },
   ],
   build: {
@@ -95,7 +98,10 @@ function copyRecursiveSync(src: string, dest: string) {
   if (isDirectory) {
     if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
     fs.readdirSync(src).forEach((childItemName) => {
-      copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName));
+      copyRecursiveSync(
+        path.join(src, childItemName),
+        path.join(dest, childItemName),
+      );
     });
   } else {
     fs.copyFileSync(src, dest);

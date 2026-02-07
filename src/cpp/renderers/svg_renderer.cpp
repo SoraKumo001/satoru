@@ -57,64 +57,109 @@ static std::string path_from_rrect(const litehtml::position &pos, const litehtml
 }
 
 void processTags(std::string& svg, SatoruContext& context, const container_skia& container) {
+    std::string result;
+    result.reserve(svg.size() + 4096);
+
     const auto& shadows = container.get_used_shadows();
-    for (size_t i = 0; i < shadows.size(); ++i) {
-        int index = (int)(i + 1);
-        std::string filterId = "shadow-" + std::to_string(index);
-        char hex[32], rgb[64];
-        snprintf(hex, sizeof(hex), "#0001%02X", index);
-        snprintf(rgb, sizeof(rgb), "rgb(0,1,%d)", index);
-
-        std::string pattern = "fill=\"(" + std::string(hex) + "|" + std::string(rgb) + ")\"";
-        std::regex re(pattern, std::regex::icase);
-        std::string replacement = "filter=\"url(#" + filterId + ")\" fill=\"black\"";
-        svg = std::regex_replace(svg, re, replacement);
-        
-        std::string patternStyle = "fill:(" + std::string(hex) + "|" + std::string(rgb) + ");?";
-        std::regex reStyle(patternStyle, std::regex::icase);
-        std::string replacementStyle = "filter:url(#" + filterId + ");fill:black;";
-        svg = std::regex_replace(svg, reStyle, replacementStyle);
-    }
-
     const auto& images = container.get_used_image_draws();
-    for (size_t i = 0; i < images.size(); ++i) {
-        const auto& draw = images[i];
-        int index = (int)(i + 1);
-        auto it = context.imageCache.find(draw.url);
-        if (it != context.imageCache.end() && it->second.skImage) {
-            SkBitmap bitmap;
-            bitmap.allocN32Pixels(it->second.skImage->width(), it->second.skImage->height());
-            SkCanvas bitmapCanvas(bitmap);
-            bitmapCanvas.drawImage(it->second.skImage, 0, 0);
-            
-            char hex[32], rgb[64];
-            snprintf(hex, sizeof(hex), "#0100%02X", index);
-            snprintf(rgb, sizeof(rgb), "rgb(1,0,%d)", index);
+    const auto& conics = container.get_used_conic_gradients();
 
-            std::stringstream ss;
-            ss << "<image x=\"" << draw.layer.origin_box.x << "\" y=\"" << draw.layer.origin_box.y
-               << "\" width=\"" << draw.layer.origin_box.width << "\" height=\""
-               << draw.layer.origin_box.height << "\" href=\"" << bitmapToDataUrl(bitmap) << "\"";
-            if (has_radius(draw.layer.border_radius)) {
-                ss << " clip-path=\"url(#clip-img-" << index << ")\"";
-            }
-            ss << " />";
-            size_t pos = svg.find(hex);
-            if (pos == std::string::npos) {
-                char hex_low[32]; snprintf(hex_low, sizeof(hex_low), "#0100%02x", index);
-                pos = svg.find(hex_low);
-            }
-            if (pos == std::string::npos) pos = svg.find(rgb);
+    size_t lastPos = 0;
+    while (lastPos < svg.size()) {
+        size_t posFillAttr = svg.find("fill=\"", lastPos);
+        size_t posFillStyle = svg.find("fill:", lastPos);
+        size_t pos = std::min(posFillAttr, posFillStyle);
 
-            if (pos != std::string::npos) {
-                size_t start = svg.rfind("<", pos);
-                size_t end = svg.find("/>", pos);
-                if (start != std::string::npos && end != std::string::npos) {
-                    svg.replace(start, end + 2 - start, ss.str());
+        if (pos == std::string::npos) break;
+
+        result.append(svg, lastPos, pos - lastPos);
+
+        bool isAttr = (pos == posFillAttr);
+        size_t valStart = pos + (isAttr ? 6 : 5);
+        size_t valEnd = std::string::npos;
+
+        if (isAttr) {
+            valEnd = svg.find('"', valStart);
+        } else {
+            valEnd = svg.find_first_of(";\"", valStart);
+        }
+
+        if (valEnd == std::string::npos) {
+            result.append(svg, pos, (isAttr ? 6 : 5));
+            lastPos = valStart;
+            continue;
+        }
+
+        std::string colorVal = svg.substr(valStart, valEnd - valStart);
+        bool replaced = false;
+
+        int r = -1, g = -1, b = -1;
+        if (colorVal.size() >= 7 && colorVal[0] == '#') {
+            try {
+                r = std::stoi(colorVal.substr(1, 2), nullptr, 16);
+                g = std::stoi(colorVal.substr(3, 2), nullptr, 16);
+                b = std::stoi(colorVal.substr(5, 2), nullptr, 16);
+            } catch (...) {}
+        } else if (colorVal.find("rgb(") == 0) {
+            sscanf(colorVal.c_str(), "rgb(%d,%d,%d)", &r, &g, &b);
+        }
+
+        if (r != -1) {
+            if (r == 0 && g == 1 && b > 0 && b <= (int)shadows.size()) {
+                std::string filterId = "shadow-" + std::to_string(b);
+                if (isAttr) {
+                    result.append("filter=\"url(#" + filterId + ")\" fill=\"black\"");
+                } else {
+                    result.append("filter:url(#" + filterId + ");fill:black");
                 }
+                lastPos = valEnd + (isAttr ? 1 : 0);
+                replaced = true;
+            } else if (r == 1 && g == 0 && b > 0 && b <= (int)images.size()) {
+                size_t elementStart = svg.rfind('<', pos);
+                size_t elementEnd = svg.find("/>", valEnd);
+                if (elementStart != std::string::npos && elementEnd != std::string::npos) {
+                    const auto& draw = images[b - 1];
+                    auto it = context.imageCache.find(draw.url);
+                    if (it != context.imageCache.end() && it->second.skImage) {
+                        SkBitmap bitmap;
+                        bitmap.allocN32Pixels(it->second.skImage->width(), it->second.skImage->height());
+                        SkCanvas bitmapCanvas(bitmap);
+                        bitmapCanvas.drawImage(it->second.skImage, 0, 0);
+
+                        std::stringstream ss;
+                        ss << "<image x=\"" << draw.layer.origin_box.x << "\" y=\"" << draw.layer.origin_box.y
+                           << "\" width=\"" << draw.layer.origin_box.width << "\" height=\""
+                           << draw.layer.origin_box.height << "\" href=\"" << bitmapToDataUrl(bitmap) << "\"";
+                        if (has_radius(draw.layer.border_radius)) {
+                            ss << " clip-path=\"url(#clip-img-" << b << ")\"";
+                        }
+                        ss << " />";
+
+                        result.erase(result.size() - (pos - elementStart));
+                        result.append(ss.str());
+                        lastPos = elementEnd + 2;
+                        replaced = true;
+                    }
+                }
+            } else if (r == 1 && g == 1 && b > 0 && b <= (int)conics.size()) {
+                if (isAttr) {
+                    result.append("fill=\"black\"");
+                } else {
+                    result.append("fill:black");
+                }
+                lastPos = valEnd + (isAttr ? 1 : 0);
+                replaced = true;
             }
         }
+
+        if (!replaced) {
+            result.append(svg, pos, valEnd + (isAttr ? 1 : 0) - pos);
+            lastPos = valEnd + (isAttr ? 1 : 0);
+        }
     }
+
+    result.append(svg, lastPos, std::string::npos);
+    svg = std::move(result);
 }
 }  // namespace
 
@@ -162,11 +207,6 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
         float floodOpacity = (float)s.color.alpha / 255.0f;
 
         if (s.inset) {
-            // Inset Shadow Logic:
-            // 1. Create a large flood area.
-            // 2. Subtract SourceAlpha from it (getting the area outside the shape).
-            // 3. Blur and offset this 'outside' area.
-            // 4. Clip the result back to SourceAlpha.
             defs << "<feFlood flood-color=\"" << floodColor << "\" flood-opacity=\"" << floodOpacity << "\" result=\"color\"/>"
                  << "<feComposite in=\"color\" in2=\"SourceAlpha\" operator=\"out\" result=\"inverse\"/>"
                  << "<feGaussianBlur in=\"inverse\" stdDeviation=\"" << s.blur * 0.5f << "\" result=\"blur\"/>"
@@ -174,7 +214,6 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
                  << "<feComposite in=\"offset\" in2=\"SourceAlpha\" operator=\"in\" result=\"inset-shadow\"/>"
                  << "<feMerge><feMergeNode in=\"inset-shadow\"/></feMerge>";
         } else {
-            // Normal (Outer) Shadow Logic:
             defs << "<feGaussianBlur in=\"SourceAlpha\" stdDeviation=\"" << s.blur * 0.5f << "\" result=\"blur\"/>"
                  << "<feOffset dx=\"" << s.x << "\" dy=\"" << s.y << "\" result=\"offsetblur\"/>"
                  << "<feFlood flood-color=\"" << floodColor << "\" flood-opacity=\"" << floodOpacity << "\"/>"

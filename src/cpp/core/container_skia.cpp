@@ -72,7 +72,7 @@ char32_t decode_utf8(const char** ptr) {
 }  // namespace
 
 container_skia::container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context, ResourceManager* rm, bool tagging)
-    : m_canvas(canvas), m_width(w), m_height(h), m_context(context), m_resourceManager(rm), m_tagging(tagging) {
+    : m_canvas(canvas), m_width(w), m_height(h), m_context(context), m_resourceManager(rm), m_tagging(tagging) {   
     m_last_clip_pos = {0, 0, 0, 0};
 }
 
@@ -109,7 +109,7 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
 
     for (auto& typeface : typefaces) fi->fonts.push_back(new SkFont(typeface, (float)desc.size));
     if (fi->fonts.empty() && m_context.defaultTypeface) fi->fonts.push_back(new SkFont(m_context.defaultTypeface, (float)desc.size));
-    else if (fi->fonts.empty()) fi->fonts.push_back(new SkFont(SkTypeface::MakeEmpty(), (float)desc.size));
+    else if (fi->fonts.empty()) fi->fonts.push_back(new SkFont(SkTypeface::MakeEmpty(), (float)desc.size));        
 
     SkFontMetrics skfm;
     fi->fonts[0]->getMetrics(&skfm);
@@ -129,7 +129,7 @@ void container_skia::delete_font(litehtml::uint_ptr hFont) {
 litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_ptr hFont) {
     font_info *fi = (font_info *)hFont;
     if (!fi || fi->fonts.empty()) return 0;
-    double total_width = 0; const char *p = text; const char *run_start = p; SkFont *current_font = nullptr;
+    double total_width = 0; const char *p = text; const char *run_start = p; SkFont *current_font = nullptr;       
     while (*p) {
         const char *next_p = p; char32_t u = decode_utf8(&next_p); SkFont *font = nullptr;
         for (auto f : fi->fonts) {
@@ -177,15 +177,56 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                                  (float)pos.y + (float)fi->fm_ascent, render_font, paint);
         x_offset += current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
     }
-}
 
+    if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
+        float thickness = (float)fi->desc.decoration_thickness.val();
+        if (thickness == 0) thickness = 1.0f;
+
+        litehtml::web_color dec_color = fi->desc.decoration_color;
+        if (dec_color == litehtml::web_color::current_color) dec_color = color;
+
+        SkPaint dec_paint;
+        dec_paint.setColor(SkColorSetARGB(dec_color.alpha, dec_color.red, dec_color.green, dec_color.blue));       
+        dec_paint.setAntiAlias(true);
+        dec_paint.setStrokeWidth(thickness);
+        dec_paint.setStyle(SkPaint::kStroke_Style);
+
+        if (fi->desc.decoration_style == litehtml::text_decoration_style_dotted) {
+            float intervals[] = {thickness, thickness};
+            dec_paint.setPathEffect(SkDashPathEffect::Make(SkSpan<const float>(intervals, 2), 0));
+        } else if (fi->desc.decoration_style == litehtml::text_decoration_style_dashed) {
+            float intervals[] = {thickness * 3, thickness * 3};
+            dec_paint.setPathEffect(SkDashPathEffect::Make(SkSpan<const float>(intervals, 2), 0));
+        }
+
+        auto draw_decoration_line = [&](float y) {
+            if (fi->desc.decoration_style == litehtml::text_decoration_style_double) {
+                float gap = thickness + 1.0f;
+                m_canvas->drawLine((float)pos.x, y - gap / 2, (float)pos.x + (float)x_offset, y - gap / 2, dec_paint);
+                m_canvas->drawLine((float)pos.x, y + gap / 2, (float)pos.x + (float)x_offset, y + gap / 2, dec_paint);
+            } else {
+                m_canvas->drawLine((float)pos.x, y, (float)pos.x + (float)x_offset, y, dec_paint);
+            }
+        };
+
+        if (fi->desc.decoration_line & litehtml::text_decoration_line_underline) {
+            draw_decoration_line((float)pos.y + (float)fi->fm_ascent + (float)fi->desc.underline_offset.val() + 1.0f);
+        }
+        if (fi->desc.decoration_line & litehtml::text_decoration_line_overline) {
+            draw_decoration_line((float)pos.y);
+        }
+        if (fi->desc.decoration_line & litehtml::text_decoration_line_line_through) {
+            draw_decoration_line((float)pos.y + (float)fi->fm_ascent * 0.65f);
+        }
+    }
+}
 void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::shadow_vector &shadows, const litehtml::position &pos, const litehtml::border_radiuses &radius, bool inset) {
     if (!m_canvas) return;
     if (m_tagging) {
         for (const auto &s : shadows) {
             if (s.inset != inset) continue;
             shadow_info info; info.color = s.color; info.blur = (float)s.blur.val(); info.x = (float)s.x.val(); info.y = (float)s.y.val(); info.spread = (float)s.spread.val(); info.inset = inset; info.box_pos = pos; info.box_radius = radius;
-            m_usedShadows.push_back(info); 
+            m_usedShadows.push_back(info);
             int index = (int)m_usedShadows.size();
             SkPaint p; p.setColor(SkColorSetARGB(255, 0, 1, (index & 0xFF)));
             m_canvas->drawRRect(make_rrect(pos, radius), p);
@@ -288,7 +329,7 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
             SkPaint p; p.setColor(SkColorSetARGB(common.alpha, common.red, common.green, common.blue)); p.setAntiAlias(true);
             SkRect ir = SkRect::MakeXYWH((float)draw_pos.x + borders.left.width, (float)draw_pos.y + borders.top.width, (float)draw_pos.width - borders.left.width - borders.right.width, (float)draw_pos.height - borders.top.width - borders.bottom.width);
             if (ir.width() > 0 && ir.height() > 0) {
-                SkVector rads[4] = {{std::max(0.0f, (float)borders.radius.top_left_x - (float)borders.left.width), std::max(0.0f, (float)borders.radius.top_left_y - (float)borders.top.width)}, {std::max(0.0f, (float)borders.radius.top_right_x - (float)borders.right.width), std::max(0.0f, (float)borders.radius.top_right_y - (float)borders.top.width)}, {std::max(0.0f, (float)borders.radius.bottom_right_x - (float)borders.right.width), std::max(0.0f, (float)borders.radius.bottom_right_y - (float)borders.bottom.width)}, {std::max(0.0f, (float)borders.radius.bottom_left_x - (float)borders.left.width), std::max(0.0f, (float)borders.radius.bottom_left_y - (float)borders.bottom.width)}};
+                SkVector rads[4] = {{std::max(0.0f, (float)borders.radius.top_left_x - (float)borders.left.width), std::max(0.0f, (float)borders.radius.top_left_y - (float)borders.top.width)}, {std::max(0.0f, (float)borders.radius.top_right_x - (float)borders.right.width), std::max(0.0f, (float)borders.radius.top_right_y - (float)borders.top.width)}, {std::max(0.0f, (float)borders.radius.bottom_right_x - (float)borders.right.width), std::max(0.0f, (float)borders.radius.bottom_right_y - (float)borders.bottom.width)}, {std::max(0.0f, (float)borders.radius.bottom_left_x - (float)borders.left.width), std::max(0.0f, (float)borders.radius.bottom_left_y - (float)borders.bottom.width)}};  
                 SkRRect inner; inner.setRectRadii(ir, rads); m_canvas->drawPath(SkPathBuilder().addRRect(outer, SkPathDirection::kCW).addRRect(inner, SkPathDirection::kCCW).detach(), p);
             } else m_canvas->drawRRect(outer, p);
         } else {
@@ -317,10 +358,10 @@ void container_skia::scan_font_faces(const std::string &css) {
         if (std::regex_search(body, m, familyRegex)) req.family = clean_font_name(m[1].str().c_str());
         if (std::regex_search(body, m, weightRegex)) { std::string w = trim(m[1].str()); if (w == "bold") req.weight = 700; else if (w == "normal") req.weight = 400; else try { req.weight = std::stoi(w); } catch(...) {} }
         if (std::regex_search(body, m, styleRegex)) { std::string s = trim(m[1].str()); if (s == "italic" || s == "oblique") req.slant = SkFontStyle::kItalic_Slant; }
-        if (!req.family.empty() && std::regex_search(body, m, urlRegex)) m_fontFaces[req] = trim(m[1].str());
+        if (!req.family.empty() && std::regex_search(body, m, urlRegex)) m_fontFaces[req] = trim(m[1].str());      
     }
 }
-std::string container_skia::get_font_url(const std::string &family, int weight, SkFontStyle::Slant slant) const {
+std::string container_skia::get_font_url(const std::string &family, int weight, SkFontStyle::Slant slant) const {  
     std::stringstream ss(family); std::string item;
     while (std::getline(ss, item, ',')) {
         std::string cleanFamily = clean_font_name(trim(item).c_str()); font_request req = {cleanFamily, weight, slant}; auto it = m_fontFaces.find(req); if (it != m_fontFaces.end()) return it->second;

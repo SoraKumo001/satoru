@@ -83,7 +83,8 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
                                    ? SkFontStyle::kUpright_Slant
                                    : SkFontStyle::kItalic_Slant;
 
-    auto typefaces = m_context.get_typefaces(desc.family, desc.weight, slant);
+    bool fake_bold = false;
+    auto typefaces = m_context.get_typefaces(desc.family, desc.weight, slant, fake_bold);
 
     if (typefaces.empty()) {
         // Legacy tracking
@@ -96,7 +97,7 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
             }
         }
 
-        typefaces = m_context.get_typefaces("sans-serif", desc.weight, slant);
+        typefaces = m_context.get_typefaces("sans-serif", desc.weight, slant, fake_bold);
     }
 
     // Add global fallbacks if they are not already in the list
@@ -113,6 +114,7 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
 
     font_info *fi = new font_info;
     fi->desc = desc;
+    fi->fake_bold = fake_bold;
 
     for (auto& typeface : typefaces) {
         fi->fonts.push_back(new SkFont(typeface, (float)desc.size));
@@ -219,9 +221,13 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 
         if (font != current_font) {
             if (current_font && p > run_start) {
+                SkFont render_font = *current_font;
+                if (fi->fake_bold) {
+                    render_font.setEmbolden(true);
+                }
                 m_canvas->drawSimpleText(run_start, p - run_start, SkTextEncoding::kUTF8,
                                          (float)pos.x + (float)x_offset, (float)pos.y + (float)fi->fm_ascent,      
-                                         *current_font, paint);
+                                         render_font, paint);
                 x_offset += current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
             }
             run_start = p;
@@ -231,8 +237,12 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
     }
 
     if (current_font && p > run_start) {
+        SkFont render_font = *current_font;
+        if (fi->fake_bold) {
+            render_font.setEmbolden(true);
+        }
         m_canvas->drawSimpleText(run_start, p - run_start, SkTextEncoding::kUTF8, (float)pos.x + (float)x_offset,  
-                                 (float)pos.y + (float)fi->fm_ascent, *current_font, paint);
+                                 (float)pos.y + (float)fi->fm_ascent, render_font, paint);
         x_offset += current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
     }
 
@@ -298,14 +308,9 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
             info.box_radius = radius;
 
             int index = 0;
-            auto it = m_shadowToIndex.find(info);
-            if (it == m_shadowToIndex.end()) {
-                m_usedShadows.push_back(info);
-                index = (int)m_usedShadows.size();
-                m_shadowToIndex[info] = index;
-            } else {
-                index = it->second;
-            }
+            // Always push for stability during investigation
+            m_usedShadows.push_back(info);
+            index = (int)m_usedShadows.size();
 
             SkPaint paint;
             // Shadow tag: R=0, G=0, B=index, A=254 (#0000xx with opacity)
@@ -371,17 +376,33 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
 void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
                                 const std::string &url, const std::string &base_url) {
     if (!m_canvas) return;
-    image_draw_info draw;
-    draw.url = url;
-    draw.layer = layer;
-    m_usedImageDraws.push_back(draw);
 
-    int index = (int)m_usedImageDraws.size();
+    if (m_tagging) {
+        image_draw_info draw;
+        draw.url = url;
+        draw.layer = layer;
+        m_usedImageDraws.push_back(draw);
 
-    SkPaint paint;
-    // Image tag: R=0, G=0, B=index, A=255 (#0000xx)
-    paint.setColor(SkColorSetARGB(255, 0, 0, (index & 0xFF)));
-    m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), paint);
+        int index = (int)m_usedImageDraws.size();
+
+        SkPaint paint;
+        // Image tag: R=0, G=0, B=index, A=255 (#0000xx)
+        paint.setColor(SkColorSetARGB(255, 0, 0, (index & 0xFF)));
+        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), paint);
+    } else {
+        auto it = m_context.imageCache.find(url);
+        if (it != m_context.imageCache.end() && it->second.skImage) {
+            SkPaint paint;
+            paint.setAntiAlias(true);
+            m_canvas->save();
+            m_canvas->clipRRect(make_rrect(layer.border_box, layer.border_radius), true);
+            m_canvas->drawImageRect(it->second.skImage,
+                                    SkRect::MakeXYWH((float)layer.origin_box.x, (float)layer.origin_box.y,
+                                                     (float)layer.origin_box.width, (float)layer.origin_box.height),
+                                    SkSamplingOptions(SkFilterMode::kLinear), &paint);
+            m_canvas->restore();
+        }
+    }
 }
 
 void container_skia::draw_solid_fill(litehtml::uint_ptr hdc,
@@ -447,19 +468,40 @@ void container_skia::draw_radial_gradient(
 void container_skia::draw_conic_gradient(
     litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
     const litehtml::background_layer::conic_gradient &gradient) {
-    if (!m_canvas || !m_tagging) return;
+    if (!m_canvas) return;
 
-    conic_gradient_info info;
-    info.layer = layer;
-    info.gradient = gradient;
-    m_usedConicGradients.push_back(info);
+    if (m_tagging) {
+        conic_gradient_info info;
+        info.layer = layer;
+        info.gradient = gradient;
+        m_usedConicGradients.push_back(info);
 
-    int index = (int)m_usedConicGradients.size();
+        int index = (int)m_usedConicGradients.size();
 
-    SkPaint paint;
-    // Conic tag: R=0, G=0, B=index, A=253 (#0000xx with opacity)
-    paint.setColor(SkColorSetARGB(253, 0, 0, (index & 0xFF)));
-    m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), paint);
+        SkPaint paint;
+        // Conic tag: R=0, G=0, B=index, A=253 (#0000xx with opacity)
+        paint.setColor(SkColorSetARGB(253, 0, 0, (index & 0xFF)));
+        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), paint);
+    } else {
+        SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
+
+        std::vector<SkColor4f> colors;
+        std::vector<float> pos;
+        for (const auto &stop : gradient.color_points) {
+            colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
+                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+            pos.push_back(stop.offset);
+        }
+
+        SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(pos), SkTileMode::kClamp),
+                          SkGradient::Interpolation());
+        auto shader = SkShaders::SweepGradient(center, gradient.angle, gradient.angle + 360.0f, skGrad);
+
+        SkPaint paint;
+        paint.setShader(shader);
+        paint.setAntiAlias(true);
+        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), paint);
+    }
 }
 
 void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::borders &borders,
@@ -502,8 +544,6 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                           borders.radius.bottom_right_x > 0 || borders.radius.bottom_right_y > 0 ||
                           borders.radius.bottom_left_x > 0 || borders.radius.bottom_left_y > 0;
 
-        // Optimization: if all non-zero borders have the same color, we can draw them as a single path.
-        // This avoids gaps at the corners caused by segment approximations not matching the clip path.
         litehtml::web_color common_color = {0, 0, 0, 0};
         bool multi_color = false;
         int active_borders = 0;
@@ -532,7 +572,6 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
         );
 
         if (!multi_color) {
-            // Same color for all borders: draw as a single path (Outer RRect - Inner RRect)
             SkPaint paint;
             paint.setColor(SkColorSetARGB(common_color.alpha, common_color.red, common_color.green, common_color.blue));
             paint.setAntiAlias(true);
@@ -560,7 +599,6 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                 m_canvas->drawRRect(outer, paint);
             }
         } else {
-            // Multi-color or fallback: draw as segments
             if (has_radius) {
                 m_canvas->clipRRect(outer, true);
             }
@@ -651,7 +689,6 @@ void container_skia::transform_text(litehtml::string &text, litehtml::text_trans
 void container_skia::import_css(litehtml::string &text, const litehtml::string &url,
                                 litehtml::string &baseurl) {
     if (!url.empty()) {
-        m_requiredCss.push_back(url); // Legacy
         if (m_resourceManager) {
             m_resourceManager->request(url, url, ResourceType::Css);
         }
@@ -661,7 +698,6 @@ void container_skia::import_css(litehtml::string &text, const litehtml::string &
 }
 
 void container_skia::scan_font_faces(const std::string &css) {
-    // Robust regex for @font-face and its properties
     std::regex fontFaceRegex("@font-face\\s*\\{([^}]+)\\}", std::regex::icase);
     std::regex familyRegex("font-family:\\s*([^;]+);?", std::regex::icase);
     std::regex urlRegex("url\\s*\\(\\s*['\"]?([^'\")]+)['\"]?\\s*\\)", std::regex::icase);
@@ -693,18 +729,15 @@ std::string container_skia::get_font_url(const std::string &family, int weight,
     std::stringstream ss(family);
     std::string item;
     while (std::getline(ss, item, ',')) {
-        // Trim leading/trailing whitespace and quotes from the family name part
         std::string trimmed = trim(item);
         std::string cleanFamily = clean_font_name(trimmed.c_str());
 
-        // Exact match
         font_request req = {cleanFamily, weight, slant};
         auto it = m_fontFaces.find(req);
         if (it != m_fontFaces.end()) {
             return it->second;
         }
 
-        // Nearest weight match for the same family/slant
         int minDiff = 1000;
         std::string bestUrl = "";
         for (const auto &pair : m_fontFaces) {
@@ -728,9 +761,6 @@ void container_skia::set_clip(const litehtml::position &pos,
                               const litehtml::border_radiuses &bdr_radius) {
     if (m_canvas) {
         m_canvas->save();
-        // Force path-based clipping to ensure accuracy in SVG output.
-        // SkSVGCanvas approximates RRect with a rect+rx/ry, which fails for non-uniform corners.
-        // Adding a tiny redundant segment to force it to remain a path.
         SkPath path = SkPathBuilder()
             .addRRect(make_rrect(pos, bdr_radius))
             .moveTo(0, 0)

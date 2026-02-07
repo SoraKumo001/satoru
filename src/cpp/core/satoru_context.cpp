@@ -82,18 +82,19 @@ void SatoruContext::clearFonts() {
 }
 
 sk_sp<SkTypeface> SatoruContext::get_typeface(const std::string &family, int weight,
-                                              SkFontStyle::Slant slant) {
-    auto tfs = get_typefaces(family, weight, slant);
+                                              SkFontStyle::Slant slant, bool &out_fake_bold) {
+    auto tfs = get_typefaces(family, weight, slant, out_fake_bold);
     return tfs.empty() ? nullptr : tfs[0];
 }
 
 std::vector<sk_sp<SkTypeface>> SatoruContext::get_typefaces(const std::string &family, int weight,
-                                                            SkFontStyle::Slant slant) {
+                                                            SkFontStyle::Slant slant, bool &out_fake_bold) {
     std::vector<sk_sp<SkTypeface>> result;
     std::stringstream ss(family);
     std::string item;
+    out_fake_bold = false;
+
     while (std::getline(ss, item, ',')) {
-        // Trim leading/trailing whitespace and quotes from the family name
         size_t first = item.find_first_not_of(" \t\r\n'\"");
         if (first == std::string::npos) continue;
         size_t last = item.find_last_not_of(" \t\r\n'\"");
@@ -107,13 +108,22 @@ std::vector<sk_sp<SkTypeface>> SatoruContext::get_typefaces(const std::string &f
 
             for (const auto &tf : list) {
                 SkFontStyle style = tf->fontStyle();
-                int diff = std::abs(style.weight() - weight) + (style.slant() == slant ? 0 : 50);
+                // CSS Matching heuristic:
+                // 1. Slant match is prioritized
+                // 2. Weight match follows
+                int diff = std::abs(style.weight() - weight) + (style.slant() == slant ? 0 : 500);
                 if (diff < minDiff) {
                     minDiff = diff;
                     bestMatch = tf;
                 }
             }
-            if (bestMatch) result.push_back(bestMatch);
+            if (bestMatch) {
+                // If requested weight is >= 600 but best match is < 500, trigger fake bold
+                if (weight >= 600 && bestMatch->fontStyle().weight() < 500) {
+                    out_fake_bold = true;
+                }
+                result.push_back(bestMatch);
+            }
         }
     }
     return result;

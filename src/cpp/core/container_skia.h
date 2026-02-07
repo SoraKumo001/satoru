@@ -22,6 +22,7 @@ struct font_info {
     litehtml::font_description desc;
     int fm_ascent;
     int fm_height;
+    bool fake_bold;
 };
 
 struct font_request {

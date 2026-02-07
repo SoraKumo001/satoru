@@ -444,8 +444,12 @@ void container_skia::draw_radial_gradient(
     litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
     const litehtml::background_layer::radial_gradient &gradient) {
     if (!m_canvas) return;
+    
+    // Support elliptical radial gradients using coordinate scaling
     SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
-    SkScalar radius = (float)std::max(gradient.radius.x, gradient.radius.y);
+    float rx = (float)gradient.radius.x;
+    float ry = (float)gradient.radius.y;
+    if (rx <= 0 || ry <= 0) return;
 
     std::vector<SkColor4f> colors;
     std::vector<float> pos;
@@ -457,7 +461,16 @@ void container_skia::draw_radial_gradient(
 
     SkGradient skGrad(SkGradient::Colors(SkSpan(colors), SkSpan(pos), SkTileMode::kClamp),
                       SkGradient::Interpolation());
-    auto shader = SkShaders::RadialGradient(center, radius, skGrad);
+    
+    // Create a circular gradient with the larger radius, then scale it.
+    // Use rx as the base radius and scale Y by ry/rx
+    float base_radius = rx;
+    float scale_y = ry / rx;
+
+    SkMatrix matrix;
+    matrix.setScale(1.0f, scale_y, center.x(), center.y());
+
+    auto shader = SkShaders::RadialGradient(center, base_radius, skGrad, &matrix);
 
     SkPaint paint;
     paint.setShader(shader);

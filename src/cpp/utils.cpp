@@ -1,11 +1,12 @@
 #include "utils.h"
+
 #include <algorithm>
 
-std::string clean_font_name(const char* name) {
+std::string clean_font_name(const char *name) {
     if (!name) return "";
     std::string s = name;
     std::string result;
-    for(char c : s) {
+    for (char c : s) {
         if (c != '\'' && c != '"' && c != ' ' && c != '\\') {
             result += c;
         }
@@ -14,9 +15,9 @@ std::string clean_font_name(const char* name) {
     return result;
 }
 
-std::string base64_encode(const uint8_t* data, size_t len) {
+std::string base64_encode(const uint8_t *data, size_t len) {
     std::string out;
-    const char* chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const char *chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     int val = 0, valb = -6;
     for (size_t i = 0; i < len; i++) {
         val = (val << 8) + data[i];
@@ -31,10 +32,10 @@ std::string base64_encode(const uint8_t* data, size_t len) {
     return out;
 }
 
-std::vector<uint8_t> base64_decode(const std::string& in) {
+std::vector<uint8_t> base64_decode(const std::string &in) {
     std::vector<uint8_t> out;
     std::vector<int> T(256, -1);
-    const char* chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const char *chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     for (int i = 0; i < 64; i++) T[chars[i]] = i;
 
     int val = 0, valb = -8;

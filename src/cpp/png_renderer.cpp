@@ -1,14 +1,17 @@
 #include "png_renderer.h"
+
+#include <litehtml/master_css.h>
+
 #include "container_skia.h"
+#include "include/core/SkBitmap.h"
+#include "include/core/SkCanvas.h"
+#include "include/core/SkStream.h"
+#include "include/encode/SkPngEncoder.h"
 #include "litehtml.h"
 #include "utils.h"
-#include <litehtml/master_css.h>
-#include "include/core/SkCanvas.h"
-#include "include/core/SkBitmap.h"
-#include "include/encode/SkPngEncoder.h"
-#include "include/core/SkStream.h"
 
-sk_sp<SkData> renderHtmlToPngBinary(const char* html, int width, int height, SatoruContext& context) {
+sk_sp<SkData> renderHtmlToPngBinary(const char *html, int width, int height,
+                                    SatoruContext &context) {
     int initial_height = (height > 0) ? height : 1000;
     container_skia container(width, initial_height, nullptr, context, false);
 
@@ -17,7 +20,8 @@ sk_sp<SkData> renderHtmlToPngBinary(const char* html, int width, int height, Sat
     css += "* { box-sizing: border-box; }\n";
     css += "button { text-align: center; }\n";
 
-    litehtml::document::ptr doc = litehtml::document::createFromString(html, &container, css.c_str());
+    litehtml::document::ptr doc =
+        litehtml::document::createFromString(html, &container, css.c_str());
     if (!doc) return nullptr;
 
     doc->render(width);
@@ -29,7 +33,7 @@ sk_sp<SkData> renderHtmlToPngBinary(const char* html, int width, int height, Sat
 
     SkBitmap bitmap;
     bitmap.allocN32Pixels(width, content_height);
-    bitmap.eraseColor(SkColorSetARGB(0, 0, 0, 0)); // Transparent background
+    bitmap.eraseColor(SkColorSetARGB(0, 0, 0, 0));  // Transparent background
 
     SkCanvas canvas(bitmap);
     container.set_canvas(&canvas);
@@ -45,10 +49,11 @@ sk_sp<SkData> renderHtmlToPngBinary(const char* html, int width, int height, Sat
     return nullptr;
 }
 
-std::string renderHtmlToPng(const char* html, int width, int height, SatoruContext& context) {
+std::string renderHtmlToPng(const char *html, int width, int height, SatoruContext &context) {
     sk_sp<SkData> data = renderHtmlToPngBinary(html, width, height, context);
     if (data) {
-        return "data:image/png;base64," + base64_encode((const uint8_t*)data->data(), data->size());
+        return "data:image/png;base64," +
+               base64_encode((const uint8_t *)data->data(), data->size());
     }
     return "";
 }

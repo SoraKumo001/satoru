@@ -124,7 +124,7 @@ async function init() {
       const resourceResolver = async (r: RequiredResource) => {
         console.log(`[Satoru] Resolving ${r.type}: ${r.url}`);
         try {
-          const url = r.url.startsWith("http") ? r.url : `../../assets/${r.url}`;
+          const url = (r.url.startsWith("http") || r.url.startsWith("data:")) ? r.url : `../../assets/${r.url}`;
           const isFont = url.match(/\.(woff2?|ttf|otf)$/i);
           
           const resp = await fetch(url);

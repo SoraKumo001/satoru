@@ -1,4 +1,6 @@
 #include "satoru_context.h"
+#include "include/codec/SkCodec.h"
+#include "include/codec/SkPngDecoder.h"
 #include <algorithm>
 #include <iostream>
 #include <sstream>
@@ -7,11 +9,14 @@
 #include "include/core/SkImage.h"
 #include "include/core/SkFontMgr.h"
 #include "include/core/SkTypeface.h"
+#include "include/core/SkSpan.h" // Include SkSpan header
+
 
 // External declaration for the custom empty font manager provided by Skia ports
 extern sk_sp<SkFontMgr> SkFontMgr_New_Custom_Empty();
 
 void SatoruContext::init() {
+    SkCodecs::Register(SkPngDecoder::Decoder());
     fontMgr = SkFontMgr_New_Custom_Empty();
     defaultTypeface = nullptr; 
 }
@@ -38,14 +43,17 @@ void SatoruContext::loadImage(const char *name, const char *data_url, int width,
 
 void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, size_t size) {
     auto data_ptr = SkData::MakeWithCopy(data, size);
-    auto image = SkImages::DeferredFromEncodedData(data_ptr);
-    if (image) {
-        image_info info;
-        info.data_url = "";
-        info.width = image->width();
-        info.height = image->height();
-        info.skImage = image;
-        imageCache[name] = info;
+    auto codec = SkCodec::MakeFromData(data_ptr, SkSpan<const SkCodecs::Decoder>({SkPngDecoder::Decoder()}));
+    if (codec) {
+        auto image = SkCodecs::DeferredImage(std::move(codec));
+        if (image) {
+            image_info info;
+            info.data_url = "";
+            info.width = image->width();
+            info.height = image->height();
+            info.skImage = image;
+            imageCache[name] = info;
+        }
     }
 }
 

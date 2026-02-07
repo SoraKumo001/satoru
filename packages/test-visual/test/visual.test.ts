@@ -46,9 +46,8 @@ describe("Visual Regression Tests", () => {
       await downloadFont(font.url, font.path);
     }
 
-    satoru = new Satoru();
     const wasmPath = path.resolve(ROOT_DIR, "packages/satoru/dist/satoru.wasm");
-    await satoru.init({
+    satoru = await Satoru.init(undefined, {
       locateFile: (url: string) => url.endsWith(".wasm") ? wasmPath : url,
     });
 
@@ -77,7 +76,7 @@ describe("Visual Regression Tests", () => {
       while ((match = bgRegex.exec(html)) !== null) dataUrls.add(match[1]);
 
       for (const url of dataUrls) {
-        satoru.loadImage(url, url);
+        satoru.loadImage(url, url, 0, 0);
       }
 
       // Render PNG

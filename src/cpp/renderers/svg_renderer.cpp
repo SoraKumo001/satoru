@@ -31,6 +31,31 @@ static std::string bitmapToDataUrl(const SkBitmap &bitmap) {
     return "data:image/png;base64," + base64_encode((const uint8_t *)data->data(), data->size());
 }
 
+static bool has_radius(const litehtml::border_radiuses &r) {
+    return r.top_left_x > 0 || r.top_left_y > 0 || r.top_right_x > 0 || r.top_right_y > 0 ||
+           r.bottom_right_x > 0 || r.bottom_right_y > 0 || r.bottom_left_x > 0 || r.bottom_left_y > 0;
+}
+
+static std::string path_from_rrect(const litehtml::position &pos, const litehtml::border_radiuses &r) {
+    std::stringstream ss;
+    float x = (float)pos.x, y = (float)pos.y, w = (float)pos.width, h = (float)pos.height;
+    ss << "M" << x + r.top_left_x << "," << y
+       << " L" << x + w - r.top_right_x << "," << y;
+    if (r.top_right_x > 0 || r.top_right_y > 0)
+        ss << " A " << r.top_right_x << " " << r.top_right_y << " 0 0 1 " << x + w << " " << y + r.top_right_y;
+    ss << " L" << x + w << "," << y + h - r.bottom_right_y;
+    if (r.bottom_right_x > 0 || r.bottom_right_y > 0)
+        ss << " A " << r.bottom_right_x << " " << r.bottom_right_y << " 0 0 1 " << x + w - r.bottom_right_x << " " << y + h;
+    ss << " L" << x + r.bottom_left_x << "," << y + h;
+    if (r.bottom_left_x > 0 || r.bottom_left_y > 0)
+        ss << " A " << r.bottom_left_x << " " << r.bottom_left_y << " 0 0 1 " << x << " " << y + h - r.bottom_left_y;
+    ss << " L" << x << "," << y + r.top_left_y;
+    if (r.top_left_x > 0 || r.top_left_y > 0)
+        ss << " A " << r.top_left_x << " " << r.top_left_y << " 0 0 1 " << x + r.top_left_x << " " << y;
+    ss << " Z";
+    return ss.str();
+}
+
 void processTags(std::string& svg, SatoruContext& context, const container_skia& container) {
     const auto& shadows = container.get_used_shadows();
     for (size_t i = 0; i < shadows.size(); ++i) {
@@ -69,8 +94,11 @@ void processTags(std::string& svg, SatoruContext& context, const container_skia&
             std::stringstream ss;
             ss << "<image x=\"" << draw.layer.origin_box.x << "\" y=\"" << draw.layer.origin_box.y
                << "\" width=\"" << draw.layer.origin_box.width << "\" height=\""
-               << draw.layer.origin_box.height << "\" href=\"" << bitmapToDataUrl(bitmap) << "\" />";
-
+               << draw.layer.origin_box.height << "\" href=\"" << bitmapToDataUrl(bitmap) << "\"";
+            if (has_radius(draw.layer.border_radius)) {
+                ss << " clip-path=\"url(#clip-img-" << index << ")\"";
+            }
+            ss << " />";
             size_t pos = svg.find(hex);
             if (pos == std::string::npos) {
                 char hex_low[32]; snprintf(hex_low, sizeof(hex_low), "#0100%02x", index);
@@ -155,6 +183,16 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
         }
         
         defs << "</filter>";
+    }
+
+    const auto &images = render_container.get_used_image_draws();
+    for (size_t i = 0; i < images.size(); ++i) {
+        const auto &draw = images[i];
+        if (has_radius(draw.layer.border_radius)) {
+            defs << "<clipPath id=\"clip-img-" << (i + 1) << "\">";
+            defs << "<path d=\"" << path_from_rrect(draw.layer.border_box, draw.layer.border_radius) << "\" />";
+            defs << "</clipPath>";
+        }
     }
 
     std::string defsStr = defs.str();

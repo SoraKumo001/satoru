@@ -195,6 +195,26 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
         }
         injected_defs += "</filter>";
     }
+    for (int idx : used_conic_indices) {
+        const auto &cgi = container.get_conic_gradient_info(idx);
+        injected_defs += "<clipPath id=\"conic_clip_" + std::to_string(idx) + "\">";
+        const auto &br = cgi.layer.border_radius;
+        if (br.top_left_x > 0 || br.top_right_x > 0 || br.bottom_left_x > 0 || br.bottom_right_x > 0) {
+            injected_defs += "<path d=\"M" + f2s((float)cgi.layer.border_box.x + (float)br.top_left_x) + " " + f2s((float)cgi.layer.border_box.y) + 
+                         " h" + f2s((float)cgi.layer.border_box.width - (float)br.top_left_x - (float)br.top_right_x) + 
+                         " a" + f2s((float)br.top_right_x) + " " + f2s((float)br.top_right_y) + " 0 0 1 " + f2s((float)br.top_right_x) + " " + f2s((float)br.top_right_y) + 
+                         " v" + f2s((float)cgi.layer.border_box.height - (float)br.top_right_y - (float)br.bottom_right_y) + 
+                         " a" + f2s((float)br.bottom_right_x) + " " + f2s((float)br.bottom_right_y) + " 0 0 1 " + f2s((float)-br.bottom_right_x) + " " + f2s((float)br.bottom_right_y) + 
+                         " h" + f2s((float)-(cgi.layer.border_box.width - (float)br.bottom_left_x - (float)br.bottom_right_x)) + 
+                         " a" + f2s((float)br.bottom_left_x) + " " + f2s((float)br.bottom_left_y) + " 0 0 1 " + f2s((float)-br.bottom_left_x) + " " + f2s((float)-br.bottom_left_y) + 
+                         " v" + f2s((float)-(cgi.layer.border_box.height - (float)br.top_left_y - (float)br.bottom_left_y)) + 
+                         " a" + f2s((float)br.top_left_x) + " " + f2s((float)br.top_left_y) + " 0 0 1 " + f2s((float)br.top_left_x) + " " + f2s((float)-br.top_left_y) + " Z\"/>";
+        } else {
+            injected_defs += "<rect x=\"" + f2s((float)cgi.layer.border_box.x) + "\" y=\"" + f2s((float)cgi.layer.border_box.y) + 
+                         "\" width=\"" + f2s((float)cgi.layer.border_box.width) + "\" height=\"" + f2s((float)cgi.layer.border_box.height) + "\"/>";
+        }
+        injected_defs += "</clipPath>";
+    }
     for (int idx : used_image_indices) {
         const auto &idi = container.get_image_draw_info(idx);
         injected_defs += "<clipPath id=\"image_clip_" + std::to_string(idx) + "\">";
@@ -238,12 +258,14 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     // Step 4: Final Tag Replacement
     size_t last_pos = start_render_pos;
     while (true) {
-        size_t p_pos = svg_str.find("<path", last_pos);
-        size_t r_pos = svg_str.find("<rect", last_pos);
+        const char *tags[] = {"<path", "<rect", "<ellipse", "<circle"};
         size_t s_pos = std::string::npos;
-        if (p_pos != std::string::npos && r_pos != std::string::npos) s_pos = std::min(p_pos, r_pos);
-        else if (p_pos != std::string::npos) s_pos = p_pos;
-        else if (r_pos != std::string::npos) s_pos = r_pos;
+        for (const char *tag : tags) {
+            size_t pos = svg_str.find(tag, last_pos);
+            if (pos != std::string::npos) {
+                if (s_pos == std::string::npos || pos < s_pos) s_pos = pos;
+            }
+        }
 
         if (s_pos == std::string::npos) break;
         

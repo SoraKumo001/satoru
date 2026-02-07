@@ -9,10 +9,12 @@
     "build": "pnpm --filter satoru build && pnpm --filter test-web build && pnpm --filter test-cloudflare build",
     "test": "pnpm --filter satoru test",
     "wasm:configure": "tsx ./scripts/build-wasm.ts configure",
-    "wasm:build": "tsx ./scripts/build-wasm.ts build"
+    "wasm:build": "tsx ./scripts/build-wasm.ts build",
+    "format": "clang-format -i src/**/*.cpp src/**/*.h"
   },
   "devDependencies": {
     "@types/node": "25.2.0",
+    "clang-format": "1.8.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },

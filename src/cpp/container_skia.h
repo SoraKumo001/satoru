@@ -18,6 +18,8 @@
 struct font_info {
     SkFont* font;
     litehtml::font_description desc;
+    int fm_ascent;
+    int fm_height;
 };
 
 struct font_request {
@@ -75,6 +77,9 @@ class container_skia : public litehtml::document_container {
     std::set<font_request> m_missingFonts;
     std::map<font_request, std::string> m_fontFaces;
     bool m_tagging;
+
+    litehtml::position m_last_clip_pos;
+    litehtml::border_radiuses m_last_clip_radius;
 
 public:
     container_skia(int w, int h, SkCanvas* canvas, SatoruContext& context, bool tagging = false);

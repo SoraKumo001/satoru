@@ -4,6 +4,7 @@
 #include <cstring>
 #include <sstream>
 #include <string>
+#include <regex>
 
 #include "core/container_skia.h"
 #include "core/satoru_context.h"
@@ -60,6 +61,20 @@ const char *get_required_fonts(const char *html, int width) {
     if (g_discovery_container) delete g_discovery_container;
     g_discovery_container = new container_skia(width, 1000, nullptr, g_context, false);
 
+    // Pre-scan HTML for <style> blocks to find @font-face rules
+    // litehtml might not trigger import_css for internal styles
+    if (html) {
+        std::string htmlStr(html);
+        std::regex styleRegex("<style[^>]*>([^<]*)</style>", std::regex::icase);
+        auto words_begin = std::sregex_iterator(htmlStr.begin(), htmlStr.end(), styleRegex);
+        auto words_end = std::sregex_iterator();
+
+        for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+            std::string cssContent = (*i)[1].str();
+            g_discovery_container->scan_font_faces(cssContent);
+        }
+    }
+
     std::string css = litehtml::master_css;
     auto doc = litehtml::document::createFromString(html, g_discovery_container, css.c_str());
     if (doc) {
@@ -69,13 +84,13 @@ const char *get_required_fonts(const char *html, int width) {
     std::string result = "";
     // Pass 1: External CSS found in HTML
     for (const auto &url : g_discovery_container->get_required_css()) {
-        if (!result.empty()) result += ",";
+        if (!result.empty()) result += ";;";
         result += "CSS:" + url;
     }
 
     // Pass 2: Fonts required during layout
     for (const auto &font : g_discovery_container->get_missing_fonts()) {
-        if (!result.empty()) result += ",";
+        if (!result.empty()) result += ";;";
         std::string url = g_discovery_container->get_font_url(font.family, font.weight, font.slant);
         result += "FONT:" + font.family + "|" + url;
     }

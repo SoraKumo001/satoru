@@ -24,9 +24,12 @@ void SatoruContext::loadFont(const char *name, const uint8_t *data, int size) {
     sk_sp<SkData> skData = SkData::MakeWithCopy(data, size);
     sk_sp<SkTypeface> typeface = fontMgr->makeFromData(skData);
     if (typeface) {
+        std::cout << "Successfully loaded font: " << name << " (cleaned: " << cleanedName << ")" << std::endl;
         typefaceCache[cleanedName].push_back(typeface);
         if (!defaultTypeface) defaultTypeface = typeface;
         fallbackTypefaces.push_back(typeface);
+    } else {
+        std::cerr << "Failed to load font: " << name << " (size: " << size << ")" << std::endl;
     }
 }
 

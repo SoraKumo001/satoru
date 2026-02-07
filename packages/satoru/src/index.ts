@@ -150,7 +150,11 @@ export class Satoru {
                    this.scanCss(fontFace);
                    processedHtml = `<style>${fontFace}</style>\n` + processedHtml;
                 }
-                this.loadFont(fontName, data);
+                
+                const names = fontName.split(",");
+                for (const name of names) {
+                    this.loadFont(name.trim(), data);
+                }
               }
               
               const escapedUrl = r.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -216,7 +220,7 @@ export class Satoru {
 
     if (!resultStr) return [];
 
-    return resultStr.split(",").map((part) => {
+    return resultStr.split(";;").map((part) => {
       if (part.startsWith("FONT:")) {
         const [name, url] = part.substring(5).split("|");
         return { type: "font", name, url: url || "" };

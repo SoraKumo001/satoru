@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <regex>
+#include <sstream>
 
 #include "include/core/SkFontMetrics.h"
 #include "include/core/SkPaint.h"
@@ -14,6 +15,7 @@
 #include "include/core/SkBlurTypes.h"
 #include "include/core/SkClipOp.h"
 #include "include/effects/SkGradient.h"
+#include "../utils/utils.h"
 
 namespace {
 SkRRect make_rrect(const litehtml::position &pos, const litehtml::border_radiuses &radius) {
@@ -384,16 +386,18 @@ void container_skia::import_css(litehtml::string &text, const litehtml::string &
 }
 
 void container_skia::scan_font_faces(const std::string &css) {
+    std::cout << "Scanning CSS for fonts..." << std::endl;
     // Robust regex for @font-face and its properties
-    std::regex fontFaceRegex("@font-face\\\\s*\\\\{([^}]+)\\\\}", std::regex::icase);
-    std::regex familyRegex("font-family:\\\\s*([^;]+);?", std::regex::icase);
-    std::regex urlRegex("url\\\\s*\\\\(\\\\s*['\\\"]?([^'\\\"\\\\)]+)['\\\"]?\\\\s*\\\\)", std::regex::icase);
+    std::regex fontFaceRegex("@font-face\\s*\\{([^}]+)\\}", std::regex::icase);
+    std::regex familyRegex("font-family:\\s*([^;]+);?", std::regex::icase);
+    std::regex urlRegex("url\\s*\\(\\s*['\"]?([^'\")]+)['\"]?\\s*\\)", std::regex::icase);
 
     auto words_begin = std::sregex_iterator(css.begin(), css.end(), fontFaceRegex);
     auto words_end = std::sregex_iterator();
 
     for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
         std::string body = (*i)[1].str();
+        std::cout << "Found @font-face block" << std::endl;
         std::smatch m;
 
         font_request req;
@@ -401,36 +405,60 @@ void container_skia::scan_font_faces(const std::string &css) {
         req.slant = SkFontStyle::kUpright_Slant;
 
         if (std::regex_search(body, m, familyRegex)) {
-            req.family = trim(m[1].str());
+            // Normalize family name to ensure case-insensitive matching
+            req.family = clean_font_name(m[1].str().c_str());
+            std::cout << "  Family (clean): " << req.family << std::endl;
         }
 
         if (!req.family.empty() && std::regex_search(body, m, urlRegex)) {
             std::string url = trim(m[1].str());
             m_fontFaces[req] = url;
+            std::cout << "  URL: " << url << std::endl;
+        } else {
+            std::cout << "  No URL found for family: " << req.family << std::endl;
         }
     }
 }
 
 std::string container_skia::get_font_url(const std::string &family, int weight,
                                          SkFontStyle::Slant slant) const {
-    // Exact match
-    font_request req = {family, weight, slant};
-    auto it = m_fontFaces.find(req);
-    if (it != m_fontFaces.end()) return it->second;
+    std::cout << "get_font_url for: " << family << std::endl;
+    
+    std::stringstream ss(family);
+    std::string item;
+    while (std::getline(ss, item, ',')) {
+        // Trim leading/trailing whitespace and quotes from the family name part
+        std::string trimmed = trim(item);
+        std::string cleanFamily = clean_font_name(trimmed.c_str());
+        
+        // Exact match
+        font_request req = {cleanFamily, weight, slant};
+        auto it = m_fontFaces.find(req);
+        if (it != m_fontFaces.end()) {
+            std::cout << "  Match found for sub-family: " << cleanFamily << " -> " << it->second << std::endl;
+            return it->second;
+        }
 
-    // Nearest weight match for the same family/slant
-    std::string bestUrl = "";
-    int minDiff = 1000;
-    for (const auto &pair : m_fontFaces) {
-        if (pair.first.family == family && pair.first.slant == slant) {
-            int diff = std::abs(pair.first.weight - weight);
-            if (diff < minDiff) {
-                minDiff = diff;
-                bestUrl = pair.second;
+        // Nearest weight match for the same family/slant
+        int minDiff = 1000;
+        std::string bestUrl = "";
+        for (const auto &pair : m_fontFaces) {
+            if (pair.first.family == cleanFamily && pair.first.slant == slant) {
+                int diff = std::abs(pair.first.weight - weight);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    bestUrl = pair.second;
+                }
             }
         }
+        if (!bestUrl.empty()) {
+             std::cout << "  Approx match found for sub-family: " << cleanFamily << " -> " << bestUrl << std::endl;
+             return bestUrl;
+        }
     }
-    return bestUrl;
+    
+    std::cout << "  No match found" << std::endl;
+    return "";
 }
 
 void container_skia::set_clip(const litehtml::position &pos,

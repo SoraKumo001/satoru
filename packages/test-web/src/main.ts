@@ -138,49 +138,27 @@ async function init() {
         }
       };
 
-      const preloadImages = async (html: string) => {
-        satoru.clearImages();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-        const images = Array.from(doc.querySelectorAll("img"));
-
-        const bgMatches = html.matchAll(
-          /background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g,
-        );
-        const dataUrls = new Set<string>();
-        for (const img of images) {
-          if (img.src.startsWith("data:")) dataUrls.add(img.src);
-        }
-        for (const match of bgMatches) {
-          dataUrls.add(match[1]);
-        }
-
-        await Promise.all(
-          Array.from(dataUrls).map(async (url) => {
-            return new Promise<void>((resolve) => {
-              const img = new Image();
-              img.onload = () => {
-                satoru.loadImage(url, url, img.width, img.height);
-                resolve();
-              };
-              img.onerror = () => resolve();
-              img.src = url;
-            });
-          }),
-        );
-      };
-
       /**
-       * Resource resolver for dynamic font and CSS loading.
+       * Resource resolver for dynamic loading of fonts, CSS, and images.
+       * Following the new 2-pass layout specification.
        */
       const resourceResolver = async (r: RequiredResource) => {
+        console.log(`[Satoru] Resolving ${r.type}: ${r.url}`);
         try {
           const resp = await fetch(r.url);
           if (!resp.ok) return null;
-          if (r.type === "font") return new Uint8Array(await resp.arrayBuffer());
-          return await resp.text();
+
+          // Heuristic: If it's a font file, always return binary data
+          const isFont = /\.(woff2?|ttf|otf|eot)(\?.*)?$/i.test(r.url);
+
+          if (r.type === "css" && !isFont) {
+            return await resp.text();
+          }
+
+          // Images and Fonts are returned as Uint8Array
+          return new Uint8Array(await resp.arrayBuffer());
         } catch (e) {
-          console.error(`Failed to load resource: ${r.url}`, e);
+          console.error(`[Satoru] Failed to load resource: ${r.url}`, e);
           return null;
         }
       };
@@ -197,10 +175,8 @@ async function init() {
         convertBtn.style.opacity = "0.7";
 
         try {
-          // Preload images (Existing data URL logic)
-          await preloadImages(htmlStr);
-          
-          // Use high-level render with resource resolver
+          // New specification: render() handles multi-pass resource resolution automatically
+          // using the provided resolveResource callback. No manual preloading needed.
           let svgResult = (await satoru.render(htmlStr, width, {
             format: "svg",
             resolveResource: resourceResolver,
@@ -223,60 +199,42 @@ async function init() {
         }
       };
 
-      const ROBOTO_400 =
-        "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2";
-      const ROBOTO_700 =
-        "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2";
-      const NOTO_400 =
-        "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2";
-      const NOTO_700 =
-        "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-700-normal.woff2";
-
-      const loadFont = async (name: string, url: string) => {
-        const resp = await fetch(url);
-        const buffer = await resp.arrayBuffer();
-        satoru.loadFont(name, new Uint8Array(buffer));
-      };
-
-      const loadAllFonts = async () => {
-        await Promise.all([
-          loadFont("Roboto", ROBOTO_400),
-          loadFont("Roboto", ROBOTO_700),
-          loadFont("Noto Sans JP", NOTO_400),
-          loadFont("Noto Sans JP", NOTO_700),
-        ]);
-      };
-
       (async () => {
         try {
           if (loadFontBtn) {
-            loadFontBtn.setAttribute("disabled", "true");
-            loadFontBtn.innerText = "Loading Fonts...";
+            loadFontBtn.style.display = "none";
           }
-          await loadAllFonts();
-          if (loadFontBtn) loadFontBtn.innerText = "Fonts Loaded \u2713";
           performConversion();
         } catch (e) {
-          console.error("Failed to load default fonts:", e);
-          if (loadFontBtn) {
-            loadFontBtn.innerText = "Font Load Failed";
-            loadFontBtn.removeAttribute("disabled");
-          }
+          console.error("Initial render failed:", e);
         }
       })();
 
       htmlInput.value = `
-<div style="padding: 40px; background-color: #e3f2fd; border: 5px solid #2196f3; border-radius: 24px;">
-  <h1 style="color: #0d47a1; font-family: 'Roboto'; font-size: 48px; text-align: center; margin-bottom: 10px; font-weight: 700;">Outline Fonts in Wasm</h1>
-  <p style="font-size: 22px; color: #1565c0; line-height: 1.5; font-family: 'Roboto'; font-weight: 400;">
-    This SVG is rendered using <b>Skia's SVG Canvas</b>. 
-    The text is precisely measured and positioned using <b>FreeType</b> metrics.
+<!-- Remote fonts and images will be resolved automatically in 2-pass mode -->
+<link href="https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-700-normal.woff2" rel="stylesheet">
+
+<div style="padding: 40px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+  <h1 style="color: #2196F3; font-family: 'Roboto'; font-size: 42px; text-align: center; margin-bottom: 20px; font-weight: 700;">
+    Satoru: Automated Resource Loading
+  </h1>
+  
+  <p style="font-size: 20px; color: #495057; line-height: 1.6; font-family: 'Roboto'; font-weight: 400;">
+    The engine now supports <b>automated 2-pass rendering</b>. 
+    It identifies missing fonts, images, and external CSS, then requests them from the host.
   </p>
-  <p style="font-size: 20px; color: #0d47a1; font-family: 'Noto Sans JP'; margin-top: 20px; font-weight: 700;">
-    日本語の太字（Bold）も表示可能です。
-  </p>
-  <div style="text-align: center; margin-top: 20px;">
-    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAALUlEQVRYR+3QQREAAAzCQJ9/aaYpAtpAn7Z6AgICAgICAgICAgICAgICAgICAj8WpAEBArZunQAAAABJRU5ErkJggg==" style="width: 64px; height: 64px; border: 2px solid white; border-radius: 8px;" />
+  
+  <div style="background: white; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 6px solid #2196F3;">
+    <p style="font-size: 18px; color: #212529; font-family: 'Noto Sans JP'; font-weight: 700; margin: 0;">
+      日本語フォント（Noto Sans JP）も、HTML内の link タグから自動的に検出・ロードされます。
+    </p>
+  </div>
+
+  <div style="text-align: center; margin-top: 30px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAALUlEQVRYR+3QQREAAAzCQJ9/aaYpAtpAn7Z6AgICAgICAgICAgICAgICAgICAj8WpAEBArZunQAAAABJRU5ErkJggg==" 
+         style="width: 64px; height: 64px; border: 2px solid #eee; border-radius: 50%; padding: 10px; background: white;" />
+    <span style="font-size: 12px; color: #adb5bd; font-family: sans-serif;">Embedded Data URL Image</span>
   </div>
 </div>`;
       updatePreview();
@@ -293,19 +251,6 @@ async function init() {
           performConversion();
         } catch (e) {
           console.error("Error loading asset:", e);
-        }
-      });
-
-      loadFontBtn?.addEventListener("click", async () => {
-        loadFontBtn.innerText = "Loading...";
-        loadFontBtn.setAttribute("disabled", "true");
-        try {
-          await loadAllFonts();
-          loadFontBtn.innerText = "Fonts Loaded \u2713";
-          performConversion();
-        } catch (e) {
-          loadFontBtn.innerText = "Load Failed";
-          loadFontBtn.removeAttribute("disabled");
         }
       });
 

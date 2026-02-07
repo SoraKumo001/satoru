@@ -75,6 +75,7 @@ class container_skia : public litehtml::document_container {
     std::vector<conic_gradient_info> m_usedConicGradients;
     std::set<font_request> m_missingFonts;
     std::map<font_request, std::string> m_fontFaces;
+    std::vector<std::string> m_requiredCss;
     bool m_tagging;
 
     litehtml::position m_last_clip_pos;
@@ -115,6 +116,11 @@ class container_skia : public litehtml::document_container {
 
     const std::set<font_request> &get_missing_fonts() const { return m_missingFonts; }
     void clear_missing_fonts() { m_missingFonts.clear(); }
+
+    const std::map<font_request, std::string> &get_font_faces() const { return m_fontFaces; }
+
+    const std::vector<std::string> &get_required_css() const { return m_requiredCss; }
+    void clear_required_css() { m_requiredCss.clear(); }
 
     std::string get_font_url(const std::string &family, int weight, SkFontStyle::Slant slant) const;
 

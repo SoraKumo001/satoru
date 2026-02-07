@@ -14,6 +14,7 @@ export interface SatoruModule {
   _html_to_png_binary: (htmlPtr: number, width: number, height: number) => number;
   _get_png_size: () => number;
   _get_required_fonts: (htmlPtr: number, width: number) => number;
+  _scan_css: (cssPtr: number) => void;
   _load_font: (namePtr: number, dataPtr: number, size: number) => void;
   _clear_fonts: () => void;
   _load_image: (namePtr: number, dataUrlPtr: number, width: number, height: number) => void;
@@ -36,12 +37,13 @@ export interface SatoruOptions {
   noInitialRun?: boolean;
 }
 
-export interface RequiredFont {
+export interface RequiredResource {
+  type: "font" | "css";
   name: string;
-  url?: string;
+  url: string;
 }
 
-export type FontResolver = (fonts: RequiredFont[]) => Promise<void>;
+export type ResourceResolver = (resource: RequiredResource) => Promise<Uint8Array | string | null>;
 
 export class Satoru {
   private module: SatoruModule | null = null;
@@ -74,6 +76,14 @@ export class Satoru {
     this.mod._free(dataPtr);
   }
 
+  scanCss(css: string) {
+    if (this.mod._scan_css) {
+      const cssPtr = this.stringToPtr(css);
+      this.mod._scan_css(cssPtr);
+      this.mod._free(cssPtr);
+    }
+  }
+
   clearFonts() {
     this.mod._clear_fonts();
   }
@@ -93,7 +103,7 @@ export class Satoru {
   }
 
   /**
-   * High-level render function that handles font resolution automatically.
+   * High-level render function that handles font and CSS resolution automatically.
    */
   async render(
     html: string,
@@ -101,25 +111,66 @@ export class Satoru {
     options: {
       height?: number;
       format?: "svg" | "png" | "dataurl";
-      resolveFonts?: FontResolver;
+      resolveResource?: ResourceResolver;
     } = {}
   ): Promise<string | Uint8Array | null> {
-    const { height = 0, format = "svg", resolveFonts } = options;
+    const { height = 0, format = "svg", resolveResource } = options;
 
-    if (resolveFonts) {
-      const required = this.getRequiredFonts(html, width);
-      if (required.length > 0) {
-        await resolveFonts(required);
+    let processedHtml = html;
+    const resolvedUrls = new Set<string>();
+
+    if (resolveResource) {
+      // Loop to resolve resources until no more are found
+      for (let i = 0; i < 3; i++) {
+        const resources = this.getRequiredResources(processedHtml, width);
+        const pending = resources.filter(r => !resolvedUrls.has(r.url));
+        
+        if (pending.length === 0) break;
+
+        await Promise.all(
+          pending.map(async (r) => {
+            try {
+              resolvedUrls.add(r.url);
+              
+              const isFontUrl = /\.(woff2?|ttf|otf|eot)(\?.*)?$/i.test(r.url);
+              const effectiveType = isFontUrl ? "font" : r.type;
+
+              const data = await resolveResource({ ...r, type: effectiveType });
+              
+              if (effectiveType === "css" && typeof data === "string") {
+                this.scanCss(data);
+                processedHtml = `<style>${data}</style>\n` + processedHtml;
+              } else if (data instanceof Uint8Array) {
+                let fontName = r.name;
+                if (isFontUrl && r.type === "css") {
+                   fontName = r.url.split('/').pop()?.split('.')[0] || r.name;
+                   if (r.url.includes("noto-sans-jp")) fontName = "Noto Sans JP";
+                   
+                   const fontFace = `@font-face { font-family: '${fontName}'; src: url('${r.url}'); }`;
+                   this.scanCss(fontFace);
+                   processedHtml = `<style>${fontFace}</style>\n` + processedHtml;
+                }
+                this.loadFont(fontName, data);
+              }
+              
+              const escapedUrl = r.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const linkRegex = new RegExp(`<link[^>]+href=["']${escapedUrl}["'][^>]*>`, 'gi');
+              processedHtml = processedHtml.replace(linkRegex, "");
+            } catch (e) {
+              console.warn(`Failed to resolve resource: ${r.url}`, e);
+            }
+          })
+        );
       }
     }
 
     switch (format) {
       case "png":
-        return this.toPngBinary(html, width, height);
+        return this.toPngBinary(processedHtml, width, height);
       case "dataurl":
-        return this.toPngDataUrl(html, width, height);
+        return this.toPngDataUrl(processedHtml, width, height);
       default:
-        return this.toSvg(html, width, height);
+        return this.toSvg(processedHtml, width, height);
     }
   }
 
@@ -128,6 +179,7 @@ export class Satoru {
     const svgPtr = this.mod._html_to_svg(htmlPtr, width, height);
     const svg = this.mod.UTF8ToString(svgPtr);
     this.mod._free(htmlPtr);
+    this.mod._free(svgPtr); // CRITICAL: free the strdup'ed string
     return svg;
   }
 
@@ -138,11 +190,11 @@ export class Satoru {
     
     let result: Uint8Array | null = null;
     if (pngPtr && size > 0) {
-      // Copy the data from Wasm heap
       result = new Uint8Array(this.mod.HEAPU8.buffer, pngPtr, size).slice();
     }
 
     this.mod._free(htmlPtr);
+    // Note: pngPtr is managed by g_context.m_lastPng in C++, no need to free here
     return result;
   }
 
@@ -151,21 +203,35 @@ export class Satoru {
     const ptr = this.mod._html_to_png(htmlPtr, width, height);
     const dataUrl = this.mod.UTF8ToString(ptr);
     this.mod._free(htmlPtr);
+    this.mod._free(ptr); // CRITICAL: free the strdup'ed string
     return dataUrl;
   }
 
-  getRequiredFonts(html: string, width: number): RequiredFont[] {
+  getRequiredResources(html: string, width: number): RequiredResource[] {
     const htmlPtr = this.stringToPtr(html);
     const ptr = this.mod._get_required_fonts(htmlPtr, width);
     const resultStr = this.mod.UTF8ToString(ptr);
     this.mod._free(htmlPtr);
-    
+    this.mod._free(ptr); // CRITICAL: free the strdup'ed string
+
     if (!resultStr) return [];
-    
-    return resultStr.split(",").map(part => {
+
+    return resultStr.split(",").map((part) => {
+      if (part.startsWith("FONT:")) {
+        const [name, url] = part.substring(5).split("|");
+        return { type: "font", name, url: url || "" };
+      } else if (part.startsWith("CSS:")) {
+        const url = part.substring(4);
+        return { type: "css", name: url, url };
+      }
       const [name, url] = part.split("|");
-      return { name, url };
+      return { type: "font", name, url: url || "" };
     });
+  }
+
+  /** @deprecated use getRequiredResources */
+  getRequiredFonts(html: string, width: number): RequiredResource[] {
+    return this.getRequiredResources(html, width);
   }
 
   private stringToPtr(str: string): number {

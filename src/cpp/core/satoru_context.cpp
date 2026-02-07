@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+
 #include "include/codec/SkCodec.h"
 #include "include/codec/SkPngDecoder.h"
 #include "include/core/SkData.h"
@@ -90,7 +91,7 @@ sk_sp<SkTypeface> SatoruContext::get_typeface(const std::string &family, int wei
             if (bestMatch) return bestMatch;
         }
     }
-    return defaultTypeface;
+    return nullptr;
 }
 
 bool SatoruContext::get_image_size(const std::string &url, int &w, int &h) {

@@ -20,14 +20,21 @@ void init_engine() { g_context.init(); }
 
 EMSCRIPTEN_KEEPALIVE
 const char *html_to_svg(const char *html, int width, int height) {
+    if (!html) return "";
+
     std::string svg = renderHtmlToSvg(html, width, height, g_context);
-    return strdup(svg.c_str());
+
+    char *result = (char *)malloc(svg.length() + 1);
+    strcpy(result, svg.c_str());
+    return result;
 }
 
 EMSCRIPTEN_KEEPALIVE
 const char *html_to_png(const char *html, int width, int height) {
     std::string dataUrl = renderHtmlToPng(html, width, height, g_context);
-    return strdup(dataUrl.c_str());
+    char *result = (char *)malloc(dataUrl.length() + 1);
+    strcpy(result, dataUrl.c_str());
+    return result;
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -45,25 +52,44 @@ const char *html_to_png_binary(const char *html, int width, int height) {
 EMSCRIPTEN_KEEPALIVE
 int get_png_size() { return (int)g_context.get_last_png().size(); }
 
+// Global pointer for discovery container
+container_skia *g_discovery_container = nullptr;
+
 EMSCRIPTEN_KEEPALIVE
 const char *get_required_fonts(const char *html, int width) {
-    container_skia container(width, 0, nullptr, g_context);
-    auto doc = litehtml::document::createFromString(html, &container);
-    doc->render(width);
+    if (g_discovery_container) delete g_discovery_container;
+    g_discovery_container = new container_skia(width, 1000, nullptr, g_context, false);
 
-    const auto &missing = container.get_missing_fonts();
-    std::stringstream ss;
-    bool first = true;
-    for (const auto &f : missing) {
-        if (!first) ss << ",";
-        ss << f.family;
-        std::string url = container.get_font_url(f.family, f.weight, f.slant);
-        if (!url.empty()) {
-            ss << "|" << url;
-        }
-        first = false;
+    std::string css = litehtml::master_css;
+    auto doc = litehtml::document::createFromString(html, g_discovery_container, css.c_str());
+    if (doc) {
+        doc->render(width);
     }
-    return strdup(ss.str().c_str());
+
+    std::string result = "";
+    // Pass 1: External CSS found in HTML
+    for (const auto &url : g_discovery_container->get_required_css()) {
+        if (!result.empty()) result += ",";
+        result += "CSS:" + url;
+    }
+
+    // Pass 2: Fonts required during layout
+    for (const auto &font : g_discovery_container->get_missing_fonts()) {
+        if (!result.empty()) result += ",";
+        std::string url = g_discovery_container->get_font_url(font.family, font.weight, font.slant);
+        result += "FONT:" + font.family + "|" + url;
+    }
+
+    char *c_result = (char *)malloc(result.length() + 1);
+    strcpy(c_result, result.c_str());
+    return c_result;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void scan_css(const char *css) {
+    if (g_discovery_container) {
+        g_discovery_container->scan_font_faces(css);
+    }
 }
 
 EMSCRIPTEN_KEEPALIVE

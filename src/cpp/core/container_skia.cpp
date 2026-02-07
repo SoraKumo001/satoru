@@ -6,9 +6,13 @@
 #include "include/core/SkFontMetrics.h"
 #include "include/core/SkPaint.h"
 #include "include/core/SkPath.h"
+#include "include/core/SkPathBuilder.h"
 #include "include/core/SkRRect.h"
 #include "include/core/SkShader.h"
 #include "include/core/SkString.h"
+#include "include/core/SkMaskFilter.h"
+#include "include/core/SkBlurTypes.h"
+#include "include/core/SkClipOp.h"
 #include "include/effects/SkGradient.h"
 
 namespace {
@@ -21,6 +25,13 @@ SkRRect make_rrect(const litehtml::position &pos, const litehtml::border_radiuse
     SkRRect rrect;
     rrect.setRectRadii(rect, rad);
     return rrect;
+}
+
+std::string trim(const std::string &s) {
+    auto start = s.find_first_not_of(" \t\r\n'\"");
+    if (start == std::string::npos) return "";
+    auto end = s.find_last_not_of(" \t\r\n'\"");
+    return s.substr(start, end - start + 1);
 }
 }  // namespace
 
@@ -90,32 +101,88 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::shadow_vector &shadows,
                                      const litehtml::position &pos,
                                      const litehtml::border_radiuses &radius, bool inset) {
-    if (!m_tagging) return;
+    if (m_tagging) {
+        for (const auto &s : shadows) {
+            if (s.inset != inset) continue;
 
-    for (const auto &s : shadows) {
-        shadow_info info;
-        info.color = s.color;
-        info.blur = (float)s.blur.val();
-        info.x = (float)s.x.val();
-        info.y = (float)s.y.val();
-        info.spread = (float)s.spread.val();
-        info.inset = inset;
-        info.box_pos = pos;
-        info.box_radius = radius;
+            shadow_info info;
+            info.color = s.color;
+            info.blur = (float)s.blur.val();
+            info.x = (float)s.x.val();
+            info.y = (float)s.y.val();
+            info.spread = (float)s.spread.val();
+            info.inset = inset;
+            info.box_pos = pos;
+            info.box_radius = radius;
 
-        int index = 0;
-        auto it = m_shadowToIndex.find(info);
-        if (it == m_shadowToIndex.end()) {
-            m_usedShadows.push_back(info);
-            index = (int)m_usedShadows.size();
-            m_shadowToIndex[info] = index;
-        } else {
-            index = it->second;
+            int index = 0;
+            auto it = m_shadowToIndex.find(info);
+            if (it == m_shadowToIndex.end()) {
+                m_usedShadows.push_back(info);
+                index = (int)m_usedShadows.size();
+                m_shadowToIndex[info] = index;
+            } else {
+                index = it->second;
+            }
+
+            SkPaint paint;
+            // Shadow tag: R=0, G=0, B=index, A=254 (#0000xx with opacity)
+            paint.setColor(SkColorSetARGB(254, 0, 0, (index & 0xFF)));
+            m_canvas->drawRRect(make_rrect(pos, radius), paint);
         }
+        return;
+    }
 
-        SkPaint paint;
-        paint.setColor(SkColorSetARGB(index, 0, 0, 254));  // Tag for shadow
-        m_canvas->drawRRect(make_rrect(pos, radius), paint);
+    // Direct rendering for PNG
+    for (const auto &s : shadows) {
+        if (s.inset != inset) continue;
+
+        SkRRect box_rrect = make_rrect(pos, radius);
+        SkColor shadow_color = SkColorSetARGB(s.color.alpha, s.color.red, s.color.green, s.color.blue);
+        float blur_std_dev = (float)s.blur.val() * 0.5f;
+
+        m_canvas->save();
+        if (inset) {
+            m_canvas->clipRRect(box_rrect, true);
+            
+            SkRRect shadow_rrect = box_rrect;
+            shadow_rrect.inset(-(float)s.spread.val(), -(float)s.spread.val());
+            
+            SkPaint paint;
+            paint.setAntiAlias(true);
+            paint.setColor(shadow_color);
+            if (blur_std_dev > 0) {
+                paint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, blur_std_dev));
+            }
+            
+            SkRect huge_rect = box_rrect.rect();
+            huge_rect.outset(blur_std_dev * 3 + std::abs((float)s.x.val()) + 100, 
+                             blur_std_dev * 3 + std::abs((float)s.y.val()) + 100);
+            
+            SkPath path = SkPathBuilder()
+                .addRect(huge_rect)
+                .addRRect(shadow_rrect, SkPathDirection::kCCW)
+                .detach();
+            
+            m_canvas->translate((float)s.x.val(), (float)s.y.val());
+            m_canvas->drawPath(path, paint);
+        } else {
+            m_canvas->clipRRect(box_rrect, SkClipOp::kDifference, true);
+            
+            SkRRect shadow_rrect = box_rrect;
+            shadow_rrect.outset((float)s.spread.val(), (float)s.spread.val());
+            
+            SkPaint paint;
+            paint.setAntiAlias(true);
+            paint.setColor(shadow_color);
+            if (blur_std_dev > 0) {
+                paint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, blur_std_dev));
+            }
+            
+            m_canvas->translate((float)s.x.val(), (float)s.y.val());
+            m_canvas->drawRRect(shadow_rrect, paint);
+        }
+        m_canvas->restore();
     }
 }
 
@@ -129,7 +196,8 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
     int index = (int)m_usedImageDraws.size();
 
     SkPaint paint;
-    paint.setColor(SkColorSetARGB(index, 0, 0, 255));  // Tag for image
+    // Image tag: R=0, G=0, B=index, A=255 (#0000xx)
+    paint.setColor(SkColorSetARGB(255, 0, 0, (index & 0xFF)));
     m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), paint);
 }
 
@@ -203,7 +271,8 @@ void container_skia::draw_conic_gradient(
     int index = (int)m_usedConicGradients.size();
 
     SkPaint paint;
-    paint.setColor(SkColorSetARGB(index, 0, 0, 253));  // Tag for conic gradient
+    // Conic tag: R=0, G=0, B=index, A=253 (#0000xx with opacity)
+    paint.setColor(SkColorSetARGB(253, 0, 0, (index & 0xFF)));
     m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), paint);
 }
 
@@ -307,15 +376,18 @@ void container_skia::transform_text(litehtml::string &text, litehtml::text_trans
 
 void container_skia::import_css(litehtml::string &text, const litehtml::string &url,
                                 litehtml::string &baseurl) {
-    scan_font_faces(text);
+    if (!url.empty()) {
+        m_requiredCss.push_back(url);
+    } else {
+        scan_font_faces(text);
+    }
 }
 
 void container_skia::scan_font_faces(const std::string &css) {
-    std::regex fontFaceRegex("@font-face\\s*\\{([^}]+)\\}");
-    std::regex familyRegex("font-family:\\s*['\"]?([^'\";\\s]+)['\"]?");
-    std::regex weightRegex("font-weight:\\s*(\\d+|bold|normal)");
-    std::regex styleRegex("font-style:\\s*(italic|normal)");
-    std::regex urlRegex("src:\\s*url\\(['\"]?([^'\")\\s]+)['\"]?\\)");
+    // Robust regex for @font-face and its properties
+    std::regex fontFaceRegex("@font-face\\\\s*\\\\{([^}]+)\\\\}", std::regex::icase);
+    std::regex familyRegex("font-family:\\\\s*([^;]+);?", std::regex::icase);
+    std::regex urlRegex("url\\\\s*\\\\(\\\\s*['\\\"]?([^'\\\"\\\\)]+)['\\\"]?\\\\s*\\\\)", std::regex::icase);
 
     auto words_begin = std::sregex_iterator(css.begin(), css.end(), fontFaceRegex);
     auto words_end = std::sregex_iterator();
@@ -325,26 +397,16 @@ void container_skia::scan_font_faces(const std::string &css) {
         std::smatch m;
 
         font_request req;
-        if (std::regex_search(body, m, familyRegex)) req.family = m[1].str();
-
         req.weight = 400;
-        if (std::regex_search(body, m, weightRegex)) {
-            std::string w = m[1].str();
-            if (w == "bold")
-                req.weight = 700;
-            else if (w == "normal")
-                req.weight = 400;
-            else
-                req.weight = std::stoi(w);
-        }
-
         req.slant = SkFontStyle::kUpright_Slant;
-        if (std::regex_search(body, m, styleRegex)) {
-            if (m[1].str() == "italic") req.slant = SkFontStyle::kItalic_Slant;
+
+        if (std::regex_search(body, m, familyRegex)) {
+            req.family = trim(m[1].str());
         }
 
         if (!req.family.empty() && std::regex_search(body, m, urlRegex)) {
-            m_fontFaces[req] = m[1].str();
+            std::string url = trim(m[1].str());
+            m_fontFaces[req] = url;
         }
     }
 }

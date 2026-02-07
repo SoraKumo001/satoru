@@ -1,4 +1,4 @@
-import { Satoru, createSatoruModule, RequiredFont } from "satoru";
+import { Satoru, createSatoruModule, RequiredResource } from "satoru";
 
 async function init() {
   console.log("Initializing Satoru Engine (Skia + Wasm)...");
@@ -171,24 +171,17 @@ async function init() {
       };
 
       /**
-       * Simplified font resolver that uses Wasm-provided URLs.
+       * Resource resolver for dynamic font and CSS loading.
        */
-      const fontResolver = async (required: RequiredFont[]) => {
-        const toLoad = required.filter(f => f.url);
-        if (toLoad.length > 0) {
-          console.log(`Loading required fonts: ${toLoad.map(f => f.name).join(", ")}`);
-          await Promise.all(
-            toLoad.map(async (font) => {
-              try {
-                const resp = await fetch(font.url!);
-                const buffer = await resp.arrayBuffer();
-                satoru.loadFont(font.name, new Uint8Array(buffer));
-                console.log(`Font loaded: ${font.name} from ${font.url}`);
-              } catch (e) {
-                console.error(`Failed to load font: ${font.name}`, e);
-              }
-            }),
-          );
+      const resourceResolver = async (r: RequiredResource) => {
+        try {
+          const resp = await fetch(r.url);
+          if (!resp.ok) return null;
+          if (r.type === "font") return new Uint8Array(await resp.arrayBuffer());
+          return await resp.text();
+        } catch (e) {
+          console.error(`Failed to load resource: ${r.url}`, e);
+          return null;
         }
       };
 
@@ -204,13 +197,13 @@ async function init() {
         convertBtn.style.opacity = "0.7";
 
         try {
-          // Preload images
+          // Preload images (Existing data URL logic)
           await preloadImages(htmlStr);
           
-          // Use high-level render with font resolver
+          // Use high-level render with resource resolver
           let svgResult = (await satoru.render(htmlStr, width, {
             format: "svg",
-            resolveFonts: fontResolver,
+            resolveResource: resourceResolver,
           })) as string;
 
           svgResult = svgResult.replace("<svg", '<svg style="overflow:visible"');

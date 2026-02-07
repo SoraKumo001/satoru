@@ -43,6 +43,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
     2. **Re-read** the file ranges using `get_text_file_contents` to get fresh hashes.
     3. **Verify** the content matches your expectations.
     4. **Retry** the edit with the new hashes.
+    5. **Final Resort:** If the mismatch persists or the file state becomes inconsistent, use `write_file` to overwrite the **entire file** with the desired full content. This is the most reliable way to recover from synchronization issues.
 
 ## Project Context: Satoru
 
@@ -96,3 +97,11 @@ Use the TypeScript-based build scripts defined in the root `package.json`:
 - **Images:** Decoded by the JS host and passed as Data URLs. Skia's PNG decoder must be registered in WASM.
 - **Font Matching:** C++ engine matches `font-family` by splitting comma-separated lists and cleaning names (lowercase, no quotes/spaces).
 - **On-Demand Font Loading (2-Pass):**
+
+### 6. Skia API & Release Notes
+
+- **Release Notes:** Located at `external/skia/RELEASE_NOTES.md`. Always check this for breaking changes when updating Skia.
+- **SkPath Immutability:** Skia is moving `SkPath` towards being immutable.
+    - **Crucial:** Direct modification methods (like `addRect`, `addRRect`, `moveTo`, `lineTo`) are being removed from `SkPath` or hidden behind `SK_HIDE_PATH_EDIT_METHODS`.
+    - **Workaround:** Use `SkPathBuilder` to construct paths, then call `builder.detach()` to get an `SkPath` object.
+    - **Header:** `#include "include/core/SkPathBuilder.h"`

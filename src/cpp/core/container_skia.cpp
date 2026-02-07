@@ -15,6 +15,7 @@
 #include "include/core/SkBlurTypes.h"
 #include "include/core/SkClipOp.h"
 #include "include/effects/SkGradient.h"
+#include "include/effects/SkDashPathEffect.h"
 #include "../utils/utils.h"
 
 namespace {
@@ -35,6 +36,39 @@ std::string trim(const std::string &s) {
     auto end = s.find_last_not_of(" \t\r\n'\"");
     return s.substr(start, end - start + 1);
 }
+
+char32_t decode_utf8(const char** ptr) {
+    const uint8_t* p = (const uint8_t*)*ptr;
+    if (!*p) return 0;
+    uint8_t b1 = *p++;
+    if (!(b1 & 0x80)) {
+        *ptr = (const char*)p;
+        return b1;
+    }
+    if ((b1 & 0xE0) == 0xC0) {
+        char32_t r = (b1 & 0x1F) << 6;
+        if (*p) r |= (*p++ & 0x3F);
+        *ptr = (const char*)p;
+        return r;
+    }
+    if ((b1 & 0xF0) == 0xE0) {
+        char32_t r = (b1 & 0x0F) << 12;
+        if (*p) r |= (*p++ & 0x3F) << 6;
+        if (*p) r |= (*p++ & 0x3F);
+        *ptr = (const char*)p;
+        return r;
+    }
+    if ((b1 & 0xF8) == 0xF0) {
+        char32_t r = (b1 & 0x07) << 18;
+        if (*p) r |= (*p++ & 0x3F) << 12;
+        if (*p) r |= (*p++ & 0x3F) << 6;
+        if (*p) r |= (*p++ & 0x3F);
+        *ptr = (const char*)p;
+        return r;
+    }
+    *ptr = (const char*)p;
+    return 0;
+}
 }  // namespace
 
 container_skia::container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context, ResourceManager* rm, bool tagging)
@@ -48,9 +82,10 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
     SkFontStyle::Slant slant = desc.style == litehtml::font_style_normal
                                    ? SkFontStyle::kUpright_Slant
                                    : SkFontStyle::kItalic_Slant;
-    auto typeface = m_context.get_typeface(desc.family, desc.weight, slant);
+    
+    auto typefaces = m_context.get_typefaces(desc.family, desc.weight, slant);
 
-    if (!typeface) {
+    if (typefaces.empty()) {
         // Legacy tracking
         m_missingFonts.insert({desc.family, desc.weight, slant});
         
@@ -61,12 +96,34 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
             }
         }
         
-        typeface = m_context.get_typeface("sans-serif", desc.weight, slant);
+        typefaces = m_context.get_typefaces("sans-serif", desc.weight, slant);
+    }
+    
+    // Add global fallbacks if they are not already in the list
+    for(auto& tf : m_context.fallbackTypefaces) {
+        bool found = false;
+        for(auto& existing : typefaces) {
+            if(existing.get() == tf.get()) {
+                found = true;
+                break;
+            }
+        }
+        if(!found) typefaces.push_back(tf);
     }
 
-    SkFont *font = new SkFont(typeface, (float)desc.size);
+    font_info *fi = new font_info;
+    fi->desc = desc;
+
+    for (auto& typeface : typefaces) {
+        fi->fonts.push_back(new SkFont(typeface, (float)desc.size));
+    }
+
+    if (fi->fonts.empty()) {
+        fi->fonts.push_back(new SkFont(m_context.defaultTypeface, (float)desc.size));
+    }
+
     SkFontMetrics skfm;
-    font->getMetrics(&skfm);
+    fi->fonts[0]->getMetrics(&skfm);
 
     if (fm) {
         fm->ascent = (int)-skfm.fAscent;
@@ -75,9 +132,6 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
         fm->x_height = (int)skfm.fXHeight;
     }
 
-    font_info *fi = new font_info;
-    fi->font = font;
-    fi->desc = desc;
     fi->fm_ascent = (int)-skfm.fAscent;
     fi->fm_height = fi->fm_ascent + (int)skfm.fDescent;
 
@@ -87,26 +141,141 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
 void container_skia::delete_font(litehtml::uint_ptr hFont) {
     font_info *fi = (font_info *)hFont;
     if (fi) {
-        delete fi->font;
+        for (auto font : fi->fonts) delete font;
         delete fi;
     }
 }
 
 litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_ptr hFont) {
     font_info *fi = (font_info *)hFont;
-    return (litehtml::pixel_t)fi->font->measureText(text, strlen(text), SkTextEncoding::kUTF8);
+    if (!fi || fi->fonts.empty()) return 0;
+
+    double total_width = 0;
+    const char *p = text;
+    const char *run_start = p;
+    SkFont *current_font = nullptr;
+
+    while (*p) {
+        const char *next_p = p;
+        char32_t u = decode_utf8(&next_p);
+
+        SkFont *font = nullptr;
+        for (auto f : fi->fonts) {
+            SkGlyphID glyph;
+            f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>((const SkUnichar *)&u, 1), SkSpan<SkGlyphID>(&glyph, 1));
+            if (glyph != 0) {
+                font = f;
+                break;
+            }
+        }
+        if (!font) font = fi->fonts[0];
+
+        if (font != current_font) {
+            if (current_font && p > run_start) {
+                total_width += current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
+            }
+            run_start = p;
+            current_font = font;
+        }
+        p = next_p;
+    }
+
+    if (current_font && p > run_start) {
+        total_width += current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
+    }
+
+    return (litehtml::pixel_t)total_width;
 }
 
 void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtml::uint_ptr hFont,
                                litehtml::web_color color, const litehtml::position &pos) {
     font_info *fi = (font_info *)hFont;
-    if (!fi) return;
+    if (!fi || fi->fonts.empty()) return;
+
     SkPaint paint;
     paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     paint.setAntiAlias(true);
 
-    m_canvas->drawSimpleText(text, strlen(text), SkTextEncoding::kUTF8, (float)pos.x,
-                             (float)pos.y + (float)fi->fm_ascent, *fi->font, paint);
+    double x_offset = 0;
+    const char *p = text;
+    const char *run_start = p;
+    SkFont *current_font = nullptr;
+
+    while (*p) {
+        const char *next_p = p;
+        char32_t u = decode_utf8(&next_p);
+
+        SkFont *font = nullptr;
+        for (auto f : fi->fonts) {
+            SkGlyphID glyph;
+            f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>((const SkUnichar *)&u, 1), SkSpan<SkGlyphID>(&glyph, 1));
+            if (glyph != 0) {
+                font = f;
+                break;
+            }
+        }
+        if (!font) font = fi->fonts[0];
+
+        if (font != current_font) {
+            if (current_font && p > run_start) {
+                m_canvas->drawSimpleText(run_start, p - run_start, SkTextEncoding::kUTF8,
+                                         (float)pos.x + (float)x_offset, (float)pos.y + (float)fi->fm_ascent,
+                                         *current_font, paint);
+                x_offset += current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
+            }
+            run_start = p;
+            current_font = font;
+        }
+        p = next_p;
+    }
+
+    if (current_font && p > run_start) {
+        m_canvas->drawSimpleText(run_start, p - run_start, SkTextEncoding::kUTF8, (float)pos.x + (float)x_offset,
+                                 (float)pos.y + (float)fi->fm_ascent, *current_font, paint);
+        x_offset += current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
+    }
+
+    if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
+        litehtml::web_color dc = fi->desc.decoration_color;
+        if (dc == litehtml::web_color::current_color) {
+            dc = color;
+        }
+
+        SkPaint decPaint;
+        decPaint.setColor(SkColorSetARGB(dc.alpha, dc.red, dc.green, dc.blue));
+        decPaint.setAntiAlias(true);
+
+        float thickness = (float)fi->desc.decoration_thickness.val();
+        if (fi->desc.decoration_thickness.is_predefined() || thickness <= 0) {
+            thickness = std::max(1.0f, (float)fi->desc.size / 15.0f);
+        }
+        decPaint.setStrokeWidth(thickness);
+        decPaint.setStyle(SkPaint::kStroke_Style);
+
+        if (fi->desc.decoration_style == litehtml::text_decoration_style_dotted) {
+            float intervals[] = {thickness, thickness};
+            decPaint.setPathEffect(SkDashPathEffect::Make(SkSpan(intervals), 0));
+        } else if (fi->desc.decoration_style == litehtml::text_decoration_style_dashed) {
+            float intervals[] = {thickness * 3, thickness * 3};
+            decPaint.setPathEffect(SkDashPathEffect::Make(SkSpan(intervals), 0));
+        }
+
+        float x1 = (float)pos.x;
+        float x2 = (float)pos.x + (float)x_offset;
+
+        if (fi->desc.decoration_line & litehtml::text_decoration_line_underline) {
+            float y = (float)pos.y + (float)fi->fm_ascent + thickness;
+            m_canvas->drawLine(x1, y, x2, y, decPaint);
+        }
+        if (fi->desc.decoration_line & litehtml::text_decoration_line_overline) {
+            float y = (float)pos.y;
+            m_canvas->drawLine(x1, y, x2, y, decPaint);
+        }
+        if (fi->desc.decoration_line & litehtml::text_decoration_line_line_through) {
+            float y = (float)pos.y + (float)fi->fm_ascent - (float)fi->fm_height * 0.3f;
+            m_canvas->drawLine(x1, y, x2, y, decPaint);
+        }
+    }
 }
 
 void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::shadow_vector &shadows,
@@ -130,7 +299,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
             auto it = m_shadowToIndex.find(info);
             if (it == m_shadowToIndex.end()) {
                 m_usedShadows.push_back(info);
-                index = (int)m_usedShadows.size();
+                index = (int)m_usedShadows.size();\
                 m_shadowToIndex[info] = index;
             } else {
                 index = it->second;
@@ -146,7 +315,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
 
     // Direct rendering for PNG
     for (const auto &s : shadows) {
-        if (s.inset != inset) continue;
+        if (s.inset != inset) continue;\
 
         SkRRect box_rrect = make_rrect(pos, radius);
         SkColor shadow_color = SkColorSetARGB(s.color.alpha, s.color.red, s.color.green, s.color.blue);

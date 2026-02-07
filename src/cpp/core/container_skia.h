@@ -18,7 +18,7 @@
 #include "resource_manager.h"
 
 struct font_info {
-    SkFont *font;
+    std::vector<SkFont*> fonts;
     litehtml::font_description desc;
     int fm_ascent;
     int fm_height;

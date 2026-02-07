@@ -40,6 +40,7 @@ class SatoruContext {
     const std::vector<uint8_t> &get_last_png() const { return m_lastPng; }
 
     sk_sp<SkTypeface> get_typeface(const std::string &family, int weight, SkFontStyle::Slant slant);
+    std::vector<sk_sp<SkTypeface>> get_typefaces(const std::string &family, int weight, SkFontStyle::Slant slant);
     bool get_image_size(const std::string &url, int &w, int &h);
 };
 

@@ -83,6 +83,13 @@ void SatoruContext::clearFonts() {
 
 sk_sp<SkTypeface> SatoruContext::get_typeface(const std::string &family, int weight,
                                               SkFontStyle::Slant slant) {
+    auto tfs = get_typefaces(family, weight, slant);
+    return tfs.empty() ? nullptr : tfs[0];
+}
+
+std::vector<sk_sp<SkTypeface>> SatoruContext::get_typefaces(const std::string &family, int weight,
+                                                            SkFontStyle::Slant slant) {
+    std::vector<sk_sp<SkTypeface>> result;
     std::stringstream ss(family);
     std::string item;
     while (std::getline(ss, item, ',')) {
@@ -106,10 +113,10 @@ sk_sp<SkTypeface> SatoruContext::get_typeface(const std::string &family, int wei
                     bestMatch = tf;
                 }
             }
-            if (bestMatch) return bestMatch;
+            if (bestMatch) result.push_back(bestMatch);
         }
     }
-    return nullptr;
+    return result;
 }
 
 bool SatoruContext::get_image_size(const std::string &url, int &w, int &h) {

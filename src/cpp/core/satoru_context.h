@@ -8,6 +8,7 @@
 #include "../utils/image_types.h"
 #include "include/core/SkFontMgr.h"
 #include "include/core/SkTypeface.h"
+#include "include/core/SkFontStyle.h"
 
 class SatoruContext {
     std::vector<uint8_t> m_lastPng;
@@ -36,12 +37,14 @@ class SatoruContext {
     void clear_fonts() { clearFonts(); }
     void clearFonts();
 
-    void set_last_png(std::vector<uint8_t> &&data) { m_lastPng = std::move(data); }
-    const std::vector<uint8_t> &get_last_png() const { return m_lastPng; }
-
-    sk_sp<SkTypeface> get_typeface(const std::string &family, int weight, SkFontStyle::Slant slant, bool &out_fake_bold);
-    std::vector<sk_sp<SkTypeface>> get_typefaces(const std::string &family, int weight, SkFontStyle::Slant slant, bool &out_fake_bold);
+    sk_sp<SkTypeface> get_typeface(const std::string &family, int weight,
+                                   SkFontStyle::Slant slant, bool &out_fake_bold);
+    std::vector<sk_sp<SkTypeface>> get_typefaces(const std::string &family, int weight,
+                                                 SkFontStyle::Slant slant, bool &out_fake_bold);
     bool get_image_size(const std::string &url, int &w, int &h);
+
+    void set_last_png(std::vector<uint8_t> &&png) { m_lastPng = std::move(png); }
+    const std::vector<uint8_t> &get_last_png() const { return m_lastPng; }
 };
 
-#endif  // SATORU_CONTEXT_H
+#endif

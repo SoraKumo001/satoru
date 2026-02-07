@@ -182,7 +182,10 @@ async function init() {
             resolveResource: resourceResolver,
           })) as string;
 
-          svgResult = svgResult.replace("<svg", '<svg style="overflow:visible"');
+          svgResult = svgResult.replace(
+            "<svg",
+            '<svg style="overflow:visible"',
+          );
 
           svgContainer.innerHTML = svgResult;
           svgContainer.style.background = "#fff";
@@ -202,7 +205,7 @@ async function init() {
       htmlInput.value = `
 <!-- Remote fonts and images will be resolved automatically in 2-pass mode -->
 <link href="https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-700-normal.woff2" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2" rel="stylesheet">
 
 <div style="padding: 40px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
   <h1 style="color: #2196F3; font-family: 'Roboto'; font-size: 42px; text-align: center; margin-bottom: 20px; font-weight: 700;">

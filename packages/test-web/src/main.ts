@@ -199,17 +199,6 @@ async function init() {
         }
       };
 
-      (async () => {
-        try {
-          if (loadFontBtn) {
-            loadFontBtn.style.display = "none";
-          }
-          performConversion();
-        } catch (e) {
-          console.error("Initial render failed:", e);
-        }
-      })();
-
       htmlInput.value = `
 <!-- Remote fonts and images will be resolved automatically in 2-pass mode -->
 <link href="https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2" rel="stylesheet">
@@ -238,6 +227,17 @@ async function init() {
   </div>
 </div>`;
       updatePreview();
+
+      (async () => {
+        try {
+          if (loadFontBtn) {
+            loadFontBtn.style.display = "none";
+          }
+          await performConversion();
+        } catch (e) {
+          console.error("Initial render failed:", e);
+        }
+      })();
 
       htmlInput.addEventListener("input", updatePreview);
       assetSelect?.addEventListener("change", async () => {

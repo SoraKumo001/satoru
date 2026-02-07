@@ -46,12 +46,12 @@ find_package(BZip2 REQUIRED)
 
 add_executable(main
     src/cpp/main.cpp
-    src/cpp/container_skia.cpp
-    src/cpp/utils.cpp
-    src/cpp/skia_stubs.cpp
-    src/cpp/satoru_context.cpp
-    src/cpp/svg_renderer.cpp
-    src/cpp/png_renderer.cpp
+    src/cpp/core/container_skia.cpp
+    src/cpp/core/satoru_context.cpp
+    src/cpp/renderers/svg_renderer.cpp
+    src/cpp/renderers/png_renderer.cpp
+    src/cpp/utils/utils.cpp
+    src/cpp/utils/skia_stubs.cpp
 )
 
 # --- Local litehtml Source ---
@@ -109,11 +109,15 @@ target_sources(main PRIVATE ${SKIA_CORE_SRC})
 # Includes
 target_include_directories(main BEFORE PRIVATE
     "src/cpp"
+    "src/cpp/core"
+    "src/cpp/renderers"
+    "src/cpp/utils"
     "${LITEHTML_DIR}/include"
     "${LITEHTML_DIR}/include/litehtml"
     "${LITEHTML_DIR}/src"
     "${SKIA_CONFIG_DIR}"
 )
+
 
 target_include_directories(main PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia"

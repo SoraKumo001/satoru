@@ -5,11 +5,11 @@
 #include <sstream>
 #include <string>
 
-#include "container_skia.h"
+#include "core/container_skia.h"
+#include "core/satoru_context.h"
 #include "litehtml.h"
-#include "png_renderer.h"
-#include "satoru_context.h"
-#include "svg_renderer.h"
+#include "renderers/png_renderer.h"
+#include "renderers/svg_renderer.h"
 
 SatoruContext g_context;
 

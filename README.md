@@ -65,18 +65,62 @@ graph TD
 
 ### Standard Environment (Node.js / Browser)
 
-```typescript
-import { Satoru } from "satoru";
+#### High-Level API (Recommended)
 
-const satoru = new Satoru();
+The `render` method supports automated 2-pass resource resolution. It identifies missing fonts, images, and external CSS from the HTML, and requests them from the host via a callback.
+
+```typescript
+import { Satoru, createSatoruModule } from "satoru";
+
+const satoru = new Satoru(createSatoruModule);
 await satoru.init();
 
-// Load a font
+const html = `
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap" rel="stylesheet">
+  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;">
+    Hello Satoru!
+    <img src="https://example.com/logo.png" style="width: 50px;">
+  </div>
+`;
+
+const svg = await satoru.render(html, 600, {
+  format: "svg",
+  resolveResource: async (resource) => {
+    const res = await fetch(resource.url);
+    if (!res.ok) return null;
+
+    // Return string for CSS, Uint8Array for Fonts and Images
+    if (resource.type === "css") return await res.text();
+    return new Uint8Array(await res.arrayBuffer());
+  },
+});
+```
+
+#### Direct API
+
+For manual control, you can load resources and trigger rendering directly.
+
+```typescript
+import { Satoru, createSatoruModule } from "satoru";
+
+const satoru = new Satoru(createSatoruModule);
+await satoru.init();
+
+// Load a font manually
 const fontData = await fetch("font.ttf").then((res) => res.arrayBuffer());
 satoru.loadFont("MyFont", new Uint8Array(fontData));
 
+// Load an image manually (Data URL)
+satoru.loadImage("my-image", "data:image/png;base64,...", 100, 100);
+
 // Convert HTML to PNG (Binary)
-const pngBuffer = satoru.toPngBinary('<div style="...">...</div>', 800);
+const pngBuffer = satoru.toPngBinary(
+  '<div style="font-family: MyFont">...</div>',
+  800,
+);
+
+// Convert HTML to SVG string
+const svgString = satoru.toSvg('<div style="...">...</div>', 800);
 ```
 
 ### Cloudflare Workers (Edge)

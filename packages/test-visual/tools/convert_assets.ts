@@ -1,15 +1,15 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
-import { Satoru } from "../src/index.ts";
+import { Satoru } from "satoru";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const ASSETS_DIR = path.resolve(__dirname, "../../../assets");
 const TEMP_DIR = path.resolve(__dirname, "../../../temp");
-const WASM_JS_PATH = path.resolve(__dirname, "../dist/satoru.js");
-const WASM_BINARY_PATH = path.resolve(__dirname, "../dist/satoru.wasm");
+const WASM_JS_PATH = path.resolve(__dirname, "../../satoru/dist/satoru.js");
+const WASM_BINARY_PATH = path.resolve(__dirname, "../../satoru/dist/satoru.wasm");
 
 const ROBOTO_400 = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2";
 const NOTO_JP_400 = "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2";

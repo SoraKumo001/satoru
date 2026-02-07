@@ -36,8 +36,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
-    "test": "tsx ./test/convert_assets.ts"
+    "build": "tsc"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

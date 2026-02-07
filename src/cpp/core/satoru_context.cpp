@@ -1,5 +1,7 @@
 #include "satoru_context.h"
 
+#include <iostream>
+#include <sstream>
 #include "include/codec/SkCodec.h"
 #include "include/codec/SkPngDecoder.h"
 #include "include/core/SkData.h"
@@ -62,21 +64,31 @@ void SatoruContext::clearFonts() {
 
 sk_sp<SkTypeface> SatoruContext::get_typeface(const std::string &family, int weight,
                                               SkFontStyle::Slant slant) {
-    std::string cleaned = clean_font_name(family.c_str());
-    if (typefaceCache.count(cleaned)) {
-        const auto &list = typefaceCache[cleaned];
-        sk_sp<SkTypeface> bestMatch = nullptr;
-        int minDiff = 1000;
+    std::stringstream ss(family);
+    std::string item;
+    while (std::getline(ss, item, ',')) {
+        // Trim leading/trailing whitespace and quotes from the family name
+        size_t first = item.find_first_not_of(" \t\r\n'\"");
+        if (first == std::string::npos) continue;
+        size_t last = item.find_last_not_of(" \t\r\n'\"");
+        std::string trimmed = item.substr(first, (last - first + 1));
 
-        for (const auto &tf : list) {
-            SkFontStyle style = tf->fontStyle();
-            int diff = std::abs(style.weight() - weight) + (style.slant() == slant ? 0 : 50);
-            if (diff < minDiff) {
-                minDiff = diff;
-                bestMatch = tf;
+        std::string cleaned = clean_font_name(trimmed.c_str());
+        if (typefaceCache.count(cleaned)) {
+            const auto &list = typefaceCache[cleaned];
+            sk_sp<SkTypeface> bestMatch = nullptr;
+            int minDiff = 1000;
+
+            for (const auto &tf : list) {
+                SkFontStyle style = tf->fontStyle();
+                int diff = std::abs(style.weight() - weight) + (style.slant() == slant ? 0 : 50);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    bestMatch = tf;
+                }
             }
+            if (bestMatch) return bestMatch;
         }
-        if (bestMatch) return bestMatch;
     }
     return defaultTypeface;
 }

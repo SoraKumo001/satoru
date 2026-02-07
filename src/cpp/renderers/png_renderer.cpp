@@ -13,7 +13,7 @@
 sk_sp<SkData> renderHtmlToPngBinary(const char *html, int width, int height,
                                     SatoruContext &context) {
     int initial_height = (height > 0) ? height : 1000;
-    container_skia container(width, initial_height, nullptr, context, false);
+    container_skia container(width, initial_height, nullptr, context, nullptr, false);
 
     std::string css = litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";

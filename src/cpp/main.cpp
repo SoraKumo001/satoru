@@ -8,11 +8,13 @@
 
 #include "core/container_skia.h"
 #include "core/satoru_context.h"
+#include "core/resource_manager.h"
 #include "litehtml.h"
 #include "renderers/png_renderer.h"
 #include "renderers/svg_renderer.h"
 
 SatoruContext g_context;
+ResourceManager g_resourceManager(g_context);
 
 extern "C" {
 
@@ -57,12 +59,65 @@ int get_png_size() { return (int)g_context.get_last_png().size(); }
 container_skia *g_discovery_container = nullptr;
 
 EMSCRIPTEN_KEEPALIVE
-const char *get_required_fonts(const char *html, int width) {
+const char *collect_resources(const char *html, int width) {
     if (g_discovery_container) delete g_discovery_container;
-    g_discovery_container = new container_skia(width, 1000, nullptr, g_context, false);
+    g_discovery_container = new container_skia(width, 1000, nullptr, g_context, &g_resourceManager, false);
 
-    // Pre-scan HTML for <style> blocks to find @font-face rules
-    // litehtml might not trigger import_css for internal styles
+    if (html) {
+        std::string htmlStr(html);
+        std::regex styleRegex("<style[^>]*>([^<]*)</style>", std::regex::icase);
+        auto words_begin = std::sregex_iterator(htmlStr.begin(), htmlStr.end(), styleRegex);
+        auto words_end = std::sregex_iterator();
+
+        for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+            std::string cssContent = (*i)[1].str();
+            g_discovery_container->scan_font_faces(cssContent);
+        }
+    }
+
+    std::string css = litehtml::master_css;
+    auto doc = litehtml::document::createFromString(html, g_discovery_container, css.c_str());
+    if (doc) {
+        doc->render(width);
+    }
+
+    // Harvest missing fonts
+    for (const auto &font : g_discovery_container->get_missing_fonts()) {
+        std::string url = g_discovery_container->get_font_url(font.family, font.weight, font.slant);
+        if (!url.empty()) {
+            g_resourceManager.request(url, font.family, ResourceType::Font);
+        }
+    }
+
+    std::vector<ResourceRequest> reqs = g_resourceManager.getPendingRequests();
+    std::string result = "";
+    for (const auto& r : reqs) {
+        if (!result.empty()) result += ";;";
+        // URL|Type|Name
+        result += r.url + "|" + std::to_string((int)r.type) + "|" + r.name;
+    }
+
+    char *c_result = (char *)malloc(result.length() + 1);
+    strcpy(c_result, result.c_str());
+    return c_result;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void add_resource(const char *url, int type, const uint8_t *data, int size) {
+    g_resourceManager.add(url, data, size, (ResourceType)type);
+}
+
+// Deprecated but kept for backward compatibility if needed, though now redundant
+EMSCRIPTEN_KEEPALIVE
+const char *get_required_fonts(const char *html, int width) {
+    // This function logic is superseded by collect_resources but we keep it for now
+    // Reuse collect_resources logic but format output differently? 
+    // Or just implement legacy logic using container_skia without ResourceManager?
+    
+    if (g_discovery_container) delete g_discovery_container;
+    // Pass nullptr for ResourceManager to avoid duplicate tracking if we were to mix usage
+    g_discovery_container = new container_skia(width, 1000, nullptr, g_context, nullptr, false);
+
     if (html) {
         std::string htmlStr(html);
         std::regex styleRegex("<style[^>]*>([^<]*)</style>", std::regex::icase);
@@ -82,13 +137,11 @@ const char *get_required_fonts(const char *html, int width) {
     }
 
     std::string result = "";
-    // Pass 1: External CSS found in HTML
     for (const auto &url : g_discovery_container->get_required_css()) {
         if (!result.empty()) result += ";;";
         result += "CSS:" + url;
     }
 
-    // Pass 2: Fonts required during layout
     for (const auto &font : g_discovery_container->get_missing_fonts()) {
         if (!result.empty()) result += ";;";
         std::string url = g_discovery_container->get_font_url(font.family, font.weight, font.slant);

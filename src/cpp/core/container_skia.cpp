@@ -37,8 +37,8 @@ std::string trim(const std::string &s) {
 }
 }  // namespace
 
-container_skia::container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context, bool tagging)
-    : m_canvas(canvas), m_width(w), m_height(h), m_context(context), m_tagging(tagging) {
+container_skia::container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context, ResourceManager* rm, bool tagging)
+    : m_canvas(canvas), m_width(w), m_height(h), m_context(context), m_resourceManager(rm), m_tagging(tagging) {
     m_last_clip_pos = {0, 0, 0, 0};
 }
 
@@ -51,7 +51,16 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
     auto typeface = m_context.get_typeface(desc.family, desc.weight, slant);
 
     if (!typeface) {
+        // Legacy tracking
         m_missingFonts.insert({desc.family, desc.weight, slant});
+        
+        if (m_resourceManager) {
+            std::string url = get_font_url(desc.family, desc.weight, slant);
+            if (!url.empty()) {
+                m_resourceManager->request(url, desc.family, ResourceType::Font);
+            }
+        }
+        
         typeface = m_context.get_typeface("sans-serif", desc.weight, slant);
     }
 
@@ -342,7 +351,11 @@ litehtml::pixel_t container_skia::get_default_font_size() const { return 16; }
 
 const char *container_skia::get_default_font_name() const { return "sans-serif"; }
 
-void container_skia::load_image(const char *src, const char *baseurl, bool redraw_on_ready) {}
+void container_skia::load_image(const char *src, const char *baseurl, bool redraw_on_ready) {
+    if (m_resourceManager && src && *src) {
+        m_resourceManager->request(src, src, ResourceType::Image);
+    }
+}
 
 void container_skia::get_image_size(const char *src, const char *baseurl, litehtml::size &sz) {
     int w, h;
@@ -379,14 +392,16 @@ void container_skia::transform_text(litehtml::string &text, litehtml::text_trans
 void container_skia::import_css(litehtml::string &text, const litehtml::string &url,
                                 litehtml::string &baseurl) {
     if (!url.empty()) {
-        m_requiredCss.push_back(url);
+        m_requiredCss.push_back(url); // Legacy
+        if (m_resourceManager) {
+            m_resourceManager->request(url, url, ResourceType::Css);
+        }
     } else {
         scan_font_faces(text);
     }
 }
 
 void container_skia::scan_font_faces(const std::string &css) {
-    std::cout << "Scanning CSS for fonts..." << std::endl;
     // Robust regex for @font-face and its properties
     std::regex fontFaceRegex("@font-face\\s*\\{([^}]+)\\}", std::regex::icase);
     std::regex familyRegex("font-family:\\s*([^;]+);?", std::regex::icase);
@@ -397,7 +412,6 @@ void container_skia::scan_font_faces(const std::string &css) {
 
     for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
         std::string body = (*i)[1].str();
-        std::cout << "Found @font-face block" << std::endl;
         std::smatch m;
 
         font_request req;
@@ -405,25 +419,18 @@ void container_skia::scan_font_faces(const std::string &css) {
         req.slant = SkFontStyle::kUpright_Slant;
 
         if (std::regex_search(body, m, familyRegex)) {
-            // Normalize family name to ensure case-insensitive matching
             req.family = clean_font_name(m[1].str().c_str());
-            std::cout << "  Family (clean): " << req.family << std::endl;
         }
 
         if (!req.family.empty() && std::regex_search(body, m, urlRegex)) {
             std::string url = trim(m[1].str());
             m_fontFaces[req] = url;
-            std::cout << "  URL: " << url << std::endl;
-        } else {
-            std::cout << "  No URL found for family: " << req.family << std::endl;
         }
     }
 }
 
 std::string container_skia::get_font_url(const std::string &family, int weight,
                                          SkFontStyle::Slant slant) const {
-    std::cout << "get_font_url for: " << family << std::endl;
-    
     std::stringstream ss(family);
     std::string item;
     while (std::getline(ss, item, ',')) {
@@ -435,7 +442,6 @@ std::string container_skia::get_font_url(const std::string &family, int weight,
         font_request req = {cleanFamily, weight, slant};
         auto it = m_fontFaces.find(req);
         if (it != m_fontFaces.end()) {
-            std::cout << "  Match found for sub-family: " << cleanFamily << " -> " << it->second << std::endl;
             return it->second;
         }
 
@@ -452,12 +458,10 @@ std::string container_skia::get_font_url(const std::string &family, int weight,
             }
         }
         if (!bestUrl.empty()) {
-             std::cout << "  Approx match found for sub-family: " << cleanFamily << " -> " << bestUrl << std::endl;
              return bestUrl;
         }
     }
     
-    std::cout << "  No match found" << std::endl;
     return "";
 }
 

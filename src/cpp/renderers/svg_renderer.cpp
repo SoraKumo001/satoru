@@ -90,7 +90,7 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     SkDynamicMemoryWStream stream;
     auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, height > 0 ? (float)height : 1000.0f), &stream);
 
-    container_skia container(width, height > 0 ? height : 1000, canvas.get(), context, true);
+    container_skia container(width, height > 0 ? height : 1000, canvas.get(), context, nullptr, true);
     
     std::string css = litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";
@@ -198,14 +198,14 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
         injected_defs += "<clipPath id=\"image_clip_" + std::to_string(idx) + "\">";
         const auto &br = idi.layer.border_radius;
         if (br.top_left_x > 0 || br.top_right_x > 0 || br.bottom_left_x > 0 || br.bottom_right_x > 0) {
-            injected_defs += "<path d=\"M" + f2s((float)idi.layer.border_box.x + br.top_left_x) + " " + f2s((float)idi.layer.border_box.y) + 
-                         " h" + f2s((float)idi.layer.border_box.width - br.top_left_x - br.top_right_x) + 
+            injected_defs += "<path d=\"M" + f2s((float)idi.layer.border_box.x + (float)br.top_left_x) + " " + f2s((float)idi.layer.border_box.y) + 
+                         " h" + f2s((float)idi.layer.border_box.width - (float)br.top_left_x - (float)br.top_right_x) + 
                          " a" + f2s((float)br.top_right_x) + " " + f2s((float)br.top_right_y) + " 0 0 1 " + f2s((float)br.top_right_x) + " " + f2s((float)br.top_right_y) + 
-                         " v" + f2s((float)idi.layer.border_box.height - br.top_right_y - br.bottom_right_y) + 
+                         " v" + f2s((float)idi.layer.border_box.height - (float)br.top_right_y - (float)br.bottom_right_y) + 
                          " a" + f2s((float)br.bottom_right_x) + " " + f2s((float)br.bottom_right_y) + " 0 0 1 " + f2s((float)-br.bottom_right_x) + " " + f2s((float)br.bottom_right_y) + 
-                         " h" + f2s((float)-(idi.layer.border_box.width - br.bottom_left_x - br.bottom_right_x)) + 
+                         " h" + f2s((float)-(idi.layer.border_box.width - (float)br.bottom_left_x - (float)br.bottom_right_x)) + 
                          " a" + f2s((float)br.bottom_left_x) + " " + f2s((float)br.bottom_left_y) + " 0 0 1 " + f2s((float)-br.bottom_left_x) + " " + f2s((float)-br.bottom_left_y) + 
-                         " v" + f2s((float)-(idi.layer.border_box.height - br.top_left_y - br.bottom_left_y)) + 
+                         " v" + f2s((float)-(idi.layer.border_box.height - (float)br.top_left_y - (float)br.bottom_left_y)) + 
                          " a" + f2s((float)br.top_left_x) + " " + f2s((float)br.top_left_y) + " 0 0 1 " + f2s((float)br.top_left_x) + " " + f2s((float)-br.top_left_y) + " Z\"/>";
         } else {
             injected_defs += "<rect x=\"" + f2s((float)idi.layer.border_box.x) + "\" y=\"" + f2s((float)idi.layer.border_box.y) + 

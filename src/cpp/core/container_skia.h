@@ -15,6 +15,7 @@
 #include "include/core/SkTypeface.h"
 #include "litehtml.h"
 #include "satoru_context.h"
+#include "resource_manager.h"
 
 struct font_info {
     SkFont *font;
@@ -65,6 +66,7 @@ class container_skia : public litehtml::document_container {
     int m_width;
     int m_height;
     SatoruContext &m_context;
+    ResourceManager *m_resourceManager;
 
     std::vector<std::string> m_usedImages;
     std::map<std::string, int> m_imageUrlToIndex;
@@ -73,16 +75,21 @@ class container_skia : public litehtml::document_container {
     std::map<shadow_info, int> m_shadowToIndex;
     std::vector<image_draw_info> m_usedImageDraws;
     std::vector<conic_gradient_info> m_usedConicGradients;
-    std::set<font_request> m_missingFonts;
+    
+    // Font faces discovered from CSS (@font-face)
     std::map<font_request, std::string> m_fontFaces;
+    
+    // Legacy tracking for compatibility and logic reuse
+    std::set<font_request> m_missingFonts;
     std::vector<std::string> m_requiredCss;
+    
     bool m_tagging;
 
     litehtml::position m_last_clip_pos;
     litehtml::border_radiuses m_last_clip_radius;
 
    public:
-    container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context, bool tagging = false);
+    container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context, ResourceManager* rm, bool tagging = false);
 
     void set_canvas(SkCanvas *canvas) { m_canvas = canvas; }
     void set_height(int h) { m_height = h; }
@@ -114,10 +121,10 @@ class container_skia : public litehtml::document_container {
         return m_usedConicGradients[index - 1];
     }
 
+    const std::map<font_request, std::string> &get_font_faces() const { return m_fontFaces; }
+    
     const std::set<font_request> &get_missing_fonts() const { return m_missingFonts; }
     void clear_missing_fonts() { m_missingFonts.clear(); }
-
-    const std::map<font_request, std::string> &get_font_faces() const { return m_fontFaces; }
 
     const std::vector<std::string> &get_required_css() const { return m_requiredCss; }
     void clear_required_css() { m_requiredCss.clear(); }

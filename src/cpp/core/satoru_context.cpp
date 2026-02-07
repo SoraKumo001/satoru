@@ -24,12 +24,9 @@ void SatoruContext::loadFont(const char *name, const uint8_t *data, int size) {
     sk_sp<SkData> skData = SkData::MakeWithCopy(data, size);
     sk_sp<SkTypeface> typeface = fontMgr->makeFromData(skData);
     if (typeface) {
-        std::cout << "Successfully loaded font: " << name << " (cleaned: " << cleanedName << ")" << std::endl;
         typefaceCache[cleanedName].push_back(typeface);
         if (!defaultTypeface) defaultTypeface = typeface;
         fallbackTypefaces.push_back(typeface);
-    } else {
-        std::cerr << "Failed to load font: " << name << " (size: " << size << ")" << std::endl;
     }
 }
 
@@ -56,6 +53,24 @@ void SatoruContext::loadImage(const char *name, const char *data_url, int width,
     }
 
     imageCache[std::string(name)] = info;
+}
+
+void SatoruContext::loadImageFromData(const char *name, const uint8_t *data_ptr, size_t size) {
+    if (!name || !data_ptr || size == 0) return;
+
+    image_info info;
+    info.width = 0;
+    info.height = 0;
+    info.data_url = ""; // Not available
+
+    sk_sp<SkData> skData = SkData::MakeWithCopy(data_ptr, size);
+    info.skImage = SkImages::DeferredFromEncodedData(skData);
+
+    if (info.skImage) {
+        info.width = info.skImage->width();
+        info.height = info.skImage->height();
+        imageCache[std::string(name)] = info;
+    }
 }
 
 void SatoruContext::clearImages() { imageCache.clear(); }

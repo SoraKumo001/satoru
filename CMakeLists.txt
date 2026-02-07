@@ -48,6 +48,7 @@ add_executable(main
     src/cpp/main.cpp
     src/cpp/core/container_skia.cpp
     src/cpp/core/satoru_context.cpp
+    src/cpp/core/resource_manager.cpp
     src/cpp/renderers/svg_renderer.cpp
     src/cpp/renderers/png_renderer.cpp
     src/cpp/utils/utils.cpp
@@ -181,7 +182,7 @@ target_link_options(main PRIVATE
     "-sERROR_ON_UNDEFINED_SYMBOLS=0"
     "-sWARN_ON_UNDEFINED_SYMBOLS=0"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','getValue','setValue','HEAPU8','stringToUTF8','lengthBytesUTF8']"
-    "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_html_to_png','_html_to_png_binary','_get_png_size','_get_required_fonts','_scan_css','_malloc','_free','_load_font','_clear_fonts','_load_image','_clear_images']"
+    "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_html_to_png','_html_to_png_binary','_get_png_size','_get_required_fonts','_collect_resources','_add_resource','_scan_css','_malloc','_free','_load_font','_clear_fonts','_load_image','_clear_images']"
     "-o${CMAKE_CURRENT_SOURCE_DIR}/packages/satoru/dist/satoru.js"
     "-sALLOW_MEMORY_GROWTH=1"
 )

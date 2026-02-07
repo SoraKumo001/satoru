@@ -821,7 +821,7 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
         // TODO: Process overflow for inline elements
         if(src_el()->css().get_display() != display_inline)
         {
-        	position clip_box = m_pos; clip_box += m_padding; clip_box += m_padding;
+        	position clip_box = m_pos; clip_box += m_padding;
         	clip_box.x += x;
         	clip_box.y += y;
         	position border_box = clip_box;

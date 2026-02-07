@@ -82,23 +82,23 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
     SkFontStyle::Slant slant = desc.style == litehtml::font_style_normal
                                    ? SkFontStyle::kUpright_Slant
                                    : SkFontStyle::kItalic_Slant;
-    
+
     auto typefaces = m_context.get_typefaces(desc.family, desc.weight, slant);
 
     if (typefaces.empty()) {
         // Legacy tracking
         m_missingFonts.insert({desc.family, desc.weight, slant});
-        
+
         if (m_resourceManager) {
             std::string url = get_font_url(desc.family, desc.weight, slant);
             if (!url.empty()) {
                 m_resourceManager->request(url, desc.family, ResourceType::Font);
             }
         }
-        
+
         typefaces = m_context.get_typefaces("sans-serif", desc.weight, slant);
     }
-    
+
     // Add global fallbacks if they are not already in the list
     for(auto& tf : m_context.fallbackTypefaces) {
         bool found = false;
@@ -219,7 +219,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         if (font != current_font) {
             if (current_font && p > run_start) {
                 m_canvas->drawSimpleText(run_start, p - run_start, SkTextEncoding::kUTF8,
-                                         (float)pos.x + (float)x_offset, (float)pos.y + (float)fi->fm_ascent,
+                                         (float)pos.x + (float)x_offset, (float)pos.y + (float)fi->fm_ascent,      
                                          *current_font, paint);
                 x_offset += current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
             }
@@ -230,7 +230,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
     }
 
     if (current_font && p > run_start) {
-        m_canvas->drawSimpleText(run_start, p - run_start, SkTextEncoding::kUTF8, (float)pos.x + (float)x_offset,
+        m_canvas->drawSimpleText(run_start, p - run_start, SkTextEncoding::kUTF8, (float)pos.x + (float)x_offset,  
                                  (float)pos.y + (float)fi->fm_ascent, *current_font, paint);
         x_offset += current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
     }
@@ -299,7 +299,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
             auto it = m_shadowToIndex.find(info);
             if (it == m_shadowToIndex.end()) {
                 m_usedShadows.push_back(info);
-                index = (int)m_usedShadows.size();\
+                index = (int)m_usedShadows.size();
                 m_shadowToIndex[info] = index;
             } else {
                 index = it->second;
@@ -315,7 +315,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
 
     // Direct rendering for PNG
     for (const auto &s : shadows) {
-        if (s.inset != inset) continue;\
+        if (s.inset != inset) continue;
 
         SkRRect box_rrect = make_rrect(pos, radius);
         SkColor shadow_color = SkColorSetARGB(s.color.alpha, s.color.red, s.color.green, s.color.blue);
@@ -324,41 +324,41 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
         m_canvas->save();
         if (inset) {
             m_canvas->clipRRect(box_rrect, true);
-            
+
             SkRRect shadow_rrect = box_rrect;
             shadow_rrect.inset(-(float)s.spread.val(), -(float)s.spread.val());
-            
+
             SkPaint paint;
             paint.setAntiAlias(true);
             paint.setColor(shadow_color);
             if (blur_std_dev > 0) {
                 paint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, blur_std_dev));
             }
-            
+
             SkRect huge_rect = box_rrect.rect();
-            huge_rect.outset(blur_std_dev * 3 + std::abs((float)s.x.val()) + 100, 
+            huge_rect.outset(blur_std_dev * 3 + std::abs((float)s.x.val()) + 100,
                              blur_std_dev * 3 + std::abs((float)s.y.val()) + 100);
-            
+
             SkPath path = SkPathBuilder()
                 .addRect(huge_rect)
                 .addRRect(shadow_rrect, SkPathDirection::kCCW)
                 .detach();
-            
+
             m_canvas->translate((float)s.x.val(), (float)s.y.val());
             m_canvas->drawPath(path, paint);
         } else {
             m_canvas->clipRRect(box_rrect, SkClipOp::kDifference, true);
-            
+
             SkRRect shadow_rrect = box_rrect;
             shadow_rrect.outset((float)s.spread.val(), (float)s.spread.val());
-            
+
             SkPaint paint;
             paint.setAntiAlias(true);
             paint.setColor(shadow_color);
             if (blur_std_dev > 0) {
                 paint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, blur_std_dev));
             }
-            
+
             m_canvas->translate((float)s.x.val(), (float)s.y.val());
             m_canvas->drawRRect(shadow_rrect, paint);
         }
@@ -489,6 +489,16 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
             m_canvas->drawRect(rect, paint);
         }
     } else {
+        bool has_radius = borders.radius.top_left_x > 0 || borders.radius.top_left_y > 0 ||
+                          borders.radius.top_right_x > 0 || borders.radius.top_right_y > 0 ||
+                          borders.radius.bottom_right_x > 0 || borders.radius.bottom_right_y > 0 ||
+                          borders.radius.bottom_left_x > 0 || borders.radius.bottom_left_y > 0;
+
+        m_canvas->save();
+        if (has_radius) {
+            m_canvas->clipRRect(make_rrect(draw_pos, borders.radius), true);
+        }
+
         auto draw_border = [&](const litehtml::border &b, float x1, float y1, float x2, float y2) {
             if (b.width <= 0 || b.style == litehtml::border_style_none ||
                 b.style == litehtml::border_style_hidden)
@@ -501,14 +511,16 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
             m_canvas->drawLine(x1, y1, x2, y2, paint);
         };
 
-        draw_border(borders.top, (float)draw_pos.x, (float)draw_pos.y,
-                    (float)draw_pos.x + draw_pos.width, (float)draw_pos.y);
-        draw_border(borders.bottom, (float)draw_pos.x, (float)draw_pos.y + draw_pos.height,
-                    (float)draw_pos.x + draw_pos.width, (float)draw_pos.y + draw_pos.height);
-        draw_border(borders.left, (float)draw_pos.x, (float)draw_pos.y, (float)draw_pos.x,
-                    (float)draw_pos.y + draw_pos.height);
-        draw_border(borders.right, (float)draw_pos.x + draw_pos.width, (float)draw_pos.y,
-                    (float)draw_pos.x + draw_pos.width, (float)draw_pos.y + draw_pos.height);
+        draw_border(borders.top, (float)draw_pos.x, (float)draw_pos.y + (float)borders.top.width / 2.0f,
+                    (float)draw_pos.x + draw_pos.width, (float)draw_pos.y + (float)borders.top.width / 2.0f);
+        draw_border(borders.bottom, (float)draw_pos.x, (float)draw_pos.y + draw_pos.height - (float)borders.bottom.width / 2.0f,
+                    (float)draw_pos.x + draw_pos.width, (float)draw_pos.y + draw_pos.height - (float)borders.bottom.width / 2.0f);
+        draw_border(borders.left, (float)draw_pos.x + (float)borders.left.width / 2.0f, (float)draw_pos.y,
+                    (float)draw_pos.x + (float)borders.left.width / 2.0f, (float)draw_pos.y + draw_pos.height);
+        draw_border(borders.right, (float)draw_pos.x + draw_pos.width - (float)borders.right.width / 2.0f, (float)draw_pos.y,
+                    (float)draw_pos.x + draw_pos.width - (float)borders.right.width / 2.0f, (float)draw_pos.y + draw_pos.height);
+
+        m_canvas->restore();
     }
 }
 
@@ -606,7 +618,7 @@ std::string container_skia::get_font_url(const std::string &family, int weight,
         // Trim leading/trailing whitespace and quotes from the family name part
         std::string trimmed = trim(item);
         std::string cleanFamily = clean_font_name(trimmed.c_str());
-        
+
         // Exact match
         font_request req = {cleanFamily, weight, slant};
         auto it = m_fontFaces.find(req);
@@ -630,7 +642,7 @@ std::string container_skia::get_font_url(const std::string &family, int weight,
              return bestUrl;
         }
     }
-    
+
     return "";
 }
 

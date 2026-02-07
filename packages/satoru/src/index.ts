@@ -1,98 +1,75 @@
-// satoru.js and satoru.wasm are in the dist directory
 // @ts-ignore
 import createSatoruModule from "../dist/satoru.js";
 
-// We don't import wasm here anymore to avoid Vite build errors.
-// Host applications (like Cloudflare Workers or Vite apps) should handle WASM loading.
-
-export { createSatoruModule };
-
 export interface SatoruModule {
   _init_engine: () => void;
-  _html_to_svg: (htmlPtr: number, width: number, height: number) => number;
-  _html_to_png: (htmlPtr: number, width: number, height: number) => number;
-  _html_to_png_binary: (htmlPtr: number, width: number, height: number) => number;
+  _html_to_svg: (html: number, width: number, height: number) => number;
+  _html_to_png: (html: number, width: number, height: number) => number;
+  _html_to_png_binary: (html: number, width: number, height: number) => number;
   _get_png_size: () => number;
-  _get_required_fonts: (htmlPtr: number, width: number) => number;
-  _collect_resources: (htmlPtr: number, width: number) => number;
-  _add_resource: (urlPtr: number, type: number, dataPtr: number, size: number) => void;
-  _scan_css: (cssPtr: number) => void;
-  _load_font: (namePtr: number, dataPtr: number, size: number) => void;
+  _collect_resources: (html: number, width: number) => number;
+  _add_resource: (url: number, type: number, data: number, size: number) => void;
+  _scan_css: (css: number) => void;
+  _load_font: (name: number, data: number, size: number) => void;
   _clear_fonts: () => void;
-  _load_image: (namePtr: number, dataUrlPtr: number, width: number, height: number) => void;
+  _load_image: (name: number, url: number, width: number, height: number) => void;
   _clear_images: () => void;
   _malloc: (size: number) => number;
   _free: (ptr: number) => void;
   UTF8ToString: (ptr: number) => string;
-  stringToUTF8: (str: string, ptr: number, maxBytes: number) => void;
+  stringToUTF8: (str: string, ptr: number, max: number) => void;
   lengthBytesUTF8: (str: string) => number;
-  HEAPU8: Uint8Array;
-}
-
-export interface SatoruOptions {
-  locateFile?: (url: string) => string;
-  print?: (text: string) => void;
-  printErr?: (text: string) => void;
-  wasmBinary?: ArrayBuffer | WebAssembly.Module;
-  instantiateWasm?: (imports: any, successCallback: any) => any;
-  mainScriptUrlOrBlob?: string;
-  noInitialRun?: boolean;
+  HEAPU8: {
+    buffer: ArrayBuffer;
+    set: (data: Uint8Array, ptr: number) => void;
+  };
 }
 
 export interface RequiredResource {
   type: "font" | "css" | "image";
-  name: string;
   url: string;
+  name: string;
 }
 
-export type ResourceResolver = (resource: RequiredResource) => Promise<Uint8Array | string | null>;
+export type ResourceResolver = (resource: RequiredResource) => Promise<string | Uint8Array | null>;
+
+export interface SatoruOptions {
+  locateFile?: (path: string) => string;
+  instantiateWasm?: (imports: any, successCallback: any) => any;
+}
+
+export { createSatoruModule };
 
 export class Satoru {
-  private module: SatoruModule | null = null;
+  protected mod: SatoruModule;
 
-  constructor(private createModule: (options?: any) => Promise<SatoruModule> = createSatoruModule) {}
-
-  async init(options?: SatoruOptions) {
-    this.module = await this.createModule({
-      ...options,
-    });
-    this.module!._init_engine();
+  protected constructor(mod: SatoruModule) {
+    this.mod = mod;
   }
 
-  private get mod(): SatoruModule {
-    if (!this.module) throw new Error("Satoru not initialized. Call init() first.");
-    return this.module;
+  static async init(createSatoruModuleFunc: any = createSatoruModule, options: SatoruOptions = {}): Promise<Satoru> {
+    const mod = await createSatoruModuleFunc(options);
+    mod._init_engine();
+    return new Satoru(mod);
   }
 
   loadFont(name: string, data: Uint8Array) {
     const namePtr = this.stringToPtr(name);
     const dataPtr = this.mod._malloc(data.length);
     this.mod.HEAPU8.set(data, dataPtr);
-
     this.mod._load_font(namePtr, dataPtr, data.length);
-
     this.mod._free(namePtr);
     this.mod._free(dataPtr);
-  }
-
-  scanCss(css: string) {
-    if (this.mod._scan_css) {
-      const cssPtr = this.stringToPtr(css);
-      this.mod._scan_css(cssPtr);
-      this.mod._free(cssPtr);
-    }
   }
 
   clearFonts() {
     this.mod._clear_fonts();
   }
 
-  loadImage(name: string, dataUrl: string, width: number = 0, height: number = 0) {
+  loadImage(name: string, dataUrl: string, width: number, height: number) {
     const namePtr = this.stringToPtr(name);
     const urlPtr = this.stringToPtr(dataUrl);
-
     this.mod._load_image(namePtr, urlPtr, width, height);
-
     this.mod._free(namePtr);
     this.mod._free(urlPtr);
   }
@@ -139,17 +116,26 @@ export class Satoru {
                    let fontName = r.url.split('/').pop()?.split('.')[0] || r.name;
                    if (r.url.includes("noto-sans-jp")) fontName = "Noto Sans JP";
                    
-                   const fontFace = `@font-face { font-family: '${fontName}'; src: url('${r.url}'); }`;
+                   let fontWeight = "400";
+                   if (/[-._]700\b|bold/i.test(r.url)) fontWeight = "700";
+                   else if (/[-._]300\b|light/i.test(r.url)) fontWeight = "300";
+                   else if (/[-._]500\b|medium/i.test(r.url)) fontWeight = "500";
+                   else if (/[-._]900\b|black/i.test(r.url)) fontWeight = "900";
+
+                   let fontStyle = "normal";
+                   if (/italic|oblique/i.test(r.url)) fontStyle = "italic";
+                   
+                   const fontFace = `@font-face { font-family: '${fontName}'; font-weight: ${fontWeight}; font-style: ${fontStyle}; src: url('${r.url}'); }`;
                    this.scanCss(fontFace);
                    processedHtml = `<style>${fontFace}</style>\n` + processedHtml;
                    
-                   this.loadFont(fontName, data); // Legacy load for synthesized font-face
+                   this.loadFont(fontName, data); 
                 } else {
                    this.addResource(r.url, r.type, data);
                 }
               }
               
-              const escapedUrl = r.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const escapedUrl = r.url.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
               const linkRegex = new RegExp(`<link[^>]+href=["']${escapedUrl}["'][^>]*>`, 'gi');
               processedHtml = processedHtml.replace(linkRegex, "");
             } catch (e) {
@@ -175,7 +161,7 @@ export class Satoru {
     const svgPtr = this.mod._html_to_svg(htmlPtr, width, height);
     const svg = this.mod.UTF8ToString(svgPtr);
     this.mod._free(htmlPtr);
-    this.mod._free(svgPtr);
+    this.mod._free(svgPtr); // CRITICAL: Free the string returned by malloc in C++
     return svg;
   }
 
@@ -190,6 +176,7 @@ export class Satoru {
     }
 
     this.mod._free(htmlPtr);
+    // Note: pngPtr is managed inside g_context in C++, no need to free here
     return result;
   }
 
@@ -198,7 +185,7 @@ export class Satoru {
     const ptr = this.mod._html_to_png(htmlPtr, width, height);
     const dataUrl = this.mod.UTF8ToString(ptr);
     this.mod._free(htmlPtr);
-    this.mod._free(ptr);
+    this.mod._free(ptr); // CRITICAL: Free the string returned by malloc in C++
     return dataUrl;
   }
 
@@ -211,11 +198,11 @@ export class Satoru {
     const ptr = this.mod._collect_resources(htmlPtr, width);
     const resultStr = this.mod.UTF8ToString(ptr);
     this.mod._free(htmlPtr);
-    this.mod._free(ptr); 
+    this.mod._free(ptr); // CRITICAL: Free the string returned by malloc in C++
 
     if (!resultStr) return [];
 
-    return resultStr.split(";;").map((part) => {
+    return resultStr.split(";;").map((part: string) => {
       const [url, typeStr, name] = part.split("|");
       const typeInt = parseInt(typeStr, 10);
       let type: "font" | "css" | "image" = "font";
@@ -239,6 +226,12 @@ export class Satoru {
       
       this.mod._free(urlPtr);
       this.mod._free(dataPtr);
+  }
+
+  scanCss(css: string) {
+    const cssPtr = this.stringToPtr(css);
+    this.mod._scan_css(cssPtr);
+    this.mod._free(cssPtr);
   }
 
   /** @deprecated use getRequiredResources */

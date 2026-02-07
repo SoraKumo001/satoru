@@ -5,6 +5,6 @@
 
 #include "satoru_context.h"
 
-std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context);
+std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context, const char* master_css);
 
 #endif  // SVG_RENDERER_H

@@ -1,33 +1,31 @@
 import fs from "fs";
 import path from "path";
-import { fileURLToPath, pathToFileURL } from "url";
 import { Satoru } from "satoru";
+import { pathToFileURL } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const ASSETS_DIR = path.resolve(__dirname, "../../../assets");
-const TEMP_DIR = path.resolve(__dirname, "../../../temp");
-const WASM_JS_PATH = path.resolve(__dirname, "../../satoru/dist/satoru.js");
-const WASM_BINARY_PATH = path.resolve(__dirname, "../../satoru/dist/satoru.wasm");
-
-const ROBOTO_400 = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2";
-const NOTO_JP_400 = "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2";
+const ASSETS_DIR = path.resolve("../../assets");
+const TEMP_DIR = path.resolve("./temp");
+const WASM_JS_PATH = path.resolve("../satoru/dist/satoru.js");
+const WASM_BINARY_PATH = path.resolve("../satoru/dist/satoru.wasm");
 
 const FONT_MAP = [
-  { name: "Roboto", url: ROBOTO_400, path: path.join(TEMP_DIR, "Roboto-400.woff2") },
-  { name: "Noto Sans JP", url: NOTO_JP_400, path: path.join(TEMP_DIR, "NotoSansJP-400.woff2") },
+  {
+    name: "Roboto",
+    url: "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2",
+    path: path.join(TEMP_DIR, "roboto.woff2"),
+  },
+  {
+    name: "Noto Sans JP",
+    url: "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2",
+    path: path.join(TEMP_DIR, "noto-sans-jp.woff2"),
+  },
 ];
 
 async function downloadFont(url: string, dest: string) {
   if (fs.existsSync(dest)) return;
-  console.log(`Downloading font from ${url}...`);
-  const response = await fetch(url);
-  if (!response.ok)
-    throw new Error(`Failed to download font: ${response.statusText}`);
-  const arrayBuffer = await response.arrayBuffer();
-  fs.writeFileSync(dest, Buffer.from(arrayBuffer));
-  console.log(`Font saved to ${dest}`);
+  const resp = await fetch(url);
+  const buf = await resp.arrayBuffer();
+  fs.writeFileSync(dest, Buffer.from(buf));
 }
 
 async function convertAssets() {
@@ -43,11 +41,12 @@ async function convertAssets() {
     }
 
     const { default: createSatoruModule } = await import(pathToFileURL(WASM_JS_PATH).href);
-    const satoru = new Satoru(createSatoruModule);
     
-    await satoru.init({
+    // Updated to use the new static init method
+    const satoru = await Satoru.init(createSatoruModule, {
       locateFile: (url: string) =>
         url.endsWith(".wasm") ? WASM_BINARY_PATH : url,
+      // @ts-ignore - printing methods are internal emscripten options
       print: (text: string) => console.log(`[WASM] ${text}`),
       printErr: (text: string) => console.error(`[WASM ERROR] ${text}`),
     });
@@ -60,97 +59,52 @@ async function convertAssets() {
       const pngOutputPath = path.join(TEMP_DIR, file.replace(".html", ".png"));
 
       console.log(`Converting: ${file} ...`);
-      const html = fs.readFileSync(inputPath, "utf8");
+      const html = fs.readFileSync(inputPath, "utf-8");
 
-      const preloadedFontUrls = new Set<string>();
-
-      // --- Pre-emptive Font Loading ---
-      satoru.clearFonts();
-      const fontLinkRegex = /<link[^>]+href=["']([^"']+)["'][^>]*>/g;
-      let fontMatch;
-      while ((fontMatch = fontLinkRegex.exec(html)) !== null) {
-        const url = fontMatch[1];
-        preloadedFontUrls.add(url); // Keep track of preloaded fonts
-        const fontInfo = FONT_MAP.find(f => f.url === url);
-        if (fontInfo && fs.existsSync(fontInfo.path)) {
-            console.log(`  [Pre-loading font] ${fontInfo.name}`);
-            const fontData = fs.readFileSync(fontInfo.path);
-            satoru.loadFont(fontInfo.name, new Uint8Array(fontData));
+      const resourceResolver = async (r: any) => {
+        const isFont = r.type === "font" || r.url.match(/\.(woff2?|ttf|otf)$/i);
+        
+        // Check if we have it locally first
+        if (isFont) {
+           const fontMatch = FONT_MAP.find(f => f.name === r.name || r.url.includes(f.name.toLowerCase().replace(/ /g, '-')));
+           if (fontMatch && fs.existsSync(fontMatch.path)) {
+              return new Uint8Array(fs.readFileSync(fontMatch.path));
+           }
         }
-      }
-       const sansSerif = FONT_MAP.find(f => f.name === "Noto Sans JP");
-       if (sansSerif && fs.existsSync(sansSerif.path)) {
-           const fontData = fs.readFileSync(sansSerif.path);
-           satoru.loadFont("sans-serif", new Uint8Array(fontData));
-       }
-      // --- End Pre-emptive Font Loading ---
-
-      const resolveResource = async (r: { type: "font" | "css"; name: string; url: string }) => {
-        // If this URL was already handled by our pre-loader, ignore it.
-        if (preloadedFontUrls.has(r.url)) {
-            console.log(`  [Ignoring already pre-loaded resource] ${r.url}`);
-            return null;
-        }
-
-        const url = r.url;
-        if (!url) return null;
 
         try {
-          if (url.startsWith("http")) {
-            const response = await fetch(url);
-            if (!response.ok) {
-              console.warn(`  [Fetch Failed] ${url} (${response.status})`);
-              return null;
-            }
-            console.log(`  [Resource Resolved] Type: ${r.type}, URL: ${r.url}`);
-            if (r.type === "font") return new Uint8Array(await response.arrayBuffer());
-            return await response.text();
-          } else {
-            const localPath = path.join(TEMP_DIR, url);
-            if (fs.existsSync(localPath)) {
-              console.log(`  [Resource Resolved Local] Type: ${r.type}, Path: ${url}`);
-              const data = fs.readFileSync(localPath);
-              return r.type === "font" ? new Uint8Array(data) : data.toString("utf8");
-            }
-            return null;
-          }
+          const resp = await fetch(r.url);
+          if (!resp.ok) return null;
+          if (r.type === "css") return await resp.text();
+          return new Uint8Array(await resp.arrayBuffer());
         } catch (e) {
-          console.warn(`  [Resolve Error] ${url}`, e);
           return null;
         }
       };
 
-      satoru.clearImages();
-      const dataUrls = new Set<string>();
-      const imgRegex = /<img[^>]+src=["'](data:image\/[^'"]+)["']/g;
-      const bgRegex = /background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g;
-
-      let match;
-      while ((match = imgRegex.exec(html)) !== null) dataUrls.add(match[1]);
-      while ((match = bgRegex.exec(html)) !== null) dataUrls.add(match[1]);
-
-      for (const url of dataUrls) {
-        satoru.loadImage(url, url);
-      }
-
+      // 1. Render SVG
       const svg = await satoru.render(html, 800, {
         format: "svg",
-        resolveResource
-      }) as string;
-      if (svg) fs.writeFileSync(svgOutputPath, svg);
+        resolveResource: resourceResolver,
+      });
+      if (typeof svg === "string") {
+        fs.writeFileSync(svgOutputPath, svg);
+      }
 
-      const pngBuffer = await satoru.render(html, 800, {
+      // 2. Render PNG
+      const png = await satoru.render(html, 800, {
         format: "png",
-        resolveResource
-      }) as Uint8Array;
-      if (pngBuffer) {
-        fs.writeFileSync(pngOutputPath, Buffer.from(pngBuffer));
+        resolveResource: resourceResolver,
+      });
+      if (png instanceof Uint8Array) {
+        fs.writeFileSync(pngOutputPath, png);
       }
     }
 
     console.log(`--- Finished! ${files.length} files converted. ---`);
-  } catch (error) {
-    console.error("Conversion failed:", error);
+  } catch (err) {
+    console.error("Conversion failed:", err);
+    process.exit(1);
   }
 }
 

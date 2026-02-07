@@ -1,16 +1,13 @@
-import { Satoru, createSatoruModule, RequiredResource } from "satoru";
+import { Satoru, RequiredResource } from "satoru";
 
 async function init() {
   console.log("Initializing Satoru Engine (Skia + Wasm)...");
   try {
-    const satoru = new Satoru(createSatoruModule);
-    await satoru.init({
+    const satoru = await Satoru.init(undefined, {
       locateFile: (path: string) => {
-        if (path.endsWith(".wasm")) {
-          return "satoru.wasm";
-        }
+        if (path.endsWith(".wasm")) return "/satoru.wasm";
         return path;
-      },
+      }
     });
 
     const app = document.getElementById("app");
@@ -52,22 +49,24 @@ async function init() {
                         <fieldset style="flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white;">
                             <legend style="font-weight: bold;">Canvas & Fonts</legend>
                             <label>Width: <input type="number" id="canvasWidth" value="580" style="width: 80px;"></label>
-                            <button id="loadFontBtn" style="margin-left: 20px; padding: 5px 10px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 4px;">Loading Fonts...</button>
+                            <button id="loadFontBtn" style="margin-left: 20px; padding: 5px 10px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 4px;">Auto Font Loading On</button>
                         </fieldset>
                         <fieldset style="flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white;">
                             <legend style="font-weight: bold;">Load Sample Assets</legend>
                             <select id="assetSelect" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc; width: 100%;">
                                 <option value="">-- Select Asset --</option>
-                                <option value="01-basic-styling.html">01-basic-styling.html</option>
+                                <option value="01-complex-layout.html">01-complex-layout.html</option>
                                 <option value="02-typography.html">02-typography.html</option>
                                 <option value="03-flexbox-layout.html">03-flexbox-layout.html</option>
                                 <option value="04-japanese-rendering.html">04-japanese-rendering.html</option>
                                 <option value="05-ui-components.html">05-ui-components.html</option>
-                                <option value="06-complex-layout.html">06-complex-layout.html</option>
+                                <option value="06-standard-tags.html">06-standard-tags.html</option>
                                 <option value="07-image-embedding.html">07-image-embedding.html</option>
                                 <option value="08-box-shadow.html">08-box-shadow.html</option>
                                 <option value="09-complex-layout.html">09-complex-layout.html</option>
+                                <option value="10-line-style-test.html">10-line-style-test.html</option>
                                 <option value="11-gradients.html">11-gradients.html</option>
+                                <option value="12-border-radius.html">12-border-radius.html</option>
                             </select>
                         </fieldset>
                     </div>
@@ -91,7 +90,7 @@ async function init() {
                                 <h3>SVG Render Preview:</h3>
                                 <button id="downloadBtn" style="display: none; background: #FF9800; color: white; border: none; padding: 6px 15px; cursor: pointer; border-radius: 4px;">Download .svg</button>
                             </div>
-                            <div id="svgContainer" style="border: 1px solid #ddd; background: #eee; border-radius: 8px; height: 800px; display: flex;  overflow: auto; box-sizing: border-box;">
+                            <div id="svgContainer" style="border: 1px solid #ddd; background: #eee; border-radius: 8px; height: 800px; display: flex;  overflow: auto; box-sizing: border-box; justify-content: center;">
                                 <div style="color: #999; margin-top: 200px;">Result will appear here</div>
                             </div>
                         </div>
@@ -104,33 +103,17 @@ async function init() {
                 </div>
             `;
 
-      const convertBtn = document.getElementById(
-        "convertBtn",
-      ) as HTMLButtonElement;
-      const loadFontBtn = document.getElementById("loadFontBtn");
-      const downloadBtn = document.getElementById("downloadBtn");
-      const htmlInput = document.getElementById(
-        "htmlInput",
-      ) as HTMLTextAreaElement;
-      const htmlPreview = document.getElementById(
-        "htmlPreview",
-      ) as HTMLIFrameElement;
-      const svgContainer = document.getElementById(
-        "svgContainer",
-      ) as HTMLDivElement;
-      const svgSource = document.getElementById(
-        "svgSource",
-      ) as HTMLTextAreaElement;
-      const canvasWidthInput = document.getElementById(
-        "canvasWidth",
-      ) as HTMLInputElement;
-      const assetSelect = document.getElementById(
-        "assetSelect",
-      ) as HTMLSelectElement;
+      const convertBtn = document.getElementById("convertBtn") as HTMLButtonElement;
+      const downloadBtn = document.getElementById("downloadBtn") as HTMLButtonElement;
+      const htmlInput = document.getElementById("htmlInput") as HTMLTextAreaElement;
+      const htmlPreview = document.getElementById("htmlPreview") as HTMLIFrameElement;
+      const svgContainer = document.getElementById("svgContainer") as HTMLDivElement;
+      const svgSource = document.getElementById("svgSource") as HTMLTextAreaElement;
+      const canvasWidthInput = document.getElementById("canvasWidth") as HTMLInputElement;
+      const assetSelect = document.getElementById("assetSelect") as HTMLSelectElement;
 
       const updatePreview = () => {
-        const doc =
-          htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
+        const doc = htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
         if (doc) {
           doc.open();
           doc.write(htmlInput.value);
@@ -138,140 +121,110 @@ async function init() {
         }
       };
 
-      /**
-       * Resource resolver for dynamic loading of fonts, CSS, and images.
-       * Following the new 2-pass layout specification.
-       */
       const resourceResolver = async (r: RequiredResource) => {
         console.log(`[Satoru] Resolving ${r.type}: ${r.url}`);
         try {
-          const resp = await fetch(r.url);
+          const url = r.url.startsWith("http") ? r.url : `../../assets/${r.url}`;
+          const isFont = url.match(/\.(woff2?|ttf|otf)$/i);
+          
+          const resp = await fetch(url);
           if (!resp.ok) return null;
 
-          // Heuristic: If it's a font file, always return binary data
-          const isFont = /\.(woff2?|ttf|otf|eot)(\?.*)?$/i.test(r.url);
-
+          // Force binary for fonts even if type is 'css'
           if (r.type === "css" && !isFont) {
             return await resp.text();
+          } else {
+            const buf = await resp.arrayBuffer();
+            return new Uint8Array(buf);
           }
-
-          // Images and Fonts are returned as Uint8Array
-          return new Uint8Array(await resp.arrayBuffer());
         } catch (e) {
-          console.error(`[Satoru] Failed to load resource: ${r.url}`, e);
+          console.error(`Failed to resolve ${r.url}`, e);
           return null;
         }
       };
 
-      const performConversion = async () => {
-        const htmlStr = htmlInput.value;
-        const width = parseInt(canvasWidthInput.value) || 580;
+      const convert = async () => {
+        const width = parseInt(canvasWidthInput.value, 10) || 580;
+        const html = htmlInput.value;
+        if (!html) return;
 
-        const loadingOverlay = document.createElement("div");
-        loadingOverlay.className = "loading-overlay";
-        loadingOverlay.innerHTML = '<div class="spinner"></div> Processing...';
-        svgContainer.appendChild(loadingOverlay);
         convertBtn.disabled = true;
-        convertBtn.style.opacity = "0.7";
+        convertBtn.innerText = "Processing...";
+
+        const loading = document.createElement("div");
+        loading.className = "loading-overlay";
+        loading.innerHTML = '<div class="spinner"></div>Rendering SVG...';
+        svgContainer.style.position = "relative";
+        svgContainer.appendChild(loading);
 
         try {
-          // New specification: render() handles multi-pass resource resolution automatically
-          // using the provided resolveResource callback. No manual preloading needed.
-          let svgResult = (await satoru.render(htmlStr, width, {
+          const result = await satoru.render(html, width, {
             format: "svg",
             resolveResource: resourceResolver,
-          })) as string;
+          });
 
-          svgResult = svgResult.replace(
-            "<svg",
-            '<svg style="overflow:visible"',
-          );
-
-          svgContainer.innerHTML = svgResult;
-          svgContainer.style.background = "#fff";
-          if (svgSource) svgSource.value = svgResult;
-          if (downloadBtn) downloadBtn.style.display = "block";
-        } catch (err) {
-          console.error("Error during conversion:", err);
-          svgContainer.innerHTML =
-            '<div style="color: red; padding: 20px;">Conversion Failed</div>';
+          if (typeof result === "string" && result.length > 100) {
+            svgContainer.innerHTML = result;
+            svgSource.value = result;
+            downloadBtn.style.display = "block";
+          } else {
+            svgContainer.innerHTML = '<div style="color:orange; padding: 20px;">Rendering returned no result.</div>';
+            svgSource.value = typeof result === "string" ? result : "";
+          }
+        } catch (e) {
+          console.error("Conversion failed:", e);
+          svgContainer.innerHTML = `<div style="color:red; padding: 20px;">Error: ${e}</div>`;
         } finally {
           convertBtn.disabled = false;
-          convertBtn.style.opacity = "1.0";
-          if (loadingOverlay.parentNode) loadingOverlay.remove();
+          convertBtn.innerText = "Generate Vector SVG";
         }
       };
 
-      htmlInput.value = `
-<!-- Remote fonts and images will be resolved automatically in 2-pass mode -->
-<link href="https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2" rel="stylesheet">
+      convertBtn.addEventListener("click", convert);
 
-<div style="padding: 40px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
-  <h1 style="color: #2196F3; font-family: 'Roboto'; font-size: 42px; text-align: center; margin-bottom: 20px; font-weight: 700;">
-    Satoru: Automated Resource Loading
-  </h1>
-  
-  <p style="font-size: 20px; color: #495057; line-height: 1.6; font-family: 'Roboto'; font-weight: 400;">
-    The engine now supports <b>automated 2-pass rendering</b>. 
-    It identifies missing fonts, images, and external CSS, then requests them from the host.
-  </p>
-  
-  <div style="background: white; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 6px solid #2196F3;">
-    <p style="font-size: 18px; color: #212529; font-family: 'Noto Sans JP'; font-weight: 700; margin: 0;">
-      日本語フォント（Noto Sans JP）も、HTML内の link タグから自動的に検出・ロードされます。
-    </p>
-  </div>
+      assetSelect.addEventListener("change", async () => {
+        const file = assetSelect.value;
+        if (!file) return;
 
-  <div style="text-align: center; margin-top: 30px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAALUlEQVRYR+3QQREAAAzCQJ9/aaYpAtpAn7Z6AgICAgICAgICAgICAgICAgICAj8WpAEBArZunQAAAABJRU5ErkJggg==" 
-         style="width: 64px; height: 64px; border: 2px solid #eee; border-radius: 50%; padding: 10px; background: white;" />
-    <span style="font-size: 12px; color: #adb5bd; font-family: sans-serif;">Embedded Data URL Image</span>
-  </div>
-</div>`;
-      updatePreview();
-
-      (async () => {
         try {
-          if (loadFontBtn) {
-            loadFontBtn.style.display = "none";
-          }
-          await performConversion();
-        } catch (e) {
-          console.error("Initial render failed:", e);
-        }
-      })();
-
-      htmlInput.addEventListener("input", updatePreview);
-      assetSelect?.addEventListener("change", async () => {
-        const asset = assetSelect.value;
-        if (!asset) return;
-        try {
-          const resp = await fetch(`./assets/${asset}`);
-          const text = await resp.text();
-          htmlInput.value = text;
+          const resp = await fetch(`../../assets/${file}`);
+          const html = await resp.text();
+          htmlInput.value = html;
           updatePreview();
-          performConversion();
+          setTimeout(() => convert(), 100);
         } catch (e) {
-          console.error("Error loading asset:", e);
+          console.error(`Failed to load asset: ${file}`, e);
         }
       });
 
-      convertBtn?.addEventListener("click", performConversion);
-      downloadBtn?.addEventListener("click", () => {
+      downloadBtn.addEventListener("click", () => {
         const blob = new Blob([svgSource.value], { type: "image/svg+xml" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "satoru_render.svg";
-        document.body.appendChild(a);
+        a.download = "rendered.svg";
         a.click();
-        document.body.removeChild(a);
         URL.revokeObjectURL(url);
       });
+
+      htmlInput.addEventListener("input", updatePreview);
+
+      const initialAsset = "01-complex-layout.html";
+      try {
+        const resp = await fetch(`../../assets/${initialAsset}`);
+        const html = await resp.text();
+        htmlInput.value = html;
+        assetSelect.value = initialAsset;
+        updatePreview();
+        setTimeout(() => convert(), 1000);
+      } catch (e) {
+        console.warn("Could not load initial asset", e);
+      }
     }
   } catch (e) {
-    console.error("Failed to load Wasm module:", e);
+    console.error("Failed to initialize Satoru Engine:", e);
+    const app = document.getElementById("app");
+    if (app) app.innerHTML = `<div style="color:red; padding: 50px;">Failed to initialize: ${e}</div>`;
   }
 }
 

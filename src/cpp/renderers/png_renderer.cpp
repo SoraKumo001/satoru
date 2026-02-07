@@ -2,22 +2,23 @@
 
 #include <litehtml/master_css.h>
 
+#include "../utils/utils.h"
 #include "container_skia.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkStream.h"
 #include "include/encode/SkPngEncoder.h"
 #include "litehtml.h"
-#include "../utils/utils.h"
 
-std::string renderHtmlToPng(const char *html, int width, int height, SatoruContext &context, const char* master_css) {
+std::string renderHtmlToPng(const char *html, int width, int height, SatoruContext &context,
+                            const char *master_css) {
     auto data = renderHtmlToPngBinary(html, width, height, context, master_css);
     if (!data) return "";
     return "data:image/png;base64," + base64_encode((const uint8_t *)data->data(), data->size());
 }
 
-sk_sp<SkData> renderHtmlToPngBinary(const char *html, int width, int height,
-                                    SatoruContext &context, const char* master_css) {
+sk_sp<SkData> renderHtmlToPngBinary(const char *html, int width, int height, SatoruContext &context,
+                                    const char *master_css) {
     int initial_height = (height > 0) ? height : 1000;
     container_skia container(width, initial_height, nullptr, context, nullptr, false);
 

@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "../utils/utils.h"
 #include "container_skia.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkCanvas.h"
@@ -21,7 +22,6 @@
 #include "include/effects/SkGradient.h"
 #include "include/encode/SkPngEncoder.h"
 #include "include/svg/SkSVGCanvas.h"
-#include "../utils/utils.h"
 
 namespace {
 static std::string bitmapToDataUrl(const SkBitmap &bitmap) {
@@ -33,36 +33,41 @@ static std::string bitmapToDataUrl(const SkBitmap &bitmap) {
 
 static bool has_radius(const litehtml::border_radiuses &r) {
     return r.top_left_x > 0 || r.top_left_y > 0 || r.top_right_x > 0 || r.top_right_y > 0 ||
-           r.bottom_right_x > 0 || r.bottom_right_y > 0 || r.bottom_left_x > 0 || r.bottom_left_y > 0;
+           r.bottom_right_x > 0 || r.bottom_right_y > 0 || r.bottom_left_x > 0 ||
+           r.bottom_left_y > 0;
 }
 
-static std::string path_from_rrect(const litehtml::position &pos, const litehtml::border_radiuses &r) {
+static std::string path_from_rrect(const litehtml::position &pos,
+                                   const litehtml::border_radiuses &r) {
     std::stringstream ss;
     float x = (float)pos.x, y = (float)pos.y, w = (float)pos.width, h = (float)pos.height;
-    ss << "M" << x + r.top_left_x << "," << y
-       << " L" << x + w - r.top_right_x << "," << y;
+    ss << "M" << x + r.top_left_x << "," << y << " L" << x + w - r.top_right_x << "," << y;
     if (r.top_right_x > 0 || r.top_right_y > 0)
-        ss << " A " << r.top_right_x << " " << r.top_right_y << " 0 0 1 " << x + w << " " << y + r.top_right_y;
+        ss << " A " << r.top_right_x << " " << r.top_right_y << " 0 0 1 " << x + w << " "
+           << y + r.top_right_y;
     ss << " L" << x + w << "," << y + h - r.bottom_right_y;
     if (r.bottom_right_x > 0 || r.bottom_right_y > 0)
-        ss << " A " << r.bottom_right_x << " " << r.bottom_right_y << " 0 0 1 " << x + w - r.bottom_right_x << " " << y + h;
+        ss << " A " << r.bottom_right_x << " " << r.bottom_right_y << " 0 0 1 "
+           << x + w - r.bottom_right_x << " " << y + h;
     ss << " L" << x + r.bottom_left_x << "," << y + h;
     if (r.bottom_left_x > 0 || r.bottom_left_y > 0)
-        ss << " A " << r.bottom_left_x << " " << r.bottom_left_y << " 0 0 1 " << x << " " << y + h - r.bottom_left_y;
+        ss << " A " << r.bottom_left_x << " " << r.bottom_left_y << " 0 0 1 " << x << " "
+           << y + h - r.bottom_left_y;
     ss << " L" << x << "," << y + r.top_left_y;
     if (r.top_left_x > 0 || r.top_left_y > 0)
-        ss << " A " << r.top_left_x << " " << r.top_left_y << " 0 0 1 " << x + r.top_left_x << " " << y;
+        ss << " A " << r.top_left_x << " " << r.top_left_y << " 0 0 1 " << x + r.top_left_x << " "
+           << y;
     ss << " Z";
     return ss.str();
 }
 
-void processTags(std::string& svg, SatoruContext& context, const container_skia& container) {
+void processTags(std::string &svg, SatoruContext &context, const container_skia &container) {
     std::string result;
     result.reserve(svg.size() + 4096);
 
-    const auto& shadows = container.get_used_shadows();
-    const auto& images = container.get_used_image_draws();
-    const auto& conics = container.get_used_conic_gradients();
+    const auto &shadows = container.get_used_shadows();
+    const auto &images = container.get_used_image_draws();
+    const auto &conics = container.get_used_conic_gradients();
 
     size_t lastPos = 0;
     while (lastPos < svg.size()) {
@@ -99,7 +104,8 @@ void processTags(std::string& svg, SatoruContext& context, const container_skia&
                 r = std::stoi(colorVal.substr(1, 2), nullptr, 16);
                 g = std::stoi(colorVal.substr(3, 2), nullptr, 16);
                 b = std::stoi(colorVal.substr(5, 2), nullptr, 16);
-            } catch (...) {}
+            } catch (...) {
+            }
         } else if (colorVal.find("rgb(") == 0) {
             sscanf(colorVal.c_str(), "rgb(%d,%d,%d)", &r, &g, &b);
         }
@@ -118,18 +124,21 @@ void processTags(std::string& svg, SatoruContext& context, const container_skia&
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
                 if (elementStart != std::string::npos && elementEnd != std::string::npos) {
-                    const auto& draw = images[b - 1];
+                    const auto &draw = images[b - 1];
                     auto it = context.imageCache.find(draw.url);
                     if (it != context.imageCache.end() && it->second.skImage) {
                         SkBitmap bitmap;
-                        bitmap.allocN32Pixels(it->second.skImage->width(), it->second.skImage->height());
+                        bitmap.allocN32Pixels(it->second.skImage->width(),
+                                              it->second.skImage->height());
                         SkCanvas bitmapCanvas(bitmap);
                         bitmapCanvas.drawImage(it->second.skImage, 0, 0);
 
                         std::stringstream ss;
-                        ss << "<image x=\"" << draw.layer.origin_box.x << "\" y=\"" << draw.layer.origin_box.y
-                           << "\" width=\"" << draw.layer.origin_box.width << "\" height=\""
-                           << draw.layer.origin_box.height << "\" href=\"" << bitmapToDataUrl(bitmap) << "\"";
+                        ss << "<image x=\"" << draw.layer.origin_box.x << "\" y=\""
+                           << draw.layer.origin_box.y << "\" width=\""
+                           << draw.layer.origin_box.width << "\" height=\""
+                           << draw.layer.origin_box.height << "\" href=\""
+                           << bitmapToDataUrl(bitmap) << "\"";
                         if (has_radius(draw.layer.border_radius)) {
                             ss << " clip-path=\"url(#clip-img-" << b << ")\"";
                         }
@@ -163,11 +172,13 @@ void processTags(std::string& svg, SatoruContext& context, const container_skia&
 }
 }  // namespace
 
-std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context, const char* master_css) {
-    container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context, nullptr, false);
+std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context,
+                            const char *master_css) {
+    container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context, nullptr,
+                                     false);
     std::string css = master_css ? master_css : litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";
-    
+
     auto doc = litehtml::document::createFromString(html, &measure_container, css.c_str());
     if (!doc) return "";
     doc->render(width);
@@ -178,7 +189,8 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     SkDynamicMemoryWStream stream;
     SkSVGCanvas::Options svg_options;
     svg_options.flags = SkSVGCanvas::kConvertTextToPaths_Flag;
-    auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, (float)content_height), &stream, svg_options);
+    auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, (float)content_height), &stream,
+                                    svg_options);
 
     container_skia render_container(width, content_height, canvas.get(), context, nullptr, true);
     auto render_doc = litehtml::document::createFromString(html, &render_container, css.c_str());
@@ -198,29 +210,36 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     for (size_t i = 0; i < shadows.size(); ++i) {
         const auto &s = shadows[i];
         int index = (int)(i + 1);
-        
-        defs << "<filter id=\"shadow-" << index << "\" x=\"-100%\" y=\"-100%\" width=\"300%\" height=\"300%\">";
-        
-        std::string floodColor = "rgb(" + std::to_string((int)s.color.red) + "," + 
-                                 std::to_string((int)s.color.green) + "," + 
+
+        defs << "<filter id=\"shadow-" << index
+             << "\" x=\"-100%\" y=\"-100%\" width=\"300%\" height=\"300%\">";
+
+        std::string floodColor = "rgb(" + std::to_string((int)s.color.red) + "," +
+                                 std::to_string((int)s.color.green) + "," +
                                  std::to_string((int)s.color.blue) + ")";
         float floodOpacity = (float)s.color.alpha / 255.0f;
 
         if (s.inset) {
-            defs << "<feFlood flood-color=\"" << floodColor << "\" flood-opacity=\"" << floodOpacity << "\" result=\"color\"/>"
-                 << "<feComposite in=\"color\" in2=\"SourceAlpha\" operator=\"out\" result=\"inverse\"/>"
-                 << "<feGaussianBlur in=\"inverse\" stdDeviation=\"" << s.blur * 0.5f << "\" result=\"blur\"/>"
+            defs << "<feFlood flood-color=\"" << floodColor << "\" flood-opacity=\"" << floodOpacity
+                 << "\" result=\"color\"/>"
+                 << "<feComposite in=\"color\" in2=\"SourceAlpha\" operator=\"out\" "
+                    "result=\"inverse\"/>"
+                 << "<feGaussianBlur in=\"inverse\" stdDeviation=\"" << s.blur * 0.5f
+                 << "\" result=\"blur\"/>"
                  << "<feOffset dx=\"" << s.x << "\" dy=\"" << s.y << "\" result=\"offset\"/>"
-                 << "<feComposite in=\"offset\" in2=\"SourceAlpha\" operator=\"in\" result=\"inset-shadow\"/>"
+                 << "<feComposite in=\"offset\" in2=\"SourceAlpha\" operator=\"in\" "
+                    "result=\"inset-shadow\"/>"
                  << "<feMerge><feMergeNode in=\"inset-shadow\"/></feMerge>";
         } else {
-            defs << "<feGaussianBlur in=\"SourceAlpha\" stdDeviation=\"" << s.blur * 0.5f << "\" result=\"blur\"/>"
+            defs << "<feGaussianBlur in=\"SourceAlpha\" stdDeviation=\"" << s.blur * 0.5f
+                 << "\" result=\"blur\"/>"
                  << "<feOffset dx=\"" << s.x << "\" dy=\"" << s.y << "\" result=\"offsetblur\"/>"
-                 << "<feFlood flood-color=\"" << floodColor << "\" flood-opacity=\"" << floodOpacity << "\"/>"
+                 << "<feFlood flood-color=\"" << floodColor << "\" flood-opacity=\"" << floodOpacity
+                 << "\"/>"
                  << "<feComposite in2=\"offsetblur\" operator=\"in\"/>"
                  << "<feMerge><feMergeNode/></feMerge>";
         }
-        
+
         defs << "</filter>";
     }
 
@@ -229,7 +248,8 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
         const auto &draw = images[i];
         if (has_radius(draw.layer.border_radius)) {
             defs << "<clipPath id=\"clip-img-" << (i + 1) << "\">";
-            defs << "<path d=\"" << path_from_rrect(draw.layer.border_box, draw.layer.border_radius) << "\" />";
+            defs << "<path d=\"" << path_from_rrect(draw.layer.border_box, draw.layer.border_radius)
+                 << "\" />";
             defs << "</clipPath>";
         }
     }

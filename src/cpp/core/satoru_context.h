@@ -7,8 +7,8 @@
 
 #include "../utils/image_types.h"
 #include "include/core/SkFontMgr.h"
-#include "include/core/SkTypeface.h"
 #include "include/core/SkFontStyle.h"
+#include "include/core/SkTypeface.h"
 
 class SatoruContext {
     std::vector<uint8_t> m_lastPng;
@@ -37,8 +37,8 @@ class SatoruContext {
     void clear_fonts() { clearFonts(); }
     void clearFonts();
 
-    sk_sp<SkTypeface> get_typeface(const std::string &family, int weight,
-                                   SkFontStyle::Slant slant, bool &out_fake_bold);
+    sk_sp<SkTypeface> get_typeface(const std::string &family, int weight, SkFontStyle::Slant slant,
+                                   bool &out_fake_bold);
     std::vector<sk_sp<SkTypeface>> get_typefaces(const std::string &family, int weight,
                                                  SkFontStyle::Slant slant, bool &out_fake_bold);
     bool get_image_size(const std::string &url, int &w, int &h);

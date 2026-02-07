@@ -1,16 +1,17 @@
 #include "satoru_context.h"
-#include "include/codec/SkCodec.h"
-#include "include/codec/SkPngDecoder.h"
+
 #include <algorithm>
 #include <iostream>
 #include <sstream>
-#include "../utils/utils.h"
-#include "include/core/SkData.h"
-#include "include/core/SkImage.h"
-#include "include/core/SkFontMgr.h"
-#include "include/core/SkTypeface.h"
-#include "include/core/SkSpan.h" // Include SkSpan header
 
+#include "../utils/utils.h"
+#include "include/codec/SkCodec.h"
+#include "include/codec/SkPngDecoder.h"
+#include "include/core/SkData.h"
+#include "include/core/SkFontMgr.h"
+#include "include/core/SkImage.h"
+#include "include/core/SkSpan.h"  // Include SkSpan header
+#include "include/core/SkTypeface.h"
 
 // External declaration for the custom empty font manager provided by Skia ports
 extern sk_sp<SkFontMgr> SkFontMgr_New_Custom_Empty();
@@ -18,13 +19,13 @@ extern sk_sp<SkFontMgr> SkFontMgr_New_Custom_Empty();
 void SatoruContext::init() {
     SkCodecs::Register(SkPngDecoder::Decoder());
     fontMgr = SkFontMgr_New_Custom_Empty();
-    defaultTypeface = nullptr; 
+    defaultTypeface = nullptr;
 }
 
 void SatoruContext::loadFont(const char *name, const uint8_t *data, int size) {
     auto data_ptr = SkData::MakeWithCopy(data, size);
     if (!fontMgr) fontMgr = SkFontMgr_New_Custom_Empty();
-    
+
     auto typeface = fontMgr->makeFromData(std::move(data_ptr));
     if (typeface) {
         std::string cleaned = clean_font_name(name);
@@ -43,7 +44,8 @@ void SatoruContext::loadImage(const char *name, const char *data_url, int width,
 
 void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, size_t size) {
     auto data_ptr = SkData::MakeWithCopy(data, size);
-    auto codec = SkCodec::MakeFromData(data_ptr, SkSpan<const SkCodecs::Decoder>({SkPngDecoder::Decoder()}));
+    auto codec =
+        SkCodec::MakeFromData(data_ptr, SkSpan<const SkCodecs::Decoder>({SkPngDecoder::Decoder()}));
     if (codec) {
         auto image = SkCodecs::DeferredImage(std::move(codec));
         if (image) {
@@ -57,9 +59,7 @@ void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, siz
     }
 }
 
-void SatoruContext::clearImages() {
-    imageCache.clear();
-}
+void SatoruContext::clearImages() { imageCache.clear(); }
 
 void SatoruContext::clearFonts() {
     typefaceCache.clear();
@@ -74,7 +74,8 @@ sk_sp<SkTypeface> SatoruContext::get_typeface(const std::string &family, int wei
 }
 
 std::vector<sk_sp<SkTypeface>> SatoruContext::get_typefaces(const std::string &family, int weight,
-                                                            SkFontStyle::Slant slant, bool &out_fake_bold) {
+                                                            SkFontStyle::Slant slant,
+                                                            bool &out_fake_bold) {
     std::vector<sk_sp<SkTypeface>> result;
     std::stringstream ss(family);
     std::string item;

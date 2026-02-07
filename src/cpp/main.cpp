@@ -1,5 +1,6 @@
 #include <emscripten.h>
 #include <emscripten/bind.h>
+
 #include <iostream>
 #include <regex>
 
@@ -18,10 +19,10 @@
 using namespace emscripten;
 
 SatoruContext g_context;
-ResourceManager* g_resourceManager = nullptr;
+ResourceManager *g_resourceManager = nullptr;
 container_skia *g_discovery_container = nullptr;
 
-const char* satoru_master_css = 
+const char *satoru_master_css =
     "b, strong { font-weight: bold; }\n"
     "i, em { font-style: italic; }\n"
     "u { text-decoration: underline; }\n"
@@ -75,9 +76,7 @@ const uint8_t *html_to_png_binary(const char *html, int width, int height) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-int get_png_size() {
-    return (int)g_context.get_last_png().size();
-}
+int get_png_size() { return (int)g_context.get_last_png().size(); }
 
 EMSCRIPTEN_KEEPALIVE
 const char *collect_resources(const char *html, int width) {
@@ -86,9 +85,11 @@ const char *collect_resources(const char *html, int width) {
         g_resourceManager = new ResourceManager(g_context);
     }
     if (g_discovery_container) delete g_discovery_container;
-    g_discovery_container = new container_skia(width, 1000, nullptr, g_context, g_resourceManager, false);
+    g_discovery_container =
+        new container_skia(width, 1000, nullptr, g_context, g_resourceManager, false);
     std::string master_css_full = std::string(litehtml::master_css) + "\n" + satoru_master_css;
-    auto doc = litehtml::document::createFromString(html, g_discovery_container, master_css_full.c_str());
+    auto doc =
+        litehtml::document::createFromString(html, g_discovery_container, master_css_full.c_str());
     if (doc) doc->render(width);
     std::string output = "";
     auto requests = g_resourceManager->getPendingRequests();
@@ -134,5 +135,4 @@ void load_image(const char *name, const char *data_url, int width, int height) {
 
 EMSCRIPTEN_KEEPALIVE
 void clear_images() { g_context.clear_images(); }
-
 }

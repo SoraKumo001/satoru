@@ -16,13 +16,15 @@ const REFERENCE_DIR = path.resolve(__dirname, "../reference");
 const DIFF_DIR = path.resolve(__dirname, "../diff");
 const TEMP_DIR = path.resolve(ROOT_DIR, "temp");
 
-const ROBOTO_400 = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2";
-const NOTO_JP_400 = "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2";
+const ROBOTO_400 =
+  "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2";
 
 const FONT_MAP = [
-  { name: "Roboto", url: ROBOTO_400, path: path.join(TEMP_DIR, "Roboto-400.woff2") },
-  { name: "Noto Sans JP", url: NOTO_JP_400, path: path.join(TEMP_DIR, "NotoSansJP-400.woff2") },
-  { name: "sans-serif", url: NOTO_JP_400, path: path.join(TEMP_DIR, "NotoSansJP-400.woff2") },
+  {
+    name: "Roboto",
+    url: ROBOTO_400,
+    path: path.join(TEMP_DIR, "Roboto-400.woff2"),
+  },
 ];
 
 async function downloadFont(url: string, dest: string) {
@@ -38,7 +40,7 @@ describe("Visual Regression Tests", () => {
   let satoru: Satoru;
 
   beforeAll(async () => {
-    [OUTPUT_DIR, DIFF_DIR, TEMP_DIR].forEach(dir => {
+    [OUTPUT_DIR, DIFF_DIR, TEMP_DIR].forEach((dir) => {
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     });
 
@@ -48,7 +50,7 @@ describe("Visual Regression Tests", () => {
 
     const wasmPath = path.resolve(ROOT_DIR, "packages/satoru/dist/satoru.wasm");
     satoru = await Satoru.init(undefined, {
-      locateFile: (url: string) => url.endsWith(".wasm") ? wasmPath : url,
+      locateFile: (url: string) => (url.endsWith(".wasm") ? wasmPath : url),
     });
 
     for (const font of FONT_MAP) {
@@ -69,7 +71,8 @@ describe("Visual Regression Tests", () => {
       satoru.clearImages();
       const dataUrls = new Set<string>();
       const imgRegex = /<img[^>]+src=["'](data:image\/[^'"]+)["']/g;
-      const bgRegex = /background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g;
+      const bgRegex =
+        /background-image:\s*url\(['"]?(data:image\/[^'"]+)['"]?\)/g;
 
       let match;
       while ((match = imgRegex.exec(html)) !== null) dataUrls.add(match[1]);
@@ -92,35 +95,45 @@ describe("Visual Regression Tests", () => {
       if (fs.existsSync(refPath)) {
         const img1 = PNG.sync.read(fs.readFileSync(refPath));
         const img2 = PNG.sync.read(Buffer.from(pngBuffer));
-        
+
         // Ensure same dimensions for comparison (Skia might differ slightly from Browser)
         if (img1.width !== img2.width || img1.height !== img2.height) {
-          console.warn(`Dimension mismatch for ${file}: Ref(${img1.width}x${img1.height}) vs Satoru(${img2.width}x${img2.height})`);
+          console.warn(
+            `Dimension mismatch for ${file}: Ref(${img1.width}x${img1.height}) vs Satoru(${img2.width}x${img2.height})`,
+          );
           // Skip pixel comparison if dimensions are vastly different, or we could pad/resize.
           // For now, just expect them to be close.
         } else {
           const { width, height } = img1;
           const diff = new PNG({ width, height });
-          
+
           const numDiffPixels = pixelmatch(
             img1.data,
             img2.data,
             diff.data,
             width,
             height,
-            { threshold: 0.1 }
+            { threshold: 0.1 },
           );
 
           if (numDiffPixels > 0) {
-            fs.writeFileSync(path.join(DIFF_DIR, file.replace(".html", ".png")), PNG.sync.write(diff));
+            fs.writeFileSync(
+              path.join(DIFF_DIR, file.replace(".html", ".png")),
+              PNG.sync.write(diff),
+            );
           }
 
           // Allow a small percentage of different pixels due to rendering engine differences
           const diffPercentage = (numDiffPixels / (width * height)) * 100;
-          expect(diffPercentage, `Too many differing pixels in ${file}: ${numDiffPixels} pixels (${diffPercentage.toFixed(2)}%)`).toBeLessThan(5);
+          expect(
+            diffPercentage,
+            `Too many differing pixels in ${file}: ${numDiffPixels} pixels (${diffPercentage.toFixed(2)}%)`,
+          ).toBeLessThan(5);
         }
       } else {
-        console.warn(`Reference image not found for ${file}. Run 'pnpm gen-ref' first.`);
+        console.warn(
+          `Reference image not found for ${file}. Run 'pnpm gen-ref' first.`,
+        );
       }
 
       // Still keep SVG snapshot for structural changes

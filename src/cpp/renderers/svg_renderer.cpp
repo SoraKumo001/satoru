@@ -88,7 +88,9 @@ std::string f2s(float v) {
 
 std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context) {
     SkDynamicMemoryWStream stream;
-    auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, height > 0 ? (float)height : 1000.0f), &stream);
+    SkSVGCanvas::Options options;
+    options.flags = SkSVGCanvas::kConvertTextToPaths_Flag;
+    auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, height > 0 ? (float)height : 1000.0f), &stream, options);
 
     container_skia container(width, height > 0 ? height : 1000, canvas.get(), context, nullptr, true);
     

@@ -730,7 +730,12 @@ void container_skia::set_clip(const litehtml::position &pos,
         m_canvas->save();
         // Force path-based clipping to ensure accuracy in SVG output.
         // SkSVGCanvas approximates RRect with a rect+rx/ry, which fails for non-uniform corners.
-        SkPath path = SkPathBuilder().addRRect(make_rrect(pos, bdr_radius)).detach();
+        // Adding a tiny redundant segment to force it to remain a path.
+        SkPath path = SkPathBuilder()
+            .addRRect(make_rrect(pos, bdr_radius))
+            .moveTo(0, 0)
+            .lineTo(0, 0)
+            .detach();
         m_canvas->clipPath(path, true);
     }
     m_last_clip_pos = pos;

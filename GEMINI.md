@@ -18,32 +18,16 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 
 #### Rule 1: Synchronized Reading
 - Always use `get_text_file_contents` to obtain the current `file_hash` and `range_hash` for the specific lines you intend to edit.
-- Do not rely on cached content or previous reads if any other file operations have occurred.
 
 #### Rule 2: Bottom-to-Top Patching
 - **CRITICAL:** When applying multiple patches to the same file in a single `edit_text_file_contents` call, you **MUST** order the patches from the bottom of the file to the top (descending line numbers).
-- This ensures that line number shifts caused by adding or removing lines in one patch do not invalidate the `line_start`/`line_end` of subsequent patches.
 
-#### Rule 3: Precise Range Matching
-- The `line_start` and `line_end` in your patch must exactly match the range you read.
-- The `range_hash` must correspond to the content of that exact range at the time of reading.
-
-#### Rule 4: Atomic Operations
-- Prefer small, focused patches over large, sweeping changes. This minimizes the risk of conflicts and makes the editing process more robust.
-
-#### Rule 5: Avoid Double Escaping
+#### Rule 3: Avoid Double Escaping
 - **CRITICAL:** When providing content for `edit_text_file_contents` or `write_file`, ensure that newlines and quotes are not double-escaped (e.g., `\n` or `\"`).
-- Never copy-paste the raw JSON output from a tool (which contains escaped sequences) as the literal source for a new patch.
-- If a file becomes corrupted with literal `\n` or `\"` strings, immediately use `write_file` with the correct multiline content to restore the entire file.
 
 ### 3. Troubleshooting
 
-- If a `Hash Mismatch` error occurs:
-    1. **Stop** the current operation.
-    2. **Re-read** the file ranges using `get_text_file_contents` to get fresh hashes.
-    3. **Verify** the content matches your expectations.
-    4. **Retry** the edit with the new hashes.
-    5. **Final Resort:** If the mismatch persists or the file state becomes inconsistent, use `write_file` to overwrite the **entire file** with the desired full content. This is the most reliable way to recover from synchronization issues.
+- If a `Hash Mismatch` error occurs: Re-read the file ranges and retry the edit with fresh hashes.
 
 ## Project Context: Satoru
 
@@ -56,52 +40,30 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 
 ### 2. Build System
 
-Use the TypeScript-based build scripts defined in the root `package.json`:
 - `pnpm wasm:configure`: Configure CMake for WASM build.
 - `pnpm wasm:build`: Compile C++ to WASM (`packages/satoru/dist/satoru.*`).
-- `pnpm build`: Build all packages (@satoru/core and @satoru/test-web).
+- `pnpm build`: Build all package wrappers.
 
-**Skia Optimization:** The `CMakeLists.txt` includes a guard using `FETCHCONTENT_SOURCE_DIR_SKIA`. If `external/skia` exists, it skips network checks. Use `-DSKIA_UPDATE=ON` during configure to pull latest.
+### 3. Implementation Details
 
-### 3. Testing & Development
+- **SVG Rendering (2-Pass):**
+    1. **Pass 1 (Measurement):** Layout with a dummy container to determine exact content height.
+    2. **Pass 2 (Drawing):** Render to `SkSVGCanvas` with the calculated dimensions.
+- **Tag-Based Post-Processing:**
+    - Advanced effects (Shadows, Images, Conics) are "tagged" during drawing with unique colors (e.g., `rgb(0,1,index)` for shadows).
+    - The resulting SVG string is processed via **Regular Expressions** to replace these tagged elements with real SVG filters or `<image>` tags.
+- **Box Shadow Logic:**
+    - **Outer Shadow:** Uses `feGaussianBlur` + `feOffset` + `feFlood`.
+    - **Inset Shadow:** Uses `feComposite` with `operator="out"` to invert the shape, then `blur/offset`, and finally `operator="in"` to clip the shadow within the original shape.
+    - **Alpha Reference:** Tagged elements must maintain a fill (e.g., `fill="black"`) so `SourceAlpha` works for filters, but `feMerge` controls visibility.
+- **Font Handling:**
+    - **2-Pass Loading:** Missing fonts are detected during layout and requested from the JS host.
+    - **Metadata Inference:** The TS host infers `weight` and `style` from font URLs to generate correct `@font-face` blocks for WASM.
+- **litehtml Types:**
+    - Container overrides MUST return `litehtml::pixel_t` (float), not `int`, to match base class signatures.
 
-- `pnpm test`: Runs `@satoru/core` tests (`packages/satoru/test/convert_assets.ts`).
-- `pnpm --filter test-visual test`: Runs visual regression tests using Vitest and pixelmatch.
-- `pnpm --filter test-visual convert-assets`: Runs batch conversion of `assets/*.html` to SVG/PNG in the `temp/` directory.
-- `pnpm --filter test-visual test`: Runs visual regression tests using Vitest and pixelmatch.
-- `pnpm --filter test-visual gen-ref`: Generates reference images from `assets/*.html` using Playwright (Chromium).
-      Wait for initialization (~5s) before navigating to `http://localhost:3000`.
-- **Logs:** C++ `printf` is bridged to JS `console.log`. Ensure `\n` or `fflush(stdout)` is used in C++.
+### 4. Skia API & Release Notes
 
-### 4. Project Structure & Key Files
-
-- `src/cpp/`: Core C++ Engine implementation.
-- `packages/satoru/src/index.ts`: TypeScript wrapper and API definitions.
-- `assets/`: Source HTML test cases.
-- `packages/satoru/dist/satoru.*`: Generated WASM artifacts.
-- `packages/test-visual/`: Visual regression testing environment.
-    - `reference/`: "Gold standard" images generated by Playwright.
-    - `output/`: Current rendering results from the Wasm engine.
-    - `tools/convert_assets.ts`: Utility to batch render all assets for manual inspection.
-    - `reference/`: "Gold standard" images generated by Playwright.
-### 5. Implementation Details
-
-- **High-Level Render API:** `Satoru.render()` supports automated font resolution via an optional `resolveFonts` callback.
-- **Binary Transfer:** PNG data is transferred via a shared buffer. Use `Satoru.toPngBinary()` which handles memory pointers and slicing.
-- **SVG Post-Processing:** SVG output uses Skia's `SkSVGCanvas`. Advanced effects (Shadows/Conics) are post-processed in C++ using specific color tags.
-- **On-Demand Font Loading (2-Pass):**
-    1. WASM performs layout and records missing fonts via `get_required_fonts`.
-    2. JS host parses HTML/CSS for `@font-face` and fetches required fonts.
-    3. JS host calls `satoru.loadFont()` to register them in WASM.
-    4. Final rendering is performed with all fonts available.
-- **Images:** Decoded by the JS host and passed as Data URLs. Skia's PNG decoder must be registered in WASM.
-- **Font Matching:** C++ engine matches `font-family` by splitting comma-separated lists and cleaning names (lowercase, no quotes/spaces).
-- **On-Demand Font Loading (2-Pass):**
-
-### 6. Skia API & Release Notes
-
-- **Release Notes:** Located at `external/skia/RELEASE_NOTES.md`. Always check this for breaking changes when updating Skia.
-- **SkPath Immutability:** Skia is moving `SkPath` towards being immutable.
-    - **Crucial:** Direct modification methods (like `addRect`, `addRRect`, `moveTo`, `lineTo`) are being removed from `SkPath` or hidden behind `SK_HIDE_PATH_EDIT_METHODS`.
-    - **Workaround:** Use `SkPathBuilder` to construct paths, then call `builder.detach()` to get an `SkPath` object.
-    - **Header:** `#include "include/core/SkPathBuilder.h"`
+- **SkPath Immutability:** Use `SkPathBuilder` instead of direct `SkPath` modification methods.
+- **Radial Gradients:** Circular by default. For **Elliptical** gradients, apply an `SkMatrix` scale transform (e.g., `ry/rx` on Y-axis) to the shader.
+- **C++ Logs:** Bridge `printf` to JS `console.log`. Ensure `\n` or `fflush(stdout)` is used.

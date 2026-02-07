@@ -177,18 +177,6 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                                  (float)pos.y + (float)fi->fm_ascent, render_font, paint);
         x_offset += current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
     }
-    if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
-        litehtml::web_color dc = fi->desc.decoration_color; if (dc == litehtml::web_color::current_color) dc = color;
-        SkPaint decPaint; decPaint.setColor(SkColorSetARGB(dc.alpha, dc.red, dc.green, dc.blue)); decPaint.setAntiAlias(true);
-        float thickness = (float)fi->desc.decoration_thickness.val(); if (fi->desc.decoration_thickness.is_predefined() || thickness <= 0) thickness = std::max(1.0f, (float)fi->desc.size / 15.0f);
-        decPaint.setStrokeWidth(thickness); decPaint.setStyle(SkPaint::kStroke_Style);
-        if (fi->desc.decoration_style == litehtml::text_decoration_style_dotted) { float iv[] = {thickness, thickness}; decPaint.setPathEffect(SkDashPathEffect::Make(SkSpan(iv), 0)); }
-        else if (fi->desc.decoration_style == litehtml::text_decoration_style_dashed) { float iv[] = {thickness * 3, thickness * 3}; decPaint.setPathEffect(SkDashPathEffect::Make(SkSpan(iv), 0)); }
-        float x1 = (float)pos.x, x2 = (float)pos.x + (float)x_offset;
-        if (fi->desc.decoration_line & litehtml::text_decoration_line_underline) { float y = (float)pos.y + (float)fi->fm_ascent + thickness; m_canvas->drawLine(x1, y, x2, y, decPaint); }
-        if (fi->desc.decoration_line & litehtml::text_decoration_line_overline) { float y = (float)pos.y; m_canvas->drawLine(x1, y, x2, y, decPaint); }
-        if (fi->desc.decoration_line & litehtml::text_decoration_line_line_through) { float y = (float)pos.y + (float)fi->fm_ascent - (float)fi->fm_height * 0.3f; m_canvas->drawLine(x1, y, x2, y, decPaint); }
-    }
 }
 
 void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::shadow_vector &shadows, const litehtml::position &pos, const litehtml::border_radiuses &radius, bool inset) {
@@ -197,8 +185,10 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
         for (const auto &s : shadows) {
             if (s.inset != inset) continue;
             shadow_info info; info.color = s.color; info.blur = (float)s.blur.val(); info.x = (float)s.x.val(); info.y = (float)s.y.val(); info.spread = (float)s.spread.val(); info.inset = inset; info.box_pos = pos; info.box_radius = radius;
-            m_usedShadows.push_back(info); int index = (int)m_usedShadows.size();
-            SkPaint p; p.setColor(SkColorSetARGB(254, 0, 0, (index & 0xFF))); m_canvas->drawRRect(make_rrect(pos, radius), p);
+            m_usedShadows.push_back(info); 
+            int index = (int)m_usedShadows.size();
+            SkPaint p; p.setColor(SkColorSetARGB(255, 0, 1, (index & 0xFF)));
+            m_canvas->drawRRect(make_rrect(pos, radius), p);
         }
         return;
     }
@@ -224,7 +214,7 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
     if (!m_canvas) return;
     if (m_tagging) {
         image_draw_info draw; draw.url = url; draw.layer = layer; m_usedImageDraws.push_back(draw);
-        int index = (int)m_usedImageDraws.size(); SkPaint p; p.setColor(SkColorSetARGB(255, 0, 0, (index & 0xFF))); m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
+        int index = (int)m_usedImageDraws.size(); SkPaint p; p.setColor(SkColorSetARGB(255, 1, 0, (index & 0xFF))); m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     } else {
         auto it = m_context.imageCache.find(url);
         if (it != m_context.imageCache.end() && it->second.skImage) {
@@ -269,7 +259,7 @@ void container_skia::draw_conic_gradient(litehtml::uint_ptr hdc, const litehtml:
     if (!m_canvas) return;
     if (m_tagging) {
         conic_gradient_info info; info.layer = layer; info.gradient = gradient; m_usedConicGradients.push_back(info);
-        int index = (int)m_usedConicGradients.size(); SkPaint p; p.setColor(SkColorSetARGB(253, 0, 0, (index & 0xFF))); m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
+        int index = (int)m_usedConicGradients.size(); SkPaint p; p.setColor(SkColorSetARGB(255, 1, 1, (index & 0xFF))); m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     } else {
         SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
         std::vector<SkColor4f> colors; std::vector<float> pos;

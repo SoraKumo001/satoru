@@ -13,15 +13,16 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 - **Pure Wasm Pipeline**: Performs all layout and drawing operations inside Wasm. Zero dependencies on browser DOM or `<canvas>`.
 - **Edge Native**: Specialized wrapper for Cloudflare Workers ensures smooth execution in restricted environments.
 - **Dual Output Modes**:
-  - **SVG**: Generates lean, vector-based SVG strings with post-processed effects.
+  - **SVG**: Generates lean, vector-based Pure SVG strings with post-processed effects (Filters, Gradients).
   - **PNG**: Generates high-quality raster images via Skia, transferred as binary data for maximum performance.
 - **High-Level TS Wrapper**: Includes a `Satoru` class that abstracts Wasm memory management and provides a clean async API.
-- **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime.
-- **Japanese Support**: Full support for Japanese rendering with fallback font logic.
+- **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime with automatic weight/style inference.
+- **Japanese Support**: Full support for Japanese rendering with fallback font logic and vertical alignment.
 - **Advanced CSS Support**:
   - **Box Model**: Margin, padding, border, and accurate **Border Radius**.
-  - **Box Shadow**: High-quality shadows using SVG filters (SVG) or Skia blurs (PNG).
-  - **Gradients**: Linear, Radial, and **Conic** (Sweep) gradient support.
+  - **Box Shadow**: High-quality **Outer** and **Inset** shadows using advanced SVG filters (SVG) or Skia blurs (PNG).
+  - **Gradients**: Linear, **Elliptical Radial**, and **Conic** (Sweep) gradient support.
+  - **Standard Tags**: Full support for `<b>`, `<strong>`, `<i>`, `<u>`, and `<h1>`-`<h6>` via integrated master CSS.
   - **Text Decoration**: Supports `underline`, `line-through`, `overline` with `solid`, `dotted`, and `dashed` styles.
 
 ## 🔄 Conversion Flow
@@ -41,8 +42,8 @@ graph TD
         D --> E{Output Format?}
 
         subgraph SVG_Path [SVG Vector Pipeline]
-            E -- SVG --> F[SkSVGCanvas: Draw & Tag]
-            F --> G[Post-process String:<br/>Inject Shadows & Gradients]
+            E -- SVG --> F[2-Pass Render:<br/>Measure & Draw]
+            F --> G[Regex Post-process:<br/>Inject Shadows & Filters]
         end
 
         subgraph PNG_Path [PNG Raster Pipeline]
@@ -77,7 +78,7 @@ await satoru.init();
 
 const html = `
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap" rel="stylesheet">
-  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;">
+  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px; box-shadow: 10px 10px 5px rgba(0,0,0,0.5);">
     Hello Satoru!
     <img src="https://example.com/logo.png" style="width: 50px;">
   </div>
@@ -95,53 +96,6 @@ const svg = await satoru.render(html, 600, {
   },
 });
 ```
-
-#### Direct API
-
-For manual control, you can load resources and trigger rendering directly.
-
-```typescript
-import { Satoru, createSatoruModule } from "satoru";
-
-const satoru = new Satoru(createSatoruModule);
-await satoru.init();
-
-// Load a font manually
-const fontData = await fetch("font.ttf").then((res) => res.arrayBuffer());
-satoru.loadFont("MyFont", new Uint8Array(fontData));
-
-// Load an image manually (Data URL)
-satoru.loadImage("my-image", "data:image/png;base64,...", 100, 100);
-
-// Convert HTML to PNG (Binary)
-const pngBuffer = satoru.toPngBinary(
-  '<div style="font-family: MyFont">...</div>',
-  800,
-);
-
-// Convert HTML to SVG string
-const svgString = satoru.toSvg('<div style="...">...</div>', 800);
-```
-
-### Cloudflare Workers (Edge)
-
-```typescript
-import { Satoru } from "satoru/workerd";
-
-// In your fetch handler
-const satoru = new Satoru();
-await satoru.init(); // Uses specialized workerd instantiation logic
-```
-
-## 🏗 Project Structure
-
-This project is organized as a monorepo using pnpm workspaces:
-
-- **`assets/`**: Shared HTML test cases and sample assets.
-- **`packages/satoru` (`satoru`)**: The core library. Contains the WebAssembly engine and the TypeScript wrapper.
-- **`packages/test-web` (`@satoru/test-web`)**: Vite-based demonstration UI.
-- **`packages/test-cloudflare` (`satoru-sample`)**: Cloudflare Workers integration example. Provides a GET parameter-based rendering service.
-- **`src/cpp`**: Shared C++ source code for the Wasm engine.
 
 ## 🏗️ Build & Run
 
@@ -166,22 +120,19 @@ pnpm build
 
 # 4. Start Development UI
 pnpm dev
-
-# 5. Start Edge Worker (Cloudflare) Demo
-pnpm dev:worker
 ```
 
 ## 🗺️ Roadmap
 
-- [x] High-level TypeScript Wrapper API.
-- [x] Binary PNG export support.
-- [x] Linear, Radial & Conic Gradient support.
-- [x] Border Radius & Box Shadow.
-- [x] Japanese Language Rendering.
-- [x] **Cloudflare Workers (workerd) support.**
+- [x] High-level TypeScript Wrapper API with automatic resource resolution.
+- [x] Binary PNG export support via shared memory.
+- [x] Linear, Elliptical Radial & Conic Gradient support.
+- [x] Border Radius & **Advanced Box Shadow (Outer/Inset)**.
+- [x] Japanese Language Rendering & Standard HTML Tag Support.
+- [x] **Cloudflare Workers (workerd) compatibility.**
 - [ ] SVG Path Shorthand Optimization.
 - [ ] Support for CSS Masks & Filters.
-- [ ] Optional SVG `<text>` element output.
+- [ ] Optional SVG `<text>` element output (currently paths).
 
 ## 📜 License
 

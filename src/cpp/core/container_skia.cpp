@@ -728,7 +728,10 @@ void container_skia::set_clip(const litehtml::position &pos,
                               const litehtml::border_radiuses &bdr_radius) {
     if (m_canvas) {
         m_canvas->save();
-        m_canvas->clipRRect(make_rrect(pos, bdr_radius), true);
+        // Force path-based clipping to ensure accuracy in SVG output.
+        // SkSVGCanvas approximates RRect with a rect+rx/ry, which fails for non-uniform corners.
+        SkPath path = SkPathBuilder().addRRect(make_rrect(pos, bdr_radius)).detach();
+        m_canvas->clipPath(path, true);
     }
     m_last_clip_pos = pos;
     m_last_clip_radius = bdr_radius;

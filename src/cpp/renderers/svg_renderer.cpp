@@ -96,7 +96,6 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     
     std::string css = litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";
-    css += "* { box-sizing: border-box; }\n";
     
     auto doc = litehtml::document::createFromString(html, &container, css.c_str());
     if (!doc) return "";

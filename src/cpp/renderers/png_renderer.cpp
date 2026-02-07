@@ -17,7 +17,6 @@ sk_sp<SkData> renderHtmlToPngBinary(const char *html, int width, int height,
 
     std::string css = litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";
-    css += "* { box-sizing: border-box; }\n";
     css += "button { text-align: center; }\n";
 
     litehtml::document::ptr doc =

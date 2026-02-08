@@ -3,12 +3,7 @@ import { Satoru, RequiredResource } from "satoru";
 async function init() {
   console.log("Initializing Satoru Engine (Skia + Wasm)...");
   try {
-    const satoru = await Satoru.init(undefined, {
-      locateFile: (path: string) => {
-        if (path.endsWith(".wasm")) return "satoru.wasm";
-        return path;
-      },
-    });
+    const satoru = await Satoru.init();
 
     const app = document.getElementById("app");
     if (app) {

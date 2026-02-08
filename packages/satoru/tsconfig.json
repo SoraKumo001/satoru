@@ -5,6 +5,7 @@
     "moduleResolution": "Bundler",
     "declaration": true,
     "composite": true,
+    "rootDir": "src",
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,

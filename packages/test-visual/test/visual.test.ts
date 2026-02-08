@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Satoru } from "satoru";
+import { Satoru, RequiredResource } from "satoru";
 import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 import { chromium, Browser, Page } from "playwright";
@@ -115,11 +115,13 @@ describe("Visual Regression Tests", () => {
     satoru = await Satoru.init(undefined, {
       locateFile: (url: string) => (url.endsWith(".wasm") ? wasmPath : url),
     });
-    for (const font of FONT_MAP)
-      fs.existsSync(font.path) &&
-        satoru.loadFont(font.name, new Uint8Array(fs.readFileSync(font.path)));
     browser = await chromium.launch();
     page = await browser.newPage();
+  });
+
+  beforeEach(() => {
+    satoru.clearFonts();
+    satoru.clearImages();
   });
 
   afterAll(async () => {
@@ -145,9 +147,24 @@ describe("Visual Regression Tests", () => {
         }
         const refImg = PNG.sync.read(fs.readFileSync(refPath));
 
+        const resolveResource = async (r: RequiredResource) => {
+          if (r.type === "font") {
+            const font = FONT_MAP.find(
+              (f) => f.url === r.url || f.name === r.name,
+            );
+            if (font) {
+              await downloadFont(font.url, font.path);
+              return new Uint8Array(fs.readFileSync(font.path));
+            }
+          }
+          return null;
+        };
+
         // 1. Direct PNG (Skia)
-        satoru.clearImages();
-        const directPngData = satoru.toPngBinary(html, 800);
+        const directPngData = (await satoru.render(html, 800, {
+          format: "png",
+          resolveResource,
+        })) as Uint8Array;
         const directDiff = compareImages(
           refImg,
           PNG.sync.read(Buffer.from(directPngData!)),
@@ -155,7 +172,10 @@ describe("Visual Regression Tests", () => {
         );
 
         // 2. SVG -> Browser PNG
-        const svg = satoru.toSvg(html, 800);
+        const svg = (await satoru.render(html, 800, {
+          format: "svg",
+          resolveResource,
+        })) as string;
         const widthMatch = svg.match(/width="(\d+)"/);
         const heightMatch = svg.match(/height="(\d+)"/);
         const svgWidth = widthMatch ? parseInt(widthMatch[1], 10) : 800;

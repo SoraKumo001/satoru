@@ -1,11 +1,9 @@
-import { Satoru } from "satoru";
+import { Satoru, RequiredResource } from "satoru";
 
 export interface Env {}
 
-// Cache for font data to avoid re-fetching on every request
-let cachedFont: Uint8Array | null = null;
-const NOTO_JP_400 =
-  "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2";
+// Cache for resource data to avoid re-fetching on every request
+const resourceCache = new Map<string, Uint8Array>();
 
 /**
  * サンプルHTML。Satoruの機能（日本語、グラデーション、シャドウ、角丸、Flexbox、CSSクラス）を示す完全なHTML構造。
@@ -15,6 +13,10 @@ const SAMPLE_HTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <style>
+    @font-face {
+      font-family: 'Noto Sans JP';
+      src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2');
+    }
     .card-container {
       font-family: 'Noto Sans JP', sans-serif;
       padding: 40px;
@@ -205,52 +207,56 @@ export default {
     // GETパラメータ（またはPOST）からHTMLとWidth, Formatを取得
     let html = url.searchParams.get("html") || "";
     let width = parseInt(url.searchParams.get("width") || "800");
-    let format = url.searchParams.get("format") || "png";
+    let format = (url.searchParams.get("format") || "png") as "png" | "svg";
 
     if (!html && request.method === "POST") {
       const formData = await request.formData();
       html = formData.get("html")?.toString() || "";
       width = parseInt(formData.get("width")?.toString() || "800");
-      format = formData.get("format")?.toString() || "png";
+      format = (formData.get("format")?.toString() || "png") as "png" | "svg";
     }
 
     try {
-      // フォントのフェッチ（キャッシュ利用）
-      if (!cachedFont) {
-        console.log("Fetching Noto Sans JP...");
-        const response = await fetch(NOTO_JP_400);
-        if (response.ok) {
-          cachedFont = new Uint8Array(await response.arrayBuffer());
-        }
+      const satoru = await Satoru.init();
+
+      // 動的リソース（フォント、画像等）の解決
+      const result = await satoru.render(html, width, {
+        format,
+        resolveResource: async (resource: RequiredResource) => {
+          // キャッシュを確認
+          if (resourceCache.has(resource.url)) {
+            console.log(`Cache hit: ${resource.url}`);
+            return resourceCache.get(resource.url)!;
+          }
+
+          console.log(`Fetching resource: ${resource.url} (${resource.type})`);
+          try {
+            const response = await fetch(resource.url);
+            if (!response.ok) {
+              console.error(`Failed to fetch resource: ${response.statusText}`);
+              return null;
+            }
+            const data = new Uint8Array(await response.arrayBuffer());
+            resourceCache.set(resource.url, data);
+            return data;
+          } catch (e) {
+            console.error(`Error fetching resource ${resource.url}:`, e);
+            return null;
+          }
+        },
+      });
+
+      if (!result) {
+        throw new Error("Rendering failed");
       }
 
-      const satoru = new Satoru();
-      await satoru.init();
-
-      if (cachedFont) {
-        satoru.loadFont("Noto Sans JP", cachedFont);
-        satoru.loadFont("sans-serif", cachedFont);
-      }
-
-      if (format === "svg") {
-        const svg = satoru.toSvg(html, width);
-        return new Response(svg, {
-          headers: {
-            "Content-Type": "image/svg+xml",
-            "Cache-Control": "public, max-age=3600",
-          },
-        });
-      } else {
-        const pngBuffer = satoru.toPngBinary(html, width);
-        if (!pngBuffer) throw new Error("Failed to generate PNG");
-
-        return new Response(pngBuffer as BodyInit, {
-          headers: {
-            "Content-Type": "image/png",
-            "Cache-Control": "public, max-age=3600",
-          },
-        });
-      }
+      const contentType = format === "svg" ? "image/svg+xml" : "image/png";
+      return new Response(result as BodyInit, {
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=3600",
+        },
+      });
     } catch (e: any) {
       return new Response(e.stack || e.toString(), { status: 500 });
     }

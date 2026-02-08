@@ -189,8 +189,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
     if (overflow == litehtml::text_overflow_ellipsis) {
         litehtml::pixel_t available_width = pos.width;
         if (!m_clips.empty()) {
-            available_width =
-                std::min(available_width, (litehtml::pixel_t)(m_clips.back().first.right() - pos.x));
+            available_width = std::min(available_width,
+                                       (litehtml::pixel_t)(m_clips.back().first.right() - pos.x));
         }
 
         litehtml::pixel_t full_width = text_width(text, hFont);

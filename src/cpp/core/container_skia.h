@@ -81,6 +81,7 @@ class container_skia : public litehtml::document_container {
     std::vector<std::pair<litehtml::position, litehtml::border_radiuses>> m_clips;
 
     bool m_tagging;
+
    public:
     container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context, ResourceManager *rm,
                    bool tagging = false);

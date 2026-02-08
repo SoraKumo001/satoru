@@ -196,16 +196,15 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         p.setShader(SkShaders::SweepGradient(center, sk_grad, &matrix));
                         p.setAntiAlias(true);
 
-                        bitmapCanvas.drawRect(
-                            SkRect::MakeWH((float)layer.border_box.width,
-                                           (float)layer.border_box.height),
-                            p);
+                        bitmapCanvas.drawRect(SkRect::MakeWH((float)layer.border_box.width,
+                                                             (float)layer.border_box.height),
+                                              p);
 
                         std::stringstream ss;
-                        ss << "<image x=\"" << layer.border_box.x << "\" y=\""
-                           << layer.border_box.y << "\" width=\"" << layer.border_box.width
-                           << "\" height=\"" << layer.border_box.height << "\" href=\""
-                           << bitmapToDataUrl(bitmap) << "\"";
+                        ss << "<image x=\"" << layer.border_box.x << "\" y=\"" << layer.border_box.y
+                           << "\" width=\"" << layer.border_box.width << "\" height=\""
+                           << layer.border_box.height << "\" href=\"" << bitmapToDataUrl(bitmap)
+                           << "\"";
                         if (has_radius(layer.border_radius)) {
                             ss << " clip-path=\"url(#clip-conic-" << b << ")\"";
                         }
@@ -318,8 +317,8 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
         const auto &info = conics[i];
         if (has_radius(info.layer.border_radius)) {
             defs << "<clipPath id=\"clip-conic-" << (i + 1) << "\">";
-            defs << "<path d=\""
-                 << path_from_rrect(info.layer.border_box, info.layer.border_radius) << "\" />";
+            defs << "<path d=\"" << path_from_rrect(info.layer.border_box, info.layer.border_radius)
+                 << "\" />";
             defs << "</clipPath>";
         }
     }

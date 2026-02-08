@@ -185,6 +185,10 @@ pnpm --filter test-visual convert-assets
 
 ## 🏗️ Build & Run
 
+### Local Environment
+
+Requires Emscripten SDK and vcpkg.
+
 ```bash
 # 1. Install dependencies
 pnpm install
@@ -198,6 +202,18 @@ pnpm build
 
 # 4. Start Development UI
 pnpm dev
+```
+
+### Docker Environment (Recommended)
+
+Build Wasm artifacts inside a Docker container. No local C++ toolchain required.
+
+```bash
+# 1. Build Wasm via Docker
+pnpm wasm:docker:build
+
+# 2. Build TS packages
+pnpm build
 ```
 
 ## 🗺️ Roadmap

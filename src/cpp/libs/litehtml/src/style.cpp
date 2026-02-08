@@ -63,11 +63,11 @@ namespace litehtml
 
           {_caption_side_, caption_side_strings},
 
+          {__webkit_box_orient_, box_orient_strings},
           {_text_decoration_style_, style_text_decoration_style_strings},
           {_text_emphasis_position_, style_text_emphasis_position_strings},
           {_text_overflow_, text_overflow_strings},
   };
-
   std::map<string_id, vector<string_id>> shorthands =
       {
           {_font_, {_font_style_, _font_variant_, _font_weight_, _font_size_, _line_height_, _font_family_}},
@@ -200,6 +200,7 @@ namespace litehtml
     case _justify_content_:
     case _align_content_:
     case _caption_side_:
+    case __webkit_box_orient_:
       if (int index = value_index(ident, m_valid_values[name]); index >= 0)
         add_parsed_property(name, property_value(index, important));
       break;
@@ -455,6 +456,8 @@ namespace litehtml
       parse_shadow(name, value, important, container);
       break;
 
+    case _line_clamp_:
+    case __webkit_line_clamp_:
     case _order_:
       if (val.type == NUMBER && val.n.number_type == css_number_integer)
         add_parsed_property(name, property_value((int)val.n.number, important));

@@ -65,6 +65,10 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
       {
         m_display = display_block;
       }
+      else if (m_display == display_webkit_inline_box)
+      {
+        m_display = display_webkit_box;
+      }
     }
     else if (m_float != float_none)
     {
@@ -86,6 +90,10 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
                m_display == display_inline_block)
       {
         m_display = display_block;
+      }
+      else if (m_display == display_webkit_inline_box)
+      {
+        m_display = display_webkit_box;
       }
     }
     else if (el->is_root())
@@ -110,6 +118,10 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
                m_display == display_list_item)
       {
         m_display = display_block;
+      }
+      else if (m_display == display_webkit_inline_box)
+      {
+        m_display = display_webkit_box;
       }
     }
     else if (el->is_replaced() && m_display == display_inline)
@@ -269,6 +281,7 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   {
     m_line_clamp = el->get_property<int>(__webkit_line_clamp_, false, 0, offset(m_line_clamp));
   }
+  m_webkit_box_orient = (box_orient)el->get_property<int>(__webkit_box_orient_, false, box_orient_horizontal, offset(m_webkit_box_orient));
 
   compute_background(el, doc);
   compute_flex(el, doc);
@@ -641,6 +654,7 @@ std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_proper
   ret.emplace_back("border_spacing_x", m_css_border_spacing_x.to_string());
   ret.emplace_back("border_spacing_y", m_css_border_spacing_y.to_string());
   ret.emplace_back("line_clamp", std::to_string(m_line_clamp));
+  ret.emplace_back("webkit_box_orient", index_value(m_webkit_box_orient, box_orient_strings));
 
   return ret;
 }

@@ -258,6 +258,7 @@ namespace litehtml
       _line_height_,
       _line_clamp_,
       __webkit_line_clamp_,
+      __webkit_box_orient_,
       _text_decoration_,
       _text_decoration_style_,
       _text_decoration_line_,

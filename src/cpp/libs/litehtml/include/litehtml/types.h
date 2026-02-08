@@ -395,7 +395,7 @@ namespace litehtml
                 }
         };
 
-#define  style_display_strings          "none;block;inline;inline-block;inline-table;list-item;table;table-caption;table-cell;table-column;table-column-group;table-footer-group;table-header-group;table-row;table-row-group;inline-text;flex;inline-flex"
+#define  style_display_strings          "none;block;inline;inline-block;inline-table;list-item;table;table-caption;table-cell;table-column;table-column-group;table-footer-group;table-header-group;table-row;table-row-group;inline-text;flex;inline-flex;-webkit-box;-webkit-inline-box"
 
         enum style_display
         {
@@ -417,6 +417,8 @@ namespace litehtml
                 display_inline_text,
                 display_flex,
                 display_inline_flex,
+                display_webkit_box,
+                display_webkit_inline_box,
         };
 
 #define  font_size_strings              "xx-small;x-small;small;medium;large;x-large;xx-large;smaller;larger"
@@ -565,6 +567,14 @@ namespace litehtml
                 clear_left,
                 clear_right,
                 clear_both
+        };
+
+#define box_orient_strings "horizontal;vertical"
+
+        enum box_orient
+        {
+                box_orient_horizontal,
+                box_orient_vertical
         };
 
 #define  css_units_strings      "none;%;in;cm;mm;em;ex;pt;pc;px;vw;vh;vmin;vmax;rem;ch"

@@ -55,8 +55,8 @@ namespace litehtml
 		bool						is_float()					const;
 		bool						is_block_formatting_context() const;
 
-		pixel_t						v_scroll(pixel_t dy)		const;
-		pixel_t						h_scroll(pixel_t dx)		const;
+		pixel_t							v_scroll(pixel_t dy)		const;
+		pixel_t							h_scroll(pixel_t dx)		const;
 
 		bool						is_root() const;
 		element::ptr				parent() const;
@@ -217,7 +217,8 @@ namespace litehtml
 		if (css().get_display() == display_block ||
 			css().get_display() == display_flex ||
 			css().get_display() == display_table ||
-			css().get_display() == display_list_item)
+			css().get_display() == display_list_item ||
+			css().get_display() == display_webkit_box)
 		{
 			return true;
 		}

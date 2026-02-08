@@ -70,20 +70,25 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
 
     finish_last_box(true, self_size);
 
-	int line_clamp = src_el()->css().get_line_clamp();
-	if (line_clamp > 0 && m_line_boxes.size() > (size_t)line_clamp)
-	{
-		auto& last_line = m_line_boxes[line_clamp - 1];
-		auto last_item = last_line->get_last_text_part();
-		if (last_item)
-		{
-			string text;
-			last_item->src_el()->get_text(text);
-			text += "...";
-			last_item->src_el()->set_text(text.c_str());
-		}
-		m_line_boxes.resize(line_clamp);
-	}
+    int line_clamp = src_el()->css().get_line_clamp();
+    style_display display = src_el()->css().get_display();
+    box_orient orient = src_el()->css().get_webkit_box_orient();
+    if (line_clamp > 0 &&
+        (display == display_webkit_box || display == display_webkit_inline_box) &&
+        orient == box_orient_vertical &&
+        m_line_boxes.size() > (size_t)line_clamp)
+    {
+        auto& last_line = m_line_boxes[line_clamp - 1];
+        auto last_item = last_line->get_last_text_part();
+        if (last_item)
+        {
+            string text;
+            last_item->src_el()->get_text(text);
+            text += "...";
+            last_item->src_el()->set_text(text.c_str());
+        }
+        m_line_boxes.resize(line_clamp);
+    }
 
     if (!m_line_boxes.empty())
     {
@@ -215,8 +220,7 @@ litehtml::pixel_t litehtml::render_item_inline_context::new_box(const std::uniqu
     if(el->get_el()->src_el()->is_inline() || el->get_el()->src_el()->is_block_formatting_context())
     {
         if (el->get_el()->width() > line_ctx.right - line_ctx.left)
-        {
-            line_ctx.top = fmt_ctx->find_next_line_top(line_ctx.top, el->get_el()->width(), self_size.render_width);
+        {            line_ctx.top = fmt_ctx->find_next_line_top(line_ctx.top, el->get_el()->width(), self_size.render_width);
             line_ctx.left = 0;
             line_ctx.right = self_size.render_width;
             line_ctx.fix_top();
@@ -229,8 +233,7 @@ litehtml::pixel_t litehtml::render_item_inline_context::new_box(const std::uniqu
     if(m_line_boxes.empty())
     {
         if(src_el()->css().get_list_style_type() != list_style_type_none && src_el()->css().get_list_style_position() == list_style_position_inside)
-        {
-            pixel_t sz_font = src_el()->css().get_font_size();
+        {            pixel_t sz_font = src_el()->css().get_font_size();
             first_line_margin = sz_font;
         }
         if(src_el()->css().get_text_indent().val() != 0)
@@ -304,8 +307,7 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
 
     bool add_box = true;
     if(!m_line_boxes.empty())
-    {
-        if(m_line_boxes.back()->can_hold(item, src_el()->css().get_white_space()))
+    {        if(m_line_boxes.back()->can_hold(item, src_el()->css().get_white_space()))
         {
             add_box = false;
         }
@@ -334,8 +336,7 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
             {
                 pixel_t shift = item->get_el()->margin_top();
                 if(shift >= 0)
-                {
-                    line_ctx.top -= shift;
+                {                    line_ctx.top -= shift;
                     m_line_boxes.back()->y_shift(-shift);
                 }
             }

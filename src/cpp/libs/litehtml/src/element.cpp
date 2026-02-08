@@ -53,7 +53,8 @@ bool element::is_inline() const
 		   css().get_display() == display_inline_table ||
 		   css().get_display() == display_inline_block ||
 		   css().get_display() == display_inline_text ||
-		   css().get_display() == display_inline_flex)
+		   css().get_display() == display_inline_flex ||
+		   css().get_display() == display_webkit_inline_box)
 	{
 		return true;
 	}
@@ -64,7 +65,8 @@ bool element::is_inline_box() const
 {
 	if(	css().get_display() == display_inline_table ||
 		   css().get_display() == display_inline_block ||
-		   css().get_display() == display_inline_flex)
+		   css().get_display() == display_inline_flex ||
+		   css().get_display() == display_webkit_inline_box)
 	{
 		return true;
 	}
@@ -146,7 +148,9 @@ std::shared_ptr<render_item> element::create_render_item(const std::shared_ptr<r
 				css().get_display() == display_table_cell ||
 				css().get_display() == display_table_caption ||
 				css().get_display() == display_list_item ||
-				css().get_display() == display_inline_block)
+				css().get_display() == display_inline_block ||
+				css().get_display() == display_webkit_box ||
+				css().get_display() == display_webkit_inline_box)
 	{
 		ret = std::make_shared<render_item_block>(shared_from_this());
 	} else if(css().get_display() == display_table || css().get_display() == display_inline_table)

@@ -100,6 +100,7 @@ namespace litehtml
 
     int m_order;
     int m_line_clamp;
+    box_orient m_webkit_box_orient;
 
   private:
     void compute_font(const html_tag *el, const std::shared_ptr<document> &doc);
@@ -155,7 +156,8 @@ namespace litehtml
                        m_row_gap(0),
                        m_column_gap(0),
                        m_order(0),
-                       m_line_clamp(0)
+                       m_line_clamp(0),
+                       m_webkit_box_orient(box_orient_horizontal)
     {
     }
 
@@ -303,6 +305,9 @@ namespace litehtml
     int get_line_clamp() const;
     void set_line_clamp(int line_clamp);
 
+    box_orient get_webkit_box_orient() const;
+    void set_webkit_box_orient(box_orient orient);
+
     int get_text_decoration_line() const;
     text_decoration_style get_text_decoration_style() const;
     const css_length &get_text_decoration_thickness() const;
@@ -407,8 +412,7 @@ namespace litehtml
   }
 
   inline int css_properties::get_z_index() const
-  {
-    return (int)m_z_index.val();
+  {    return (int)m_z_index.val();
   }
 
   inline void css_properties::set_z_index(int mZIndex)
@@ -623,8 +627,7 @@ namespace litehtml
   }
 
   inline const font_metrics &css_properties::get_font_metrics() const
-  {
-    return m_font_metrics;
+  {    return m_font_metrics;
   }
 
   inline void css_properties::set_font_metrics(const font_metrics &mFontMetrics)
@@ -652,8 +655,7 @@ namespace litehtml
   inline void css_properties::set_content(const string &content) { m_content = content; }
 
   inline border_collapse css_properties::get_border_collapse() const
-  {
-    return m_border_collapse;
+  {    return m_border_collapse;
   }
 
   inline void css_properties::set_border_collapse(border_collapse mBorderCollapse)
@@ -763,6 +765,16 @@ namespace litehtml
   inline void css_properties::set_line_clamp(int line_clamp)
   {
     m_line_clamp = line_clamp;
+  }
+
+  inline box_orient css_properties::get_webkit_box_orient() const
+  {
+    return m_webkit_box_orient;
+  }
+
+  inline void css_properties::set_webkit_box_orient(box_orient orient)
+  {
+    m_webkit_box_orient = orient;
   }
 
   inline int css_properties::get_text_decoration_line() const

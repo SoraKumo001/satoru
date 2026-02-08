@@ -67,3 +67,10 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 - **SkPath Immutability:** Use `SkPathBuilder` instead of direct `SkPath` modification methods.
 - **Radial Gradients:** Circular by default. For **Elliptical** gradients, apply an `SkMatrix` scale transform (e.g., `ry/rx` on Y-axis) to the shader.
 - **C++ Logs:** Bridge `printf` to JS `console.log`. Ensure `\n` or `fflush(stdout)` is used.
+
+### 5. GitHub Pages Deployment
+
+To ensure the web-based test environments (e.g., `test-web`) work correctly on GitHub Pages (which often hosts projects in subdirectories):
+
+- **Relative Paths in HTML**: Always use relative paths for scripts and links (e.g., `src/main.ts` instead of `/src/main.ts`).
+- **Vite Configuration**: Set `base: \"./\"` in `vite.config.ts` to allow the application to be served from any base path.\n- **Asset Resolution**: In TypeScript, resolve asset URLs relative to the deployment root (e.g., `assets/file.html`) rather than using local development relative paths (e.g., `../../assets/`).\n- **Artifact Management**: Ensure Wasm (`satoru.wasm`) and JS (`satoru.js`) artifacts are copied to the `dist` directory during the build process, as they are typically located in the workspace's shared output directory.

@@ -184,16 +184,16 @@ describe("Visual Regression Tests", () => {
         if (!baseline || process.env.UPDATE_SNAPSHOTS) {
           baselines[file] = { direct: directDiff, svg: svgDiff };
         } else {
-          // Increase margin in CI environment to account for OS-level rendering differences
-          const margin = process.env.GITHUB_ACTIONS ? 0.2 : 0.05;
+          // Use a multiplier in CI environment to account for OS-level rendering differences
+          const factor = process.env.GITHUB_ACTIONS ? 1.2 : 1.05; // 20% allowance in CI, 5% locally
           expect(
             directDiff,
             `Direct PNG diff increased: ${directDiff.toFixed(2)}% (baseline: ${baseline.direct.toFixed(2)}%)`,
-          ).toBeLessThanOrEqual(Math.max(baseline.direct, 0.01) + margin);
+          ).toBeLessThanOrEqual(Math.max(baseline.direct, 0.01) * factor);
           expect(
             svgDiff,
             `SVG PNG diff increased: ${svgDiff.toFixed(2)}% (baseline: ${baseline.svg.toFixed(2)}%)`,
-          ).toBeLessThanOrEqual(Math.max(baseline.svg, 0.01) + margin);
+          ).toBeLessThanOrEqual(Math.max(baseline.svg, 0.01) * factor);
 
           if (directDiff < baseline.direct) baseline.direct = directDiff;
           if (svgDiff < baseline.svg) baseline.svg = svgDiff;

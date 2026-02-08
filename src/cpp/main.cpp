@@ -48,7 +48,7 @@ void init_engine() {
 
 EMSCRIPTEN_KEEPALIVE
 const char *html_to_svg(const char *html, int width, int height) {
-    std::string css = std::string(litehtml::master_css) + "\n" + satoru_master_css;
+    std::string css = std::string(litehtml::master_css) + "\n" + satoru_master_css + "\n" + g_context.getExtraCss();
     std::string result = renderHtmlToSvg(html, width, height, g_context, css.c_str());
     char *c_result = (char *)malloc(result.length() + 1);
     strcpy(c_result, result.c_str());
@@ -57,7 +57,7 @@ const char *html_to_svg(const char *html, int width, int height) {
 
 EMSCRIPTEN_KEEPALIVE
 const char *html_to_png(const char *html, int width, int height) {
-    std::string css = std::string(litehtml::master_css) + "\n" + satoru_master_css;
+    std::string css = std::string(litehtml::master_css) + "\n" + satoru_master_css + "\n" + g_context.getExtraCss();
     std::string result = renderHtmlToPng(html, width, height, g_context, css.c_str());
     char *c_result = (char *)malloc(result.length() + 1);
     strcpy(c_result, result.c_str());
@@ -66,7 +66,7 @@ const char *html_to_png(const char *html, int width, int height) {
 
 EMSCRIPTEN_KEEPALIVE
 const uint8_t *html_to_png_binary(const char *html, int width, int height) {
-    std::string css = std::string(litehtml::master_css) + "\n" + satoru_master_css;
+    std::string css = std::string(litehtml::master_css) + "\n" + satoru_master_css + "\n" + g_context.getExtraCss();
     auto data = renderHtmlToPngBinary(html, width, height, g_context, css.c_str());
     if (!data) return nullptr;
     std::vector<uint8_t> bytes(data->size());
@@ -87,7 +87,14 @@ const char *collect_resources(const char *html, int width) {
     if (g_discovery_container) delete g_discovery_container;
     g_discovery_container =
         new container_skia(width, 1000, nullptr, g_context, g_resourceManager, false);
-    std::string master_css_full = std::string(litehtml::master_css) + "\n" + satoru_master_css;
+    
+    std::string master_css_full = std::string(litehtml::master_css) + "\n" + satoru_master_css + "\n" + g_context.getExtraCss();
+    
+    // Scan already added CSS to the new container
+    if (!g_context.getExtraCss().empty()) {
+        g_discovery_container->scan_font_faces(g_context.getExtraCss());
+    }
+
     auto doc =
         litehtml::document::createFromString(html, g_discovery_container, master_css_full.c_str());
     if (doc) doc->render(width);

@@ -31,7 +31,7 @@ export interface RequiredResource {
   name: string;
 }
 
-export type ResourceResolver = (resource: RequiredResource) => Promise<string | Uint8Array | null>;
+export type ResourceResolver = (resource: RequiredResource) => Promise<Uint8Array | null>;
 
 export interface SatoruOptions {
   locateFile?: (path: string) => string;
@@ -103,40 +103,14 @@ export class Satoru {
           pending.map(async (r) => {
             try {
               resolvedUrls.add(r.url);
-              
-              const isFontUrl = /\.(woff2?|ttf|otf|eot)(\?.*)?$/i.test(r.url);
-              
               const data = await resolveResource({ ...r });
               
-              if (r.type === "css" && typeof data === "string") {
-                this.scanCss(data);
-                processedHtml = `<style>${data}</style>\n` + processedHtml;
-              } else if (data instanceof Uint8Array) {
-                if (isFontUrl && r.type === "css") {
-                   let fontName = r.url.split('/').pop()?.split('.')[0] || r.name;
-                   if (r.url.includes("noto-sans-jp")) fontName = "Noto Sans JP";
-                   
-                   let fontWeight = "400";
-                   if (/[-._]700\b|bold/i.test(r.url)) fontWeight = "700";
-                   else if (/[-._]300\b|light/i.test(r.url)) fontWeight = "300";
-                   else if (/[-._]500\b|medium/i.test(r.url)) fontWeight = "500";
-                   else if (/[-._]900\b|black/i.test(r.url)) fontWeight = "900";
-
-                   let fontStyle = "normal";
-                   if (/italic|oblique/i.test(r.url)) fontStyle = "italic";
-                   
-                   const fontFace = `@font-face { font-family: '${fontName}'; font-weight: ${fontWeight}; font-style: ${fontStyle}; src: url('${r.url}'); }`;
-                   this.scanCss(fontFace);
-                   processedHtml = `<style>${fontFace}</style>\n` + processedHtml;
-                   
-                   this.loadFont(fontName, data); 
-                } else {
-                   this.addResource(r.url, r.type, data);
-                }
+              if (data instanceof Uint8Array) {
+                this.addResource(r.url, r.type, data);
               }
-              
-              const escapedUrl = r.url.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
-              const linkRegex = new RegExp(`<link[^>]+href=["']${escapedUrl}["'][^>]*>`, 'gi');
+
+              const escapedUrl = r.url.replace(/[.*+?^${}()|[\\\\]\\\\]/g, '\\\\$&');
+              const linkRegex = new RegExp(`<link[^>]+href=[\"']${escapedUrl}[\"'][^>]*>`, 'gi');
               processedHtml = processedHtml.replace(linkRegex, "");
             } catch (e) {
               console.warn(`Failed to resolve resource: ${r.url}`, e);

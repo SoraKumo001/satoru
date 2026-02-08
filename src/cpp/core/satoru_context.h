@@ -12,6 +12,7 @@
 
 class SatoruContext {
     std::vector<uint8_t> m_lastPng;
+    std::string m_extraCss;
 
    public:
     sk_sp<SkFontMgr> fontMgr;
@@ -21,6 +22,10 @@ class SatoruContext {
     std::map<std::string, image_info> imageCache;
 
     void init();
+
+    void addCss(const std::string &css) { m_extraCss += css + "\n"; }
+    const std::string &getExtraCss() const { return m_extraCss; }
+    void clearCss() { m_extraCss.clear(); }
 
     void load_font(const char *name, const uint8_t *data, int size) { loadFont(name, data, size); }
     void loadFont(const char *name, const uint8_t *data, int size);
@@ -36,6 +41,12 @@ class SatoruContext {
 
     void clear_fonts() { clearFonts(); }
     void clearFonts();
+
+    void clearAll() {
+        clearFonts();
+        clearImages();
+        clearCss();
+    }
 
     sk_sp<SkTypeface> get_typeface(const std::string &family, int weight, SkFontStyle::Slant slant,
                                    bool &out_fake_bold);

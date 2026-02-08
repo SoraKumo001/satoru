@@ -145,18 +145,12 @@ async function init() {
             r.url.startsWith("http") || r.url.startsWith("data:")
               ? r.url
               : `../../assets/${r.url}`;
-          const isFont = url.match(/\.(woff2?|ttf|otf)$/i);
 
           const resp = await fetch(url);
           if (!resp.ok) return null;
 
-          // Force binary for fonts even if type is 'css'
-          if (r.type === "css" && !isFont) {
-            return await resp.text();
-          } else {
-            const buf = await resp.arrayBuffer();
-            return new Uint8Array(buf);
-          }
+          const buf = await resp.arrayBuffer();
+          return new Uint8Array(buf);
         } catch (e) {
           console.error(`Failed to resolve ${r.url}`, e);
           return null;

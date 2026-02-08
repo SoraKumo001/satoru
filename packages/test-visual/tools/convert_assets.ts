@@ -75,7 +75,6 @@ async function convertAssets() {
         try {
           const resp = await fetch(r.url);
           if (!resp.ok) return null;
-          if (r.type === "css") return await resp.text();
           return new Uint8Array(await resp.arrayBuffer());
         } catch (e) {
           return null;

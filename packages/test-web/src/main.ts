@@ -144,7 +144,7 @@ async function init() {
           const url =
             r.url.startsWith("http") || r.url.startsWith("data:")
               ? r.url
-              : `../../assets/${r.url}`;
+              : `assets/${r.url}`;
 
           const resp = await fetch(url);
           if (!resp.ok) return null;
@@ -202,7 +202,7 @@ async function init() {
         if (!file) return;
 
         try {
-          const resp = await fetch(`../../assets/${file}`);
+          const resp = await fetch(`assets/${file}`);
           const html = await resp.text();
           htmlInput.value = html;
           updatePreview();
@@ -226,7 +226,7 @@ async function init() {
 
       const initialAsset = "01-complex-layout.html";
       try {
-        const resp = await fetch(`../../assets/${initialAsset}`);
+        const resp = await fetch(`assets/${initialAsset}`);
         const html = await resp.text();
         htmlInput.value = html;
         assetSelect.value = initialAsset;

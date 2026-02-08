@@ -154,6 +154,7 @@ set(SATORU_LIBS
 )
 
 set(COMMON_LINK_OPTIONS
+    "--bind"
     "-O3"
     "-fexceptions"
     "-msimd128"

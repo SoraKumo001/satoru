@@ -150,3 +150,19 @@ void load_image(const char *name, const char *data_url, int width, int height) {
 EMSCRIPTEN_KEEPALIVE
 void clear_images() { g_context.clear_images(); }
 }
+
+EMSCRIPTEN_BINDINGS(satoru) {
+    function("init_engine", &init_engine);
+    function("html_to_svg", &html_to_svg, allow_raw_pointers());
+    function("html_to_png", &html_to_png, allow_raw_pointers());
+    function("html_to_png_binary", &html_to_png_binary, allow_raw_pointers());
+    function("get_png_size", &get_png_size);
+    function("collect_resources", &collect_resources, allow_raw_pointers());
+    function("get_required_fonts", &get_required_fonts, allow_raw_pointers());
+    function("add_resource", &add_resource, allow_raw_pointers());
+    function("scan_css", &scan_css, allow_raw_pointers());
+    function("load_font", &load_font, allow_raw_pointers());
+    function("clear_fonts", &clear_fonts);
+    function("load_image", &load_image, allow_raw_pointers());
+    function("clear_images", &clear_images);
+}

@@ -70,6 +70,21 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
 
     finish_last_box(true, self_size);
 
+	int line_clamp = src_el()->css().get_line_clamp();
+	if (line_clamp > 0 && m_line_boxes.size() > (size_t)line_clamp)
+	{
+		auto& last_line = m_line_boxes[line_clamp - 1];
+		auto last_item = last_line->get_last_text_part();
+		if (last_item)
+		{
+			string text;
+			last_item->src_el()->get_text(text);
+			text += "...";
+			last_item->src_el()->set_text(text.c_str());
+		}
+		m_line_boxes.resize(line_clamp);
+	}
+
     if (!m_line_boxes.empty())
     {
         if (collapse_top_margin())

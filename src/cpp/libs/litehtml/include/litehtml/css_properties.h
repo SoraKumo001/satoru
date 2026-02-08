@@ -1,4 +1,4 @@
-﻿#ifndef LITEHTML_CSS_PROPERTIES_H
+#ifndef LITEHTML_CSS_PROPERTIES_H
 #define LITEHTML_CSS_PROPERTIES_H
 
 #include "string_id.h"
@@ -99,6 +99,7 @@ namespace litehtml
     shadow_vector m_text_shadow;
 
     int m_order;
+    int m_line_clamp;
 
   private:
     void compute_font(const html_tag *el, const std::shared_ptr<document> &doc);
@@ -153,7 +154,8 @@ namespace litehtml
                        m_flex_align_content(flex_align_content_stretch),
                        m_row_gap(0),
                        m_column_gap(0),
-                       m_order(0)
+                       m_order(0),
+                       m_line_clamp(0)
     {
     }
 
@@ -297,6 +299,9 @@ namespace litehtml
 
     int get_order() const;
     void set_order(int order);
+
+    int get_line_clamp() const;
+    void set_line_clamp(int line_clamp);
 
     int get_text_decoration_line() const;
     text_decoration_style get_text_decoration_style() const;
@@ -748,6 +753,16 @@ namespace litehtml
   inline void css_properties::set_order(int order)
   {
     m_order = order;
+  }
+
+  inline int css_properties::get_line_clamp() const
+  {
+    return m_line_clamp;
+  }
+
+  inline void css_properties::set_line_clamp(int line_clamp)
+  {
+    m_line_clamp = line_clamp;
   }
 
   inline int css_properties::get_text_decoration_line() const

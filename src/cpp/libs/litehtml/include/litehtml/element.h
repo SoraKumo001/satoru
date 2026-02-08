@@ -109,6 +109,7 @@ namespace litehtml
 		virtual void				draw_background(uint_ptr hdc, pixel_t x, pixel_t y, const position *clip, const std::shared_ptr<render_item> &ri);
 
 		virtual void				get_text(string& text) const;
+		virtual void				set_text(const char* text);
 		virtual void				parse_attributes();
 		virtual int					select(const css_selector::vector& selector_list, bool apply_pseudo = true);
 		virtual int					select(const string& selector);
@@ -235,6 +236,10 @@ namespace litehtml
 			return nullptr;
 		}
 		return m_renders.front().lock();
+	}
+
+	inline void element::set_text(const char* /*text*/)
+	{
 	}
 }
 

@@ -1,4 +1,4 @@
-﻿#include "html.h"
+#include "html.h"
 #include "css_properties.h"
 #include <cmath>
 #include "document.h"
@@ -264,6 +264,11 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   }
 
   m_order = el->get_property<int>(_order_, false, 0, offset(m_order));
+  m_line_clamp = el->get_property<int>(_line_clamp_, false, 0, offset(m_line_clamp));
+  if (m_line_clamp == 0)
+  {
+    m_line_clamp = el->get_property<int>(__webkit_line_clamp_, false, 0, offset(m_line_clamp));
+  }
 
   compute_background(el, doc);
   compute_flex(el, doc);
@@ -399,7 +404,7 @@ void litehtml::css_properties::compute_font(const html_tag *el, const document::
   {
     m_text_decoration_thickness = el->get_property<css_length>(_text_decoration_thickness_, propagate_decoration, css_length::predef_value(text_decoration_thickness_auto), offset(m_text_decoration_thickness));
     m_text_underline_offset = el->get_property<css_length>(_text_underline_offset_, propagate_decoration, css_length::predef_value(0), offset(m_text_underline_offset));
-    
+
     doc->cvt_units(m_text_decoration_thickness, m_font_metrics, font_size);
     doc->cvt_units(m_text_underline_offset, m_font_metrics, font_size);
 
@@ -635,6 +640,7 @@ std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_proper
   ret.emplace_back("list_style_position", index_value(m_list_style_position, list_style_position_strings));
   ret.emplace_back("border_spacing_x", m_css_border_spacing_x.to_string());
   ret.emplace_back("border_spacing_y", m_css_border_spacing_y.to_string());
+  ret.emplace_back("line_clamp", std::to_string(m_line_clamp));
 
   return ret;
 }

@@ -24,6 +24,18 @@ void litehtml::el_text::get_text( string& text ) const
 	text += m_text;
 }
 
+void litehtml::el_text::set_text( const char* text )
+{
+	if(text)
+	{
+		m_text = text;
+	} else
+	{
+		m_text = "";
+	}
+	compute_styles(false);
+}
+
 void litehtml::el_text::compute_styles(bool /*recursive*/)
 {
 	element::ptr el_parent = parent();

@@ -256,6 +256,8 @@ namespace litehtml
       _font_weight_,
       _font_size_,
       _line_height_,
+      _line_clamp_,
+      __webkit_line_clamp_,
       _text_decoration_,
       _text_decoration_style_,
       _text_decoration_line_,

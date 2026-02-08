@@ -5,9 +5,9 @@ async function init() {
   try {
     const satoru = await Satoru.init(undefined, {
       locateFile: (path: string) => {
-        if (path.endsWith(".wasm")) return "/satoru.wasm";
+        if (path.endsWith(".wasm")) return "satoru.wasm";
         return path;
-      }
+      },
     });
 
     const app = document.getElementById("app");
@@ -103,17 +103,34 @@ async function init() {
                 </div>
             `;
 
-      const convertBtn = document.getElementById("convertBtn") as HTMLButtonElement;
-      const downloadBtn = document.getElementById("downloadBtn") as HTMLButtonElement;
-      const htmlInput = document.getElementById("htmlInput") as HTMLTextAreaElement;
-      const htmlPreview = document.getElementById("htmlPreview") as HTMLIFrameElement;
-      const svgContainer = document.getElementById("svgContainer") as HTMLDivElement;
-      const svgSource = document.getElementById("svgSource") as HTMLTextAreaElement;
-      const canvasWidthInput = document.getElementById("canvasWidth") as HTMLInputElement;
-      const assetSelect = document.getElementById("assetSelect") as HTMLSelectElement;
+      const convertBtn = document.getElementById(
+        "convertBtn",
+      ) as HTMLButtonElement;
+      const downloadBtn = document.getElementById(
+        "downloadBtn",
+      ) as HTMLButtonElement;
+      const htmlInput = document.getElementById(
+        "htmlInput",
+      ) as HTMLTextAreaElement;
+      const htmlPreview = document.getElementById(
+        "htmlPreview",
+      ) as HTMLIFrameElement;
+      const svgContainer = document.getElementById(
+        "svgContainer",
+      ) as HTMLDivElement;
+      const svgSource = document.getElementById(
+        "svgSource",
+      ) as HTMLTextAreaElement;
+      const canvasWidthInput = document.getElementById(
+        "canvasWidth",
+      ) as HTMLInputElement;
+      const assetSelect = document.getElementById(
+        "assetSelect",
+      ) as HTMLSelectElement;
 
       const updatePreview = () => {
-        const doc = htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
+        const doc =
+          htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
         if (doc) {
           doc.open();
           doc.write(htmlInput.value);
@@ -124,9 +141,12 @@ async function init() {
       const resourceResolver = async (r: RequiredResource) => {
         console.log(`[Satoru] Resolving ${r.type}: ${r.url}`);
         try {
-          const url = (r.url.startsWith("http") || r.url.startsWith("data:")) ? r.url : `../../assets/${r.url}`;
+          const url =
+            r.url.startsWith("http") || r.url.startsWith("data:")
+              ? r.url
+              : `../../assets/${r.url}`;
           const isFont = url.match(/\.(woff2?|ttf|otf)$/i);
-          
+
           const resp = await fetch(url);
           if (!resp.ok) return null;
 
@@ -168,7 +188,8 @@ async function init() {
             svgSource.value = result;
             downloadBtn.style.display = "block";
           } else {
-            svgContainer.innerHTML = '<div style="color:orange; padding: 20px;">Rendering returned no result.</div>';
+            svgContainer.innerHTML =
+              '<div style="color:orange; padding: 20px;">Rendering returned no result.</div>';
             svgSource.value = typeof result === "string" ? result : "";
           }
         } catch (e) {
@@ -224,7 +245,8 @@ async function init() {
   } catch (e) {
     console.error("Failed to initialize Satoru Engine:", e);
     const app = document.getElementById("app");
-    if (app) app.innerHTML = `<div style="color:red; padding: 50px;">Failed to initialize: ${e}</div>`;
+    if (app)
+      app.innerHTML = `<div style="color:red; padding: 50px;">Failed to initialize: ${e}</div>`;
   }
 }
 

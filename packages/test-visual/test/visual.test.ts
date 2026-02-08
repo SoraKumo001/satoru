@@ -184,7 +184,8 @@ describe("Visual Regression Tests", () => {
         if (!baseline || process.env.UPDATE_SNAPSHOTS) {
           baselines[file] = { direct: directDiff, svg: svgDiff };
         } else {
-          const margin = 0.05;
+          // Increase margin in CI environment to account for OS-level rendering differences
+          const margin = process.env.GITHUB_ACTIONS ? 0.2 : 0.05;
           expect(
             directDiff,
             `Direct PNG diff increased: ${directDiff.toFixed(2)}% (baseline: ${baseline.direct.toFixed(2)}%)`,

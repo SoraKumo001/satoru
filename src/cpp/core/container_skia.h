@@ -109,7 +109,8 @@ class container_skia : public litehtml::document_container {
     virtual void delete_font(litehtml::uint_ptr hFont) override;
     virtual litehtml::pixel_t text_width(const char *text, litehtml::uint_ptr hFont) override;
     virtual void draw_text(litehtml::uint_ptr hdc, const char *text, litehtml::uint_ptr hFont,
-                           litehtml::web_color color, const litehtml::position &pos) override;
+                           litehtml::web_color color, const litehtml::position &pos,
+                           litehtml::text_overflow overflow) override;
     virtual litehtml::pixel_t pt_to_px(float pt) const override;
     virtual litehtml::pixel_t get_default_font_size() const override;
     virtual const char *get_default_font_name() const override;

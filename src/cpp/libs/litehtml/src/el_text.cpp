@@ -125,7 +125,7 @@ void litehtml::el_text::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position 
 			{
 				web_color color = el_parent->css().get_color();
 				doc->container()->draw_text(hdc, m_use_transformed ? m_transformed_text.c_str() : m_text.c_str(), font,
-											color, pos);
+											color, pos, el_parent->css().get_text_overflow());
 			}
 		}
 	}

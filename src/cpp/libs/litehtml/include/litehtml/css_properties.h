@@ -32,6 +32,7 @@ namespace litehtml
     element_position m_el_position;
     text_align m_text_align;
     overflow m_overflow;
+    text_overflow m_text_overflow;
     white_space m_white_space;
     style_display m_display;
     visibility m_visibility;
@@ -110,6 +111,7 @@ namespace litehtml
     css_properties() : m_el_position(element_position_static),
                        m_text_align(text_align_left),
                        m_overflow(overflow_visible),
+                       m_text_overflow(text_overflow_clip),
                        m_white_space(white_space_normal),
                        m_display(display_inline),
                        m_visibility(visibility_visible),
@@ -166,6 +168,9 @@ namespace litehtml
 
     overflow get_overflow() const;
     void set_overflow(overflow mOverflow);
+
+    text_overflow get_text_overflow() const;
+    void set_text_overflow(text_overflow mTextOverflow);
 
     white_space get_white_space() const;
     void set_white_space(white_space mWhiteSpace);
@@ -334,6 +339,16 @@ namespace litehtml
   inline void css_properties::set_overflow(overflow mOverflow)
   {
     m_overflow = mOverflow;
+  }
+
+  inline text_overflow css_properties::get_text_overflow() const
+  {
+    return m_text_overflow;
+  }
+
+  inline void css_properties::set_text_overflow(text_overflow mTextOverflow)
+  {
+    m_text_overflow = mTextOverflow;
   }
 
   inline white_space css_properties::get_white_space() const

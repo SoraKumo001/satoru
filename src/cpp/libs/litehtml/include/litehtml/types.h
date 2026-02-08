@@ -670,6 +670,14 @@ namespace litehtml
                 white_space_pre_wrap
         };
 
+#define text_overflow_strings           "clip;ellipsis"
+
+        enum text_overflow
+        {
+                text_overflow_clip,
+                text_overflow_ellipsis
+        };
+
 #define overflow_strings                "visible;hidden;scroll;auto;no-display;no-content"
 
         enum overflow

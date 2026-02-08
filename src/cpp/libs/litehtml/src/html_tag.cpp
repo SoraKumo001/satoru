@@ -1169,7 +1169,7 @@ void litehtml::html_tag::draw_list_marker( uint_ptr hdc, const position& pos, co
                                 text_pos.move_to(text_pos.right() - tw, text_pos.y);
                                 text_pos.width = tw;
                                 text_pos.round();
-                                get_document()->container()->draw_text(hdc, marker_text.c_str(), lm.font, lm.color, text_pos);
+                                get_document()->container()->draw_text(hdc, marker_text.c_str(), lm.font, lm.color, text_pos, litehtml::text_overflow_clip);
                         }
                 }
         }

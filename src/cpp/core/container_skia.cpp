@@ -181,15 +181,95 @@ litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_pt
 }
 
 void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtml::uint_ptr hFont,
-                               litehtml::web_color color, const litehtml::position &pos) {
+                               litehtml::web_color color, const litehtml::position &pos,
+                               litehtml::text_overflow overflow) {
     if (!m_canvas) return;
     font_info *fi = (font_info *)hFont;
     if (!fi || fi->fonts.empty()) return;
+
+    std::string text_str = text;
+    if (overflow == litehtml::text_overflow_ellipsis) {
+        litehtml::pixel_t full_width = text_width(text, hFont);
+        if (full_width > pos.width) {
+            std::string ellipsis = "...";
+            litehtml::pixel_t ellipsis_width = text_width(ellipsis.c_str(), hFont);
+            if (ellipsis_width >= pos.width) {
+                text_str = ellipsis;
+            } else {
+                double max_w = (double)pos.width - ellipsis_width;
+                double current_w = 0;
+                const char *p = text;
+                const char *run_start = p;
+                const char *last_safe = p;
+                SkFont *current_font = nullptr;
+
+                while (*p) {
+                    const char *next_p = p;
+                    char32_t u = decode_utf8(&next_p);
+                    SkFont *font = nullptr;
+                    for (auto f : fi->fonts) {
+                        SkGlyphID glyph;
+                        f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>((const SkUnichar *)&u, 1),
+                                                           SkSpan<SkGlyphID>(&glyph, 1));
+                        if (glyph != 0) {
+                            font = f;
+                            break;
+                        }
+                    }
+                    if (!font) font = fi->fonts[0];
+                    if (font != current_font) {
+                        if (current_font && p > run_start) {
+                            double run_w = current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
+                            if (current_w + run_w > max_w) {
+                                const char* rp = run_start;
+                                while(rp < p) {
+                                    const char* next_rp = rp;
+                                    decode_utf8(&next_rp);
+                                    double char_w = current_font->measureText(rp, next_rp - rp, SkTextEncoding::kUTF8);
+                                    if(current_w + char_w > max_w) goto found_split;
+                                    current_w += char_w;
+                                    last_safe = next_rp;
+                                    rp = next_rp;
+                                }
+                            } else {
+                                current_w += run_w;
+                                last_safe = p;
+                            }
+                        }
+                        run_start = p;
+                        current_font = font;
+                    }
+                    p = next_p;
+                }
+                if (current_font && p > run_start) {
+                     double run_w = current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
+                     if (current_w + run_w > max_w) {
+                         const char* rp = run_start;
+                         while(rp < p) {
+                             const char* next_rp = rp;
+                             decode_utf8(&next_rp);
+                             double char_w = current_font->measureText(rp, next_rp - rp, SkTextEncoding::kUTF8);
+                             if(current_w + char_w > max_w) goto found_split;
+                             current_w += char_w;
+                             last_safe = next_rp;
+                             rp = next_rp;
+                         }
+                     } else {
+                         last_safe = p;
+                     }
+                }
+                
+                found_split:
+                text_str = std::string(text, last_safe - text) + ellipsis;
+            }
+        }
+    }
+
     SkPaint paint;
     paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     paint.setAntiAlias(true);
     double x_offset = 0;
-    const char *p = text;
+    const char *p = text_str.c_str();
     const char *run_start = p;
     SkFont *current_font = nullptr;
     while (*p) {

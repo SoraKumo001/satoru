@@ -21,6 +21,7 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   m_appearance = (appearance)el->get_property<int>(_appearance_, false, appearance_none, offset(m_appearance));
   m_box_sizing = (box_sizing)el->get_property<int>(_box_sizing_, false, box_sizing_content_box, offset(m_box_sizing));
   m_overflow = (overflow)el->get_property<int>(_overflow_, false, overflow_visible, offset(m_overflow));
+  m_text_overflow = (text_overflow)el->get_property<int>(_text_overflow_, false, text_overflow_clip, offset(m_text_overflow));
   m_text_align = (text_align)el->get_property<int>(_text_align_, true, text_align_left, offset(m_text_align));
   m_vertical_align = (vertical_align)el->get_property<int>(_vertical_align_, false, va_baseline, offset(m_vertical_align));
   m_text_transform = (text_transform)el->get_property<int>(_text_transform_, true, text_transform_none, offset(m_text_transform));
@@ -609,6 +610,7 @@ std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_proper
   ret.emplace_back("text_align", index_value(m_text_align, text_align_strings));
   ret.emplace_back("font_size", m_font_size.to_string());
   ret.emplace_back("overflow", index_value(m_overflow, overflow_strings));
+  ret.emplace_back("text_overflow", index_value(m_text_overflow, text_overflow_strings));
   ret.emplace_back("white_space", index_value(m_white_space, white_space_strings));
   ret.emplace_back("visibility", index_value(m_visibility, visibility_strings));
   ret.emplace_back("appearance", index_value(m_appearance, appearance_strings));

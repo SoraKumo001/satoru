@@ -275,51 +275,85 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
     }
 
     SkPaint paint;
-    paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     paint.setAntiAlias(true);
-    double x_offset = 0;
-    const char *p = text_str.c_str();
-    const char *run_start = p;
-    SkFont *current_font = nullptr;
-    while (*p) {
-        const char *next_p = p;
-        char32_t u = decode_utf8(&next_p);
-        SkFont *font = nullptr;
-        for (auto f : fi->fonts) {
-            SkGlyphID glyph;
-            f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>((const SkUnichar *)&u, 1),
-                                               SkSpan<SkGlyphID>(&glyph, 1));
-            if (glyph != 0) {
-                font = f;
-                break;
-            }
-        }
-        if (!font) font = fi->fonts[0];
-        if (font != current_font) {
-            if (current_font && p > run_start) {
-                SkFont render_font = *current_font;
-                if (fi->fake_bold) render_font.setEmbolden(true);
-                m_canvas->drawSimpleText(run_start, p - run_start, SkTextEncoding::kUTF8,
-                                         (float)pos.x + (float)x_offset,
-                                         (float)pos.y + (float)fi->fm_ascent, render_font, paint);
-                x_offset +=
-                    current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
-            }
-            run_start = p;
-            current_font = font;
-        }
-        p = next_p;
-    }
-    if (current_font && p > run_start) {
-        SkFont render_font = *current_font;
-        if (fi->fake_bold) render_font.setEmbolden(true);
-        m_canvas->drawSimpleText(run_start, p - run_start, SkTextEncoding::kUTF8,
-                                 (float)pos.x + (float)x_offset,
-                                 (float)pos.y + (float)fi->fm_ascent, render_font, paint);
-        x_offset += current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
+
+    if (m_tagging && !fi->desc.text_shadow.empty()) {
+        text_shadow_info info;
+        info.shadows = fi->desc.text_shadow;
+        info.text_color = color;
+        m_usedTextShadows.push_back(info);
+        int index = (int)m_usedTextShadows.size();
+        paint.setColor(SkColorSetARGB(255, 0, 2, (index & 0xFF)));
+    } else {
+        paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     }
 
+    auto draw_text_internal = [&](const char *str, size_t len, double x, double y, const SkPaint &p) {
+        double x_offset = 0;
+        const char *ptr = str;
+        const char *run_start = ptr;
+        SkFont *current_font = nullptr;
+        const char *end = str + len;
+        while (ptr < end) {
+            const char *next_ptr = ptr;
+            char32_t u = decode_utf8(&next_ptr);
+            SkFont *font = nullptr;
+            for (auto f : fi->fonts) {
+                SkGlyphID glyph;
+                f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>((const SkUnichar *)&u, 1),
+                                                   SkSpan<SkGlyphID>(&glyph, 1));
+                if (glyph != 0) {
+                    font = f;
+                    break;
+                }
+            }
+            if (!font) font = fi->fonts[0];
+            if (font != current_font) {
+                if (current_font && ptr > run_start) {
+                    SkFont render_font = *current_font;
+                    if (fi->fake_bold) render_font.setEmbolden(true);
+                    m_canvas->drawSimpleText(run_start, ptr - run_start, SkTextEncoding::kUTF8,
+                                             (float)x + (float)x_offset,
+                                             (float)y + (float)fi->fm_ascent, render_font, p);
+                    x_offset +=
+                        current_font->measureText(run_start, ptr - run_start, SkTextEncoding::kUTF8);
+                }
+                run_start = ptr;
+                current_font = font;
+            }
+            ptr = next_ptr;
+        }
+        if (current_font && ptr > run_start) {
+            SkFont render_font = *current_font;
+            if (fi->fake_bold) render_font.setEmbolden(true);
+            m_canvas->drawSimpleText(run_start, ptr - run_start, SkTextEncoding::kUTF8,
+                                     (float)x + (float)x_offset,
+                                     (float)y + (float)fi->fm_ascent, render_font, p);
+            x_offset += current_font->measureText(run_start, ptr - run_start, SkTextEncoding::kUTF8);
+        }
+        return x_offset;
+    };
+
+    if (!m_tagging && !fi->desc.text_shadow.empty()) {
+        for (auto it = fi->desc.text_shadow.rbegin(); it != fi->desc.text_shadow.rend(); ++it) {
+            const auto &s = *it;
+            SkPaint shadow_paint = paint;
+            shadow_paint.setColor(
+                SkColorSetARGB(s.color.alpha, s.color.red, s.color.green, s.color.blue));
+            float blur_std_dev = (float)s.blur.val() * 0.5f;
+            if (blur_std_dev > 0)
+                shadow_paint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, blur_std_dev));
+
+            draw_text_internal(text_str.c_str(), text_str.size(), (double)pos.x + s.x.val(),
+                               (double)pos.y + s.y.val(), shadow_paint);
+        }
+    }
+
+    double final_x_offset =
+        draw_text_internal(text_str.c_str(), text_str.size(), (double)pos.x, (double)pos.y, paint);
+
     if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
+        float x_offset_dec = (float)final_x_offset;
         float thickness = (float)fi->desc.decoration_thickness.val();
         if (thickness == 0) thickness = 1.0f;
 
@@ -344,12 +378,12 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         auto draw_decoration_line = [&](float y) {
             if (fi->desc.decoration_style == litehtml::text_decoration_style_double) {
                 float gap = thickness + 1.0f;
-                m_canvas->drawLine((float)pos.x, y - gap / 2, (float)pos.x + (float)x_offset,
+                m_canvas->drawLine((float)pos.x, y - gap / 2, (float)pos.x + x_offset_dec,
                                    y - gap / 2, dec_paint);
-                m_canvas->drawLine((float)pos.x, y + gap / 2, (float)pos.x + (float)x_offset,
+                m_canvas->drawLine((float)pos.x, y + gap / 2, (float)pos.x + x_offset_dec,
                                    y + gap / 2, dec_paint);
             } else {
-                m_canvas->drawLine((float)pos.x, y, (float)pos.x + (float)x_offset, y, dec_paint);
+                m_canvas->drawLine((float)pos.x, y, (float)pos.x + x_offset_dec, y, dec_paint);
             }
         };
 
@@ -713,7 +747,7 @@ void container_skia::scan_font_faces(const std::string &css) {
     std::regex familyRegex(R"(font-family:\s*([^;]+);?)", std::regex::icase);
     std::regex weightRegex(R"(font-weight:\s*([^;]+);?)", std::regex::icase);
     std::regex styleRegex(R"(font-style:\s*([^;]+);?)", std::regex::icase);
-    std::regex urlRegex(R"(url\s*\(\s*['"]?([^'")]+)['"]?\s*\))", std::regex::icase);
+    std::regex urlRegex(R"(url\s*\(\s*['"]?([^'\")]+)['"]?\s*\))", std::regex::icase);
     auto words_begin = std::sregex_iterator(css.begin(), css.end(), fontFaceRegex);
     for (std::sregex_iterator i = words_begin; i != std::sregex_iterator(); ++i) {
         std::string body = (*i)[1].str();

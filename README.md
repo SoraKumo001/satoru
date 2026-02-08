@@ -24,6 +24,46 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
   - **Gradients**: Linear, **Elliptical Radial**, and **Conic** (Sweep) gradient support.
   - **Standard Tags**: Full support for `<b>`, `<strong>`, `<i>`, `<u>`, and `<h1>`-`<h6>` via integrated master CSS.
   - **Text Decoration**: Supports `underline`, `line-through`, `overline` with `solid`, `dotted`, and `dashed` styles.
+  - **Text Shadow**: Multiple shadows with blur, offset, and color support (PNG/SVG).
+
+## 📋 Supported CSS Properties
+
+Satoru supports a wide range of CSS properties for high-fidelity layout and styling.
+
+### Box Model & Layout
+- `display`, `position`, `float`, `clear`, `visibility`, `z-index`, `overflow`, `box-sizing`
+- `width`, `height`, `min-width`, `min-height`, `max-width`, `max-height`
+- `margin` (top, right, bottom, left)
+- `padding` (top, right, bottom, left)
+
+### Typography & Text
+- `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`
+- `text-align`, `vertical-align`, `text-decoration` (line, color, style, thickness)
+- `text-transform`, `text-indent`, `text-overflow`, `white-space`
+- `text-shadow`, `text-emphasis` (style, color, position)
+- `line-clamp` / `-webkit-line-clamp`, `-webkit-box-orient`
+
+### Backgrounds
+- `background-color`
+- `background-image` (Supports `url()`, `linear-gradient`, `radial-gradient`, `conic-gradient`)
+- `background-position`, `background-size`, `background-repeat`, `background-attachment`, `background-clip`, `background-origin`
+
+### Borders & Shadows
+- `border`, `border-width`, `border-style`, `border-color` (top, right, bottom, left)
+- `border-radius` (Full support for all corners)
+- `border-collapse`, `border-spacing`
+- `box-shadow` (High-quality **Outer** and **Inset** shadows)
+
+### Flexbox
+- `display: flex`, `display: inline-flex`
+- `flex-direction`, `flex-wrap`, `flex-flow`
+- `justify-content`, `align-items`, `align-content`, `align-self`
+- `flex-grow`, `flex-shrink`, `flex-basis`, `flex`
+- `row-gap`, `column-gap`, `gap`, `order`
+
+### Others
+- `list-style` (type, position, image)
+- `caption-side`, `content`, `cursor`, `appearance`
 
 ## 🔄 Conversion Flow
 
@@ -85,9 +125,9 @@ const html = `
       src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2');
     }
   </style>
-  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;">
+  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;\">
     Hello Satoru!
-    <img src="https://example.com/logo.png" style="width: 50px;">
+    <img src="https://example.com/logo.png" style="width: 50px;\">
   </div>
 `;
 
@@ -123,8 +163,7 @@ export default {
           src: url('https://example.com/font.woff2');
         }
       </style>
-      <div style='font-family: CustomFont'>Edge Rendered with Auto-loading</div>
-    `;
+      <div style='font-family: CustomFont'>Edge Rendered with Auto-loading</div>\n    `;
 
     const svg = await satoru.render(html, 800, {
       resolveResource: async (resource) => {
@@ -181,8 +220,8 @@ This suite compares Satoru's outputs against Chromium's rendering.
   2. **SVG PNG**: Satoru's SVG output rendered in a browser vs Chromium PNG.
 - **Numerical Precision**: Tests report the exact pixel difference percentage for both paths.
 - **Fast Execution**:
-  - **Reference Generation**: Multi-threaded using Playwright with shared contexts (~3s for 13 assets).
-  - **Batch Conversion**: Multi-threaded using Node.js Worker Threads, running multiple Wasm instances in parallel (~1.8s for 13 assets).
+  - **Reference Generation**: Multi-threaded using Playwright with shared contexts (~3s for 14 assets).
+  - **Batch Conversion**: Multi-threaded using Node.js Worker Threads, running multiple Wasm instances in parallel (~1.8s for 14 assets).
 
 #### Run Tests
 
@@ -243,6 +282,7 @@ pnpm build
 - [x] Border Radius & **Advanced Box Shadow (Outer/Inset)**.
 - [x] Japanese Language Rendering & Standard HTML Tag Support.
 - [x] **Cloudflare Workers (workerd) compatibility.**
+- [x] **Text Shadow (Multiple shadows, Blur, Offset).**
 - [ ] SVG Path Shorthand Optimization.
 - [ ] Support for CSS Masks & Filters.
 - [ ] Optional SVG `<text>` element output (currently paths).

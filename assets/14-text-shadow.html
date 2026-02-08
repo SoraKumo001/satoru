@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        .text-item {
+            font-size: 48px;
+            font-weight: bold;
+            color: #333;
+        }
+        .basic {
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .offset {
+            text-shadow: 5px 5px 0px #aaa;
+        }
+        .glow {
+            color: white;
+            text-shadow: 0 0 10px #007bff, 0 0 20px #007bff;
+        }
+        .multiple {
+            text-shadow: 1px 1px 2px pink, 0 0 1em blue, 0 0 0.2em blue;
+            color: white;
+        }
+        .outline {
+            color: white;
+            text-shadow: 
+                -1px -1px 0 #000,  
+                 1px -1px 0 #000,
+                -1px  1px 0 #000,
+                 1px  1px 0 #000;
+        }
+        .soft {
+            text-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .japanese {
+            text-shadow: 2px 2px 2px #f00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="text-item basic">Basic Shadow</div>
+        <div class="text-item offset">Hard Offset Shadow</div>
+        <div class="text-item glow">Glow Effect</div>
+        <div class="text-item multiple">Multiple Shadows</div>
+        <div class="text-item outline">Outline Effect</div>
+        <div class="text-item soft">Soft Deep Shadow</div>
+        <div class="text-item japanese">日本語テキストシャドウ</div>
+    </div>
+</body>
+</html>

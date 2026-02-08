@@ -66,6 +66,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
     result.reserve(svg.size() + 4096);
 
     const auto &shadows = container.get_used_shadows();
+    const auto &textShadows = container.get_used_text_shadows();
     const auto &images = container.get_used_image_draws();
     const auto &conics = container.get_used_conic_gradients();
 
@@ -117,6 +118,23 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                     result.append("filter=\"url(#" + filterId + ")\" fill=\"black\"");
                 } else {
                     result.append("filter:url(#" + filterId + ");fill:black");
+                }
+                lastPos = valEnd + (isAttr ? 1 : 0);
+                replaced = true;
+            } else if (r == 0 && g == 2 && b > 0 && b <= (int)textShadows.size()) {
+                const auto &info = textShadows[b - 1];
+                std::string filterId = "text-shadow-" + std::to_string(b);
+                std::string textColor = "rgb(" + std::to_string((int)info.text_color.red) + "," +
+                                        std::to_string((int)info.text_color.green) + "," +
+                                        std::to_string((int)info.text_color.blue) + ")";
+                float opacity = (float)info.text_color.alpha / 255.0f;
+
+                if (isAttr) {
+                    result.append("filter=\"url(#" + filterId + ")\" fill=\"" + textColor +
+                                  "\" fill-opacity=\"" + std::to_string(opacity) + "\"");
+                } else {
+                    result.append("filter:url(#" + filterId + ");fill:" + textColor +
+                                  ";fill-opacity:" + std::to_string(opacity));
                 }
                 lastPos = valEnd + (isAttr ? 1 : 0);
                 replaced = true;
@@ -299,6 +317,40 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
         }
 
         defs << "</filter>";
+    }
+
+    const auto &textShadows = render_container.get_used_text_shadows();
+    for (size_t i = 0; i < textShadows.size(); ++i) {
+        const auto &ts = textShadows[i];
+        int index = (int)(i + 1);
+        defs << "<filter id=\"text-shadow-" << index
+             << "\" x=\"-100%\" y=\"-100%\" width=\"300%\" height=\"300%\">";
+
+        for (size_t si = 0; si < ts.shadows.size(); ++si) {
+            const auto &s = ts.shadows[si];
+            std::string resultName = "shadow-" + std::to_string(si);
+            std::string floodColor = "rgb(" + std::to_string((int)s.color.red) + "," +
+                                     std::to_string((int)s.color.green) + "," +
+                                     std::to_string((int)s.color.blue) + ")";
+            float floodOpacity = (float)s.color.alpha / 255.0f;
+
+            defs << "<feGaussianBlur in=\"SourceAlpha\" stdDeviation=\"" << s.blur.val() * 0.5f
+                 << "\" result=\"blur-" << si << "\"/>"
+                 << "<feOffset in=\"blur-" << si << "\" dx=\"" << s.x.val() << "\" dy=\""
+                 << s.y.val() << "\" result=\"offset-" << si << "\"/>"
+                 << "<feFlood flood-color=\"" << floodColor << "\" flood-opacity=\"" << floodOpacity
+                 << "\" result=\"color-" << si << "\"/>"
+                 << "<feComposite in=\"color-" << si << "\" in2=\"offset-" << si
+                 << "\" operator=\"in\" result=\"" << resultName << "\"/>";
+        }
+
+        defs << "<feMerge>";
+        for (size_t si = 0; si < ts.shadows.size(); ++si) {
+            defs << "<feMergeNode in=\"shadow-" << si << "\"/>";
+        }
+        defs << "<feMergeNode in=\"SourceGraphic\"/>"
+             << "</feMerge>"
+             << "</filter>";
     }
 
     const auto &images = render_container.get_used_image_draws();

@@ -64,6 +64,11 @@ struct conic_gradient_info {
     litehtml::background_layer::conic_gradient gradient;
 };
 
+struct text_shadow_info {
+    litehtml::shadow_vector shadows;
+    litehtml::web_color text_color;
+};
+
 class container_skia : public litehtml::document_container {
     SkCanvas *m_canvas;
     int m_width;
@@ -72,6 +77,7 @@ class container_skia : public litehtml::document_container {
     ResourceManager *m_resourceManager;
 
     std::vector<shadow_info> m_usedShadows;
+    std::vector<text_shadow_info> m_usedTextShadows;
     std::vector<image_draw_info> m_usedImageDraws;
     std::vector<conic_gradient_info> m_usedConicGradients;
 
@@ -95,6 +101,7 @@ class container_skia : public litehtml::document_container {
         return m_usedConicGradients;
     }
     const std::vector<shadow_info> &get_used_shadows() const { return m_usedShadows; }
+    const std::vector<text_shadow_info> &get_used_text_shadows() const { return m_usedTextShadows; }
 
     const std::set<font_request> &get_missing_fonts() const { return m_missingFonts; }
 

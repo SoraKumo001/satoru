@@ -62,52 +62,89 @@ graph TD
     style PNG_Path fill:#e8f5e9,stroke:#1b5e20
 ```
 
-## 🛠 Usage (TypeScript)
+## 🛠️ Usage (TypeScript)
 
 ### Standard Environment (Node.js / Browser)
 
-#### High-Level API (Recommended)
+The `Satoru` class provides a high-level API for rendering HTML. It is initialized via the static `init` method.
 
-The `render` method supports automated 2-pass resource resolution. It identifies missing fonts, images, and external CSS from the HTML, and requests them from the host via a callback.
+#### Basic Rendering
+
+The `render` method supports automated 2-pass resource resolution. It identifies missing fonts, images, and external CSS from the HTML and requests them via the `resolveResource` callback.
 
 ```typescript
-import { Satoru, createSatoruModule } from "satoru";
+import { Satoru } from "satoru";
 
-const satoru = new Satoru(createSatoruModule);
-await satoru.init();
+// Initialize the engine
+const satoru = await Satoru.init();
 
 const html = `
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap" rel="stylesheet">
-  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px; box-shadow: 10px 10px 5px rgba(0,0,0,0.5);">
+  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;">
     Hello Satoru!
     <img src="https://example.com/logo.png" style="width: 50px;">
   </div>
 `;
 
+// Render to SVG (Default)
 const svg = await satoru.render(html, 600, {
-  format: "svg",
   resolveResource: async (resource) => {
     const res = await fetch(resource.url);
     if (!res.ok) return null;
 
-    // Return string for CSS, Uint8Array for Fonts and Images
-    if (resource.type === "css") return await res.text();
+    // Always return Uint8Array for all resource types (Font, Image, CSS)
     return new Uint8Array(await res.arrayBuffer());
   },
 });
+
+// Render to PNG (Binary)
+const pngUint8Array = await satoru.render(html, 600, {
+  format: "png",
+  resolveResource: async (resource) => { /* ... */ }
+});
+```
+
+### ☁️ Cloudflare Workers (Edge)
+
+Satoru is optimized for Cloudflare Workers. It handles the environment's specific Wasm instantiation constraints automatically when using the `workerd` export.
+
+```typescript
+import { Satoru } from "satoru"; // Resolves to workerd-specific implementation
+
+export default {
+  async fetch(request) {
+    const satoru = await Satoru.init();
+    
+    // Manual font loading
+    const fontRes = await fetch("https://example.com/font.woff2");
+    const fontData = new Uint8Array(await fontRes.arrayBuffer());
+    satoru.loadFont("CustomFont", fontData);
+
+    const svg = await satoru.render("<div style='font-family: CustomFont'>Edge Rendered</div>", 800);
+    
+    return new Response(svg, {
+      headers: { "Content-Type": "image/svg+xml" }
+    });
+  }
+}
+```
+
+### 🎨 Manual Resource Management
+
+For scenarios where you want to pre-load resources or manage them manually without the `render` callback:
+
+```typescript
+// Load a font globally
+satoru.loadFont("MyFont", fontUint8Array);
+
+// Load an image into the engine's cache
+satoru.loadImage("logo-id", "https://example.com/logo.png", width, height);
+
+// Clear caches
+satoru.clearFonts();
+satoru.clearImages();
 ```
 
 ## 🏗️ Build & Run
-
-### Prerequisites
-
-- [emsdk](https://github.com/emscripten-core/emsdk)
-- [vcpkg](https://vcpkg.io/) (Wasm32-emscripten triplet)
-- Node.js & pnpm
-
-### Commands
-
-```bash
 # 1. Install dependencies
 pnpm install
 

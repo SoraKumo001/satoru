@@ -586,11 +586,21 @@ void container_skia::transform_text(litehtml::string &text, litehtml::text_trans
 }
 void container_skia::import_css(litehtml::string &text, const litehtml::string &url,
                                 litehtml::string &baseurl) {
-    if (!url.empty() && m_resourceManager)
-        m_resourceManager->request(url, url, ResourceType::Css);
-    else
+    if (!url.empty() && m_resourceManager) {
+        std::string lowerUrl = url;
+        std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::tolower);
+        if (lowerUrl.find(".woff2") != std::string::npos || lowerUrl.find(".woff") != std::string::npos ||
+            lowerUrl.find(".ttf") != std::string::npos || lowerUrl.find(".otf") != std::string::npos ||
+            lowerUrl.find(".ttc") != std::string::npos) {
+            m_resourceManager->request(url, "", ResourceType::Font);
+        } else {
+            m_resourceManager->request(url, url, ResourceType::Css);
+        }
+    } else {
         scan_font_faces(text);
+    }
 }
+
 void container_skia::scan_font_faces(const std::string &css) {
     std::regex fontFaceRegex("@font-face\\s*\\{([^}]+)\\}", std::regex::icase);
     std::regex familyRegex("font-family:\\s*([^;]+);?", std::regex::icase);

@@ -70,10 +70,10 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
 
         // Generate @font-face and add it to extra CSS so litehtml knows about it
         std::string weight = "400";
-        if (std::regex_search(url, std::regex("[-._]700\\b|bold", std::regex::icase))) weight = "700";
-        else if (std::regex_search(url, std::regex("[-._]300\\b|light", std::regex::icase))) weight = "300";
-        else if (std::regex_search(url, std::regex("[-._]500\\b|medium", std::regex::icase))) weight = "500";
-        else if (std::regex_search(url, std::regex("[-._]900\\b|black", std::regex::icase))) weight = "900";
+        if (std::regex_search(url, std::regex("[-._]700\\\\b|bold", std::regex::icase))) weight = "700";
+        else if (std::regex_search(url, std::regex("[-._]300\\\\b|light", std::regex::icase))) weight = "300";
+        else if (std::regex_search(url, std::regex("[-._]500\\\\b|medium", std::regex::icase))) weight = "500";
+        else if (std::regex_search(url, std::regex("[-._]900\\\\b|black", std::regex::icase))) weight = "900";
 
         std::string style = "normal";
         if (std::regex_search(url, std::regex("italic|oblique", std::regex::icase))) style = "italic";
@@ -86,6 +86,15 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
     } else if (type == ResourceType::Image) {
         m_context.loadImageFromData(url.c_str(), data, size);
     } else if (type == ResourceType::Css) {
+        std::string lowerUrl = url;
+        std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::tolower);
+        if (lowerUrl.find(".woff2") != std::string::npos || lowerUrl.find(".woff") != std::string::npos ||
+            lowerUrl.find(".ttf") != std::string::npos || lowerUrl.find(".otf") != std::string::npos ||
+            lowerUrl.find(".ttc") != std::string::npos) {
+            // This is actually a font file that was requested as CSS (likely due to <link rel="stylesheet">)
+            this->add(url, data, size, ResourceType::Font);
+            return;
+        }
         std::string css((const char*)data, size);
         m_context.addCss(css);
         if (g_discovery_container) g_discovery_container->scan_font_faces(css);

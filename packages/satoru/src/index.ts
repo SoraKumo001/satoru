@@ -109,8 +109,9 @@ export class Satoru {
                 this.addResource(r.url, r.type, data);
               }
 
-              const escapedUrl = r.url.replace(/[.*+?^${}()|[\\\\]\\\\]/g, '\\\\$&');
-              const linkRegex = new RegExp(`<link[^>]+href=[\"']${escapedUrl}[\"'][^>]*>`, 'gi');
+              // Remove link tags that point to fonts/css we just handled
+              const escapedUrl = r.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const linkRegex = new RegExp(`<link[^>]*href=["']${escapedUrl}["'][^>]*>`, 'gi');
               processedHtml = processedHtml.replace(linkRegex, "");
             } catch (e) {
               console.warn(`Failed to resolve resource: ${r.url}`, e);

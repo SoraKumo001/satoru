@@ -65,6 +65,7 @@ namespace litehtml
 
           {_text_decoration_style_, style_text_decoration_style_strings},
           {_text_emphasis_position_, style_text_emphasis_position_strings},
+          {_text_overflow_, text_overflow_strings},
   };
 
   std::map<string_id, vector<string_id>> shorthands =
@@ -179,6 +180,7 @@ namespace litehtml
     case _appearance_:
     case _box_sizing_:
     case _overflow_:
+    case _text_overflow_:
     case _text_align_:
     case _vertical_align_:
     case _text_transform_:

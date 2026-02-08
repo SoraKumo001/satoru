@@ -78,11 +78,9 @@ class container_skia : public litehtml::document_container {
     std::map<font_request, std::string> m_fontFaces;
     std::set<font_request> m_missingFonts;
 
-    litehtml::position m_last_clip_pos;
-    litehtml::border_radiuses m_last_clip_radius;
+    std::vector<std::pair<litehtml::position, litehtml::border_radiuses>> m_clips;
 
     bool m_tagging;
-
    public:
     container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context, ResourceManager *rm,
                    bool tagging = false);

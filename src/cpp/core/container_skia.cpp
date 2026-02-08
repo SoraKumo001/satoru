@@ -78,9 +78,7 @@ container_skia::container_skia(int w, int h, SkCanvas *canvas, SatoruContext &co
       m_height(h),
       m_context(context),
       m_resourceManager(rm),
-      m_tagging(tagging) {
-    m_last_clip_pos = {0, 0, 0, 0};
-}
+      m_tagging(tagging) {}
 
 litehtml::uint_ptr container_skia::create_font(const litehtml::font_description &desc,
                                                const litehtml::document *doc,
@@ -189,14 +187,20 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 
     std::string text_str = text;
     if (overflow == litehtml::text_overflow_ellipsis) {
+        litehtml::pixel_t available_width = pos.width;
+        if (!m_clips.empty()) {
+            available_width =
+                std::min(available_width, (litehtml::pixel_t)(m_clips.back().first.right() - pos.x));
+        }
+
         litehtml::pixel_t full_width = text_width(text, hFont);
-        if (full_width > pos.width) {
+        if (full_width > available_width) {
             std::string ellipsis = "...";
             litehtml::pixel_t ellipsis_width = text_width(ellipsis.c_str(), hFont);
-            if (ellipsis_width >= pos.width) {
+            if (ellipsis_width >= available_width) {
                 text_str = ellipsis;
             } else {
-                double max_w = (double)pos.width - ellipsis_width;
+                double max_w = (double)available_width - ellipsis_width;
                 double current_w = 0;
                 const char *p = text;
                 const char *run_start = p;
@@ -209,8 +213,9 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                     SkFont *font = nullptr;
                     for (auto f : fi->fonts) {
                         SkGlyphID glyph;
-                        f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>((const SkUnichar *)&u, 1),
-                                                           SkSpan<SkGlyphID>(&glyph, 1));
+                        f->getTypeface()->unicharsToGlyphs(
+                            SkSpan<const SkUnichar>((const SkUnichar *)&u, 1),
+                            SkSpan<SkGlyphID>(&glyph, 1));
                         if (glyph != 0) {
                             font = f;
                             break;
@@ -219,14 +224,16 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                     if (!font) font = fi->fonts[0];
                     if (font != current_font) {
                         if (current_font && p > run_start) {
-                            double run_w = current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
+                            double run_w = current_font->measureText(run_start, p - run_start,
+                                                                     SkTextEncoding::kUTF8);
                             if (current_w + run_w > max_w) {
-                                const char* rp = run_start;
-                                while(rp < p) {
-                                    const char* next_rp = rp;
+                                const char *rp = run_start;
+                                while (rp < p) {
+                                    const char *next_rp = rp;
                                     decode_utf8(&next_rp);
-                                    double char_w = current_font->measureText(rp, next_rp - rp, SkTextEncoding::kUTF8);
-                                    if(current_w + char_w > max_w) goto found_split;
+                                    double char_w = current_font->measureText(
+                                        rp, next_rp - rp, SkTextEncoding::kUTF8);
+                                    if (current_w + char_w > max_w) goto found_split;
                                     current_w += char_w;
                                     last_safe = next_rp;
                                     rp = next_rp;
@@ -242,24 +249,26 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                     p = next_p;
                 }
                 if (current_font && p > run_start) {
-                     double run_w = current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
-                     if (current_w + run_w > max_w) {
-                         const char* rp = run_start;
-                         while(rp < p) {
-                             const char* next_rp = rp;
-                             decode_utf8(&next_rp);
-                             double char_w = current_font->measureText(rp, next_rp - rp, SkTextEncoding::kUTF8);
-                             if(current_w + char_w > max_w) goto found_split;
-                             current_w += char_w;
-                             last_safe = next_rp;
-                             rp = next_rp;
-                         }
-                     } else {
-                         last_safe = p;
-                     }
+                    double run_w =
+                        current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
+                    if (current_w + run_w > max_w) {
+                        const char *rp = run_start;
+                        while (rp < p) {
+                            const char *next_rp = rp;
+                            decode_utf8(&next_rp);
+                            double char_w =
+                                current_font->measureText(rp, next_rp - rp, SkTextEncoding::kUTF8);
+                            if (current_w + char_w > max_w) goto found_split;
+                            current_w += char_w;
+                            last_safe = next_rp;
+                            rp = next_rp;
+                        }
+                    } else {
+                        last_safe = p;
+                    }
                 }
-                
-                found_split:
+
+            found_split:
                 text_str = std::string(text, last_safe - text) + ellipsis;
             }
         }
@@ -686,11 +695,11 @@ void container_skia::import_css(litehtml::string &text, const litehtml::string &
 }
 
 void container_skia::scan_font_faces(const std::string &css) {
-    std::regex fontFaceRegex("@font-face\\s*\\{([^}]+)\\}", std::regex::icase);
-    std::regex familyRegex("font-family:\\s*([^;]+);?", std::regex::icase);
-    std::regex weightRegex("font-weight:\\s*([^;]+);?", std::regex::icase);
-    std::regex styleRegex("font-style:\\s*([^;]+);?", std::regex::icase);
-    std::regex urlRegex("url\\s*\\(\\s*['\"]?([^'\")]+)['\"]?\\s*\\)", std::regex::icase);
+    std::regex fontFaceRegex(R"(@font-face\s*\{([^}]+)\})", std::regex::icase);
+    std::regex familyRegex(R"(font-family:\s*([^;]+);?)", std::regex::icase);
+    std::regex weightRegex(R"(font-weight:\s*([^;]+);?)", std::regex::icase);
+    std::regex styleRegex(R"(font-style:\s*([^;]+);?)", std::regex::icase);
+    std::regex urlRegex(R"(url\s*\(\s*['"]?([^'")]+)['"]?\s*\))", std::regex::icase);
     auto words_begin = std::sregex_iterator(css.begin(), css.end(), fontFaceRegex);
     for (std::sregex_iterator i = words_begin; i != std::sregex_iterator(); ++i) {
         std::string body = (*i)[1].str();
@@ -753,11 +762,11 @@ void container_skia::set_clip(const litehtml::position &pos,
                                                  .lineTo(0, 0)
                                                  .detach(),
                                              true);
-    m_last_clip_pos = pos;
-    m_last_clip_radius = bdr_radius;
+    m_clips.push_back({pos, bdr_radius});
 }
 void container_skia::del_clip() {
     if (m_canvas) m_canvas->restore();
+    if (!m_clips.empty()) m_clips.pop_back();
 }
 void container_skia::get_media_features(litehtml::media_features &features) const {
     features.type = litehtml::media_type_screen;

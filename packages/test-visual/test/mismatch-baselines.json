@@ -1,0 +1,54 @@
+{
+  "01-complex-layout.html": {
+    "direct": 2.8315,
+    "svg": 2.757875
+  },
+  "02-typography.html": {
+    "direct": 1.4423750000000002,
+    "svg": 1.4489999999999998
+  },
+  "03-flexbox-layout.html": {
+    "direct": 0.9958750000000001,
+    "svg": 0.99075
+  },
+  "04-japanese-rendering.html": {
+    "direct": 0.8996250000000001,
+    "svg": 0.91425
+  },
+  "05-ui-components.html": {
+    "direct": 1.619,
+    "svg": 1.606125
+  },
+  "06-standard-tags.html": {
+    "direct": 2.118625,
+    "svg": 2.0401249999999997
+  },
+  "07-image-embedding.html": {
+    "direct": 1.752375,
+    "svg": 2.16775
+  },
+  "08-box-shadow.html": {
+    "direct": 2.1445,
+    "svg": 2.1145
+  },
+  "09-complex-layout.html": {
+    "direct": 15.26175,
+    "svg": 15.445875000000001
+  },
+  "10-line-style-test.html": {
+    "direct": 1.958875,
+    "svg": 1.9387499999999998
+  },
+  "11-gradients.html": {
+    "direct": 8.317874999999999,
+    "svg": 8.326875000000001
+  },
+  "12-border-radius.html": {
+    "direct": 3.897125,
+    "svg": 3.852875
+  },
+  "13-line-clamp.html": {
+    "direct": 0.403125,
+    "svg": 0.41662499999999997
+  }
+}

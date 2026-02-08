@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
+    "test:update": "cross-env UPDATE_SNAPSHOTS=1 vitest run",
     "gen-ref": "tsx tools/generate-reference.ts",
     "convert-assets": "tsx tools/convert_assets.ts"
   },
@@ -11,6 +12,7 @@
     "@playwright/test": "1.58.2",
     "@types/pixelmatch": "5.2.6",
     "@types/pngjs": "6.0.5",
+    "cross-env": "10.1.0",
     "pixelmatch": "7.1.0",
     "playwright": "1.58.2",
     "pngjs": "7.0.0",

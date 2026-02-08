@@ -201,6 +201,10 @@ async function init() {
         const file = assetSelect.value;
         if (!file) return;
 
+        const url = new URL(window.location.href);
+        url.searchParams.set("asset", file);
+        window.history.replaceState({}, "", url.toString());
+
         try {
           const resp = await fetch(`assets/${file}`);
           const html = await resp.text();
@@ -224,7 +228,9 @@ async function init() {
 
       htmlInput.addEventListener("input", updatePreview);
 
-      const initialAsset = "01-complex-layout.html";
+      const initialAsset =
+        new URLSearchParams(window.location.search).get("asset") ||
+        "01-complex-layout.html";
       try {
         const resp = await fetch(`assets/${initialAsset}`);
         const html = await resp.text();

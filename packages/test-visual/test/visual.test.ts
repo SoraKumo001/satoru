@@ -16,6 +16,13 @@ const REFERENCE_DIR = path.resolve(__dirname, "../reference");
 const DIFF_DIR = path.resolve(__dirname, "../diff");
 const TEMP_DIR = path.resolve(ROOT_DIR, "../temp");
 
+const BASELINE_PATH = path.join(__dirname, "mismatch-baselines.json");
+const baselines: Record<string, { direct: number; svg: number }> = fs.existsSync(
+  BASELINE_PATH,
+)
+  ? JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"))
+  : {};
+
 const FONT_MAP = [
   {
     name: "Roboto",
@@ -117,6 +124,10 @@ describe("Visual Regression Tests", () => {
 
   afterAll(async () => {
     if (browser) await browser.close();
+    if (process.env.UPDATE_SNAPSHOTS || !fs.existsSync(BASELINE_PATH)) {
+      fs.writeFileSync(BASELINE_PATH, JSON.stringify(baselines, null, 2));
+      console.log(`Updated mismatch baselines in ${BASELINE_PATH}`);
+    }
   });
 
   const files = fs.readdirSync(ASSETS_DIR).filter((f) => f.endsWith(".html"));
@@ -168,6 +179,25 @@ describe("Visual Regression Tests", () => {
 
         const threshold =
           file.includes("gradients") || file.includes("09-complex") ? 25 : 10;
+
+        const baseline = baselines[file];
+        if (!baseline || process.env.UPDATE_SNAPSHOTS) {
+          baselines[file] = { direct: directDiff, svg: svgDiff };
+        } else {
+          const margin = 0.05;
+          expect(
+            directDiff,
+            `Direct PNG diff increased: ${directDiff.toFixed(2)}% (baseline: ${baseline.direct.toFixed(2)}%)`,
+          ).toBeLessThanOrEqual(Math.max(baseline.direct, 0.01) + margin);
+          expect(
+            svgDiff,
+            `SVG PNG diff increased: ${svgDiff.toFixed(2)}% (baseline: ${baseline.svg.toFixed(2)}%)`,
+          ).toBeLessThanOrEqual(Math.max(baseline.svg, 0.01) + margin);
+
+          if (directDiff < baseline.direct) baseline.direct = directDiff;
+          if (svgDiff < baseline.svg) baseline.svg = svgDiff;
+        }
+
         expect(
           directDiff,
           `Direct PNG diff too high: ${directDiff.toFixed(2)}%`,

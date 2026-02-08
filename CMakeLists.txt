@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 
 set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
-set(VCPKG_TARGET_TRIPLET "wasm32-emscripten" CACHE STRING "")
+set(VCPKG_TARGET_TRIPLET "wasm32-emscripten-wasm-eh" CACHE STRING "")
+set(VCPKG_OVERLAY_TRIPLETS "${CMAKE_CURRENT_SOURCE_DIR}/triplets" CACHE STRING "")
 set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "$ENV{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" CACHE STRING "")
 
 project(satoru_wasm)
@@ -15,12 +16,9 @@ set(SKIA_CONFIG_DIR "${LIBS_DIR}/skia")
 # --- Skia Clone Setup ---
 include(FetchContent)
 
-# 更新チェックを制御するオプション (デフォルトOFF)
 option(SKIA_UPDATE "Check for Skia updates" OFF)
 
-# すでにソースが存在し、かつ更新が要求されていない場合
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/core/SkCanvas.h" AND NOT SKIA_UPDATE)
-  # この変数をセットすると FetchContent はダウンロード処理を完全にスキップして、指定ディレクトリを直接使います
   set(FETCHCONTENT_SOURCE_DIR_SKIA "${CMAKE_CURRENT_SOURCE_DIR}/external/skia")
   message(STATUS "Using existing Skia source, skipping all FetchContent download steps.")
 endif()

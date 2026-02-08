@@ -53,11 +53,13 @@ if (action === "configure") {
   fs.mkdirSync("build-wasm");
 
   const generator = useNinja ? "Ninja" : "Unix Makefiles";
+  const projectRoot = process.cwd().replace(/\\/g, "/");
   const cmakeCmd =
     `cmake .. -G "${generator}" ` +
     `-DCMAKE_TOOLCHAIN_FILE="${vcpkgCmake}" ` +
     `-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${emscriptenCmake}" ` +
-    `-DVCPKG_TARGET_TRIPLET=wasm32-emscripten`;
+    `-DVCPKG_TARGET_TRIPLET=wasm32-emscripten-wasm-eh ` +
+    `-DVCPKG_OVERLAY_TRIPLETS="${projectRoot}/triplets"`;
 
   run(cmakeCmd, "build-wasm");
 } else if (action === "build") {

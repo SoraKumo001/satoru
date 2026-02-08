@@ -5,7 +5,6 @@
     "freetype",
     "libpng",
     "zlib",
-    "litehtml",
     "gumbo",
     "bzip2",
     "brotli",

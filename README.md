@@ -68,7 +68,7 @@ graph TD
 
 The `Satoru` class provides a high-level API for rendering HTML. It is initialized via the static `init` method.
 
-#### Basic Rendering
+#### Basic Rendering (Automatic Resource Resolution)
 
 The `render` method supports automated 2-pass resource resolution. It identifies missing fonts, images, and external CSS from the HTML and requests them via the `resolveResource` callback.
 
@@ -79,15 +79,23 @@ import { Satoru } from "satoru";
 const satoru = await Satoru.init();
 
 const html = `
+  <style>
+    @font-face {
+      font-family: 'Roboto';
+      src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2');
+    }
+  </style>
   <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;">
     Hello Satoru!
     <img src="https://example.com/logo.png" style="width: 50px;">
   </div>
 `;
 
-// Render to SVG (Default)
+// Render to SVG
+// Satoru detects the required font and image, then fetches them via the callback
 const svg = await satoru.render(html, 600, {
   resolveResource: async (resource) => {
+    console.log(`Fetching ${resource.type}: ${resource.url}`);
     const res = await fetch(resource.url);
     if (!res.ok) return null;
 
@@ -95,19 +103,11 @@ const svg = await satoru.render(html, 600, {
     return new Uint8Array(await res.arrayBuffer());
   },
 });
-
-// Render to PNG (Binary)
-const pngUint8Array = await satoru.render(html, 600, {
-  format: "png",
-  resolveResource: async (resource) => {
-    /* ... */
-  },
-});
 ```
 
 ### ☁️ Cloudflare Workers (Edge)
 
-Satoru is optimized for Cloudflare Workers. It handles the environment's specific Wasm instantiation constraints automatically when using the `workerd` export.
+Satoru is optimized for Cloudflare Workers. The `render` method's `resolveResource` callback works seamlessly with the standard `fetch` API on the edge.
 
 ```typescript
 import { Satoru } from "satoru"; // Resolves to workerd-specific implementation
@@ -116,15 +116,22 @@ export default {
   async fetch(request) {
     const satoru = await Satoru.init();
 
-    // Manual font loading
-    const fontRes = await fetch("https://example.com/font.woff2");
-    const fontData = new Uint8Array(await fontRes.arrayBuffer());
-    satoru.loadFont("CustomFont", fontData);
+    const html = `
+      <style>
+        @font-face {
+          font-family: 'CustomFont';
+          src: url('https://example.com/font.woff2');
+        }
+      </style>
+      <div style='font-family: CustomFont'>Edge Rendered with Auto-loading</div>
+    `;
 
-    const svg = await satoru.render(
-      "<div style='font-family: CustomFont'>Edge Rendered</div>",
-      800,
-    );
+    const svg = await satoru.render(html, 800, {
+      resolveResource: async (resource) => {
+        const res = await fetch(resource.url);
+        return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
+      },
+    });
 
     return new Response(svg, {
       headers: { "Content-Type": "image/svg+xml" },

@@ -92,33 +92,53 @@ export class Satoru {
     let processedHtml = html;
     const resolvedUrls = new Set<string>();
 
-    if (resolveResource) {
-      for (let i = 0; i < 3; i++) {
-        const resources = this.getPendingResources(processedHtml, width);
-        const pending = resources.filter(r => !resolvedUrls.has(r.url));
-        
-        if (pending.length === 0) break;
+    for (let i = 0; i < 3; i++) {
+      const resources = this.getPendingResources(processedHtml, width);
+      const pending = resources.filter(r => !resolvedUrls.has(r.url));
+      
+      if (pending.length === 0) break;
 
-        await Promise.all(
-          pending.map(async (r) => {
-            try {
-              resolvedUrls.add(r.url);
-              const data = await resolveResource({ ...r });
-              
-              if (data instanceof Uint8Array) {
-                this.addResource(r.url, r.type, data);
+      await Promise.all(
+        pending.map(async (r) => {
+          try {
+            resolvedUrls.add(r.url);
+            let data: Uint8Array | null = null;
+
+            if (r.url.startsWith("data:")) {
+              const commaIndex = r.url.indexOf(",");
+              if (commaIndex !== -1) {
+                const metadata = r.url.substring(0, commaIndex);
+                const base64 = r.url.substring(commaIndex + 1).replace(/\s/g, "");
+                if (metadata.includes(";base64")) {
+                  const bin = atob(base64);
+                  data = new Uint8Array(bin.length);
+                  for (let j = 0; j < bin.length; j++) {
+                    data[j] = bin.charCodeAt(j);
+                  }
+                } else {
+                  const decoded = decodeURIComponent(base64);
+                  data = new TextEncoder().encode(decoded);
+                }
               }
+            } else if (resolveResource) {
+              data = await resolveResource({ ...r });
+            }
+            
+            if (data instanceof Uint8Array) {
+              this.addResource(r.url, r.type, data);
+            }
 
-              // Remove link tags that point to fonts/css we just handled
-              const escapedUrl = r.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // Remove link tags that point to fonts/css we just handled
+            if (r.type !== "image") {
+              const escapedUrl = r.url.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
               const linkRegex = new RegExp(`<link[^>]*href=["']${escapedUrl}["'][^>]*>`, 'gi');
               processedHtml = processedHtml.replace(linkRegex, "");
-            } catch (e) {
-              console.warn(`Failed to resolve resource: ${r.url}`, e);
             }
-          })
-        );
-      }
+          } catch (e) {
+            console.warn(`Failed to resolve resource: ${r.url}`, e);
+          }
+        })
+      );
     }
 
     switch (format) {

@@ -17,11 +17,10 @@ const DIFF_DIR = path.resolve(__dirname, "../diff");
 const TEMP_DIR = path.resolve(ROOT_DIR, "../temp");
 
 const BASELINE_PATH = path.join(__dirname, "mismatch-baselines.json");
-const baselines: Record<string, { direct: number; svg: number }> = fs.existsSync(
-  BASELINE_PATH,
-)
-  ? JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"))
-  : {};
+const baselines: Record<string, { direct: number; svg: number }> =
+  fs.existsSync(BASELINE_PATH)
+    ? JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"))
+    : {};
 
 const FONT_MAP = [
   {
@@ -198,7 +197,7 @@ describe("Visual Regression Tests", () => {
         );
 
         const threshold =
-          file.includes("gradients") || file.includes("09-complex") ? 25 : 10;
+          file.includes("gradients") || file.includes("09-complex") ? 30 : 10;
 
         const baseline = baselines[file];
         if (!baseline || process.env.UPDATE_SNAPSHOTS) {

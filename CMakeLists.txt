@@ -170,11 +170,16 @@ set(COMMON_LINK_OPTIONS
     "-sALLOW_MEMORY_GROWTH=1"
 )
 
+# --- Shared Object Library (Compiled once) ---
+add_library(satoru_obj OBJECT ${SATORU_SOURCES} ${LITEHTML_SRC} ${SKIA_CORE_SRC})
+target_include_directories(satoru_obj BEFORE PRIVATE ${SATORU_INCLUDES})
+target_compile_options(satoru_obj PRIVATE ${SATORU_COMPILE_OPTIONS})
+target_compile_definitions(satoru_obj PRIVATE ${SATORU_DEFINITIONS})
+# Linking libraries to an object library handles usage requirements (includes)
+target_link_libraries(satoru_obj PRIVATE ${SATORU_LIBS})
+
 # --- Target: satoru (Separate JS and WASM) ---
-add_executable(satoru ${SATORU_SOURCES} ${LITEHTML_SRC} ${SKIA_CORE_SRC})
-target_include_directories(satoru BEFORE PRIVATE ${SATORU_INCLUDES})
-target_compile_options(satoru PRIVATE ${SATORU_COMPILE_OPTIONS})
-target_compile_definitions(satoru PRIVATE ${SATORU_DEFINITIONS})
+add_executable(satoru $<TARGET_OBJECTS:satoru_obj>)
 target_link_libraries(satoru PRIVATE ${SATORU_LIBS})
 target_link_options(satoru PRIVATE ${COMMON_LINK_OPTIONS})
 
@@ -185,10 +190,7 @@ set_target_properties(satoru PROPERTIES
 )
 
 # --- Target: satoru_single (WASM embedded in JS) ---
-add_executable(satoru_single ${SATORU_SOURCES} ${LITEHTML_SRC} ${SKIA_CORE_SRC})
-target_include_directories(satoru_single BEFORE PRIVATE ${SATORU_INCLUDES})
-target_compile_options(satoru_single PRIVATE ${SATORU_COMPILE_OPTIONS})
-target_compile_definitions(satoru_single PRIVATE ${SATORU_DEFINITIONS})
+add_executable(satoru_single $<TARGET_OBJECTS:satoru_obj>)
 target_link_libraries(satoru_single PRIVATE ${SATORU_LIBS})
 target_link_options(satoru_single PRIVATE ${COMMON_LINK_OPTIONS} "-sSINGLE_FILE=1")
 

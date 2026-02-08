@@ -32,22 +32,30 @@ async function generateReferences() {
     const html = fs.readFileSync(inputPath, "utf8");
     
     await page.setContent(html);
-    await page.addStyleTag({ content: "body { margin: 0; padding: 0; overflow: hidden; }" });
+    await page.addStyleTag({ content: "html, body { margin: 0; padding: 0; }" });
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(500);
 
-    const body = await page.$("body");
-    const box = await body?.boundingBox();
+    const height = await page.evaluate(() => {
+      const doc = document.documentElement;
+      const body = document.body;
+      return Math.max(
+        doc.scrollHeight,
+        doc.offsetHeight,
+        doc.clientHeight,
+        body ? body.scrollHeight : 0,
+        body ? body.offsetHeight : 0
+      );
+    });
     
-    if (box) {
-      await page.screenshot({ 
-        path: outputPath, 
-        clip: { x: 0, y: 0, width: 800, height: Math.ceil(box.height) },
-        omitBackground: true 
-      });
-    } else {
-      await page.screenshot({ path: outputPath });
-    }
+    const finalHeight = Math.max(1, Math.ceil(height));
+    await page.setViewportSize({ width: 800, height: finalHeight });
+
+    await page.screenshot({ 
+      path: outputPath, 
+      clip: { x: 0, y: 0, width: 800, height: finalHeight },
+      omitBackground: true 
+    });
   }
 
   await browser.close();

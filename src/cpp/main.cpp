@@ -23,6 +23,8 @@ ResourceManager *g_resourceManager = nullptr;
 container_skia *g_discovery_container = nullptr;
 
 const char *satoru_master_css =
+    "html, body { display: block; margin: 0; padding: 0; }\n"
+    "p { display: block; margin: 1em 0; }\n"
     "b, strong { font-weight: bold; }\n"
     "i, em { font-style: italic; }\n"
     "u { text-decoration: underline; }\n"

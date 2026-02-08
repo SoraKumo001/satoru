@@ -184,6 +184,10 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     doc->render(width);
 
     int content_height = (height > 0) ? height : (int)doc->height();
+    if (height <= 0) {
+        printf("[DEBUG] Measured height: %d\n", content_height);
+        fflush(stdout);
+    }
     if (content_height < 1) content_height = 1;
 
     SkDynamicMemoryWStream stream;

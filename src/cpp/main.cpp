@@ -96,10 +96,11 @@ const char *collect_resources(const char *html, int width) {
     std::string master_css_full = std::string(litehtml::master_css) + "\n" + satoru_master_css +
                                   "\n" + g_context.getExtraCss();
 
-    // Scan already added CSS to the new container
+    // Scan already added CSS and the HTML itself for @font-face
     if (!g_context.getExtraCss().empty()) {
         g_discovery_container->scan_font_faces(g_context.getExtraCss());
     }
+    g_discovery_container->scan_font_faces(html);
 
     auto doc =
         litehtml::document::createFromString(html, g_discovery_container, master_css_full.c_str());

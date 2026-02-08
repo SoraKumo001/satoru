@@ -46,16 +46,21 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            if (process.env.ACTIONS_CACHE_URL) {
-              core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL);
-            }
-            if (process.env.ACTIONS_RUNTIME_TOKEN) {
-              core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
-            }
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
+
+      - name: Cache Skia Source
+        uses: actions/cache@v4
+        with:
+          path: external/skia
+          key: skia-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            skia-
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -74,6 +79,9 @@ jobs:
 
       - name: Wasm Build
         run: pnpm wasm:build
+
+      - name: ccache stats
+        run: ccache -s
 
       - name: Build TS Packages
         run: pnpm run build

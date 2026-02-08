@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "gen-ref": "tsx test/generate-reference.ts",
+    "gen-ref": "tsx tools/generate-reference.ts",
     "convert-assets": "tsx tools/convert_assets.ts"
   },
   "devDependencies": {

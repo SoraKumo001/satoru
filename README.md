@@ -46,7 +46,7 @@ graph TD
             F --> G[Regex Post-process:<br/>Inject Shadows & Filters]
         end
 
-        subgraph PNG_Path [PNG Raster Pipeline]
+        subgraph WASM_PNG_Path [PNG Raster Pipeline]
             E -- PNG --> H[SkSurface: Rasterize]
             H --> I[SkImage: Encode to PNG]
             I --> J[Shared Binary Buffer]
@@ -59,7 +59,7 @@ graph TD
     style Host fill:#e1f5fe,stroke:#01579b
     style WASM fill:#fff3e0,stroke:#e65100
     style SVG_Path fill:#f3e5f5,stroke:#4a148c
-    style PNG_Path fill:#e8f5e9,stroke:#1b5e20
+    style WASM_PNG_Path fill:#e8f5e9,stroke:#1b5e20
 ```
 
 ## 🛠️ Usage (TypeScript)
@@ -99,7 +99,9 @@ const svg = await satoru.render(html, 600, {
 // Render to PNG (Binary)
 const pngUint8Array = await satoru.render(html, 600, {
   format: "png",
-  resolveResource: async (resource) => { /* ... */ }
+  resolveResource: async (resource) => {
+    /* ... */
+  },
 });
 ```
 
@@ -113,19 +115,22 @@ import { Satoru } from "satoru"; // Resolves to workerd-specific implementation
 export default {
   async fetch(request) {
     const satoru = await Satoru.init();
-    
+
     // Manual font loading
     const fontRes = await fetch("https://example.com/font.woff2");
     const fontData = new Uint8Array(await fontRes.arrayBuffer());
     satoru.loadFont("CustomFont", fontData);
 
-    const svg = await satoru.render("<div style='font-family: CustomFont'>Edge Rendered</div>", 800);
-    
+    const svg = await satoru.render(
+      "<div style='font-family: CustomFont'>Edge Rendered</div>",
+      800,
+    );
+
     return new Response(svg, {
-      headers: { "Content-Type": "image/svg+xml" }
+      headers: { "Content-Type": "image/svg+xml" },
     });
-  }
-}
+  },
+};
 ```
 
 ### 🎨 Manual Resource Management
@@ -144,7 +149,43 @@ satoru.clearFonts();
 satoru.clearImages();
 ```
 
+## 🧪 Testing & Validation
+
+The project includes a robust **Visual Regression Suite** to ensure rendering fidelity.
+
+### Visual Regression Tests (`packages/test-visual`)
+
+This suite compares Satoru's outputs against Chromium's rendering.
+
+- **Dual Validation Pipeline**: Every test asset is verified through two paths:
+  1. **Direct PNG**: Satoru's native Skia-based PNG output vs Chromium PNG.
+  2. **SVG PNG**: Satoru's SVG output rendered in a browser vs Chromium PNG.
+- **Numerical Precision**: Tests report the exact pixel difference percentage for both paths.
+- **Fast Execution**:
+  - **Reference Generation**: Multi-threaded using Playwright with shared contexts (~3s for 13 assets).
+  - **Batch Conversion**: Multi-threaded using Node.js Worker Threads, running multiple Wasm instances in parallel (~1.8s for 13 assets).
+
+#### Run Tests
+
+```bash
+pnpm --filter test-visual test
+```
+
+#### Generate Reference Images
+
+```bash
+pnpm --filter test-visual gen-ref
+```
+
+#### Batch Convert Assets (Multithreaded)
+
+```bash
+pnpm --filter test-visual convert-assets
+```
+
 ## 🏗️ Build & Run
+
+```bash
 # 1. Install dependencies
 pnpm install
 

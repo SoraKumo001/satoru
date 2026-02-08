@@ -1,12 +1,17 @@
 import fs from "fs";
 import path from "path";
-import { Satoru } from "satoru";
-import { pathToFileURL } from "url";
+import os from "os";
+import { Worker } from "worker_threads";
+import { fileURLToPath } from "url";
 
-const ASSETS_DIR = path.resolve("../../assets");
-const TEMP_DIR = path.resolve("./temp");
-const WASM_JS_PATH = path.resolve("../satoru/dist/satoru.js");
-const WASM_BINARY_PATH = path.resolve("../satoru/dist/satoru.wasm");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const ASSETS_DIR = path.resolve(__dirname, "../../../assets");
+const TEMP_DIR = path.resolve(__dirname, "../temp");
+const WASM_JS_PATH = path.resolve(__dirname, "../../satoru/dist/satoru.js");
+const WASM_BINARY_PATH = path.resolve(__dirname, "../../satoru/dist/satoru.wasm");
+const WORKER_PATH = path.resolve(__dirname, "./convert_worker.ts");
 
 const FONT_MAP = [
   {
@@ -29,78 +34,61 @@ async function downloadFont(url: string, dest: string) {
 }
 
 async function convertAssets() {
-  console.log("--- Batch HTML to SVG & PNG Conversion Start ---");
+  console.log("--- Multi-threaded Asset Conversion Start ---");
+  const startTotal = Date.now();
 
   if (!fs.existsSync(TEMP_DIR)) {
     fs.mkdirSync(TEMP_DIR, { recursive: true });
   }
 
-  try {
-    for (const font of FONT_MAP) {
-      await downloadFont(font.url, font.path);
-    }
+  for (const font of FONT_MAP) {
+    await downloadFont(font.url, font.path);
+  }
 
-    const { default: createSatoruModule } = await import(pathToFileURL(WASM_JS_PATH).href);
-    
-    // Updated to use the new static init method
-    const satoru = await Satoru.init(createSatoruModule, {
-      locateFile: (url: string) =>
-        url.endsWith(".wasm") ? WASM_BINARY_PATH : url,
-      // @ts-ignore - printing methods are internal emscripten options
-      print: (text: string) => console.log(`[WASM] ${text}`),
-      printErr: (text: string) => console.error(`[WASM ERROR] ${text}`),
+  const files = fs.readdirSync(ASSETS_DIR).filter((f) => f.endsWith(".html"));
+  const cpuCount = Math.min(os.cpus().length, files.length);
+  const chunks = Array.from({ length: cpuCount }, () => [] as string[]);
+  
+  files.forEach((file, i) => chunks[i % cpuCount].push(file));
+
+  console.log(`Spawning ${cpuCount} workers for ${files.length} files...`);
+
+  const workerPromises = chunks.map((chunk, i) => {
+    return new Promise<void>((resolve, reject) => {
+      const worker = new Worker(WORKER_PATH, {
+        execArgv: ["--import", "tsx"],
+        workerData: {
+          files: chunk,
+          assetsDir: ASSETS_DIR,
+          tempDir: TEMP_DIR,
+          wasmJsPath: WASM_JS_PATH,
+          wasmBinaryPath: WASM_BINARY_PATH,
+          fontMap: FONT_MAP
+        }
+      });
+
+      worker.on("message", (msg) => {
+        if (msg.type === "progress") {
+          console.log(`[Worker ${i}] Finished: ${msg.file} in ${msg.duration}ms`);
+        } else if (msg.type === "done") {
+          resolve();
+        }
+      });
+
+      worker.on("error", (err) => {
+        console.error(`[Worker ${i}] Error:`, err);
+        reject(err);
+      });
+      worker.on("exit", (code) => {
+        if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
+      });
     });
+  });
 
-    const files = fs.readdirSync(ASSETS_DIR).filter((f) => f.endsWith(".html"));
-
-    for (const file of files) {
-      const inputPath = path.join(ASSETS_DIR, file);
-      const svgOutputPath = path.join(TEMP_DIR, file.replace(".html", ".svg"));
-      const pngOutputPath = path.join(TEMP_DIR, file.replace(".html", ".png"));
-
-      console.log(`Converting: ${file} ...`);
-      const html = fs.readFileSync(inputPath, "utf-8");
-
-      const resourceResolver = async (r: any) => {
-        const isFont = r.type === "font" || r.url.match(/\.(woff2?|ttf|otf)$/i);
-        
-        // Check if we have it locally first
-        if (isFont) {
-           const fontMatch = FONT_MAP.find(f => f.name === r.name || r.url.includes(f.name.toLowerCase().replace(/ /g, '-')));
-           if (fontMatch && fs.existsSync(fontMatch.path)) {
-              return new Uint8Array(fs.readFileSync(fontMatch.path));
-           }
-        }
-
-        try {
-          const resp = await fetch(r.url);
-          if (!resp.ok) return null;
-          return new Uint8Array(await resp.arrayBuffer());
-        } catch (e) {
-          return null;
-        }
-      };
-
-      // 1. Render SVG
-      const svg = await satoru.render(html, 800, {
-        format: "svg",
-        resolveResource: resourceResolver,
-      });
-      if (typeof svg === "string") {
-        fs.writeFileSync(svgOutputPath, svg);
-      }
-
-      // 2. Render PNG
-      const png = await satoru.render(html, 800, {
-        format: "png",
-        resolveResource: resourceResolver,
-      });
-      if (png instanceof Uint8Array) {
-        fs.writeFileSync(pngOutputPath, png);
-      }
-    }
-
-    console.log(`--- Finished! ${files.length} files converted. ---`);
+  try {
+    await Promise.all(workerPromises);
+    const durationTotal = ((Date.now() - startTotal) / 1000).toFixed(2);
+    console.log(`--- Finished! All files converted in ${durationTotal}s. ---`);
   } catch (err) {
     console.error("Conversion failed:", err);
     process.exit(1);

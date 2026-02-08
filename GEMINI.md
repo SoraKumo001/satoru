@@ -68,9 +68,25 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 - **Radial Gradients:** Circular by default. For **Elliptical** gradients, apply an `SkMatrix` scale transform (e.g., `ry/rx` on Y-axis) to the shader.
 - **C++ Logs:** Bridge `printf` to JS `console.log`. Ensure `\n` or `fflush(stdout)` is used.
 
-### 5. GitHub Pages Deployment
+### 5. Testing & Validation
+
+- **Visual Regression Suite (`packages/test-visual`)**:
+    - **Dual Validation**: Compares **Direct Skia PNG** and **SVG-rendered PNG** (via Playwright) against reference images.
+    - **Numerical Diff**: Reports pixel difference percentage for both paths.
+    - **Stabilization**: Uses `flattenAlpha` (blending with white) and white-pixel padding to handle dimension mismatches and transparency flakiness.
+- **Performance Optimizations**:
+    - **Reference Generation (`tools/generate-reference.ts`)**: Uses Playwright Concurrency (Batch size/Concurrency: 4) to speed up reference image capture.
+    - **Multi-threaded Asset Conversion (`tools/convert_assets.ts`)**: Uses `worker_threads` to spawn multiple WASM instances (one per core). Each worker carries its own WASM context for parallel conversion.
+- **Tooling Paths**:
+    - Reference generation: `packages/test-visual/tools/generate-reference.ts`.
+    - Conversion worker: `packages/test-visual/tools/convert_worker.ts`.
+    - Assets: `assets/*.html` (at project root).
+
+### 6. GitHub Pages Deployment
 
 To ensure the web-based test environments (e.g., `test-web`) work correctly on GitHub Pages (which often hosts projects in subdirectories):
 
 - **Relative Paths in HTML**: Always use relative paths for scripts and links (e.g., `src/main.ts` instead of `/src/main.ts`).
-- **Vite Configuration**: Set `base: \"./\"` in `vite.config.ts` to allow the application to be served from any base path.\n- **Asset Resolution**: In TypeScript, resolve asset URLs relative to the deployment root (e.g., `assets/file.html`) rather than using local development relative paths (e.g., `../../assets/`).\n- **Artifact Management**: Ensure Wasm (`satoru.wasm`) and JS (`satoru.js`) artifacts are copied to the `dist` directory during the build process, as they are typically located in the workspace's shared output directory.
+- **Vite Configuration**: Set `base: \"./\"` in `vite.config.ts` to allow the application to be served from any base path.
+- **Asset Resolution**: In TypeScript, resolve asset URLs relative to the deployment root (e.g., `assets/file.html`) rather than using local development relative paths (e.g., `../../assets/`).
+- **Artifact Management**: Ensure Wasm (`satoru.wasm`) and JS (`satoru.js`) artifacts are copied to the `dist` directory during the build process, as they are typically located in the workspace's shared output directory.

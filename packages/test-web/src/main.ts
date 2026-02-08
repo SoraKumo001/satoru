@@ -90,7 +90,7 @@ async function init() {
                                 <h3>SVG Render Preview:</h3>
                                 <button id="downloadBtn" style="display: none; background: #FF9800; color: white; border: none; padding: 6px 15px; cursor: pointer; border-radius: 4px;">Download .svg</button>
                             </div>
-                            <div id="svgContainer" style="border: 1px solid #ddd; background: #eee; border-radius: 8px; height: 800px; display: flex;  overflow: auto; box-sizing: border-box; justify-content: center;">
+                            <div id="svgContainer" style="border: 1px solid #ddd; background: white; border-radius: 8px; height: 800px; display: flex;  overflow: auto; box-sizing: border-box; justify-content: center;">
                                 <div style="color: #999; margin-top: 200px;">Result will appear here</div>
                             </div>
                         </div>

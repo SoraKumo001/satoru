@@ -365,12 +365,14 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         }
     }
 }
+
 void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::shadow_vector &shadows,
                                      const litehtml::position &pos,
                                      const litehtml::border_radiuses &radius, bool inset) {
     if (!m_canvas) return;
     if (m_tagging) {
-        for (const auto &s : shadows) {
+        for (auto it = shadows.rbegin(); it != shadows.rend(); ++it) {
+            const auto &s = *it;
             if (s.inset != inset) continue;
             shadow_info info;
             info.color = s.color;
@@ -389,7 +391,8 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
         }
         return;
     }
-    for (const auto &s : shadows) {
+    for (auto it = shadows.rbegin(); it != shadows.rend(); ++it) {
+        const auto &s = *it;
         if (s.inset != inset) continue;
         SkRRect box_rrect = make_rrect(pos, radius);
         SkColor shadow_color =

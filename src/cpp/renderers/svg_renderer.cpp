@@ -151,13 +151,61 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                     }
                 }
             } else if (r == 1 && g == 1 && b > 0 && b <= (int)conics.size()) {
-                if (isAttr) {
-                    result.append("fill=\"black\"");
-                } else {
-                    result.append("fill:black");
+                size_t elementStart = svg.rfind('<', pos);
+                size_t elementEnd = svg.find("/>", valEnd);
+                if (elementStart != std::string::npos && elementEnd != std::string::npos) {
+                    const auto &info = conics[b - 1];
+                    const auto &layer = info.layer;
+                    const auto &gradient = info.gradient;
+
+                    if (layer.border_box.width > 0 && layer.border_box.height > 0) {
+                        SkBitmap bitmap;
+                        bitmap.allocN32Pixels((int)layer.border_box.width,
+                                              (int)layer.border_box.height);
+                        SkCanvas bitmapCanvas(bitmap);
+                        bitmapCanvas.clear(SK_ColorTRANSPARENT);
+
+                        SkPoint center =
+                            SkPoint::Make((float)gradient.position.x - (float)layer.border_box.x,
+                                          (float)gradient.position.y - (float)layer.border_box.y);
+
+                        std::vector<SkColor4f> colors;
+                        std::vector<float> pos_vec;
+                        for (const auto &stop : gradient.color_points) {
+                            colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                            pos_vec.push_back(stop.offset);
+                        }
+
+                        SkGradient sk_grad(
+                            SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec), SkTileMode::kClamp),
+                            SkGradient::Interpolation());
+                        SkPaint p;
+                        p.setShader(SkShaders::SweepGradient(center, gradient.angle,
+                                                             gradient.angle + 360.0f, sk_grad));
+                        p.setAntiAlias(true);
+
+                        bitmapCanvas.drawRect(
+                            SkRect::MakeWH((float)layer.border_box.width,
+                                           (float)layer.border_box.height),
+                            p);
+
+                        std::stringstream ss;
+                        ss << "<image x=\"" << layer.border_box.x << "\" y=\""
+                           << layer.border_box.y << "\" width=\"" << layer.border_box.width
+                           << "\" height=\"" << layer.border_box.height << "\" href=\""
+                           << bitmapToDataUrl(bitmap) << "\"";
+                        if (has_radius(layer.border_radius)) {
+                            ss << " clip-path=\"url(#clip-conic-" << b << ")\"";
+                        }
+                        ss << " />";
+
+                        result.erase(result.size() - (pos - elementStart));
+                        result.append(ss.str());
+                        lastPos = elementEnd + 2;
+                        replaced = true;
+                    }
                 }
-                lastPos = valEnd + (isAttr ? 1 : 0);
-                replaced = true;
             }
         }
 
@@ -250,6 +298,17 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
             defs << "<clipPath id=\"clip-img-" << (i + 1) << "\">";
             defs << "<path d=\"" << path_from_rrect(draw.layer.border_box, draw.layer.border_radius)
                  << "\" />";
+            defs << "</clipPath>";
+        }
+    }
+
+    const auto &conics = render_container.get_used_conic_gradients();
+    for (size_t i = 0; i < conics.size(); ++i) {
+        const auto &info = conics[i];
+        if (has_radius(info.layer.border_radius)) {
+            defs << "<clipPath id=\"clip-conic-" << (i + 1) << "\">";
+            defs << "<path d=\""
+                 << path_from_rrect(info.layer.border_box, info.layer.border_radius) << "\" />";
             defs << "</clipPath>";
         }
     }

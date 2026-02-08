@@ -41,7 +41,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 ### 2. Build System
 
 - `pnpm wasm:configure`: Configure CMake for WASM build.
-- `pnpm wasm:build`: Compile C++ to WASM (`packages/satoru/dist/satoru.*`).
+- `pnpm wasm:build`: Compile C++ to WASM (Separate: `satoru.js`/`.wasm`, Single: `satoru-single.js`).
 - `pnpm build`: Build all package wrappers.
 
 ### 3. Implementation Details

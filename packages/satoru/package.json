@@ -11,13 +11,21 @@
         "types": "./dist/workerd.d.ts",
         "import": "./dist/workerd.js"
       },
+      "single": {
+        "types": "./dist/single.d.ts",
+        "import": "./dist/single.js"
+      },
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./workerd.js": {
+    "./workerd": {
       "types": "./dist/workerd.d.ts",
       "import": "./dist/workerd.js"
+    },
+    "./single": {
+      "types": "./dist/single.d.ts",
+      "import": "./dist/single.js"
     },
     "./satoru.js": "./dist/satoru.js",
     "./satoru.wasm": "./dist/satoru.wasm"
@@ -26,6 +34,9 @@
     "*": {
       "workerd": [
         "./dist/workerd.d.ts"
+      ],
+      "single": [
+        "./dist/single.d.ts"
       ],
       "*": [
         "./dist/index.d.ts"

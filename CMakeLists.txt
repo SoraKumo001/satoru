@@ -42,7 +42,8 @@ find_package(unofficial-gumbo CONFIG REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
 find_package(BZip2 REQUIRED)
 
-add_executable(main
+# --- Sources ---
+set(SATORU_SOURCES
     src/cpp/main.cpp
     src/cpp/core/container_skia.cpp
     src/cpp/core/satoru_context.cpp
@@ -53,11 +54,8 @@ add_executable(main
     src/cpp/utils/skia_stubs.cpp
 )
 
-# --- Local litehtml Source ---
 file(GLOB LITEHTML_SRC "${LITEHTML_DIR}/src/*.cpp")
-target_sources(main PRIVATE ${LITEHTML_SRC})
 
-# --- Skia Source Selection ---
 file(GLOB SKIA_CORE_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/core/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/base/*.cpp"
@@ -103,10 +101,9 @@ file(GLOB SKIA_CORE_SRC
 )
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkPDF.*|.*SkGPU.*")
-target_sources(main PRIVATE ${SKIA_CORE_SRC})
 
-# Includes
-target_include_directories(main BEFORE PRIVATE
+# --- Common Settings ---
+set(SATORU_INCLUDES
     "src/cpp"
     "src/cpp/core"
     "src/cpp/renderers"
@@ -115,10 +112,6 @@ target_include_directories(main BEFORE PRIVATE
     "${LITEHTML_DIR}/include/litehtml"
     "${LITEHTML_DIR}/src"
     "${SKIA_CONFIG_DIR}"
-)
-
-
-target_include_directories(main PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/core"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/config"
@@ -138,24 +131,17 @@ target_include_directories(main PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/encode"
 )
 
-target_compile_options(main PRIVATE
+set(SATORU_COMPILE_OPTIONS
     -O3
     -fexceptions
     -msimd128
 )
 
-target_compile_definitions(main PRIVATE
+set(SATORU_DEFINITIONS
     SK_USER_CONFIG_HEADER="SkUserConfig.h"
 )
 
-set_target_properties(main PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/packages/satoru/dist"
-    OUTPUT_NAME "satoru"
-    SUFFIX ".js"
-)
-
-# Link libraries
-target_link_libraries(main PRIVATE
+set(SATORU_LIBS
     Freetype::Freetype
     PNG::PNG
     ZLIB::ZLIB
@@ -167,7 +153,7 @@ target_link_libraries(main PRIVATE
     BZip2::BZip2
 )
 
-target_link_options(main PRIVATE
+set(COMMON_LINK_OPTIONS
     "-O3"
     "-fexceptions"
     "-msimd128"
@@ -181,6 +167,33 @@ target_link_options(main PRIVATE
     "-sWARN_ON_UNDEFINED_SYMBOLS=0"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','getValue','setValue','HEAPU8','stringToUTF8','lengthBytesUTF8']"
     "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_html_to_png','_html_to_png_binary','_get_png_size','_get_required_fonts','_collect_resources','_add_resource','_scan_css','_malloc','_free','_load_font','_clear_fonts','_load_image','_clear_images']"
-    "-o${CMAKE_CURRENT_SOURCE_DIR}/packages/satoru/dist/satoru.js"
     "-sALLOW_MEMORY_GROWTH=1"
+)
+
+# --- Target: satoru (Separate JS and WASM) ---
+add_executable(satoru ${SATORU_SOURCES} ${LITEHTML_SRC} ${SKIA_CORE_SRC})
+target_include_directories(satoru BEFORE PRIVATE ${SATORU_INCLUDES})
+target_compile_options(satoru PRIVATE ${SATORU_COMPILE_OPTIONS})
+target_compile_definitions(satoru PRIVATE ${SATORU_DEFINITIONS})
+target_link_libraries(satoru PRIVATE ${SATORU_LIBS})
+target_link_options(satoru PRIVATE ${COMMON_LINK_OPTIONS})
+
+set_target_properties(satoru PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/packages/satoru/dist"
+    OUTPUT_NAME "satoru"
+    SUFFIX ".js"
+)
+
+# --- Target: satoru_single (WASM embedded in JS) ---
+add_executable(satoru_single ${SATORU_SOURCES} ${LITEHTML_SRC} ${SKIA_CORE_SRC})
+target_include_directories(satoru_single BEFORE PRIVATE ${SATORU_INCLUDES})
+target_compile_options(satoru_single PRIVATE ${SATORU_COMPILE_OPTIONS})
+target_compile_definitions(satoru_single PRIVATE ${SATORU_DEFINITIONS})
+target_link_libraries(satoru_single PRIVATE ${SATORU_LIBS})
+target_link_options(satoru_single PRIVATE ${COMMON_LINK_OPTIONS} "-sSINGLE_FILE=1")
+
+set_target_properties(satoru_single PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/packages/satoru/dist"
+    OUTPUT_NAME "satoru-single"
+    SUFFIX ".js"
 )

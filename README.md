@@ -140,6 +140,18 @@ export default {
 };
 ```
 
+### 📦 Single-file (Embedded WASM)
+
+For environments where deploying a separate `.wasm` file is difficult (e.g., some CI/CD pipelines or restricted Node.js environments), you can use the `single` export which includes the WASM binary embedded within the JS file.
+
+```typescript
+import { Satoru } from "satoru/single";
+
+// Initialize the engine (no external .wasm file needed)
+const satoru = await Satoru.init();
+const svg = await satoru.render("<div>Embedded WASM!</div>", 600);
+```
+
 ### 🎨 Manual Resource Management
 
 For scenarios where you want to pre-load resources or manage them manually without the `render` callback:

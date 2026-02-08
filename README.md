@@ -40,13 +40,13 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`
 - `text-align`, `vertical-align`, `text-decoration` (line, color, style, thickness)
 - `text-transform`, `text-indent`, `text-overflow`, `white-space`
-- `text-shadow`, `text-emphasis` (style, color, position)
+- `text-shadow`
 - `line-clamp` / `-webkit-line-clamp`, `-webkit-box-orient`
 
 ### Backgrounds
 - `background-color`
 - `background-image` (Supports `url()`, `linear-gradient`, `radial-gradient`, `conic-gradient`)
-- `background-position`, `background-size`, `background-repeat`, `background-attachment`, `background-clip`, `background-origin`
+- `background-position`, `background-size`, `background-repeat`, `background-attachment`
 
 ### Borders & Shadows
 - `border`, `border-width`, `border-style`, `border-color` (top, right, bottom, left)
@@ -62,8 +62,7 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `row-gap`, `column-gap`, `gap`, `order`
 
 ### Others
-- `list-style` (type, position, image)
-- `caption-side`, `content`, `cursor`, `appearance`
+- `caption-side`, `content`, `appearance`
 
 ## 🔄 Conversion Flow
 
@@ -125,9 +124,9 @@ const html = `
       src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2');
     }
   </style>
-  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;\">
+  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;\\\">
     Hello Satoru!
-    <img src="https://example.com/logo.png" style="width: 50px;\">
+    <img src="https://example.com/logo.png" style="width: 50px;\\\">
   </div>
 `;
 
@@ -163,7 +162,7 @@ export default {
           src: url('https://example.com/font.woff2');
         }
       </style>
-      <div style='font-family: CustomFont'>Edge Rendered with Auto-loading</div>\n    `;
+      <div style='font-family: CustomFont'>Edge Rendered with Auto-loading</div>\\n    `;
 
     const svg = await satoru.render(html, 800, {
       resolveResource: async (resource) => {

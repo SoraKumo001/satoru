@@ -589,8 +589,10 @@ void container_skia::import_css(litehtml::string &text, const litehtml::string &
     if (!url.empty() && m_resourceManager) {
         std::string lowerUrl = url;
         std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::tolower);
-        if (lowerUrl.find(".woff2") != std::string::npos || lowerUrl.find(".woff") != std::string::npos ||
-            lowerUrl.find(".ttf") != std::string::npos || lowerUrl.find(".otf") != std::string::npos ||
+        if (lowerUrl.find(".woff2") != std::string::npos ||
+            lowerUrl.find(".woff") != std::string::npos ||
+            lowerUrl.find(".ttf") != std::string::npos ||
+            lowerUrl.find(".otf") != std::string::npos ||
             lowerUrl.find(".ttc") != std::string::npos) {
             m_resourceManager->request(url, "", ResourceType::Font);
         } else {

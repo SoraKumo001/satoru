@@ -532,16 +532,27 @@ void container_skia::draw_conic_gradient(
         SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
         std::vector<SkColor4f> colors;
         std::vector<float> pos;
-        for (const auto &stop : gradient.color_points) {
+        for (size_t i = 0; i < gradient.color_points.size(); ++i) {
+            const auto &stop = gradient.color_points[i];
             colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
                               stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
-            pos.push_back(stop.offset);
+            float offset = stop.offset;
+            if (i > 0 && offset <= pos.back()) {
+                offset = pos.back() + 0.00001f;
+            }
+            pos.push_back(offset);
+        }
+        if (!pos.empty() && pos.back() > 1.0f) {
+            float max_val = pos.back();
+            for (auto &p : pos) p /= max_val;
+            pos.back() = 1.0f;
         }
         SkGradient grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos), SkTileMode::kClamp),
                         SkGradient::Interpolation());
+        SkMatrix matrix;
+        matrix.setRotate(gradient.angle - 90.0f, center.x(), center.y());
         SkPaint p;
-        p.setShader(
-            SkShaders::SweepGradient(center, gradient.angle, gradient.angle + 360.0f, grad));
+        p.setShader(SkShaders::SweepGradient(center, grad, &matrix));
         p.setAntiAlias(true);
         m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     }

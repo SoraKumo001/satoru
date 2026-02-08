@@ -171,18 +171,29 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
 
                         std::vector<SkColor4f> colors;
                         std::vector<float> pos_vec;
-                        for (const auto &stop : gradient.color_points) {
+                        for (size_t i = 0; i < gradient.color_points.size(); ++i) {
+                            const auto &stop = gradient.color_points[i];
                             colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
                                               stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
-                            pos_vec.push_back(stop.offset);
+                            float offset = stop.offset;
+                            if (i > 0 && offset <= pos_vec.back()) {
+                                offset = pos_vec.back() + 0.00001f;
+                            }
+                            pos_vec.push_back(offset);
+                        }
+                        if (!pos_vec.empty() && pos_vec.back() > 1.0f) {
+                            float max_val = pos_vec.back();
+                            for (auto &p : pos_vec) p /= max_val;
+                            pos_vec.back() = 1.0f;
                         }
 
                         SkGradient sk_grad(
                             SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec), SkTileMode::kClamp),
                             SkGradient::Interpolation());
+                        SkMatrix matrix;
+                        matrix.setRotate(gradient.angle - 90.0f, center.x(), center.y());
                         SkPaint p;
-                        p.setShader(SkShaders::SweepGradient(center, gradient.angle,
-                                                             gradient.angle + 360.0f, sk_grad));
+                        p.setShader(SkShaders::SweepGradient(center, sk_grad, &matrix));
                         p.setAntiAlias(true);
 
                         bitmapCanvas.drawRect(

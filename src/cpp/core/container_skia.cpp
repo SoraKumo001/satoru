@@ -125,10 +125,12 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
     SkFontMetrics skfm;
     fi->fonts[0]->getMetrics(&skfm);
     if (fm) {
+        fm->font_size = (float)desc.size;
         fm->ascent = (int)-skfm.fAscent;
         fm->descent = (int)skfm.fDescent;
-        fm->height = fm->ascent + fm->descent;
+        fm->height = (int)(fm->ascent + fm->descent + skfm.fLeading);
         fm->x_height = (int)skfm.fXHeight;
+        fm->ch_width = (litehtml::pixel_t)fi->fonts[0]->measureText("0", 1, SkTextEncoding::kUTF8);
     }
     fi->fm_ascent = (int)-skfm.fAscent;
     fi->fm_height = fi->fm_ascent + (int)skfm.fDescent;

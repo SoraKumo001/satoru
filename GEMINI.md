@@ -50,12 +50,12 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
     1. **Pass 1 (Measurement):** Layout with a dummy container to determine exact content height.
     2. **Pass 2 (Drawing):** Render to `SkSVGCanvas` with the calculated dimensions.
 - **Tag-Based Post-Processing:**
-    - Advanced effects (Shadows, Images, Conics) are "tagged" during drawing with unique colors (e.g., `rgb(0,1,index)` for shadows).
+    - Advanced effects (Shadows, Images, Conics) are \"tagged\" during drawing with unique colors (e.g., `rgb(0,1,index)` for shadows).
     - The resulting SVG string is processed via **Regular Expressions** to replace these tagged elements with real SVG filters or `<image>` tags.
 - **Box Shadow Logic:**
     - **Outer Shadow:** Uses `feGaussianBlur` + `feOffset` + `feFlood`.
-    - **Inset Shadow:** Uses `feComposite` with `operator="out"` to invert the shape, then `blur/offset`, and finally `operator="in"` to clip the shadow within the original shape.
-    - **Alpha Reference:** Tagged elements must maintain a fill (e.g., `fill="black"`) so `SourceAlpha` works for filters, but `feMerge` controls visibility.
+    - **Inset Shadow:** Uses `feComposite` with `operator=\"out\"` to invert the shape, then `blur/offset`, and finally `operator=\"in\"` to clip the shadow within the original shape.
+    - **Alpha Reference:** Tagged elements must maintain a fill (e.g., `fill=\"black\"`) so `SourceAlpha` works for filters, but `feMerge` controls visibility.
 - **Font Handling:**
     - **2-Pass Loading:** Missing fonts are detected during layout and requested from the JS host.
     - **Metadata Inference:** The TS host infers `weight` and `style` from font URLs to generate correct `@font-face` blocks for WASM.
@@ -66,7 +66,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 
 - **SkPath Immutability:** Use `SkPathBuilder` instead of direct `SkPath` modification methods.
 - **Radial Gradients:** Circular by default. For **Elliptical** gradients, apply an `SkMatrix` scale transform (e.g., `ry/rx` on Y-axis) to the shader.
-- **C++ Logs:** Bridge `printf` to JS `console.log`. Ensure `\n` or `fflush(stdout)` is used.
+- **C++ Logs:** Bridge `printf` to JS `console.log`. Ensure `\\n` or `fflush(stdout)` is used.
 
 ### 5. Testing & Validation
 
@@ -74,6 +74,10 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
     - **Dual Validation**: Compares **Direct Skia PNG** and **SVG-rendered PNG** (via Playwright) against reference images.
     - **Numerical Diff**: Reports pixel difference percentage for both paths.
     - **Stabilization**: Uses `flattenAlpha` (blending with white) and white-pixel padding to handle dimension mismatches and transparency flakiness.
+- **Output Validation**:
+    - **Crucial**: To verify generated output files (PNG/SVG) for all assets, always use the `convert-assets` command.
+    - Command: `pnpm --filter test-visual convert-assets`
+    - Output: Files are generated in `packages/test-visual/temp/`. Use these files to manually inspect the rendering quality and correctness.
 - **Performance Optimizations**:
     - **Reference Generation (`tools/generate-reference.ts`)**: Uses Playwright Concurrency (Batch size/Concurrency: 4) to speed up reference image capture.
     - **Multi-threaded Asset Conversion (`tools/convert_assets.ts`)**: Uses `worker_threads` to spawn multiple WASM instances (one per core). Each worker carries its own WASM context for parallel conversion.

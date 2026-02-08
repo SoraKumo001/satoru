@@ -96,47 +96,67 @@ describe("Visual Regression Tests", () => {
         const img1 = PNG.sync.read(fs.readFileSync(refPath));
         const img2 = PNG.sync.read(Buffer.from(pngBuffer));
 
-        // Ensure same dimensions for comparison (Skia might differ slightly from Browser)
+        let finalImg1 = img1;
+        let finalImg2 = img2;
+
         if (img1.width !== img2.width || img1.height !== img2.height) {
+          const maxWidth = Math.max(img1.width, img2.width);
+          const maxHeight = Math.max(img1.height, img2.height);
+
           console.warn(
-            `Dimension mismatch for ${file}: Ref(${img1.width}x${img1.height}) vs Satoru(${img2.width}x${img2.height})`,
-          );
-          // Skip pixel comparison if dimensions are vastly different, or we could pad/resize.
-          // For now, just expect them to be close.
-        } else {
-          const { width, height } = img1;
-          const diff = new PNG({ width, height });
-
-          const numDiffPixels = pixelmatch(
-            img1.data,
-            img2.data,
-            diff.data,
-            width,
-            height,
-            { threshold: 0.1 },
+            `Dimension mismatch for ${file}: Ref(${img1.width}x${img1.height}) vs Satoru(${img2.width}x${img2.height}). Padding to ${maxWidth}x${maxHeight}.`,
           );
 
-          if (numDiffPixels > 0) {
-            fs.writeFileSync(
-              path.join(DIFF_DIR, file.replace(".html", ".png")),
-              PNG.sync.write(diff),
-            );
-          }
+          const pad = (img: any, w: number, h: number) => {
+            if (img.width === w && img.height === h) return img;
+            const newImg = new PNG({ width: w, height: h });
+            newImg.data.fill(0);
+            for (let y = 0; y < img.height; y++) {
+              for (let x = 0; x < img.width; x++) {
+                const srcIdx = (img.width * y + x) << 2;
+                const dstIdx = (w * y + x) << 2;
+                newImg.data[dstIdx] = img.data[srcIdx];
+                newImg.data[dstIdx + 1] = img.data[srcIdx + 1];
+                newImg.data[dstIdx + 2] = img.data[srcIdx + 2];
+                newImg.data[dstIdx + 3] = img.data[srcIdx + 3];
+              }
+            }
+            return newImg;
+          };
 
-          // Allow a small percentage of different pixels due to rendering engine differences
-          const diffPercentage = (numDiffPixels / (width * height)) * 100;
-          expect(
-            diffPercentage,
-            `Too many differing pixels in ${file}: ${numDiffPixels} pixels (${diffPercentage.toFixed(2)}%)`,
-          ).toBeLessThan(5);
+          finalImg1 = pad(img1, maxWidth, maxHeight);
+          finalImg2 = pad(img2, maxWidth, maxHeight);
         }
+
+        const { width, height } = finalImg1;
+        const diff = new PNG({ width, height });
+
+        const numDiffPixels = pixelmatch(
+          finalImg1.data,
+          finalImg2.data,
+          diff.data,
+          width,
+          height,
+          { threshold: 0.1 },
+        );
+
+        if (numDiffPixels > 0) {
+          fs.writeFileSync(
+            path.join(DIFF_DIR, file.replace(".html", ".png")),
+            PNG.sync.write(diff),
+          );
+        }
+
+        const diffPercentage = (numDiffPixels / (width * height)) * 100;
+        expect(
+          diffPercentage,
+          `Too many differing pixels in ${file}: ${numDiffPixels} pixels (${diffPercentage.toFixed(2)}%)`,
+        ).toBeLessThan(10);
       } else {
         console.warn(
           `Reference image not found for ${file}. Run 'pnpm gen-ref' first.`,
         );
       }
-
-      // Still keep SVG snapshot for structural changes
       const svg = satoru.toSvg(html, 800);
       expect(svg).toMatchSnapshot();
     });

@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "deploy": "wrangler deploy",
+    "deploy-test": "wrangler deploy --dry-run",
     "dev": "wrangler dev",
-    "start": "wrangler dev",
-    "build": "wrangler deploy --dry-run"
+    "start": "wrangler dev"
   },
   "dependencies": {
     "satoru": "workspace:*"

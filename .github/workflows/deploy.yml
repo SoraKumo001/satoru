@@ -86,6 +86,15 @@ jobs:
       - name: Build TS Packages
         run: pnpm run build
 
+      - name: Install Playwright Browsers
+        run: pnpm --filter test-visual exec playwright install chromium --with-deps
+
+      - name: Generate Reference PNGs
+        run: pnpm --filter test-visual gen-ref
+
+      - name: Run Visual Tests
+        run: pnpm --filter test-visual test
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

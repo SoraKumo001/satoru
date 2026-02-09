@@ -56,6 +56,7 @@ if (action === "configure") {
   const projectRoot = process.cwd().replace(/\\/g, "/");
   const cmakeCmd =
     `cmake .. -G "${generator}" ` +
+    `-DCMAKE_BUILD_TYPE=Release ` +
     `-DCMAKE_TOOLCHAIN_FILE="${vcpkgCmake}" ` +
     `-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${emscriptenCmake}" ` +
     `-DVCPKG_TARGET_TRIPLET=wasm32-emscripten-wasm-eh ` +

@@ -4,7 +4,7 @@ import path from "path";
 import { Satoru } from "satoru";
 
 async function runWorker() {
-  const { files, assetsDir, tempDir, wasmBinaryPath, fontMap } = workerData;
+  const { files, assetsDir, tempDir, fontMap } = workerData;
 
   try {
     const satoru = await Satoru.init();

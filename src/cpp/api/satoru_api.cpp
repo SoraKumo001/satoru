@@ -1,19 +1,22 @@
 #include "satoru_api.h"
+
+#include <cstring>
+
 #include "core/container_skia.h"
+#include "core/master_css.h"
 #include "core/resource_manager.h"
 #include "core/satoru_context.h"
-#include "core/master_css.h"
+#include "renderers/pdf_renderer.h"
 #include "renderers/png_renderer.h"
 #include "renderers/svg_renderer.h"
-#include "renderers/pdf_renderer.h"
-#include <cstring>
 
 SatoruContext g_context;
 ResourceManager *g_resourceManager = nullptr;
 container_skia *g_discovery_container = nullptr;
 
 static std::string get_full_master_css() {
-    return std::string(litehtml::master_css) + "\n" + satoru_master_css + "\n" + g_context.getExtraCss();
+    return std::string(litehtml::master_css) + "\n" + satoru_master_css + "\n" +
+           g_context.getExtraCss();
 }
 
 void api_init_engine() {
@@ -32,7 +35,8 @@ std::string api_html_to_png(const char *html, int width, int height) {
 }
 
 const uint8_t *api_html_to_png_binary(const char *html, int width, int height, int &out_size) {
-    auto data = renderHtmlToPngBinary(html, width, height, g_context, get_full_master_css().c_str());
+    auto data =
+        renderHtmlToPngBinary(html, width, height, g_context, get_full_master_css().c_str());
     if (!data) {
         out_size = 0;
         return nullptr;
@@ -55,13 +59,9 @@ const uint8_t *api_html_to_pdf_binary(const char *html, int width, int height, i
     return g_context.get_last_pdf().data();
 }
 
-int api_get_last_png_size() {
-    return (int)g_context.get_last_png().size();
-}
+int api_get_last_png_size() { return (int)g_context.get_last_png().size(); }
 
-int api_get_last_pdf_size() {
-    return (int)g_context.get_last_pdf().size();
-}
+int api_get_last_pdf_size() { return (int)g_context.get_last_pdf().size(); }
 
 std::string api_collect_resources(const char *html, int width) {
     if (!g_resourceManager) {
@@ -69,7 +69,8 @@ std::string api_collect_resources(const char *html, int width) {
         g_resourceManager = new ResourceManager(g_context);
     }
     if (g_discovery_container) delete g_discovery_container;
-    g_discovery_container = new container_skia(width, 1000, nullptr, g_context, g_resourceManager, false);
+    g_discovery_container =
+        new container_skia(width, 1000, nullptr, g_context, g_resourceManager, false);
 
     std::string master_css_full = get_full_master_css();
 
@@ -78,7 +79,8 @@ std::string api_collect_resources(const char *html, int width) {
     }
     g_discovery_container->scan_font_faces(html);
 
-    auto doc = litehtml::document::createFromString(html, g_discovery_container, master_css_full.c_str());
+    auto doc =
+        litehtml::document::createFromString(html, g_discovery_container, master_css_full.c_str());
     if (doc) doc->render(width);
 
     std::string output = "";
@@ -105,14 +107,10 @@ void api_load_font(const char *name, const uint8_t *data, int size) {
     g_context.load_font(name, data, size);
 }
 
-void api_clear_fonts() {
-    g_context.clear_fonts();
-}
+void api_clear_fonts() { g_context.clear_fonts(); }
 
 void api_load_image(const char *name, const char *data_url, int width, int height) {
     g_context.load_image(name, data_url, width, height);
 }
 
-void api_clear_images() {
-    g_context.clear_images();
-}
+void api_clear_images() { g_context.clear_images(); }

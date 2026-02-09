@@ -4,7 +4,6 @@
 #include <regex>
 #include <sstream>
 
-#include "utils/skia_utils.h"
 #include "include/core/SkBlurTypes.h"
 #include "include/core/SkClipOp.h"
 #include "include/core/SkFontMetrics.h"
@@ -17,6 +16,7 @@
 #include "include/core/SkString.h"
 #include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkGradient.h"
+#include "utils/skia_utils.h"
 
 namespace {
 SkRRect make_rrect(const litehtml::position &pos, const litehtml::border_radiuses &radius) {

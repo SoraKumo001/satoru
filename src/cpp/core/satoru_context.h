@@ -5,10 +5,10 @@
 #include <string>
 #include <vector>
 
-#include "utils/skia_utils.h"
 #include "include/core/SkFontMgr.h"
 #include "include/core/SkFontStyle.h"
 #include "include/core/SkTypeface.h"
+#include "utils/skia_utils.h"
 
 class SatoruContext {
     std::vector<uint8_t> m_lastPng;

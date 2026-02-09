@@ -20,4 +20,4 @@ void api_clear_fonts();
 void api_load_image(const char *name, const char *data_url, int width, int height);
 void api_clear_images();
 
-#endif // SATORU_API_H
+#endif  // SATORU_API_H

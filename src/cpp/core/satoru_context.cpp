@@ -4,7 +4,6 @@
 #include <iostream>
 #include <sstream>
 
-#include "utils/skia_utils.h"
 #include "include/codec/SkAvifDecoder.h"
 #include "include/codec/SkBmpDecoder.h"
 #include "include/codec/SkCodec.h"
@@ -17,6 +16,7 @@
 #include "include/core/SkImage.h"
 #include "include/core/SkSpan.h"  // Include SkSpan header
 #include "include/core/SkTypeface.h"
+#include "utils/skia_utils.h"
 
 // External declaration for the custom empty font manager provided by Skia ports
 extern sk_sp<SkFontMgr> SkFontMgr_New_Custom_Empty();
@@ -54,15 +54,14 @@ void SatoruContext::loadImage(const char *name, const char *data_url, int width,
 
 void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, size_t size) {
     auto data_ptr = SkData::MakeWithCopy(data, size);
-    auto codec = SkCodec::MakeFromData(
-        data_ptr, SkSpan<const SkCodecs::Decoder>({
-                      SkPngDecoder::Decoder(),
-                      SkJpegDecoder::Decoder(),
-                      SkWebpDecoder::Decoder(),
-                      SkAvifDecoder::Decoder(),
-                      SkBmpDecoder::Decoder(),
-                      SkIcoDecoder::Decoder(),
-                  }));
+    auto codec = SkCodec::MakeFromData(data_ptr, SkSpan<const SkCodecs::Decoder>({
+                                                     SkPngDecoder::Decoder(),
+                                                     SkJpegDecoder::Decoder(),
+                                                     SkWebpDecoder::Decoder(),
+                                                     SkAvifDecoder::Decoder(),
+                                                     SkBmpDecoder::Decoder(),
+                                                     SkIcoDecoder::Decoder(),
+                                                 }));
     if (codec) {
         auto image = SkCodecs::DeferredImage(std::move(codec));
         if (image) {

@@ -18,4 +18,4 @@ const char *satoru_master_css =
     "h6 { display: block; font-size: .67em; font-weight: bold; margin: 2.33em 0; }\n"
     "button, input, select, textarea { box-sizing: border-box; }\n";
 
-#endif // SATORU_MASTER_CSS_H
+#endif  // SATORU_MASTER_CSS_H

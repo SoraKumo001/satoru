@@ -1,4 +1,5 @@
 #include "skia_utils.h"
+
 #include <algorithm>
 
 std::string clean_font_name(const char *name) {

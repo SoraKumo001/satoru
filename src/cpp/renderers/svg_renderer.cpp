@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 
-#include "utils/skia_utils.h"
 #include "container_skia.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkCanvas.h"
@@ -22,6 +21,7 @@
 #include "include/effects/SkGradient.h"
 #include "include/encode/SkPngEncoder.h"
 #include "include/svg/SkSVGCanvas.h"
+#include "utils/skia_utils.h"
 
 namespace {
 static std::string bitmapToDataUrl(const SkBitmap &bitmap) {

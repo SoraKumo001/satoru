@@ -2,8 +2,9 @@
 #define BRIDGE_TYPES_H
 
 #include <string>
-#include <vector>
 #include <tuple>
+#include <vector>
+
 #include "include/core/SkFontStyle.h"
 #include "libs/litehtml/include/litehtml.h"
 
@@ -69,4 +70,4 @@ struct text_shadow_info {
     litehtml::web_color text_color;
 };
 
-#endif // BRIDGE_TYPES_H
+#endif  // BRIDGE_TYPES_H

@@ -1,20 +1,20 @@
 #include <emscripten.h>
 #include <emscripten/bind.h>
-#include "api/satoru_api.h"
+
 #include <cstdlib>
 #include <cstring>
+
+#include "api/satoru_api.h"
 
 using namespace emscripten;
 
 extern "C" {
 
 EMSCRIPTEN_KEEPALIVE
-void init_engine() {
-    api_init_engine();
-}
+void init_engine() { api_init_engine(); }
 
-static const char* string_to_heap(const std::string& str) {
-    char* res = (char*)malloc(str.length() + 1);
+static const char *string_to_heap(const std::string &str) {
+    char *res = (char *)malloc(str.length() + 1);
     std::strcpy(res, str.c_str());
     return res;
 }
@@ -36,9 +36,7 @@ const uint8_t *html_to_png_binary(const char *html, int width, int height) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-int get_png_size() {
-    return api_get_last_png_size();
-}
+int get_png_size() { return api_get_last_png_size(); }
 
 EMSCRIPTEN_KEEPALIVE
 const uint8_t *html_to_pdf_binary(const char *html, int width, int height) {
@@ -47,9 +45,7 @@ const uint8_t *html_to_pdf_binary(const char *html, int width, int height) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-int get_pdf_size() {
-    return api_get_last_pdf_size();
-}
+int get_pdf_size() { return api_get_last_pdf_size(); }
 
 EMSCRIPTEN_KEEPALIVE
 const char *collect_resources(const char *html, int width) {
@@ -67,19 +63,13 @@ void add_resource(const char *url, int type, const uint8_t *data, int size) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-void scan_css(const char *css) {
-    api_scan_css(css);
-}
+void scan_css(const char *css) { api_scan_css(css); }
 
 EMSCRIPTEN_KEEPALIVE
-void load_font(const char *name, const uint8_t *data, int size) {
-    api_load_font(name, data, size);
-}
+void load_font(const char *name, const uint8_t *data, int size) { api_load_font(name, data, size); }
 
 EMSCRIPTEN_KEEPALIVE
-void clear_fonts() {
-    api_clear_fonts();
-}
+void clear_fonts() { api_clear_fonts(); }
 
 EMSCRIPTEN_KEEPALIVE
 void load_image(const char *name, const char *data_url, int width, int height) {
@@ -87,9 +77,7 @@ void load_image(const char *name, const char *data_url, int width, int height) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-void clear_images() {
-    api_clear_images();
-}
+void clear_images() { api_clear_images(); }
 }
 
 EMSCRIPTEN_BINDINGS(satoru) {

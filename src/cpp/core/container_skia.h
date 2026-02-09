@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "bridge/bridge_types.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkFont.h"
 #include "include/core/SkRRect.h"
@@ -16,7 +17,6 @@
 #include "libs/litehtml/include/litehtml.h"
 #include "resource_manager.h"
 #include "satoru_context.h"
-#include "bridge/bridge_types.h"
 
 class container_skia : public litehtml::document_container {
     SkCanvas *m_canvas;

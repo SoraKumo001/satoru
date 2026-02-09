@@ -1,15 +1,16 @@
 #include "pdf_renderer.h"
 
 #include <litehtml/master_css.h>
-#include <vector>
+
 #include <memory>
+#include <vector>
 
 #include "container_skia.h"
-#include "include/core/SkCanvas.h"
-#include "include/core/SkStream.h"
-#include "include/core/SkData.h"
-#include "include/docs/SkPDFDocument.h"
 #include "include/codec/SkJpegDecoder.h"
+#include "include/core/SkCanvas.h"
+#include "include/core/SkData.h"
+#include "include/core/SkStream.h"
+#include "include/docs/SkPDFDocument.h"
 #include "include/encode/SkJpegEncoder.h"
 #include "utils/skia_utils.h"
 
@@ -18,15 +19,15 @@ std::unique_ptr<SkCodec> PdfJpegDecoder(sk_sp<const SkData> data) {
     return SkJpegDecoder::Decode(std::move(data), nullptr, nullptr);
 }
 
-bool PdfJpegEncoder(SkWStream* dst, const SkPixmap& src, int quality) {
+bool PdfJpegEncoder(SkWStream *dst, const SkPixmap &src, int quality) {
     SkJpegEncoder::Options options;
     options.fQuality = quality;
     return SkJpegEncoder::Encode(dst, src, options);
 }
-} // namespace
+}  // namespace
 
-std::vector<uint8_t> renderHtmlToPdf(const char *html, int width, int height, SatoruContext &context,
-                                    const char *master_css) {
+std::vector<uint8_t> renderHtmlToPdf(const char *html, int width, int height,
+                                     SatoruContext &context, const char *master_css) {
     container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context, nullptr,
                                      false);
     std::string css = master_css ? master_css : litehtml::master_css;
@@ -45,7 +46,7 @@ std::vector<uint8_t> renderHtmlToPdf(const char *html, int width, int height, Sa
     metadata.fCreator = "Satoru Engine";
     metadata.jpegDecoder = PdfJpegDecoder;
     metadata.jpegEncoder = PdfJpegEncoder;
-    
+
     auto pdf_doc = SkPDF::MakeDocument(&stream, metadata);
     if (!pdf_doc) return {};
 
@@ -65,6 +66,7 @@ std::vector<uint8_t> renderHtmlToPdf(const char *html, int width, int height, Sa
     sk_sp<SkData> data = stream.detachAsData();
     if (!data) return {};
 
-    std::vector<uint8_t> result((const uint8_t *)data->data(), (const uint8_t *)data->data() + data->size());
+    std::vector<uint8_t> result((const uint8_t *)data->data(),
+                                (const uint8_t *)data->data() + data->size());
     return result;
 }

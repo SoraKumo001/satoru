@@ -64,6 +64,16 @@ struct conic_gradient_info {
     litehtml::background_layer::conic_gradient gradient;
 };
 
+struct radial_gradient_info {
+    litehtml::background_layer layer;
+    litehtml::background_layer::radial_gradient gradient;
+};
+
+struct linear_gradient_info {
+    litehtml::background_layer layer;
+    litehtml::background_layer::linear_gradient gradient;
+};
+
 struct text_shadow_info {
     litehtml::shadow_vector shadows;
     litehtml::web_color text_color;
@@ -80,6 +90,8 @@ class container_skia : public litehtml::document_container {
     std::vector<text_shadow_info> m_usedTextShadows;
     std::vector<image_draw_info> m_usedImageDraws;
     std::vector<conic_gradient_info> m_usedConicGradients;
+    std::vector<radial_gradient_info> m_usedRadialGradients;
+    std::vector<linear_gradient_info> m_usedLinearGradients;
 
     std::map<font_request, std::string> m_fontFaces;
     std::set<font_request> m_missingFonts;
@@ -99,6 +111,12 @@ class container_skia : public litehtml::document_container {
     const std::vector<image_draw_info> &get_used_image_draws() const { return m_usedImageDraws; }
     const std::vector<conic_gradient_info> &get_used_conic_gradients() const {
         return m_usedConicGradients;
+    }
+    const std::vector<radial_gradient_info> &get_used_radial_gradients() const {
+        return m_usedRadialGradients;
+    }
+    const std::vector<linear_gradient_info> &get_used_linear_gradients() const {
+        return m_usedLinearGradients;
     }
     const std::vector<shadow_info> &get_used_shadows() const { return m_usedShadows; }
     const std::vector<text_shadow_info> &get_used_text_shadows() const { return m_usedTextShadows; }

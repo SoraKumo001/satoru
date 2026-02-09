@@ -69,6 +69,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
     const auto &textShadows = container.get_used_text_shadows();
     const auto &images = container.get_used_image_draws();
     const auto &conics = container.get_used_conic_gradients();
+    const auto &radials = container.get_used_radial_gradients();
+    const auto &linears = container.get_used_linear_gradients();
 
     size_t lastPos = 0;
     while (lastPos < svg.size()) {
@@ -168,66 +170,120 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         replaced = true;
                     }
                 }
-            } else if (r == 1 && g == 1 && b > 0 && b <= (int)conics.size()) {
+            } else if (r == 1 && (g == 1 || g == 2 || g == 3)) {
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
                 if (elementStart != std::string::npos && elementEnd != std::string::npos) {
-                    const auto &info = conics[b - 1];
-                    const auto &layer = info.layer;
-                    const auto &gradient = info.gradient;
+                    SkBitmap bitmap;
+                    litehtml::position border_box;
+                    litehtml::border_radiuses border_radius;
+                    bool ok = false;
 
-                    if (layer.border_box.width > 0 && layer.border_box.height > 0) {
-                        SkBitmap bitmap;
-                        bitmap.allocN32Pixels((int)layer.border_box.width,
-                                              (int)layer.border_box.height);
-                        SkCanvas bitmapCanvas(bitmap);
-                        bitmapCanvas.clear(SK_ColorTRANSPARENT);
-
-                        SkPoint center =
-                            SkPoint::Make((float)gradient.position.x - (float)layer.border_box.x,
-                                          (float)gradient.position.y - (float)layer.border_box.y);
-
-                        std::vector<SkColor4f> colors;
-                        std::vector<float> pos_vec;
-                        for (size_t i = 0; i < gradient.color_points.size(); ++i) {
-                            const auto &stop = gradient.color_points[i];
-                            colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
-                                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
-                            float offset = stop.offset;
-                            if (i > 0 && offset <= pos_vec.back()) {
-                                offset = pos_vec.back() + 0.00001f;
+                    if (g == 1 && b > 0 && b <= (int)conics.size()) {
+                        const auto &info = conics[b - 1];
+                        border_box = info.layer.border_box;
+                        border_radius = info.layer.border_radius;
+                        if (border_box.width > 0 && border_box.height > 0) {
+                            bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
+                            SkCanvas bitmapCanvas(bitmap);
+                            bitmapCanvas.clear(SK_ColorTRANSPARENT);
+                            SkPoint center =
+                                SkPoint::Make((float)info.gradient.position.x - (float)border_box.x,
+                                              (float)info.gradient.position.y - (float)border_box.y);
+                            std::vector<SkColor4f> colors;
+                            std::vector<float> pos_vec;
+                            for (size_t i = 0; i < info.gradient.color_points.size(); ++i) {
+                                const auto &stop = info.gradient.color_points[i];
+                                colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                                  stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                                float offset = stop.offset;
+                                if (i > 0 && offset <= pos_vec.back()) offset = pos_vec.back() + 0.00001f;
+                                pos_vec.push_back(offset);
                             }
-                            pos_vec.push_back(offset);
+                            if (!pos_vec.empty() && pos_vec.back() > 1.0f) {
+                                float max_val = pos_vec.back();
+                                for (auto &p : pos_vec) p /= max_val;
+                                pos_vec.back() = 1.0f;
+                            }
+                            SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec), SkTileMode::kClamp),
+                                               SkGradient::Interpolation());
+                            SkMatrix matrix;
+                            matrix.setRotate(info.gradient.angle - 90.0f, center.x(), center.y());
+                            SkPaint p;
+                            p.setShader(SkShaders::SweepGradient(center, sk_grad, &matrix));
+                            p.setAntiAlias(true);
+                            bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width, (float)border_box.height), p);
+                            ok = true;
                         }
-                        if (!pos_vec.empty() && pos_vec.back() > 1.0f) {
-                            float max_val = pos_vec.back();
-                            for (auto &p : pos_vec) p /= max_val;
-                            pos_vec.back() = 1.0f;
+                    } else if (g == 2 && b > 0 && b <= (int)radials.size()) {
+                        const auto &info = radials[b - 1];
+                        border_box = info.layer.border_box;
+                        border_radius = info.layer.border_radius;
+                        if (border_box.width > 0 && border_box.height > 0) {
+                            bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
+                            SkCanvas bitmapCanvas(bitmap);
+                            bitmapCanvas.clear(SK_ColorTRANSPARENT);
+                            SkPoint center =
+                                SkPoint::Make((float)info.gradient.position.x - (float)border_box.x,
+                                              (float)info.gradient.position.y - (float)border_box.y);
+                            float rx = (float)info.gradient.radius.x, ry = (float)info.gradient.radius.y;
+                            std::vector<SkColor4f> colors;
+                            std::vector<float> pos_vec;
+                            for (const auto &stop : info.gradient.color_points) {
+                                colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                                  stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                                pos_vec.push_back(stop.offset);
+                            }
+                            SkMatrix matrix;
+                            matrix.setScale(1.0f, ry / rx, center.x(), center.y());
+                            SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec), SkTileMode::kClamp),
+                                               SkGradient::Interpolation());
+                            SkPaint p;
+                            p.setShader(SkShaders::RadialGradient(center, rx, sk_grad, &matrix));
+                            p.setAntiAlias(true);
+                            bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width, (float)border_box.height), p);
+                            ok = true;
                         }
+                    } else if (g == 3 && b > 0 && b <= (int)linears.size()) {
+                        const auto &info = linears[b - 1];
+                        border_box = info.layer.border_box;
+                        border_radius = info.layer.border_radius;
+                        if (border_box.width > 0 && border_box.height > 0) {
+                            bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
+                            SkCanvas bitmapCanvas(bitmap);
+                            bitmapCanvas.clear(SK_ColorTRANSPARENT);
+                            SkPoint pts[2] = {
+                                SkPoint::Make((float)info.gradient.start.x - (float)border_box.x,
+                                              (float)info.gradient.start.y - (float)border_box.y),
+                                SkPoint::Make((float)info.gradient.end.x - (float)border_box.x,
+                                              (float)info.gradient.end.y - (float)border_box.y)};
+                            std::vector<SkColor4f> colors;
+                            std::vector<float> pos_vec;
+                            for (const auto &stop : info.gradient.color_points) {
+                                colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                                  stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                                pos_vec.push_back(stop.offset);
+                            }
+                            SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec), SkTileMode::kClamp),
+                                               SkGradient::Interpolation());
+                            SkPaint p;
+                            p.setShader(SkShaders::LinearGradient(pts, sk_grad));
+                            p.setAntiAlias(true);
+                            bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width, (float)border_box.height), p);
+                            ok = true;
+                        }
+                    }
 
-                        SkGradient sk_grad(
-                            SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec), SkTileMode::kClamp),
-                            SkGradient::Interpolation());
-                        SkMatrix matrix;
-                        matrix.setRotate(gradient.angle - 90.0f, center.x(), center.y());
-                        SkPaint p;
-                        p.setShader(SkShaders::SweepGradient(center, sk_grad, &matrix));
-                        p.setAntiAlias(true);
-
-                        bitmapCanvas.drawRect(SkRect::MakeWH((float)layer.border_box.width,
-                                                             (float)layer.border_box.height),
-                                              p);
-
+                    if (ok) {
                         std::stringstream ss;
-                        ss << "<image x=\"" << layer.border_box.x << "\" y=\"" << layer.border_box.y
-                           << "\" width=\"" << layer.border_box.width << "\" height=\""
-                           << layer.border_box.height << "\" href=\"" << bitmapToDataUrl(bitmap)
+                        ss << "<image x=\"" << border_box.x << "\" y=\"" << border_box.y
+                           << "\" width=\"" << border_box.width << "\" height=\""
+                           << border_box.height << "\" href=\"" << bitmapToDataUrl(bitmap)
                            << "\"";
-                        if (has_radius(layer.border_radius)) {
-                            ss << " clip-path=\"url(#clip-conic-" << b << ")\"";
+                        if (has_radius(border_radius)) {
+                            ss << " clip-path=\"url(#clip-gradient-" << g << "-" << b << ")\"";
                         }
                         ss << " />";
-
                         result.erase(result.size() - (pos - elementStart));
                         result.append(ss.str());
                         lastPos = elementEnd + 2;
@@ -366,11 +422,25 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
 
     const auto &conics = render_container.get_used_conic_gradients();
     for (size_t i = 0; i < conics.size(); ++i) {
-        const auto &info = conics[i];
-        if (has_radius(info.layer.border_radius)) {
-            defs << "<clipPath id=\"clip-conic-" << (i + 1) << "\">";
-            defs << "<path d=\"" << path_from_rrect(info.layer.border_box, info.layer.border_radius)
-                 << "\" />";
+        if (has_radius(conics[i].layer.border_radius)) {
+            defs << "<clipPath id=\"clip-gradient-1-" << (i + 1) << "\">";
+            defs << "<path d=\"" << path_from_rrect(conics[i].layer.border_box, conics[i].layer.border_radius) << "\" />";
+            defs << "</clipPath>";
+        }
+    }
+    const auto &radials = render_container.get_used_radial_gradients();
+    for (size_t i = 0; i < radials.size(); ++i) {
+        if (has_radius(radials[i].layer.border_radius)) {
+            defs << "<clipPath id=\"clip-gradient-2-" << (i + 1) << "\">";
+            defs << "<path d=\"" << path_from_rrect(radials[i].layer.border_box, radials[i].layer.border_radius) << "\" />";
+            defs << "</clipPath>";
+        }
+    }
+    const auto &linears = render_container.get_used_linear_gradients();
+    for (size_t i = 0; i < linears.size(); ++i) {
+        if (has_radius(linears[i].layer.border_radius)) {
+            defs << "<clipPath id=\"clip-gradient-3-" << (i + 1) << "\">";
+            defs << "<path d=\"" << path_from_rrect(linears[i].layer.border_box, linears[i].layer.border_radius) << "\" />";
             defs << "</clipPath>";
         }
     }

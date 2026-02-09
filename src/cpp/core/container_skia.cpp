@@ -508,45 +508,67 @@ void container_skia::draw_linear_gradient(
     litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
     const litehtml::background_layer::linear_gradient &gradient) {
     if (!m_canvas) return;
-    SkPoint pts[2] = {SkPoint::Make((float)gradient.start.x, (float)gradient.start.y),
-                      SkPoint::Make((float)gradient.end.x, (float)gradient.end.y)};
-    std::vector<SkColor4f> colors;
-    std::vector<float> pos;
-    for (const auto &stop : gradient.color_points) {
-        colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
-                          stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
-        pos.push_back(stop.offset);
+    if (m_tagging) {
+        linear_gradient_info info;
+        info.layer = layer;
+        info.gradient = gradient;
+        m_usedLinearGradients.push_back(info);
+        int index = (int)m_usedLinearGradients.size();
+        SkPaint p;
+        p.setColor(SkColorSetARGB(255, 1, 3, (index & 0xFF)));
+        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
+    } else {
+        SkPoint pts[2] = {SkPoint::Make((float)gradient.start.x, (float)gradient.start.y),
+                          SkPoint::Make((float)gradient.end.x, (float)gradient.end.y)};
+        std::vector<SkColor4f> colors;
+        std::vector<float> pos;
+        for (const auto &stop : gradient.color_points) {
+            colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
+                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+            pos.push_back(stop.offset);
+        }
+        SkGradient grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos), SkTileMode::kClamp),
+                        SkGradient::Interpolation());
+        SkPaint p;
+        p.setShader(SkShaders::LinearGradient(pts, grad));
+        p.setAntiAlias(true);
+        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     }
-    SkGradient grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos), SkTileMode::kClamp),
-                    SkGradient::Interpolation());
-    SkPaint p;
-    p.setShader(SkShaders::LinearGradient(pts, grad));
-    p.setAntiAlias(true);
-    m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
 }
 
 void container_skia::draw_radial_gradient(
     litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
     const litehtml::background_layer::radial_gradient &gradient) {
     if (!m_canvas) return;
-    SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
-    float rx = (float)gradient.radius.x, ry = (float)gradient.radius.y;
-    if (rx <= 0 || ry <= 0) return;
-    std::vector<SkColor4f> colors;
-    std::vector<float> pos;
-    for (const auto &stop : gradient.color_points) {
-        colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
-                          stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
-        pos.push_back(stop.offset);
+    if (m_tagging) {
+        radial_gradient_info info;
+        info.layer = layer;
+        info.gradient = gradient;
+        m_usedRadialGradients.push_back(info);
+        int index = (int)m_usedRadialGradients.size();
+        SkPaint p;
+        p.setColor(SkColorSetARGB(255, 1, 2, (index & 0xFF)));
+        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
+    } else {
+        SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
+        float rx = (float)gradient.radius.x, ry = (float)gradient.radius.y;
+        if (rx <= 0 || ry <= 0) return;
+        std::vector<SkColor4f> colors;
+        std::vector<float> pos;
+        for (const auto &stop : gradient.color_points) {
+            colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
+                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+            pos.push_back(stop.offset);
+        }
+        SkMatrix matrix;
+        matrix.setScale(1.0f, ry / rx, center.x(), center.y());
+        SkGradient grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos), SkTileMode::kClamp),
+                        SkGradient::Interpolation());
+        SkPaint p;
+        p.setShader(SkShaders::RadialGradient(center, rx, grad, &matrix));
+        p.setAntiAlias(true);
+        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     }
-    SkMatrix matrix;
-    matrix.setScale(1.0f, ry / rx, center.x(), center.y());
-    SkGradient grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos), SkTileMode::kClamp),
-                    SkGradient::Interpolation());
-    SkPaint p;
-    p.setShader(SkShaders::RadialGradient(center, rx, grad, &matrix));
-    p.setAntiAlias(true);
-    m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
 }
 
 void container_skia::draw_conic_gradient(
@@ -747,7 +769,7 @@ void container_skia::scan_font_faces(const std::string &css) {
     std::regex familyRegex(R"(font-family:\s*([^;]+);?)", std::regex::icase);
     std::regex weightRegex(R"(font-weight:\s*([^;]+);?)", std::regex::icase);
     std::regex styleRegex(R"(font-style:\s*([^;]+);?)", std::regex::icase);
-    std::regex urlRegex(R"(url\s*\(\s*['"]?([^'\")]+)['"]?\s*\))", std::regex::icase);
+    std::regex urlRegex(R"(url\s*\(\s*['"]?([^'\"\)]+)['"]?\s*\))", std::regex::icase);
     auto words_begin = std::sregex_iterator(css.begin(), css.end(), fontFaceRegex);
     for (std::sregex_iterator i = words_begin; i != std::sregex_iterator(); ++i) {
         std::string body = (*i)[1].str();

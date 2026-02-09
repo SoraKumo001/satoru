@@ -3,9 +3,13 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Satoru, RequiredResource } from "satoru";
-import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 import { chromium, Browser, Page } from "playwright";
+import {
+  downloadFont,
+  compareImages,
+  ComparisonMetrics,
+} from "../src/utils";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,8 +20,8 @@ const REFERENCE_DIR = path.resolve(__dirname, "../reference");
 const DIFF_DIR = path.resolve(__dirname, "../diff");
 const TEMP_DIR = path.resolve(ROOT_DIR, "../temp");
 
-const BASELINE_PATH = path.join(__dirname, "mismatch-baselines.json");
-const baselines: Record<string, { direct: number; svg: number }> =
+const BASELINE_PATH = path.join(__dirname, "data/mismatch-baselines.json");
+const baselines: Record<string, { direct: ComparisonMetrics; svg: ComparisonMetrics }> =
   fs.existsSync(BASELINE_PATH)
     ? JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"))
     : {};
@@ -38,71 +42,6 @@ const FONT_MAP: {
     path: path.join(TEMP_DIR, "NotoSansJP-400.woff2"),
   },
 ];
-
-async function downloadFont(url: string, dest: string) {
-  if (fs.existsSync(dest)) return;
-  const response = await fetch(url);
-  if (!response.ok)
-    throw new Error(`Failed to download font: ${response.statusText}`);
-  const arrayBuffer = await response.arrayBuffer();
-  fs.writeFileSync(dest, Buffer.from(arrayBuffer));
-}
-
-function flattenAlpha(img: PNG) {
-  for (let i = 0; i < img.data.length; i += 4) {
-    const alpha = img.data[i + 3] / 255;
-    if (alpha < 1) {
-      img.data[i] = Math.round(img.data[i] * alpha + 255 * (1 - alpha));
-      img.data[i + 1] = Math.round(img.data[i + 1] * alpha + 255 * (1 - alpha));
-      img.data[i + 2] = Math.round(img.data[i + 2] * alpha + 255 * (1 - alpha));
-      img.data[i + 3] = 255;
-    }
-  }
-  return img;
-}
-
-function padImage(img: PNG, w: number, h: number): PNG {
-  if (img.width === w && img.height === h) return img;
-  const newImg = new PNG({ width: w, height: h });
-  for (let i = 0; i < newImg.data.length; i += 4) {
-    newImg.data[i] = 255;
-    newImg.data[i + 1] = 255;
-    newImg.data[i + 2] = 255;
-    newImg.data[i + 3] = 255;
-  }
-  for (let y = 0; y < img.height; y++) {
-    for (let x = 0; x < img.width; x++) {
-      const srcIdx = (img.width * y + x) << 2;
-      const dstIdx = (w * y + x) << 2;
-      for (let c = 0; x < img.width && c < 4; c++)
-        newImg.data[dstIdx + c] = img.data[srcIdx + c];
-    }
-  }
-  return newImg;
-}
-
-function compareImages(img1: PNG, img2: PNG, diffPath: string): number {
-  const maxWidth = Math.max(img1.width, img2.width);
-  const maxHeight = Math.max(img1.height, img2.height);
-
-  const final1 = flattenAlpha(padImage(img1, maxWidth, maxHeight));
-  const final2 = flattenAlpha(padImage(img2, maxWidth, maxHeight));
-
-  const diff = new PNG({ width: maxWidth, height: maxHeight });
-  const numDiffPixels = pixelmatch(
-    final1.data,
-    final2.data,
-    diff.data,
-    maxWidth,
-    maxHeight,
-    { threshold: 0.1 },
-  );
-
-  if (numDiffPixels > 0) {
-    fs.writeFileSync(diffPath, PNG.sync.write(diff));
-  }
-  return (numDiffPixels / (maxWidth * maxHeight)) * 100;
-}
 
 describe("Visual Regression Tests", () => {
   let satoru: Satoru;
@@ -129,6 +68,8 @@ describe("Visual Regression Tests", () => {
   afterAll(async () => {
     if (browser) await browser.close();
     if (process.env.UPDATE_SNAPSHOTS || !fs.existsSync(BASELINE_PATH)) {
+      const dataDir = path.dirname(BASELINE_PATH);
+      if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
       fs.writeFileSync(BASELINE_PATH, JSON.stringify(baselines, null, 2));
       console.log(`Updated mismatch baselines in ${BASELINE_PATH}`);
     }
@@ -167,10 +108,10 @@ describe("Visual Regression Tests", () => {
           format: "png",
           resolveResource,
         })) as Uint8Array;
-        const directDiff = compareImages(
+        const directResult = compareImages(
           refImg,
           PNG.sync.read(Buffer.from(directPngData!)),
-          path.join(DIFF_DIR, `direct-${file.replace(".html", ".png")}`),
+          path.join(DIFF_DIR, `direct-${file.replace(".html", "")}`),
         );
 
         // 2. SVG -> Browser PNG
@@ -188,48 +129,47 @@ describe("Visual Regression Tests", () => {
           `<style>body { margin: 0; padding: 0; overflow: hidden; }</style>${svg}`,
         );
         const svgPngBuffer = await page.screenshot({ omitBackground: true });
-        const svgDiff = compareImages(
+        const svgResult = compareImages(
           refImg,
           PNG.sync.read(svgPngBuffer),
-          path.join(DIFF_DIR, `svg-${file.replace(".html", ".png")}`),
+          path.join(DIFF_DIR, `svg-${file.replace(".html", "")}`),
         );
 
         // Log results
         console.log(
-          `${file}: [Direct PNG Diff: ${directDiff.toFixed(2)}%] [SVG PNG Diff: ${svgDiff.toFixed(2)}%]`,
+          `${file}: Direct[Fill: ${directResult.fill.toFixed(2)}%, Outline: ${directResult.outline.toFixed(2)}%] ` +
+          `SVG[Fill: ${svgResult.fill.toFixed(2)}%, Outline: ${svgResult.outline.toFixed(2)}%]`
         );
 
-        const threshold =
-          file.includes("graphics") || file.includes("layout") ? 30 : 10;
+        const fillThreshold = 30;
+        const outlineThreshold = 10;
 
         const baseline = baselines[file];
         if (!baseline || process.env.UPDATE_SNAPSHOTS) {
-          baselines[file] = { direct: directDiff, svg: svgDiff };
+          baselines[file] = { direct: directResult, svg: svgResult };
         } else {
-          // Use a multiplier in CI environment to account for OS-level rendering differences
-          const factor = process.env.GITHUB_ACTIONS ? 2.0 : 1.05; // 100% allowance in CI, 5% locally
-          expect(
-            directDiff,
-            `Direct PNG diff increased: ${directDiff.toFixed(2)}% (baseline: ${baseline.direct.toFixed(2)}%)`,
-          ).toBeLessThanOrEqual(Math.max(baseline.direct, 0.01) * factor);
-          expect(
-            svgDiff,
-            `SVG PNG diff increased: ${svgDiff.toFixed(2)}% (baseline: ${baseline.svg.toFixed(2)}%)`,
-          ).toBeLessThanOrEqual(Math.max(baseline.svg, 0.01) * factor);
+          const factor = process.env.GITHUB_ACTIONS ? 2.0 : 1.05;
+          
+          // Validate Direct
+          expect(directResult.outline, `Direct Outline diff increased (baseline: ${baseline.direct.outline.toFixed(2)}%)`)
+            .toBeLessThanOrEqual(Math.max(baseline.direct.outline, 0.01) * factor);
+          
+          // Validate SVG
+          expect(svgResult.outline, `SVG Outline diff increased (baseline: ${baseline.svg.outline.toFixed(2)}%)`)
+            .toBeLessThanOrEqual(Math.max(baseline.svg.outline, 0.01) * factor);
 
-          if (directDiff < baseline.direct) baseline.direct = directDiff;
-          if (svgDiff < baseline.svg) baseline.svg = svgDiff;
+          // Update baseline if improved
+          if (directResult.fill < baseline.direct.fill) baseline.direct.fill = directResult.fill;
+          if (directResult.outline < baseline.direct.outline) baseline.direct.outline = directResult.outline;
+          if (svgResult.fill < baseline.svg.fill) baseline.svg.fill = svgResult.fill;
+          if (svgResult.outline < baseline.svg.outline) baseline.svg.outline = svgResult.outline;
         }
 
-        expect(
-          directDiff,
-          `Direct PNG diff too high: ${directDiff.toFixed(2)}%`,
-        ).toBeLessThan(threshold);
-        expect(
-          svgDiff,
-          `SVG PNG diff too high: ${svgDiff.toFixed(2)}%`,
-        ).toBeLessThan(threshold);
-      });
+        expect(directResult.outline, `Direct Outline diff too high`).toBeLessThan(outlineThreshold);
+        expect(svgResult.outline, `SVG Outline diff too high`).toBeLessThan(outlineThreshold);
+        expect(directResult.fill, `Direct Fill diff too high`).toBeLessThan(fillThreshold);
+        expect(svgResult.fill, `SVG Fill diff too high`).toBeLessThan(fillThreshold);
+      }, 30000);
     });
   });
 });

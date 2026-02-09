@@ -1,0 +1,66 @@
+{
+  "01-layout.html": {
+    "direct": {
+      "fill": 4.0406249999999995,
+      "outline": 5.618
+    },
+    "svg": {
+      "fill": 3.7913750000000004,
+      "outline": 5.56825
+    }
+  },
+  "02-typography.html": {
+    "direct": {
+      "fill": 7.9852294921875,
+      "outline": 9.4161376953125
+    },
+    "svg": {
+      "fill": 7.986083984375,
+      "outline": 9.4161376953125
+    }
+  },
+  "03-graphics.html": {
+    "direct": {
+      "fill": 7.4855,
+      "outline": 2.40325
+    },
+    "svg": {
+      "fill": 7.474875,
+      "outline": 2.518125
+    }
+  },
+  "04-box-effects.html": {
+    "direct": {
+      "fill": 0.22325,
+      "outline": 0.692625
+    },
+    "svg": {
+      "fill": 0.22325,
+      "outline": 0.63425
+    }
+  },
+  "05-images.html": {
+    "direct": {
+      "fill": 0.571625,
+      "outline": 3.4847499999999996
+    },
+    "svg": {
+      "fill": 0.6015,
+      "outline": 3.750875
+    }
+  },
+  "test-ja.html": {
+    "direct": 0.07725,
+    "svg": 0.07725
+  },
+  "06-box-layout.html": {
+    "direct": {
+      "fill": 0,
+      "outline": 0
+    },
+    "svg": {
+      "fill": 0,
+      "outline": 0
+    }
+  }
+}

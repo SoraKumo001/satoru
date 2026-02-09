@@ -46,6 +46,14 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 
 ### 3. Implementation Details
 
+- **C++ Directory Structure:**
+    - `src/cpp/api`: Emscripten API implementation (`satoru_api.cpp`). High-level logic and state management.
+    - `src/cpp/bridge`: Common types used across the project (`bridge_types.h`).
+    - `src/cpp/core`: Core rendering logic (`container_skia`), resource management, and master CSS.
+    - `src/cpp/renderers`: PNG/SVG specific rendering implementation.
+    - `src/cpp/utils`: Skia-specific utility functions and Base64 helpers.
+- **API Layer:** All functionality exported to WASM should be defined in `src/cpp/api/satoru_api.h` and implemented in `satoru_api.cpp`. `main.cpp` serves as the Emscripten entry point and binding definition.
+- **Global State:** Global instances like `SatoruContext` and `ResourceManager` are maintained in `satoru_api.cpp`. Do not mark them `static` if they need to be accessed via `extern` from other core components.
 - **SVG Rendering (2-Pass):**
     1. **Pass 1 (Measurement):** Layout with a dummy container to determine exact content height.
     2. **Pass 2 (Drawing):** Render to `SkSVGCanvas` with the calculated dimensions.

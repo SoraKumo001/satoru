@@ -19,12 +19,18 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VCPKG_ROOT: /usr/local/share/vcpkg
-      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Install Ninja & ccache
         run: |
@@ -36,18 +42,19 @@ jobs:
         with:
           key: ${{ runner.os }}-wasm
 
+      - name: Cache Emscripten
+        uses: actions/cache@v4
+        with:
+          path: emsdk-cache
+          key: ${{ runner.os }}-emsdk-${{ hashFiles('package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-emsdk-
+
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: latest
           actions-cache-folder: 'emsdk-cache'
-
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4

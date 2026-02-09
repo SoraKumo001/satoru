@@ -24,7 +24,7 @@ async function processFile(browser: Browser, file: string) {
   try {
     const html = fs.readFileSync(inputPath, "utf8");
     await page.setContent(html);
-    await page.addStyleTag({ content: "html, body { margin: 0; padding: 0; }" });
+    await page.addStyleTag({ content: "html, body { margin: 0; }" });
     await page.waitForLoadState("networkidle");
     
     // 画像等がある場合のみ短く待機（固定500msから短縮）

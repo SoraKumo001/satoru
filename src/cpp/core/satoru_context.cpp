@@ -5,13 +5,13 @@
 #include <sstream>
 
 #include "utils/skia_utils.h"
+#include "include/codec/SkAvifDecoder.h"
 #include "include/codec/SkBmpDecoder.h"
 #include "include/codec/SkCodec.h"
 #include "include/codec/SkIcoDecoder.h"
 #include "include/codec/SkJpegDecoder.h"
 #include "include/codec/SkPngDecoder.h"
 #include "include/codec/SkWebpDecoder.h"
-#include "include/codec/SkAvifDecoder.h"
 #include "include/core/SkData.h"
 #include "include/core/SkFontMgr.h"
 #include "include/core/SkImage.h"

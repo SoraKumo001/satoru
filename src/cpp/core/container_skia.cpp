@@ -90,12 +90,23 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
     bool fake_bold = false;
     auto typefaces = m_context.get_typefaces(desc.family, desc.weight, slant, fake_bold);
 
+    if (m_resourceManager) {
+        std::stringstream ss(desc.family);
+        std::string item;
+        while (std::getline(ss, item, ',')) {
+            std::string family = trim(item);
+            std::string cleanName = clean_font_name(family.c_str());
+            if (m_context.typefaceCache.find(cleanName) == m_context.typefaceCache.end()) {
+                std::string url = get_font_url(family, desc.weight, slant);
+                if (!url.empty()) {
+                    m_resourceManager->request(url, family, ResourceType::Font);
+                }
+            }
+        }
+    }
+
     if (typefaces.empty()) {
         m_missingFonts.insert({desc.family, desc.weight, slant});
-        if (m_resourceManager) {
-            std::string url = get_font_url(desc.family, desc.weight, slant);
-            if (!url.empty()) m_resourceManager->request(url, desc.family, ResourceType::Font);
-        }
         typefaces = m_context.get_typefaces("sans-serif", desc.weight, slant, fake_bold);
     }
 
@@ -807,8 +818,13 @@ std::string container_skia::get_font_url(const std::string &family, int weight,
                                          SkFontStyle::Slant slant) const {
     std::stringstream ss(family);
     std::string item;
+    bool hasGeneric = false;
     while (std::getline(ss, item, ',')) {
         std::string cleanFamily = clean_font_name(trim(item).c_str());
+        if (cleanFamily == "sans-serif" || cleanFamily == "serif" || cleanFamily == "monospace") {
+            hasGeneric = true;
+            continue;
+        }
         font_request req = {cleanFamily, weight, slant};
         auto it = m_fontFaces.find(req);
         if (it != m_fontFaces.end()) return it->second;
@@ -825,6 +841,13 @@ std::string container_skia::get_font_url(const std::string &family, int weight,
         }
         if (!bestUrl.empty()) return bestUrl;
     }
+
+    // Fallback: If a generic family was requested and no exact match found, use the first available
+    // font
+    if (hasGeneric && !m_fontFaces.empty()) {
+        return m_fontFaces.begin()->second;
+    }
+
     return "";
 }
 void container_skia::set_clip(const litehtml::position &pos,

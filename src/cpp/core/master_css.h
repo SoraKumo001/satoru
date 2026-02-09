@@ -15,6 +15,7 @@ const char *satoru_master_css =
     "h3 { display: block; font-size: 1.17em; font-weight: bold; margin: 1em 0; }\n"
     "h4 { display: block; font-size: 1em; font-weight: bold; margin: 1.33em 0; }\n"
     "h5 { display: block; font-size: .83em; font-weight: bold; margin: 1.67em 0; }\n"
-    "h6 { display: block; font-size: .67em; font-weight: bold; margin: 2.33em 0; }\n";
+    "h6 { display: block; font-size: .67em; font-weight: bold; margin: 2.33em 0; }\n"
+    "button, input, select, textarea { box-sizing: border-box; }\n";
 
 #endif // SATORU_MASTER_CSS_H

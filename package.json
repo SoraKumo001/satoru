@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter test-web dev",
     "dev:worker": "pnpm --filter satoru-sample dev",
-    "build": "pnpm --filter satoru build && pnpm --filter test-web build && pnpm --filter satoru-sample build",
+    "build": "pnpm -r --if-present build",
     "test": "pnpm --filter satoru test",
     "wasm:configure": "tsx ./scripts/build-wasm.ts configure",
     "wasm:docker:build": "tsx ./scripts/wasm-docker-build.ts",

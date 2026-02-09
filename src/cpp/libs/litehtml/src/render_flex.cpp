@@ -38,7 +38,7 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	{
 		if(self_size.height.type != containing_block_context::cbc_value_type_auto)
 		{
-			container_main_size = self_size.height - box_sizing_height();
+			container_main_size = self_size.render_height;
 		} else
 		{
 			// Direction columns, height is auto - always in single line
@@ -107,8 +107,7 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	{
 		if (self_size.height.type != containing_block_context::cbc_value_type_auto)
 		{
-			pixel_t height = self_size.height - box_sizing_height();
-			free_cross_size = height - sum_cross_size;
+			free_cross_size = self_size.render_height - sum_cross_size;
 		}
 	} else
 	{

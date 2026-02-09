@@ -41,7 +41,7 @@ namespace litehtml
         {
                 using base = variant<Types...>; // for derived class ctors
                 using std::variant<Types...>::variant; // inherit ctors
-                template<class T> bool is() const { return std::holds_alternative<T>(*this); }       
+                template<class T> bool is() const { return std::holds_alternative<T>(*this); }
                 template<class T> const T& get() const { return std::get<T>(*this); }
                 template<class T> T& get() { return std::get<T>(*this); }
         };
@@ -215,7 +215,7 @@ namespace litehtml
                                 left()                  <= val->right()         &&
                                 right()                 >= val->left()          &&
                                 bottom()                >= val->top()           &&
-                                top()                   <= val->bottom()        ) 
+                                top()                   <= val->bottom()        )
                                 || (
                                 val->left()             <= right()                      &&
                                 val->right()    >= left()                       &&
@@ -257,7 +257,7 @@ namespace litehtml
                 [[nodiscard]]
                 bool is_point_inside(pixel_t _x, pixel_t _y) const
                 {
-                        return (_x >= left() && _x < right() && _y >= top() && _y < bottom());       
+                        return (_x >= left() && _x < right() && _y >= top() && _y < bottom());
                 }
         };
 
@@ -283,8 +283,8 @@ namespace litehtml
                 pixel_t         x_height = 0;           // Height of the symbol x
                 pixel_t         ch_width = 0;           // Width of the symbol 0
                 bool            draw_spaces = true;     // True to call draw text function for spaces. If False, just use space width without draw.
-                pixel_t         sub_shift = 0;          // The baseline shift for subscripts.        
-                pixel_t         super_shift = 0;        // The baseline shift for superscripts.      
+                pixel_t         sub_shift = 0;          // The baseline shift for subscripts.
+                pixel_t         super_shift = 0;        // The baseline shift for superscripts.
 
                 pixel_t base_line() const       { return descent; }
         };
@@ -357,6 +357,7 @@ namespace litehtml
                 typed_pixel max_width;
 
                 typed_pixel height;                                             // height of the containing block
+                typed_pixel render_height;
                 typed_pixel min_height;
                 typed_pixel max_height;
 
@@ -369,6 +370,7 @@ namespace litehtml
                                 min_width(0, cbc_value_type_none),
                                 max_width(0, cbc_value_type_none),
                                 height(0, cbc_value_type_auto),
+                                render_height(0, cbc_value_type_auto),
                                 min_height(0, cbc_value_type_none),
                                 max_height(0, cbc_value_type_none),
                                 context_idx(0),
@@ -378,8 +380,9 @@ namespace litehtml
                 containing_block_context new_width(pixel_t w, uint32_t _size_mode = size_mode_normal) const
                 {
                         containing_block_context ret = *this;
-                        ret.render_width = w - (ret.width - ret.render_width);
-                        ret.width = w;
+                        pixel_t diff = (pixel_t)ret.width - (pixel_t)ret.render_width;
+                        ret.render_width = w;
+                        ret.width = w + diff;
                         ret.size_mode = _size_mode;
                         return ret;
                 }
@@ -387,9 +390,12 @@ namespace litehtml
                 containing_block_context new_width_height(pixel_t w, pixel_t h, uint32_t _size_mode = size_mode_normal) const
                 {
                         containing_block_context ret = *this;
-                        ret.render_width = w - (ret.width - ret.render_width);
-                        ret.width = w;
-                        ret.height = h;
+                        pixel_t diff_w = (pixel_t)ret.width - (pixel_t)ret.render_width;
+                        pixel_t diff_h = (pixel_t)ret.height - (pixel_t)ret.render_height;
+                        ret.render_width = w;
+                        ret.render_height = h;
+                        ret.width = w + diff_w;
+                        ret.height = h + diff_h;
                         ret.size_mode = _size_mode;
                         return ret;
                 }
@@ -627,7 +633,7 @@ namespace litehtml
                 background_box_content
         };
 
-#define  background_position_strings                            "left;right;top;bottom;center"       
+#define  background_position_strings                            "left;right;top;bottom;center"
         const float background_position_percentages[] =  {0,   100,  0,  100,    50};
 
         enum background_position
@@ -954,7 +960,7 @@ namespace litehtml
 // https://drafts.csswg.org/mediaqueries/#media-types
 // User agents must recognize the following media types as valid, but must make them match nothing.  
 #define deprecated_media_type_strings   "tty;tv;projection;handheld;braille;embossed;aural;speech"
-#define media_type_strings                              "all;print;screen;" deprecated_media_type_strings
+#define media_type_strings                              "all;print;screen; " deprecated_media_type_strings
 
         enum media_type
         {
@@ -998,7 +1004,7 @@ namespace litehtml
                 render_fixed_only,
         };
 
-        const char* const split_delims_spaces = " \t\r\n\f\v";
+        const char* const split_delims_spaces = " 	\r\f\v";
 
         // List of the Void Elements (can't have any contents)
         const char* const void_elements = "area;base;br;col;command;embed;hr;img;input;keygen;link;meta;param;source;track;wbr";
@@ -1041,7 +1047,7 @@ namespace litehtml
         };
 
 #define self_position_strings           "center;start;end;self-start;self-end;flex-start;flex-end"
-#define flex_align_items_strings        "auto;normal;stretch;baseline;" self_position_strings        
+#define flex_align_items_strings        "auto;normal;stretch;baseline; " self_position_strings        
 
         enum flex_align_items
         {

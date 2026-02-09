@@ -222,6 +222,7 @@ set(COMMON_LINK_OPTIONS
     "-sWASM_BIGINT=1"
     "-sSUPPORT_LONGJMP=emscripten"
     "-sDISABLE_EXCEPTION_CATCHING=0"
+    "-sDYNAMIC_EXECUTION=0"
     "-sMODULARIZE=1"
     "-sEXPORT_ES6=1"
     "-sEXPORT_NAME='createSatoruModule'"

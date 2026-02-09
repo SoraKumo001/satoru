@@ -102,7 +102,7 @@ std::shared_ptr<litehtml::render_item> litehtml::render_item_block::init()
 	bool has_inlines = false;
     for (const auto& el : m_children)
     {
-		if(!el->src_el()->is_float())
+	if(!el->src_el()->is_float())
 		{
 			if (el->src_el()->is_block_box())
 			{
@@ -210,7 +210,7 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
 	// Set block width
 	if(!(containing_block_size.size_mode & containing_block_context::size_mode_content))
 	{
-		if(self_size.width.type == containing_block_context::cbc_value_type_absolute)
+		if(self_size.render_width.type == containing_block_context::cbc_value_type_absolute)
 		{
 			ret_width = m_pos.width = self_size.render_width;
 		} else
@@ -220,9 +220,9 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
 	} else
 	{
 		m_pos.width = ret_width;
-		if(self_size.width.type == containing_block_context::cbc_value_type_absolute && ret_width > self_size.width)
+		if(self_size.render_width.type == containing_block_context::cbc_value_type_absolute && ret_width > self_size.render_width)
 		{
-			ret_width = self_size.width;
+			ret_width = self_size.render_width;
 		}
 	}
 
@@ -264,22 +264,10 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
 	}
 
 	// Set block height
-	if (self_size.height.type != containing_block_context::cbc_value_type_auto &&
+	if (self_size.render_height.type != containing_block_context::cbc_value_type_auto &&
 	    !(containing_block_size.size_mode & containing_block_context::size_mode_content))
 	{
-		// TODO: Something wrong here
-		// Percentage height from undefined containing block height is usually <= 0
-		if(self_size.height.type == containing_block_context::cbc_value_type_percentage)
-		{
-			if (self_size.height > 0)
-			{
-				m_pos.height = self_size.height;
-			}
-		} else
-		{
-			m_pos.height = self_size.height;
-		}
-		m_pos.height -= box_sizing_height();
+		m_pos.height = self_size.render_height;
 	} else if (src_el()->is_block_formatting_context())
 	{
 		// add the floats' height to the block height
@@ -291,11 +279,11 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
 	}
 	if(containing_block_size.size_mode & containing_block_context::size_mode_content)
 	{
-		if(self_size.height.type == containing_block_context::cbc_value_type_absolute)
+		if(self_size.render_height.type == containing_block_context::cbc_value_type_absolute)
 		{
-			if(m_pos.height > self_size.height)
+			if(m_pos.height > self_size.render_height)
 			{
-				m_pos.height = self_size.height;
+				m_pos.height = self_size.render_height;
 			}
 		}
 	}
@@ -336,7 +324,7 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
             src_el()->get_document()->container()->get_image_size(list_image.c_str(), list_image_baseurl.c_str(), sz);
             if (m_pos.height < sz.height)
             {
-				m_pos.height = sz.height;
+			m_pos.height = sz.height;
             }
         }
     }

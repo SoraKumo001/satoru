@@ -33,12 +33,40 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(skia)
 
+# --- libavif Setup ---
+set(VCPKG_INSTALLED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build-wasm/vcpkg_installed/wasm32-emscripten-wasm-eh")
+
+# dav1d manual target
+if(NOT TARGET dav1d::dav1d)
+    add_library(dav1d::dav1d STATIC IMPORTED GLOBAL)
+    set_target_properties(dav1d::dav1d PROPERTIES
+        IMPORTED_LOCATION "${VCPKG_INSTALLED_DIR}/lib/libdav1d.a"
+        INTERFACE_INCLUDE_DIRECTORIES "${VCPKG_INSTALLED_DIR}/include"
+    )
+endif()
+
+# Find ZLIB first so we have the variables for libavif
+find_package(ZLIB REQUIRED)
+
+# libavif options
+set(AVIF_CODEC_DAV1D SYSTEM CACHE STRING "" FORCE)
+set(AVIF_LIBYUV OFF CACHE BOOL "" FORCE)
+set(AVIF_BUILD_APPS OFF CACHE BOOL "" FORCE)
+set(AVIF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(AVIF_ENABLE_WASM ON CACHE BOOL "" FORCE)
+
+FetchContent_Declare(
+  libavif
+  GIT_REPOSITORY https://github.com/AOMediaCodec/libavif.git
+  GIT_TAG        v1.1.1
+)
+FetchContent_MakeAvailable(libavif)
+
 # Find dependencies
 find_package(Freetype REQUIRED)
 find_package(PNG REQUIRED)
 find_package(JPEG REQUIRED)
 find_package(WebP REQUIRED)
-find_package(ZLIB REQUIRED)
 find_package(expat CONFIG REQUIRED)
 find_package(unofficial-gumbo CONFIG REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
@@ -116,6 +144,7 @@ file(GLOB SKIA_CORE_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkJpegUtility.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkJpegXmp.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkWebpCodec.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkAvifCodec.cpp"
 )
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkPDF.*|.*SkGPU.*")
@@ -166,8 +195,12 @@ set(SATORU_LIBS
     PNG::PNG
     JPEG::JPEG
     WebP::webp
+    WebP::webpdecoder
+    WebP::webpdemux
+    WebP::sharpyuv
+    avif
+    dav1d::dav1d
     ZLIB::ZLIB
-    JPEG::JPEG
     expat::expat
     unofficial::gumbo::gumbo
     unofficial::brotli::brotlidec

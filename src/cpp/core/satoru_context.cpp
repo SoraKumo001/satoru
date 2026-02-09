@@ -11,6 +11,7 @@
 #include "include/codec/SkJpegDecoder.h"
 #include "include/codec/SkPngDecoder.h"
 #include "include/codec/SkWebpDecoder.h"
+#include "include/codec/SkAvifDecoder.h"
 #include "include/core/SkData.h"
 #include "include/core/SkFontMgr.h"
 #include "include/core/SkImage.h"
@@ -24,6 +25,7 @@ void SatoruContext::init() {
     SkCodecs::Register(SkPngDecoder::Decoder());
     SkCodecs::Register(SkJpegDecoder::Decoder());
     SkCodecs::Register(SkWebpDecoder::Decoder());
+    SkCodecs::Register(SkAvifDecoder::Decoder());
     SkCodecs::Register(SkBmpDecoder::Decoder());
     SkCodecs::Register(SkIcoDecoder::Decoder());
     fontMgr = SkFontMgr_New_Custom_Empty();
@@ -57,6 +59,7 @@ void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, siz
                       SkPngDecoder::Decoder(),
                       SkJpegDecoder::Decoder(),
                       SkWebpDecoder::Decoder(),
+                      SkAvifDecoder::Decoder(),
                       SkBmpDecoder::Decoder(),
                       SkIcoDecoder::Decoder(),
                   }));

@@ -6,6 +6,7 @@
     "libpng",
     "libjpeg-turbo",
     "libwebp",
+    "dav1d",
     "zlib",
     "gumbo",
     "bzip2",

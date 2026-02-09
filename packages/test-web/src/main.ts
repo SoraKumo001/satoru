@@ -54,6 +54,7 @@ async function init() {
                                 <option value="02-typography.html">02-typography.html</option>
                                 <option value="03-graphics.html">03-graphics.html</option>
                                 <option value="04-box-effects.html">04-box-effects.html</option>
+                                <option value="05-images.html">05-images.html</option>
                             </select>
                         </fieldset>
                     </div>
@@ -120,11 +121,15 @@ async function init() {
           htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
         if (doc) {
           doc.open();
-          doc.write(htmlInput.value);
+          const baseTag = `<base href="${window.location.origin}${window.location.pathname}assets/">`;
+          const html = htmlInput.value;
+          const htmlWithBase = html.includes("<head>") 
+            ? html.replace("<head>", `<head>${baseTag}`) 
+            : baseTag + html;
+          doc.write(htmlWithBase);
           doc.close();
         }
       };
-
       const resourceResolver = async (r: RequiredResource) => {
         console.log(`[Satoru] Resolving ${r.type}: ${r.url}`);
         try {

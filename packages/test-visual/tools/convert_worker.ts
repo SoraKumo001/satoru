@@ -25,6 +25,14 @@ async function runWorker() {
           if (font && fs.existsSync(font.path)) {
             return new Uint8Array(fs.readFileSync(font.path));
           }
+        } else if (r.type === "image") {
+          // Resolve local paths relative to assetsDir
+          if (r.url && !r.url.startsWith("data:") && !r.url.startsWith("http")) {
+            const imgPath = path.join(assetsDir, r.url);
+            if (fs.existsSync(imgPath)) {
+              return new Uint8Array(fs.readFileSync(imgPath));
+            }
+          }
         }
         return null;
       };

@@ -18,7 +18,7 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 - **High-Level TS Wrapper**: Includes a `Satoru` class that abstracts Wasm memory management and provides a clean async API.
 - **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime with automatic weight/style inference.
 - **Japanese Support**: Full support for Japanese rendering with fallback font logic and vertical alignment.
-- **Image Format Support**: Native support for **PNG**, **JPEG**, **WebP**, **BMP**, and **ICO** image formats.
+- **Image Format Support**: Native support for **PNG**, **JPEG**, **WebP**, **AVIF**, **BMP**, and **ICO** image formats.
 - **Advanced CSS Support**:
   - **Box Model**: Margin, padding, border, and accurate **Border Radius**.
   - **Box Shadow**: High-quality **Outer** and **Inset** shadows using advanced SVG filters (SVG) or Skia blurs (PNG).
@@ -32,14 +32,12 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 Satoru supports a wide range of CSS properties for high-fidelity layout and styling.
 
 ### Box Model & Layout
-
 - `display`, `position`, `float`, `clear`, `visibility`, `z-index`, `overflow`, `box-sizing`
 - `width`, `height`, `min-width`, `min-height`, `max-width`, `max-height`
 - `margin` (top, right, bottom, left)
 - `padding` (top, right, bottom, left)
 
 ### Typography & Text
-
 - `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`
 - `text-align`, `vertical-align`, `text-decoration` (line, color, style, thickness)
 - `text-transform`, `text-indent`, `text-overflow`, `white-space`
@@ -47,20 +45,17 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `line-clamp` / `-webkit-line-clamp`, `-webkit-box-orient`
 
 ### Backgrounds
-
 - `background-color`
 - `background-image` (Supports `url()`, `linear-gradient`, `radial-gradient`, `conic-gradient`)
 - `background-position`, `background-size`, `background-repeat`, `background-attachment`
 
 ### Borders & Shadows
-
 - `border`, `border-width`, `border-style`, `border-color` (top, right, bottom, left)
 - `border-radius` (Full support for all corners)
 - `border-collapse`, `border-spacing`
 - `box-shadow` (High-quality **Outer** and **Inset** shadows)
 
 ### Flexbox
-
 - `display: flex`, `display: inline-flex`
 - `flex-direction`, `flex-wrap`, `flex-flow`
 - `justify-content`, `align-items`, `align-content`, `align-self`
@@ -68,7 +63,6 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `row-gap`, `column-gap`, `gap`, `order`
 
 ### Others
-
 - `caption-side`, `content`, `appearance`
 
 ## 🔄 Conversion Flow
@@ -167,14 +161,16 @@ export default {
         @font-face {
           font-family: 'CustomFont';
           src: url('https://example.com/font.woff2');
-        }\n      </style>
+        }
+      </style>
       <div style='font-family: CustomFont'>Edge Rendered with Auto-loading</div>
     `;
 
     const svg = await satoru.render(html, 800, {
       resolveResource: async (resource) => {
         const res = await fetch(resource.url);
-        return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;\n      },
+        return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
+      },
     });
 
     return new Response(svg, {

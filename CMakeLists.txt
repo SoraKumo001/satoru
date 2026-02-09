@@ -36,6 +36,8 @@ FetchContent_MakeAvailable(skia)
 # Find dependencies
 find_package(Freetype REQUIRED)
 find_package(PNG REQUIRED)
+find_package(JPEG REQUIRED)
+find_package(WebP REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(expat CONFIG REQUIRED)
 find_package(unofficial-gumbo CONFIG REQUIRED)
@@ -105,6 +107,15 @@ file(GLOB SKIA_CORE_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkColorTable.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkPixmapUtils.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkHdrMetadata.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkJpegCodec.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkJpegDecoderMgr.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkJpegMetadataDecoderImpl.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkJpegMultiPicture.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkJpegSegmentScan.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkJpegSourceMgr.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkJpegUtility.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkJpegXmp.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkWebpCodec.cpp"
 )
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkPDF.*|.*SkGPU.*")
@@ -153,7 +164,10 @@ set(SATORU_DEFINITIONS
 set(SATORU_LIBS
     Freetype::Freetype
     PNG::PNG
+    JPEG::JPEG
+    WebP::webp
     ZLIB::ZLIB
+    JPEG::JPEG
     expat::expat
     unofficial::gumbo::gumbo
     unofficial::brotli::brotlidec

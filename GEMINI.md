@@ -66,9 +66,14 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
     - **Alpha Reference:** Tagged elements must maintain a fill (e.g., `fill=\"black\"`) so `SourceAlpha` works for filters, but `feMerge` controls visibility.
 - **Font Handling:**
     - **2-Pass Loading:** Missing fonts are detected during layout and requested from the JS host.
+    - **Fallback Logic:** The engine iterates through the entire `font-family` list. Even if the first font is available, it may still request subsequent fonts if they are needed for specific glyphs (e.g., Japanese).
+    - **Generic Families:** Keywords like `sans-serif` or `serif` trigger a fallback to the first available font defined in `@font-face` if no exact system match is found.
     - **Metadata Inference:** The TS host infers `weight` and `style` from font URLs to generate correct `@font-face` blocks for WASM.
 - **litehtml Types:**
     - Container overrides MUST return `litehtml::pixel_t` (float), not `int`, to match base class signatures.
+- **Layout Defaults:**
+    - **line-height:** Default value for `normal` is set to `1.2` times the font height in `css_properties.cpp`.
+    - **box-sizing:** Defaulted to `border-box` for `button`, `input`, `select`, and `textarea` in `master_css.h`.
 
 ### 4. Skia API & Release Notes
 

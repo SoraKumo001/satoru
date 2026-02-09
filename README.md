@@ -17,7 +17,7 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
   - **PNG**: Generates high-quality raster images via Skia, transferred as binary data for maximum performance.
 - **High-Level TS Wrapper**: Includes a `Satoru` class that abstracts Wasm memory management and provides a clean async API.
 - **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime with automatic weight/style inference.
-- **Japanese Support**: Full support for Japanese rendering with fallback font logic and vertical alignment.
+- **Japanese Support**: Full support for Japanese rendering with multi-font fallback logic.
 - **Image Format Support**: Native support for **PNG**, **JPEG**, **WebP**, **AVIF**, **BMP**, and **ICO** image formats.
 - **Advanced CSS Support**:
   - **Box Model**: Margin, padding, border, and accurate **Border Radius**.
@@ -284,6 +284,7 @@ pnpm build
 - [x] Japanese Language Rendering & Standard HTML Tag Support.
 - [x] **Cloudflare Workers (workerd) compatibility.**
 - [x] **Text Shadow (Multiple shadows, Blur, Offset).**
+- [x] **Improved Font Fallback & Generic Family Mapping.**
 - [ ] SVG Path Shorthand Optimization.
 - [ ] Support for CSS Masks & Filters.
 - [ ] Optional SVG `<text>` element output (currently paths).

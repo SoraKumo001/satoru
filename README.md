@@ -18,6 +18,7 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 - **High-Level TS Wrapper**: Includes a `Satoru` class that abstracts Wasm memory management and provides a clean async API.
 - **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime with automatic weight/style inference.
 - **Japanese Support**: Full support for Japanese rendering with fallback font logic and vertical alignment.
+- **Image Format Support**: Native support for **PNG**, **BMP**, and **ICO** image formats.
 - **Advanced CSS Support**:
   - **Box Model**: Margin, padding, border, and accurate **Border Radius**.
   - **Box Shadow**: High-quality **Outer** and **Inset** shadows using advanced SVG filters (SVG) or Skia blurs (PNG).
@@ -124,9 +125,9 @@ const html = `
       src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2');
     }
   </style>
-  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;\\\">
+  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;">
     Hello Satoru!
-    <img src="https://example.com/logo.png" style="width: 50px;\\\">
+    <img src="https://example.com/logo.png" style="width: 50px;">
   </div>
 `;
 
@@ -160,15 +161,14 @@ export default {
         @font-face {
           font-family: 'CustomFont';
           src: url('https://example.com/font.woff2');
-        }
-      </style>
-      <div style='font-family: CustomFont'>Edge Rendered with Auto-loading</div>\\n    `;
+        }\n      </style>
+      <div style='font-family: CustomFont'>Edge Rendered with Auto-loading</div>
+    `;
 
     const svg = await satoru.render(html, 800, {
       resolveResource: async (resource) => {
         const res = await fetch(resource.url);
-        return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
-      },
+        return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;\n      },
     });
 
     return new Response(svg, {

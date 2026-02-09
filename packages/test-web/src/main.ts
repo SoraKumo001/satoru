@@ -35,16 +35,30 @@ async function init() {
                         0% { transform: rotate(0deg); }
                         100% { transform: rotate(360deg); }
                     }
-                    #svgContainer { position: relative; }
+                    #renderContainer { position: relative; }
+                    .preview-frame {
+                        width: 100%;
+                        height: 100%;
+                        border: none;
+                        background: white;
+                    }
                 </style>
                 <div style="padding: 20px; font-family: sans-serif; max-width: 1200px; margin: 0 auto; background: #fafafa; min-height: 100vh;">
-                    <h2 style="color: #2196F3; border-bottom: 2px solid #2196F3; padding-bottom: 10px;">Satoru Engine: HTML to Pure SVG</h2>
+                    <h2 style="color: #2196F3; border-bottom: 2px solid #2196F3; padding-bottom: 10px;">Satoru Engine: HTML to Vector/Raster</h2>
                     
                     <div style="display: flex; gap: 20px; margin-bottom: 20px;">
                         <fieldset style="flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white;">
-                            <legend style="font-weight: bold;">Canvas & Fonts</legend>
-                            <label>Width: <input type="number" id="canvasWidth" value="580" style="width: 80px;"></label>
-                            <button id="loadFontBtn" style="margin-left: 20px; padding: 5px 10px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 4px;">Auto Font Loading On</button>
+                            <legend style="font-weight: bold;">Rendering Options</legend>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <label>Width: <input type="number" id="canvasWidth" value="580" style="width: 80px;"></label>
+                                <label>Format: 
+                                    <select id="formatSelect" style="padding: 2px 5px; border-radius: 4px;">
+                                        <option value="svg" selected>SVG (Vector)</option>
+                                        <option value="png">PNG (Raster)</option>
+                                        <option value="pdf">PDF (Document)</option>
+                                    </select>
+                                </label>
+                            </div>
                         </fieldset>
                         <fieldset style="flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white;">
                             <legend style="font-weight: bold;">Load Sample Assets</legend>
@@ -64,7 +78,7 @@ async function init() {
                         <textarea id="htmlInput" style="width: 100%; height: 150px; font-family: monospace; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box;"></textarea>
                     </div>
 
-                    <button id="convertBtn" style="padding: 15px 30px; font-size: 20px; cursor: pointer; background: #2196F3; color: white; border: none; border-radius: 4px; width: 100%; font-weight: bold; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(33, 150, 243, 0.3);">Generate Vector SVG</button>
+                    <button id="convertBtn" style="padding: 15px 30px; font-size: 20px; cursor: pointer; background: #2196F3; color: white; border: none; border-radius: 4px; width: 100%; font-weight: bold; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(33, 150, 243, 0.3);">Generate Output</button>
                     
                     <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 20px;">
                         <div>
@@ -75,50 +89,39 @@ async function init() {
                         </div>
                         <div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <h3>SVG Render Preview:</h3>
-                                <button id="downloadBtn" style="display: none; background: #FF9800; color: white; border: none; padding: 6px 15px; cursor: pointer; border-radius: 4px;">Download .svg</button>
+                                <h3 id="previewTitle">Output Render Preview:</h3>
+                                <button id="downloadBtn" style="display: none; background: #FF9800; color: white; border: none; padding: 6px 15px; cursor: pointer; border-radius: 4px;">Download</button>
                             </div>
-                            <div id="svgContainer" style="border: 1px solid #ddd; background: white; border-radius: 8px; height: 800px; display: flex;  overflow: auto; box-sizing: border-box; justify-content: center;">
+                            <div id="renderContainer" style="border: 1px solid #ddd; background: white; border-radius: 8px; height: 800px; display: flex;  overflow: auto; box-sizing: border-box; justify-content: center;">
                                 <div style="color: #999; margin-top: 200px;">Result will appear here</div>
                             </div>
                         </div>
                     </div>
 
-                    <div>
-                        <h3>SVG Output Source:</h3>
-                        <textarea id="svgSource" style="width: 100%; height: 300px; font-family: monospace; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; background: #fdfdfd;" readonly></textarea>
+                    <div id="sourceSection">
+                        <h3 id="sourceTitle">Output Source:</h3>
+                        <textarea id="outputSource" style="width: 100%; height: 300px; font-family: monospace; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; background: #fdfdfd;" readonly></textarea>
                     </div>
                 </div>
             `;
 
-      const convertBtn = document.getElementById(
-        "convertBtn",
-      ) as HTMLButtonElement;
-      const downloadBtn = document.getElementById(
-        "downloadBtn",
-      ) as HTMLButtonElement;
-      const htmlInput = document.getElementById(
-        "htmlInput",
-      ) as HTMLTextAreaElement;
-      const htmlPreview = document.getElementById(
-        "htmlPreview",
-      ) as HTMLIFrameElement;
-      const svgContainer = document.getElementById(
-        "svgContainer",
-      ) as HTMLDivElement;
-      const svgSource = document.getElementById(
-        "svgSource",
-      ) as HTMLTextAreaElement;
-      const canvasWidthInput = document.getElementById(
-        "canvasWidth",
-      ) as HTMLInputElement;
-      const assetSelect = document.getElementById(
-        "assetSelect",
-      ) as HTMLSelectElement;
+      const convertBtn = document.getElementById("convertBtn") as HTMLButtonElement;
+      const downloadBtn = document.getElementById("downloadBtn") as HTMLButtonElement;
+      const htmlInput = document.getElementById("htmlInput") as HTMLTextAreaElement;
+      const htmlPreview = document.getElementById("htmlPreview") as HTMLIFrameElement;
+      const renderContainer = document.getElementById("renderContainer") as HTMLDivElement;
+      const outputSource = document.getElementById("outputSource") as HTMLTextAreaElement;
+      const canvasWidthInput = document.getElementById("canvasWidth") as HTMLInputElement;
+      const formatSelect = document.getElementById("formatSelect") as HTMLSelectElement;
+      const assetSelect = document.getElementById("assetSelect") as HTMLSelectElement;
+      const previewTitle = document.getElementById("previewTitle") as HTMLHeadingElement;
+      const sourceTitle = document.getElementById("sourceTitle") as HTMLHeadingElement;
+
+      let currentObjectURL: string | null = null;
+      let lastResult: string | Uint8Array | null = null;
 
       const updatePreview = () => {
-        const doc =
-          htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
+        const doc = htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
         if (doc) {
           doc.open();
           const baseTag = `<base href="${window.location.origin}${window.location.pathname}assets/">`;
@@ -130,11 +133,11 @@ async function init() {
           doc.close();
         }
       };
+
       const resourceResolver = async (r: RequiredResource) => {
         console.log(`[Satoru] Resolving ${r.type}: ${r.url}`);
         try {
-          const url =
-            r.url.startsWith("http") || r.url.startsWith("data:")
+          const url = r.url.startsWith("http") || r.url.startsWith("data:")
               ? r.url
               : `assets/${r.url}`;
 
@@ -152,42 +155,75 @@ async function init() {
       const convert = async () => {
         const width = parseInt(canvasWidthInput.value, 10) || 580;
         const html = htmlInput.value;
+        const format = formatSelect.value as "svg" | "png" | "pdf";
         if (!html) return;
 
         convertBtn.disabled = true;
         convertBtn.innerText = "Processing...";
 
+        if (currentObjectURL) {
+          URL.revokeObjectURL(currentObjectURL);
+          currentObjectURL = null;
+        }
+
         const loading = document.createElement("div");
         loading.className = "loading-overlay";
-        loading.innerHTML = '<div class="spinner"></div>Rendering SVG...';
-        svgContainer.style.position = "relative";
-        svgContainer.appendChild(loading);
+        loading.innerHTML = `<div class="spinner"></div>Rendering ${format.toUpperCase()}...`;
+        renderContainer.style.position = "relative";
+        renderContainer.appendChild(loading);
 
         try {
           const result = await satoru.render(html, width, {
-            format: "svg",
+            format,
             resolveResource: resourceResolver,
           });
+          lastResult = result;
 
-          if (typeof result === "string" && result.length > 100) {
-            svgContainer.innerHTML = result;
-            svgSource.value = result;
+          previewTitle.innerText = `${format.toUpperCase()} Render Preview:`;
+          sourceTitle.innerText = `${format.toUpperCase()} Output Source${format !== 'svg' ? ' (Base64)' : ''}:`;
+
+          if (result) {
+            if (format === "svg" && typeof result === "string") {
+              renderContainer.innerHTML = result;
+              outputSource.value = result;
+            } else if (result instanceof Uint8Array) {
+              const mimeType = format === "png" ? "image/png" : "application/pdf";
+              // Use slice() to ensure we have a standard Uint8Array on a standard ArrayBuffer
+              const resultCopy = result.slice();
+              const blob = new Blob([resultCopy], { type: mimeType });
+              currentObjectURL = URL.createObjectURL(blob);
+
+              if (format === "png") {
+                renderContainer.innerHTML = `<img src="${currentObjectURL}" style="max-width: 100%; height: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">`;
+              } else {
+                renderContainer.innerHTML = `<embed src="${currentObjectURL}" type="application/pdf" class="preview-frame">`;
+              }
+              
+              // Show Base64 in source for binary formats
+              let binary = "";
+              const len = result.byteLength;
+              for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(result[i]);
+              }
+              outputSource.value = btoa(binary);
+            }
             downloadBtn.style.display = "block";
+            downloadBtn.innerText = `Download .${format}`;
           } else {
-            svgContainer.innerHTML =
-              '<div style="color:orange; padding: 20px;">Rendering returned no result.</div>';
-            svgSource.value = typeof result === "string" ? result : "";
+            renderContainer.innerHTML = '<div style="color:orange; padding: 20px;">Rendering returned no result.</div>';
+            outputSource.value = "";
           }
         } catch (e) {
           console.error("Conversion failed:", e);
-          svgContainer.innerHTML = `<div style="color:red; padding: 20px;">Error: ${e}</div>`;
+          renderContainer.innerHTML = `<div style="color:red; padding: 20px;">Error: ${e}</div>`;
         } finally {
           convertBtn.disabled = false;
-          convertBtn.innerText = "Generate Vector SVG";
+          convertBtn.innerText = "Generate Output";
         }
       };
 
       convertBtn.addEventListener("click", convert);
+      formatSelect.addEventListener("change", convert);
 
       assetSelect.addEventListener("change", async () => {
         const file = assetSelect.value;
@@ -209,20 +245,25 @@ async function init() {
       });
 
       downloadBtn.addEventListener("click", () => {
-        const blob = new Blob([svgSource.value], { type: "image/svg+xml" });
+        if (!lastResult) return;
+        const format = formatSelect.value;
+        const mimeType = format === "svg" ? "image/svg+xml" : (format === "png" ? "image/png" : "application/pdf");
+        
+        // Ensure standard Uint8Array for Blob
+        const content = typeof lastResult === "string" ? lastResult : lastResult.slice();
+        const blob = new Blob([content as BlobPart], { type: mimeType });
+        
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "rendered.svg";
+        a.download = `rendered.${format}`;
         a.click();
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
       });
 
       htmlInput.addEventListener("input", updatePreview);
 
-      const initialAsset =
-        new URLSearchParams(window.location.search).get("asset") ||
-        "01-layout.html";
+      const initialAsset = new URLSearchParams(window.location.search).get("asset") || "01-layout.html";
       try {
         const resp = await fetch(`assets/${initialAsset}`);
         const html = await resp.text();

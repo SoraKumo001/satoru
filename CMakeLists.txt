@@ -53,14 +53,18 @@ set(AVIF_CODEC_DAV1D SYSTEM CACHE STRING "" FORCE)
 set(AVIF_LIBYUV OFF CACHE BOOL "" FORCE)
 set(AVIF_BUILD_APPS OFF CACHE BOOL "" FORCE)
 set(AVIF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(AVIF_ENABLE_WASM ON CACHE BOOL "" FORCE)
+set(AVIF_ENABLE_WASM OFF CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
   libavif
   GIT_REPOSITORY https://github.com/AOMediaCodec/libavif.git
   GIT_TAG        v1.1.1
 )
+
+# Avoid installation rules for libavif to prevent export errors in subproject build
+set(CMAKE_SKIP_INSTALL_RULES ON)
 FetchContent_MakeAvailable(libavif)
+set(CMAKE_SKIP_INSTALL_RULES OFF)
 
 # Find dependencies
 find_package(Freetype REQUIRED)
@@ -166,6 +170,7 @@ set(SATORU_INCLUDES
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/config"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/utils"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/private"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/ports"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/ports"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/effects"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/svg"

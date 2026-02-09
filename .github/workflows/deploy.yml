@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VCPKG_ROOT: /usr/local/share/vcpkg
+      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

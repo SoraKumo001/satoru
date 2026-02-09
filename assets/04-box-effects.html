@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      background: #f0f2f5;
+      padding: 40px;
+      font-family: sans-serif;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+    }
+    .box {
+      width: 150px;
+      height: 150px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .shadow-outer {
+      box-shadow: 10px 10px 20px rgba(0,0,0,0.2);
+      border-radius: 15px;
+    }
+    .shadow-inset {
+      box-shadow: inset 5px 5px 15px rgba(0,0,0,0.3);
+      border: 2px solid #ddd;
+    }
+    .radius-complex {
+      background: #3b82f6;
+      color: white;
+      border-radius: 50px 0 50px 0;
+      border: 4px solid #1e3a8a;
+    }
+    .circle-shadow {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: #ef4444;
+      color: white;
+      box-shadow: 0 0 20px #ef4444;
+    }
+    .multi-shadow {
+      box-shadow: 0 0 10px #10b981, 10px 10px 0px #34d399;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="box shadow-outer">Outer Shadow</div>
+  <div class="box shadow-inset">Inset Shadow</div>
+  <div class="box radius-complex">Complex Radius</div>
+  <div class="box circle-shadow">Circle Shadow</div>
+  <div class="box multi-shadow">Multi Shadow</div>
+</body>
+</html>

@@ -50,18 +50,10 @@ async function init() {
                             <legend style="font-weight: bold;">Load Sample Assets</legend>
                             <select id="assetSelect" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc; width: 100%;">
                                 <option value="">-- Select Asset --</option>
-                                <option value="01-complex-layout.html">01-complex-layout.html</option>
+                                <option value="01-layout.html">01-layout.html</option>
                                 <option value="02-typography.html">02-typography.html</option>
-                                <option value="03-flexbox-layout.html">03-flexbox-layout.html</option>
-                                <option value="04-japanese-rendering.html">04-japanese-rendering.html</option>
-                                <option value="05-ui-components.html">05-ui-components.html</option>
-                                <option value="06-standard-tags.html">06-standard-tags.html</option>
-                                <option value="07-image-embedding.html">07-image-embedding.html</option>
-                                <option value="08-box-shadow.html">08-box-shadow.html</option>
-                                <option value="09-complex-layout.html">09-complex-layout.html</option>
-                                <option value="10-line-style-test.html">10-line-style-test.html</option>
-                                <option value="11-gradients.html">11-gradients.html</option>
-                                <option value="12-border-radius.html">12-border-radius.html</option>
+                                <option value="03-graphics.html">03-graphics.html</option>
+                                <option value="04-box-effects.html">04-box-effects.html</option>
                             </select>
                         </fieldset>
                     </div>
@@ -225,7 +217,7 @@ async function init() {
 
       const initialAsset =
         new URLSearchParams(window.location.search).get("asset") ||
-        "01-complex-layout.html";
+        "01-layout.html";
       try {
         const resp = await fetch(`assets/${initialAsset}`);
         const html = await resp.text();

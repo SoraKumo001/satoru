@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4a90e2;
+      --secondary: #f39c12;
+      --accent: #e74c3c;
+      --bg: #f3f4f6;
+    }
+    body {
+      font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+      background-color: var(--bg);
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .dashboard {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    header {
+      background-color: #1f2937;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .main-container {
+      display: flex;
+      gap: 20px;
+    }
+    aside {
+      width: 200px;
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .grid {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .card {
+      flex: 1;
+      min-width: 200px;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .card-accent {
+      border-left: 4px solid var(--primary);
+    }
+    .stack-test {
+      position: relative;
+      height: 150px;
+      background: #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .overlap-box {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      border-radius: 8px;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+    }
+    .ui-profile {
+      width: 300px;
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      align-self: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <header>
+      <div style="font-size: 24px; font-weight: bold;">Satoru Dashboard</div>
+      <div style="display: flex; gap: 10px;">
+        <span style="background: #374151; padding: 4px 12px; border-radius: 20px; font-size: 12px;">v2.0</span>
+      </div>
+    </header>
+
+    <div class="main-container">
+      <aside>
+        <div style="padding: 8px; background: #eff6ff; color: #1d4ed8; border-radius: 6px; font-weight: bold;">Overview</div>
+        <div style="padding: 8px; color: #4b5563;">Analytics</div>
+        <div style="padding: 8px; color: #4b5563;">Settings</div>
+      </aside>
+
+      <main>
+        <div class="grid">
+          <div class="card card-accent">
+            <div style="font-size: 12px; color: #6b7280; text-transform: uppercase;">Revenue</div>
+            <div style="font-size: 24px; font-weight: bold;">$45,231</div>
+          </div>
+          <div class="card" style="border-left: 4px solid #10b981;">
+            <div style="font-size: 12px; color: #6b7280; text-transform: uppercase;">Users</div>
+            <div style="font-size: 24px; font-weight: bold;">2,345</div>
+          </div>
+        </div>
+
+        <section class="card">
+          <h3 style="margin-top: 0; border-bottom: 1px solid #f3f4f6; padding-bottom: 10px;">Flexbox & Z-Index</h3>
+          <div class="stack-test">
+            <div class="overlap-box" style="top: 20px; left: 20px; background: var(--primary); z-index: 3;">Top</div>
+            <div class="overlap-box" style="top: 40px; left: 60px; background: var(--secondary); z-index: 1;">Back</div>
+            <div class="overlap-box" style="top: 60px; left: 100px; background: var(--accent); z-index: 2; border: 3px solid white;">Mid</div>
+          </div>
+        </section>
+
+        <div class="ui-profile">
+          <div style="height: 80px; background: linear-gradient(135deg, #667eea, #764ba2);"></div>
+          <div style="padding: 15px;">
+            <h4 style="margin: 0 0 10px 0;">UI Component Test</h4>
+            <p style="font-size: 13px; color: #718096; margin-bottom: 15px;">Combined layout elements in a single card.</p>
+            <div style="display: flex; gap: 8px;">
+              <button style="flex: 1; padding: 8px; background: #4c51bf; color: white; border: none; border-radius: 6px;">Action</button>
+              <button style="flex: 1; padding: 8px; background: white; color: #4c51bf; border: 1px solid #4c51bf; border-radius: 6px;">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

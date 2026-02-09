@@ -200,7 +200,7 @@ describe("Visual Regression Tests", () => {
         );
 
         const threshold =
-          file.includes("gradients") || file.includes("09-complex") ? 30 : 10;
+          file.includes("graphics") || file.includes("layout") ? 30 : 10;
 
         const baseline = baselines[file];
         if (!baseline || process.env.UPDATE_SNAPSHOTS) {

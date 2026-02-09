@@ -1,54 +1,18 @@
 {
-  "01-complex-layout.html": {
-    "direct": 1.903125,
-    "svg": 1.828875
+  "01-layout.html": {
+    "direct": 13.138625000000001,
+    "svg": 12.951625
   },
   "02-typography.html": {
-    "direct": 0.973125,
-    "svg": 0.973125
+    "direct": 4.799875,
+    "svg": 4.801
   },
-  "03-flexbox-layout.html": {
-    "direct": 2.245125,
-    "svg": 2.2457499999999997
+  "03-graphics.html": {
+    "direct": 10.3215,
+    "svg": 10.318125
   },
-  "04-japanese-rendering.html": {
-    "direct": 0.763,
-    "svg": 0.763125
-  },
-  "05-ui-components.html": {
-    "direct": 1.2966250000000001,
-    "svg": 1.298
-  },
-  "06-standard-tags.html": {
-    "direct": 1.09125,
-    "svg": 1.09125
-  },
-  "07-image-embedding.html": {
-    "direct": 2.29325,
-    "svg": 2.292875
-  },
-  "08-box-shadow.html": {
-    "direct": 2.015375,
-    "svg": 1.989
-  },
-  "09-complex-layout.html": {
-    "direct": 12.615124999999999,
-    "svg": 12.720875000000001
-  },
-  "10-line-style-test.html": {
-    "direct": 1.204125,
-    "svg": 1.204125
-  },
-  "11-gradients.html": {
-    "direct": 27.123375,
-    "svg": 27.117875
-  },
-  "12-border-radius.html": {
-    "direct": 3.63025,
-    "svg": 3.58875
-  },
-  "13-line-clamp.html": {
-    "direct": 0.36262500000000003,
-    "svg": 0.36262500000000003
+  "04-box-effects.html": {
+    "direct": 7.311249999999999,
+    "svg": 7.2852500000000004
   }
 }

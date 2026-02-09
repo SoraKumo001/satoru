@@ -103,7 +103,6 @@ file(GLOB SKIA_CORE_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/ports/SkDiscardableMemory_none.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/ports/SkFontMgr_custom.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/ports/SkFontMgr_custom_empty.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/ports/SkDebug_stdio.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/ports/SkLog_stdio.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/image/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/shaders/*.cpp"

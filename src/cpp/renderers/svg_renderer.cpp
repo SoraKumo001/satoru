@@ -187,17 +187,19 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                             bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
                             SkCanvas bitmapCanvas(bitmap);
                             bitmapCanvas.clear(SK_ColorTRANSPARENT);
-                            SkPoint center =
-                                SkPoint::Make((float)info.gradient.position.x - (float)border_box.x,
-                                              (float)info.gradient.position.y - (float)border_box.y);
+                            SkPoint center = SkPoint::Make(
+                                (float)info.gradient.position.x - (float)border_box.x,
+                                (float)info.gradient.position.y - (float)border_box.y);
                             std::vector<SkColor4f> colors;
                             std::vector<float> pos_vec;
                             for (size_t i = 0; i < info.gradient.color_points.size(); ++i) {
                                 const auto &stop = info.gradient.color_points[i];
-                                colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
-                                                  stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                                colors.push_back(
+                                    {stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                     stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
                                 float offset = stop.offset;
-                                if (i > 0 && offset <= pos_vec.back()) offset = pos_vec.back() + 0.00001f;
+                                if (i > 0 && offset <= pos_vec.back())
+                                    offset = pos_vec.back() + 0.00001f;
                                 pos_vec.push_back(offset);
                             }
                             if (!pos_vec.empty() && pos_vec.back() > 1.0f) {
@@ -205,14 +207,17 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                 for (auto &p : pos_vec) p /= max_val;
                                 pos_vec.back() = 1.0f;
                             }
-                            SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec), SkTileMode::kClamp),
+                            SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
+                                                                  SkTileMode::kClamp),
                                                SkGradient::Interpolation());
                             SkMatrix matrix;
                             matrix.setRotate(info.gradient.angle - 90.0f, center.x(), center.y());
                             SkPaint p;
                             p.setShader(SkShaders::SweepGradient(center, sk_grad, &matrix));
                             p.setAntiAlias(true);
-                            bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width, (float)border_box.height), p);
+                            bitmapCanvas.drawRect(
+                                SkRect::MakeWH((float)border_box.width, (float)border_box.height),
+                                p);
                             ok = true;
                         }
                     } else if (g == 2 && b > 0 && b <= (int)radials.size()) {
@@ -223,25 +228,30 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                             bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
                             SkCanvas bitmapCanvas(bitmap);
                             bitmapCanvas.clear(SK_ColorTRANSPARENT);
-                            SkPoint center =
-                                SkPoint::Make((float)info.gradient.position.x - (float)border_box.x,
-                                              (float)info.gradient.position.y - (float)border_box.y);
-                            float rx = (float)info.gradient.radius.x, ry = (float)info.gradient.radius.y;
+                            SkPoint center = SkPoint::Make(
+                                (float)info.gradient.position.x - (float)border_box.x,
+                                (float)info.gradient.position.y - (float)border_box.y);
+                            float rx = (float)info.gradient.radius.x,
+                                  ry = (float)info.gradient.radius.y;
                             std::vector<SkColor4f> colors;
                             std::vector<float> pos_vec;
                             for (const auto &stop : info.gradient.color_points) {
-                                colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
-                                                  stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                                colors.push_back(
+                                    {stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                     stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
                                 pos_vec.push_back(stop.offset);
                             }
                             SkMatrix matrix;
                             matrix.setScale(1.0f, ry / rx, center.x(), center.y());
-                            SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec), SkTileMode::kClamp),
+                            SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
+                                                                  SkTileMode::kClamp),
                                                SkGradient::Interpolation());
                             SkPaint p;
                             p.setShader(SkShaders::RadialGradient(center, rx, sk_grad, &matrix));
                             p.setAntiAlias(true);
-                            bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width, (float)border_box.height), p);
+                            bitmapCanvas.drawRect(
+                                SkRect::MakeWH((float)border_box.width, (float)border_box.height),
+                                p);
                             ok = true;
                         }
                     } else if (g == 3 && b > 0 && b <= (int)linears.size()) {
@@ -260,16 +270,20 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                             std::vector<SkColor4f> colors;
                             std::vector<float> pos_vec;
                             for (const auto &stop : info.gradient.color_points) {
-                                colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
-                                                  stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                                colors.push_back(
+                                    {stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                     stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
                                 pos_vec.push_back(stop.offset);
                             }
-                            SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec), SkTileMode::kClamp),
+                            SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
+                                                                  SkTileMode::kClamp),
                                                SkGradient::Interpolation());
                             SkPaint p;
                             p.setShader(SkShaders::LinearGradient(pts, sk_grad));
                             p.setAntiAlias(true);
-                            bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width, (float)border_box.height), p);
+                            bitmapCanvas.drawRect(
+                                SkRect::MakeWH((float)border_box.width, (float)border_box.height),
+                                p);
                             ok = true;
                         }
                     }
@@ -278,8 +292,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         std::stringstream ss;
                         ss << "<image x=\"" << border_box.x << "\" y=\"" << border_box.y
                            << "\" width=\"" << border_box.width << "\" height=\""
-                           << border_box.height << "\" href=\"" << bitmapToDataUrl(bitmap)
-                           << "\"";
+                           << border_box.height << "\" href=\"" << bitmapToDataUrl(bitmap) << "\"";
                         if (has_radius(border_radius)) {
                             ss << " clip-path=\"url(#clip-gradient-" << g << "-" << b << ")\"";
                         }
@@ -424,7 +437,9 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     for (size_t i = 0; i < conics.size(); ++i) {
         if (has_radius(conics[i].layer.border_radius)) {
             defs << "<clipPath id=\"clip-gradient-1-" << (i + 1) << "\">";
-            defs << "<path d=\"" << path_from_rrect(conics[i].layer.border_box, conics[i].layer.border_radius) << "\" />";
+            defs << "<path d=\""
+                 << path_from_rrect(conics[i].layer.border_box, conics[i].layer.border_radius)
+                 << "\" />";
             defs << "</clipPath>";
         }
     }
@@ -432,7 +447,9 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     for (size_t i = 0; i < radials.size(); ++i) {
         if (has_radius(radials[i].layer.border_radius)) {
             defs << "<clipPath id=\"clip-gradient-2-" << (i + 1) << "\">";
-            defs << "<path d=\"" << path_from_rrect(radials[i].layer.border_box, radials[i].layer.border_radius) << "\" />";
+            defs << "<path d=\""
+                 << path_from_rrect(radials[i].layer.border_box, radials[i].layer.border_radius)
+                 << "\" />";
             defs << "</clipPath>";
         }
     }
@@ -440,7 +457,9 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     for (size_t i = 0; i < linears.size(); ++i) {
         if (has_radius(linears[i].layer.border_radius)) {
             defs << "<clipPath id=\"clip-gradient-3-" << (i + 1) << "\">";
-            defs << "<path d=\"" << path_from_rrect(linears[i].layer.border_box, linears[i].layer.border_radius) << "\" />";
+            defs << "<path d=\""
+                 << path_from_rrect(linears[i].layer.border_box, linears[i].layer.border_radius)
+                 << "\" />";
             defs << "</clipPath>";
         }
     }

@@ -288,7 +288,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     }
 
-    auto draw_text_internal = [&](const char *str, size_t len, double x, double y, const SkPaint &p) {
+    auto draw_text_internal = [&](const char *str, size_t len, double x, double y,
+                                  const SkPaint &p) {
         double x_offset = 0;
         const char *ptr = str;
         const char *run_start = ptr;
@@ -300,8 +301,9 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
             SkFont *font = nullptr;
             for (auto f : fi->fonts) {
                 SkGlyphID glyph;
-                f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>((const SkUnichar *)&u, 1),
-                                                   SkSpan<SkGlyphID>(&glyph, 1));
+                f->getTypeface()->unicharsToGlyphs(
+                    SkSpan<const SkUnichar>((const SkUnichar *)&u, 1),
+                    SkSpan<SkGlyphID>(&glyph, 1));
                 if (glyph != 0) {
                     font = f;
                     break;
@@ -315,8 +317,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                     m_canvas->drawSimpleText(run_start, ptr - run_start, SkTextEncoding::kUTF8,
                                              (float)x + (float)x_offset,
                                              (float)y + (float)fi->fm_ascent, render_font, p);
-                    x_offset +=
-                        current_font->measureText(run_start, ptr - run_start, SkTextEncoding::kUTF8);
+                    x_offset += current_font->measureText(run_start, ptr - run_start,
+                                                          SkTextEncoding::kUTF8);
                 }
                 run_start = ptr;
                 current_font = font;
@@ -327,9 +329,10 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
             SkFont render_font = *current_font;
             if (fi->fake_bold) render_font.setEmbolden(true);
             m_canvas->drawSimpleText(run_start, ptr - run_start, SkTextEncoding::kUTF8,
-                                     (float)x + (float)x_offset,
-                                     (float)y + (float)fi->fm_ascent, render_font, p);
-            x_offset += current_font->measureText(run_start, ptr - run_start, SkTextEncoding::kUTF8);
+                                     (float)x + (float)x_offset, (float)y + (float)fi->fm_ascent,
+                                     render_font, p);
+            x_offset +=
+                current_font->measureText(run_start, ptr - run_start, SkTextEncoding::kUTF8);
         }
         return x_offset;
     };
@@ -342,7 +345,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                 SkColorSetARGB(s.color.alpha, s.color.red, s.color.green, s.color.blue));
             float blur_std_dev = (float)s.blur.val() * 0.5f;
             if (blur_std_dev > 0)
-                shadow_paint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, blur_std_dev));
+                shadow_paint.setMaskFilter(
+                    SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, blur_std_dev));
 
             draw_text_internal(text_str.c_str(), text_str.size(), (double)pos.x + s.x.val(),
                                (double)pos.y + s.y.val(), shadow_paint);

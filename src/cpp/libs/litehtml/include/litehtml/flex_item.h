@@ -98,6 +98,7 @@ namespace litehtml
 		virtual void align_baseline(flex_line &ln,
 									const containing_block_context &self_size,
 									formatting_context *fmt_ctx) = 0;
+		virtual void perform_render(flex_line &ln, const containing_block_context &self_size, formatting_context *fmt_ctx) = 0;
 	};
 
 	/**
@@ -123,6 +124,7 @@ namespace litehtml
 		void align_baseline(flex_line &ln,
 							const containing_block_context &self_size,
 							formatting_context *fmt_ctx) override;
+		void perform_render(flex_line &ln, const containing_block_context &self_size, formatting_context *fmt_ctx) override;
 	};
 
 	/**
@@ -148,6 +150,7 @@ namespace litehtml
 		void align_baseline(flex_line &ln,
 							const containing_block_context &self_size,
 							formatting_context *fmt_ctx) override;
+		void perform_render(flex_line &ln, const containing_block_context &self_size, formatting_context *fmt_ctx) override;
 	};
 }
 

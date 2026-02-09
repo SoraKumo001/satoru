@@ -47,6 +47,7 @@ void litehtml::flex_item::place(flex_line &ln, pixel_t main_pos,
 								const containing_block_context &self_size,
 								formatting_context *fmt_ctx)
 {
+	perform_render(ln, self_size, fmt_ctx);
 	apply_main_auto_margins();
 	set_main_position(main_pos);
 	if(!apply_cross_auto_margins(ln.cross_size))
@@ -264,6 +265,28 @@ void litehtml::flex_item_row_direction::set_cross_position(pixel_t pos)
 	el->pos().y = pos + el->content_offset_top();
 }
 
+void litehtml::flex_item_row_direction::perform_render(litehtml::flex_line &ln,
+													   const litehtml::containing_block_context &self_size,
+													   litehtml::formatting_context *fmt_ctx)
+{
+	if (el->css().get_height().is_predefined())
+	{
+		// If height is auto - render with content size
+		el->render(el->left(), el->top(), self_size.new_width_height(
+				main_size - el->content_offset_width() + el->box_sizing_width(),
+				self_size.height, // keep height auto or percent
+				containing_block_context::size_mode_exact_width
+		), fmt_ctx);
+	} else
+	{
+		el->render(el->left(), el->top(), self_size.new_width_height(
+				main_size - el->content_offset_width() + el->box_sizing_width(),
+				self_size.height,
+				containing_block_context::size_mode_exact_width
+		), fmt_ctx);
+	}
+}
+
 void litehtml::flex_item_row_direction::align_stretch(flex_line &ln, const containing_block_context &self_size,
 													  formatting_context *fmt_ctx)
 {
@@ -430,6 +453,7 @@ bool litehtml::flex_item_column_direction::apply_cross_auto_margins(pixel_t cros
 		{
 			el->get_margins().right = margin;
 		}
+		return true;
 	}
 	return false;
 }
@@ -444,6 +468,37 @@ void litehtml::flex_item_column_direction::set_cross_position(pixel_t pos)
 	el->pos().x = pos + el->content_offset_left();
 }
 
+void litehtml::flex_item_column_direction::perform_render(litehtml::flex_line &ln,
+														  const litehtml::containing_block_context &self_size,
+														  litehtml::formatting_context *fmt_ctx)
+{
+	// For column direction, main_size is height
+	if (!el->css().get_width().is_predefined())
+	{
+		// Width is defined, render with specific width and main_size height
+		el->render(ln.cross_start,
+				   el->pos().y - el->content_offset_top(),
+				   self_size.new_width_height(ln.cross_size - el->content_offset_width() + el->box_sizing_width(),
+											  main_size - el->content_offset_height() + el->box_sizing_height(),
+											  containing_block_context::size_mode_exact_height),
+				   fmt_ctx, false);
+	} else
+	{
+		// Width auto, render with cross_size as width? 
+		// If align-items is stretch, width is forced to cross_size (handled in align_stretch).
+		// If not stretch, width is content based?
+		// But here we want to enforce main_size (height).
+		
+		el->render(ln.cross_start,
+				   el->pos().y - el->content_offset_top(),
+				   self_size.new_width_height(
+						   ln.cross_size - el->content_offset_width() + el->box_sizing_width(),
+						   main_size - el->content_offset_height() + el->box_sizing_height(),
+						   containing_block_context::size_mode_exact_height),
+				   fmt_ctx, false);
+	}
+}
+
 void litehtml::flex_item_column_direction::align_stretch(flex_line &ln, const containing_block_context &self_size,
 														 formatting_context *fmt_ctx)
 {
@@ -455,7 +510,9 @@ void litehtml::flex_item_column_direction::align_stretch(flex_line &ln, const co
 				   el->pos().y - el->content_offset_top(),
 				   self_size.new_width_height(ln.cross_size - el->content_offset_width() + el->box_sizing_width(),
 											  main_size - el->content_offset_height() + el->box_sizing_height(),
-											  containing_block_context::size_mode_exact_height),
+											  containing_block_context::size_mode_exact_height | 
+											  containing_block_context::size_mode_exact_width // Force width match cross size
+											  ),
 				   fmt_ctx, false);
 	} else
 	{

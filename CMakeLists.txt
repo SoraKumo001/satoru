@@ -85,6 +85,7 @@ set(SATORU_SOURCES
     src/cpp/core/resource_manager.cpp
     src/cpp/renderers/svg_renderer.cpp
     src/cpp/renderers/png_renderer.cpp
+    src/cpp/renderers/pdf_renderer.cpp
     src/cpp/utils/skia_utils.cpp
     src/cpp/utils/skia_stubs.cpp
 )
@@ -103,6 +104,7 @@ file(GLOB SKIA_CORE_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/ports/SkFontMgr_custom.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/ports/SkFontMgr_custom_empty.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/ports/SkDebug_stdio.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/ports/SkLog_stdio.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/image/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/shaders/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/shaders/gradients/*.cpp"
@@ -116,6 +118,8 @@ file(GLOB SKIA_CORE_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/encode/SkEncoder.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/encode/SkPngEncoderImpl.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/encode/SkPngEncoderBase.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/encode/SkJpegEncoderImpl.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/encode/SkJPEGWriteUtility.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/encode/SkICC.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkCodec.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkCodecColorProfile.cpp"
@@ -149,9 +153,11 @@ file(GLOB SKIA_CORE_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkJpegXmp.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkWebpCodec.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec/SkAvifCodec.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/pdf/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/pathops/*.cpp"
 )
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
-list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkPDF.*|.*SkGPU.*")
+list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkGPU.*|.*SkDocument_PDF_None.cpp")
 
 # --- Common Settings ---
 set(SATORU_INCLUDES
@@ -160,6 +166,7 @@ set(SATORU_INCLUDES
     "src/cpp/bridge"
     "src/cpp/core"
     "src/cpp/renderers"
+    "src/cpp"
     "src/cpp/utils"
     "${LITEHTML_DIR}/include"
     "${LITEHTML_DIR}/include/litehtml"
@@ -176,6 +183,8 @@ set(SATORU_INCLUDES
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/svg"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/encode"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/codec"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/docs"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/include/pathops"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/modules/skcms"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/core"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/base"
@@ -183,6 +192,7 @@ set(SATORU_INCLUDES
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/utils"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/codec"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/encode"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/skia/src/pathops"
 )
 
 set(SATORU_COMPILE_OPTIONS
@@ -228,7 +238,7 @@ set(COMMON_LINK_OPTIONS
     "-sERROR_ON_UNDEFINED_SYMBOLS=0"
     "-sWARN_ON_UNDEFINED_SYMBOLS=0"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','getValue','setValue','HEAPU8','stringToUTF8','lengthBytesUTF8']"
-    "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_html_to_png','_html_to_png_binary','_get_png_size','_get_required_fonts','_collect_resources','_add_resource','_scan_css','_malloc','_free','_load_font','_clear_fonts','_load_image','_clear_images']"
+    "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_html_to_png','_html_to_png_binary','_get_png_size','_html_to_pdf_binary','_get_pdf_size','_get_required_fonts','_collect_resources','_add_resource','_scan_css','_malloc','_free','_load_font','_clear_fonts','_load_image','_clear_images']"
     "-sALLOW_MEMORY_GROWTH=1"
 )
 

@@ -7,6 +7,8 @@ export interface SatoruModule {
   _html_to_png: (html: number, width: number, height: number) => number;
   _html_to_png_binary: (html: number, width: number, height: number) => number;
   _get_png_size: () => number;
+  _html_to_pdf_binary: (html: number, width: number, height: number) => number;
+  _get_pdf_size: () => number;
   _collect_resources: (html: number, width: number) => number;
   _add_resource: (url: number, type: number, data: number, size: number) => void;
   _scan_css: (css: number) => void;
@@ -83,7 +85,7 @@ export class Satoru {
     width: number,
     options: {
       height?: number;
-      format?: "svg" | "png" | "dataurl";
+      format?: "svg" | "png" | "pdf" | "dataurl";
       resolveResource?: ResourceResolver;
     } = {}
   ): Promise<string | Uint8Array | null> {
@@ -130,7 +132,7 @@ export class Satoru {
 
             // Remove link tags that point to fonts/css we just handled
             if (r.type !== "image") {
-              const escapedUrl = r.url.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
+              const escapedUrl = r.url.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
               const linkRegex = new RegExp(`<link[^>]*href=["']${escapedUrl}["'][^>]*>`, 'gi');
               processedHtml = processedHtml.replace(linkRegex, "");
             }
@@ -144,6 +146,8 @@ export class Satoru {
     switch (format) {
       case "png":
         return this.toPngBinary(processedHtml, width, height);
+      case "pdf":
+        return this.toPdf(processedHtml, width, height);
       case "dataurl":
         return this.toPngDataUrl(processedHtml, width, height);
       default:
@@ -182,6 +186,21 @@ export class Satoru {
     this.mod._free(htmlPtr);
     this.mod._free(ptr); // CRITICAL: Free the string returned by malloc in C++
     return dataUrl;
+  }
+
+  toPdf(html: string, width: number, height: number = 0): Uint8Array | null {
+    const htmlPtr = this.stringToPtr(html);
+    const pdfPtr = this.mod._html_to_pdf_binary(htmlPtr, width, height);
+    const size = this.mod._get_pdf_size();
+    
+    let result: Uint8Array | null = null;
+    if (pdfPtr && size > 0) {
+      result = new Uint8Array(this.mod.HEAPU8.buffer, pdfPtr, size).slice();
+    }
+
+    this.mod._free(htmlPtr);
+    // Note: pdfPtr is managed inside g_context in C++, no need to free here
+    return result;
   }
 
   getRequiredResources(html: string, width: number): RequiredResource[] {

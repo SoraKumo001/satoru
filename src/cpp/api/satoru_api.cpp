@@ -5,6 +5,7 @@
 #include "core/master_css.h"
 #include "renderers/png_renderer.h"
 #include "renderers/svg_renderer.h"
+#include "renderers/pdf_renderer.h"
 #include <cstring>
 
 SatoruContext g_context;
@@ -43,8 +44,23 @@ const uint8_t *api_html_to_png_binary(const char *html, int width, int height, i
     return g_context.get_last_png().data();
 }
 
+const uint8_t *api_html_to_pdf_binary(const char *html, int width, int height, int &out_size) {
+    auto data = renderHtmlToPdf(html, width, height, g_context, get_full_master_css().c_str());
+    if (data.empty()) {
+        out_size = 0;
+        return nullptr;
+    }
+    out_size = (int)data.size();
+    g_context.set_last_pdf(std::move(data));
+    return g_context.get_last_pdf().data();
+}
+
 int api_get_last_png_size() {
     return (int)g_context.get_last_png().size();
+}
+
+int api_get_last_pdf_size() {
+    return (int)g_context.get_last_pdf().size();
 }
 
 std::string api_collect_resources(const char *html, int width) {

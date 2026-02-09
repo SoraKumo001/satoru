@@ -1,31 +1,32 @@
-# Satoru Wasm: High-Performance HTML to SVG/PNG Engine
+# Satoru Wasm: High-Performance HTML to SVG/PNG/PDF Engine
 
 https://sorakumo001.github.io/satoru/
 
-**Satoru** is a portable, WebAssembly-powered HTML rendering engine. It combines the **Skia Graphics Engine** and **litehtml** to provide high-quality, pixel-perfect SVG and PNG generation entirely within WebAssembly.
+**Satoru** is a portable, WebAssembly-powered HTML rendering engine. It combines the **Skia Graphics Engine** and **litehtml** to provide high-quality, pixel-perfect SVG, PNG, and PDF generation entirely within WebAssembly.
 
 ## 🚀 Project Status: High-Fidelity Rendering & Edge Ready
 
-The engine supports full text layout with custom fonts, complex CSS styling, and efficient binary data transfer. It is now compatible with **Cloudflare Workers (workerd)**, allowing for serverless, edge-side image generation.
+The engine supports full text layout with custom fonts, complex CSS styling, and efficient binary data transfer. It is now compatible with **Cloudflare Workers (workerd)**, allowing for serverless, edge-side image and document generation.
 
 ### Key Capabilities
 
 - **Pure Wasm Pipeline**: Performs all layout and drawing operations inside Wasm. Zero dependencies on browser DOM or `<canvas>`.
 - **Edge Native**: Specialized wrapper for Cloudflare Workers ensures smooth execution in restricted environments.
-- **Dual Output Modes**:
+- **Triple Output Modes**:
   - **SVG**: Generates lean, vector-based Pure SVG strings with post-processed effects (Filters, Gradients).
   - **PNG**: Generates high-quality raster images via Skia, transferred as binary data for maximum performance.
+  - **PDF**: Generates high-fidelity vector documents via Skia's PDF backend, including native support for text, gradients, and images.
 - **High-Level TS Wrapper**: Includes a `Satoru` class that abstracts Wasm memory management and provides a clean async API.
 - **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime with automatic weight/style inference.
 - **Japanese Support**: Full support for Japanese rendering with multi-font fallback logic.
 - **Image Format Support**: Native support for **PNG**, **JPEG**, **WebP**, **AVIF**, **BMP**, and **ICO** image formats.
 - **Advanced CSS Support**:
   - **Box Model**: Margin, padding, border, and accurate **Border Radius**.
-  - **Box Shadow**: High-quality **Outer** and **Inset** shadows using advanced SVG filters (SVG) or Skia blurs (PNG).
+  - **Box Shadow**: High-quality **Outer** and **Inset** shadows using advanced SVG filters (SVG) or Skia blurs (PNG/PDF).
   - **Gradients**: Linear, **Elliptical Radial**, and **Conic** (Sweep) gradient support.
   - **Standard Tags**: Full support for `<b>`, `<strong>`, `<i>`, `<u>`, and `<h1>`-`<h6>` via integrated master CSS.
   - **Text Decoration**: Supports `underline`, `line-through`, `overline` with `solid`, `dotted`, and `dashed` styles.
-  - **Text Shadow**: Multiple shadows with blur, offset, and color support (PNG/SVG).
+  - **Text Shadow**: Multiple shadows with blur, offset, and color support (PNG/SVG/PDF).
 
 ## 📋 Supported CSS Properties
 
@@ -86,20 +87,22 @@ graph TD
             F --> G[Regex Post-process:<br/>Inject Shadows & Filters]
         end
 
-        subgraph WASM_PNG_Path [PNG Raster Pipeline]
-            E -- PNG --> H[SkSurface: Rasterize]
-            H --> I[SkImage: Encode to PNG]
-            I --> J[Shared Binary Buffer]
+        subgraph WASM_Raster_Path [Binary Pipeline]
+            E -- PNG/PDF --> H[SkDocument/SkSurface:<br/>Measure & Draw]
+            H -- PNG --> I[SkImage: Encode]
+            H -- PDF --> J[SkPDF: Generate]
+            I --> K[Shared Binary Buffer]
+            J --> K
         end
     end
 
-    G --> K[Final SVG Output]
-    J --> L[Final PNG Binary]
+    G --> L[Final SVG Output]
+    K --> M[Final Binary Output<br/>PNG/PDF]
 
     style Host fill:#e1f5fe,stroke:#01579b
     style WASM fill:#fff3e0,stroke:#e65100
     style SVG_Path fill:#f3e5f5,stroke:#4a148c
-    style WASM_PNG_Path fill:#e8f5e9,stroke:#1b5e20
+    style WASM_Raster_Path fill:#e8f5e9,stroke:#1b5e20
 ```
 
 ## 🛠️ Usage (TypeScript)
@@ -131,16 +134,12 @@ const html = `
   </div>
 `;
 
-// Render to SVG
-// Satoru detects the required font and image, then fetches them via the callback
-const svg = await satoru.render(html, 600, {
+// Render to PDF
+const pdf = await satoru.render(html, 600, {
+  format: "pdf",
   resolveResource: async (resource) => {
-    console.log(`Fetching ${resource.type}: ${resource.url}`);
     const res = await fetch(resource.url);
-    if (!res.ok) return null;
-
-    // Always return Uint8Array for all resource types (Font, Image, CSS)
-    return new Uint8Array(await res.arrayBuffer());
+    return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
   },
 });
 ```
@@ -163,18 +162,19 @@ export default {
           src: url('https://example.com/font.woff2');
         }
       </style>
-      <div style='font-family: CustomFont'>Edge Rendered with Auto-loading</div>
+      <div style='font-family: CustomFont'>Edge Rendered PDF</div>
     `;
 
-    const svg = await satoru.render(html, 800, {
+    const pdf = await satoru.render(html, 800, {
+      format: "pdf",
       resolveResource: async (resource) => {
         const res = await fetch(resource.url);
         return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
       },
     });
 
-    return new Response(svg, {
-      headers: { "Content-Type": "image/svg+xml" },
+    return new Response(pdf, {
+      headers: { "Content-Type": "application/pdf" },
     });
   },
 };
@@ -189,7 +189,7 @@ import { Satoru } from "satoru/single";
 
 // Initialize the engine (no external .wasm file needed)
 const satoru = await Satoru.init();
-const svg = await satoru.render("<div>Embedded WASM!</div>", 600);
+const png = await satoru.render("<div>Embedded WASM!</div>", 600, { format: "png" });
 ```
 
 ### 🎨 Manual Resource Management
@@ -216,10 +216,11 @@ The project includes a robust **Visual Regression Suite** to ensure rendering fi
 
 This suite compares Satoru's outputs against Chromium's rendering.
 
-- **Dual Validation Pipeline**: Every test asset is verified through two paths:
-  1. **Direct PNG**: Satoru's native Skia-based PNG output vs Chromium PNG.
-  2. **SVG PNG**: Satoru's SVG output rendered in a browser vs Chromium PNG.
-- **Numerical Precision**: Tests report the exact pixel difference percentage for both paths.
+- **Triple Validation Pipeline**: Every test asset is verified through three formats:
+  1. **Direct PNG**: Satoru's native Skia-based PNG output.
+  2. **SVG Output**: Satoru's SVG output.
+  3. **PDF Output**: Satoru's PDF output.
+- **Numerical Precision**: PNG tests report the exact pixel difference percentage.
 - **Fast Execution**:
   - **Reference Generation**: Multi-threaded using Playwright with shared contexts (~3s for 14 assets).
   - **Batch Conversion**: Multi-threaded using Node.js Worker Threads, running multiple Wasm instances in parallel (~1.8s for 14 assets).
@@ -279,6 +280,7 @@ pnpm build
 
 - [x] High-level TypeScript Wrapper API with automatic resource resolution.
 - [x] Binary PNG export support via shared memory.
+- [x] **High-fidelity PDF export support via Skia's PDF backend.**
 - [x] Linear, Elliptical Radial & Conic Gradient support.
 - [x] Border Radius & **Advanced Box Shadow (Outer/Inset)**.
 - [x] Japanese Language Rendering & Standard HTML Tag Support.

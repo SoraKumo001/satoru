@@ -12,6 +12,7 @@
 
 class SatoruContext {
     std::vector<uint8_t> m_lastPng;
+    std::vector<uint8_t> m_lastPdf;
     std::string m_extraCss;
 
    public:
@@ -56,6 +57,9 @@ class SatoruContext {
 
     void set_last_png(std::vector<uint8_t> &&png) { m_lastPng = std::move(png); }
     const std::vector<uint8_t> &get_last_png() const { return m_lastPng; }
+
+    void set_last_pdf(std::vector<uint8_t> &&pdf) { m_lastPdf = std::move(pdf); }
+    const std::vector<uint8_t> &get_last_pdf() const { return m_lastPdf; }
 };
 
 #endif

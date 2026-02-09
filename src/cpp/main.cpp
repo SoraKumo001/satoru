@@ -41,6 +41,17 @@ int get_png_size() {
 }
 
 EMSCRIPTEN_KEEPALIVE
+const uint8_t *html_to_pdf_binary(const char *html, int width, int height) {
+    int size = 0;
+    return api_html_to_pdf_binary(html, width, height, size);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int get_pdf_size() {
+    return api_get_last_pdf_size();
+}
+
+EMSCRIPTEN_KEEPALIVE
 const char *collect_resources(const char *html, int width) {
     return string_to_heap(api_collect_resources(html, width));
 }
@@ -87,6 +98,8 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("html_to_png", &html_to_png, allow_raw_pointers());
     function("html_to_png_binary", &html_to_png_binary, allow_raw_pointers());
     function("get_png_size", &get_png_size);
+    function("html_to_pdf_binary", &html_to_pdf_binary, allow_raw_pointers());
+    function("get_pdf_size", &get_pdf_size);
     function("collect_resources", &collect_resources, allow_raw_pointers());
     function("get_required_fonts", &get_required_fonts, allow_raw_pointers());
     function("add_resource", &add_resource, allow_raw_pointers());

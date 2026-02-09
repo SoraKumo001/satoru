@@ -33,7 +33,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 
 ### 1. Overview
 
-**Satoru** is a high-fidelity HTML/CSS to SVG/PNG converter running in WebAssembly.
+**Satoru** is a high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly.
 - **Monorepo:** Organized as pnpm workspaces.
 - **Core:** `litehtml` (Layout) + `Skia` (Rendering).
 - **Target:** WASM via Emscripten.
@@ -50,14 +50,17 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
     - `src/cpp/api`: Emscripten API implementation (`satoru_api.cpp`). High-level logic and state management.
     - `src/cpp/bridge`: Common types used across the project (`bridge_types.h`).
     - `src/cpp/core`: Core rendering logic (`container_skia`), resource management, and master CSS.
-    - `src/cpp/renderers`: PNG/SVG specific rendering implementation.
+    - `src/cpp/renderers`: PNG/SVG/PDF specific rendering implementation.
     - `src/cpp/utils`: Skia-specific utility functions and Base64 helpers.
 - **API Layer:** All functionality exported to WASM should be defined in `src/cpp/api/satoru_api.h` and implemented in `satoru_api.cpp`. `main.cpp` serves as the Emscripten entry point and binding definition.
 - **Global State:** Global instances like `SatoruContext` and `ResourceManager` are maintained in `satoru_api.cpp`. Do not mark them `static` if they need to be accessed via `extern` from other core components.
 - **SVG Rendering (2-Pass):**
     1. **Pass 1 (Measurement):** Layout with a dummy container to determine exact content height.
     2. **Pass 2 (Drawing):** Render to `SkSVGCanvas` with the calculated dimensions.
-- **Tag-Based Post-Processing:**
+- **PDF Rendering (2-Pass):**
+    1. **Pass 1 (Measurement):** Determine content height.
+    2. **Pass 2 (Drawing):** Render to `SkPDFDocument`. Requires explicit registration of `jpegDecoder` and `jpegEncoder` in `SkPDF::Metadata` to avoid runtime assertions.
+- **Tag-Based Post-Processing (SVG only):**
     - Advanced effects (Shadows, Images, Conics) are \"tagged\" during drawing with unique colors (e.g., `rgb(0,1,index)` for shadows).
     - The resulting SVG string is processed via **Regular Expressions** to replace these tagged elements with real SVG filters or `<image>` tags.
 - **Box Shadow Logic:**
@@ -79,16 +82,17 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 
 - **SkPath Immutability:** Use `SkPathBuilder` instead of direct `SkPath` modification methods.
 - **Radial Gradients:** Circular by default. For **Elliptical** gradients, apply an `SkMatrix` scale transform (e.g., `ry/rx` on Y-axis) to the shader.
+- **PathOps:** Required for complex clipping and path operations, especially in PDF/SVG backends.
 - **C++ Logs:** Bridge `printf` to JS `console.log`. Ensure `\\n` or `fflush(stdout)` is used.
 
 ### 5. Testing & Validation
 
 - **Visual Regression Suite (`packages/test-visual`)**:
-    - **Dual Validation**: Compares **Direct Skia PNG** and **SVG-rendered PNG** (via Playwright) against reference images.
-    - **Numerical Diff**: Reports pixel difference percentage for both paths.
+    - **Multi-Format Validation**: Compares **Direct Skia PNG**, **SVG-rendered PNG**, and **PDF output** against reference expectations.
+    - **Numerical Diff**: Reports pixel difference percentage for raster paths.
     - **Stabilization**: Uses `flattenAlpha` (blending with white) and white-pixel padding to handle dimension mismatches and transparency flakiness.
 - **Output Validation**:
-    - **Crucial**: To verify generated output files (PNG/SVG) for all assets, always use the `convert-assets` command.
+    - **Crucial**: To verify generated output files (PNG/SVG/PDF) for all assets, always use the `convert-assets` command.
     - Command: `pnpm --filter test-visual convert-assets`
     - Output: Files are generated in `packages/test-visual/temp/`. Use these files to manually inspect the rendering quality and correctness.
 - **Performance Optimizations**:

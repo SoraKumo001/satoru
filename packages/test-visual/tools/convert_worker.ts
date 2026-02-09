@@ -59,6 +59,17 @@ async function runWorker() {
         );
       }
 
+      const pdf = await satoru.render(html, 800, {
+        format: "pdf",
+        resolveResource,
+      });
+      if (pdf instanceof Uint8Array) {
+        fs.writeFileSync(
+          path.join(tempDir, file.replace(".html", ".pdf")),
+          pdf,
+        );
+      }
+
       const duration = Date.now() - start;
       parentPort?.postMessage({ type: "progress", file, duration });
     }

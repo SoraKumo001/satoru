@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "../utils/image_types.h"
+#include "utils/skia_utils.h"
 #include "include/core/SkFontMgr.h"
 #include "include/core/SkFontStyle.h"
 #include "include/core/SkTypeface.h"

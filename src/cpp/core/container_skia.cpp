@@ -4,7 +4,7 @@
 #include <regex>
 #include <sstream>
 
-#include "../utils/utils.h"
+#include "utils/skia_utils.h"
 #include "include/core/SkBlurTypes.h"
 #include "include/core/SkClipOp.h"
 #include "include/core/SkFontMetrics.h"

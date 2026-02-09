@@ -1,5 +1,4 @@
-#include "utils.h"
-
+#include "skia_utils.h"
 #include <algorithm>
 
 std::string clean_font_name(const char *name) {
@@ -7,7 +6,7 @@ std::string clean_font_name(const char *name) {
     std::string s = name;
     std::string result;
     for (char c : s) {
-        if (c != '\'' && c != '"' && c != ' ' && c != '\\') {
+        if (c != '\'' && c != '\"' && c != ' ' && c != '\\\\') {
             result += c;
         }
     }

@@ -45,12 +45,13 @@ find_package(BZip2 REQUIRED)
 # --- Sources ---
 set(SATORU_SOURCES
     src/cpp/main.cpp
+    src/cpp/api/satoru_api.cpp
     src/cpp/core/container_skia.cpp
     src/cpp/core/satoru_context.cpp
     src/cpp/core/resource_manager.cpp
     src/cpp/renderers/svg_renderer.cpp
     src/cpp/renderers/png_renderer.cpp
-    src/cpp/utils/utils.cpp
+    src/cpp/utils/skia_utils.cpp
     src/cpp/utils/skia_stubs.cpp
 )
 
@@ -105,6 +106,8 @@ list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*
 # --- Common Settings ---
 set(SATORU_INCLUDES
     "src/cpp"
+    "src/cpp/api"
+    "src/cpp/bridge"
     "src/cpp/core"
     "src/cpp/renderers"
     "src/cpp/utils"

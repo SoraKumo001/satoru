@@ -4,7 +4,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "../utils/utils.h"
+#include "utils/skia_utils.h"
 #include "include/codec/SkCodec.h"
 #include "include/codec/SkPngDecoder.h"
 #include "include/core/SkData.h"

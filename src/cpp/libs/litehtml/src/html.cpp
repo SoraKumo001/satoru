@@ -274,7 +274,7 @@ string get_escaped_string(const string& in_str)
 				break;
 
 			case '\n':
-				ret += "\\n";
+				ret += "\n";
 				break;
 
 			case '\r':

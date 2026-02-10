@@ -1,7 +1,9 @@
 #include "font_manager.h"
+
 #include <algorithm>
-#include <sstream>
 #include <regex>
+#include <sstream>
+
 #include "include/core/SkData.h"
 #include "include/core/SkFontArguments.h"
 #include "utils/skia_utils.h"
@@ -21,16 +23,14 @@ std::string trim(const std::string &s) {
     auto end = s.find_last_not_of(" \t\r\n'\"");
     return s.substr(start, end - start + 1);
 }
-}
+}  // namespace
 
-SatoruFontManager::SatoruFontManager() {
-    m_fontMgr = SkFontMgr_New_Custom_Empty();
-}
+SatoruFontManager::SatoruFontManager() { m_fontMgr = SkFontMgr_New_Custom_Empty(); }
 
 void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size) {
     auto data_ptr = SkData::MakeWithCopy(data, size);
     if (!m_fontMgr) m_fontMgr = SkFontMgr_New_Custom_Empty();
-    
+
     auto typeface = m_fontMgr->makeFromData(std::move(data_ptr));
     if (typeface) {
         std::string cleaned = clean_font_name(name);
@@ -63,12 +63,18 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
 
         if (std::regex_search(body, m, familyRegex))
             req.family = clean_font_name(m[1].str().c_str());
-        
+
         if (std::regex_search(body, m, weightRegex)) {
             std::string w = trim(m[1].str());
-            if (w == "bold") req.weight = 700;
-            else if (w == "normal") req.weight = 400;
-            else try { req.weight = std::stoi(w); } catch (...) {}
+            if (w == "bold")
+                req.weight = 700;
+            else if (w == "normal")
+                req.weight = 400;
+            else
+                try {
+                    req.weight = std::stoi(w);
+                } catch (...) {
+                }
         }
 
         if (std::regex_search(body, m, styleRegex)) {
@@ -81,7 +87,8 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
     }
 }
 
-std::string SatoruFontManager::getFontUrl(const std::string &family, int weight, SkFontStyle::Slant slant) const {
+std::string SatoruFontManager::getFontUrl(const std::string &family, int weight,
+                                          SkFontStyle::Slant slant) const {
     std::stringstream ss(family);
     std::string item;
     bool hasGeneric = false;
@@ -117,7 +124,8 @@ std::string SatoruFontManager::getFontUrl(const std::string &family, int weight,
     return "";
 }
 
-std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string &family, int weight, SkFontStyle::Slant slant) {
+std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string &family, int weight,
+                                                             SkFontStyle::Slant slant) {
     std::vector<sk_sp<SkTypeface>> result;
     std::stringstream ss(family);
     std::string item;
@@ -143,18 +151,17 @@ std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string &
     return result;
 }
 
-SkFont* SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, int weight) {
+SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, int weight) {
     if (!typeface) return nullptr;
 
     sk_sp<SkTypeface> tf = typeface;
-    
+
     // Apply wght variation for Variable Fonts
     SkFontArguments::VariationPosition::Coordinate coords[] = {
-        {SkSetFourByteTag('w', 'g', 'h', 't'), (float)weight}
-    };
+        {SkSetFourByteTag('w', 'g', 'h', 't'), (float)weight}};
     SkFontArguments args;
     args.setVariationDesignPosition({coords, 1});
-    
+
     auto clone = typeface->makeClone(args);
     if (clone) {
         tf = clone;

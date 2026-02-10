@@ -124,7 +124,7 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
     fi->fake_bold = fake_bold;
 
     for (auto &typeface : typefaces) {
-        SkFont* font = m_context.fontManager.createSkFont(typeface, (float)desc.size, desc.weight);
+        SkFont *font = m_context.fontManager.createSkFont(typeface, (float)desc.size, desc.weight);
         if (font) {
             fi->fonts.push_back(font);
         }
@@ -133,7 +133,8 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
     if (fi->fonts.empty()) {
         sk_sp<SkTypeface> def = m_context.fontManager.getDefaultTypeface();
         if (def) {
-            fi->fonts.push_back(m_context.fontManager.createSkFont(def, (float)desc.size, desc.weight));
+            fi->fonts.push_back(
+                m_context.fontManager.createSkFont(def, (float)desc.size, desc.weight));
         } else {
             fi->fonts.push_back(new SkFont(SkTypeface::MakeEmpty(), (float)desc.size));
         }
@@ -475,7 +476,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
         } else {
             m_canvas->clipRRect(box_rrect, SkClipOp::kDifference, true);
             SkRRect shadow_rrect = box_rrect;
-            shadow_rrect.outset((float)s.spread.val(), (float)s.spread.val());\
+            shadow_rrect.outset((float)s.spread.val(), (float)s.spread.val());
             SkPaint p;
             p.setAntiAlias(true);
             p.setColor(shadow_color);

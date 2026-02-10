@@ -5,10 +5,10 @@
 #include <string>
 #include <vector>
 
+#include "font_manager.h"
 #include "include/core/SkFontStyle.h"
 #include "include/core/SkTypeface.h"
 #include "utils/skia_utils.h"
-#include "font_manager.h"
 
 class SatoruContext {
     std::vector<uint8_t> m_lastPng;
@@ -25,8 +25,12 @@ class SatoruContext {
     const std::string &getExtraCss() const { return m_extraCss; }
     void clearCss() { m_extraCss.clear(); }
 
-    void load_font(const char *name, const uint8_t *data, int size) { fontManager.loadFont(name, data, size); }
-    void loadFont(const char *name, const uint8_t *data, int size) { fontManager.loadFont(name, data, size); }
+    void load_font(const char *name, const uint8_t *data, int size) {
+        fontManager.loadFont(name, data, size);
+    }
+    void loadFont(const char *name, const uint8_t *data, int size) {
+        fontManager.loadFont(name, data, size);
+    }
 
     void load_image(const char *name, const char *data_url, int width, int height) {
         loadImage(name, data_url, width, height);

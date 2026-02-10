@@ -1,6 +1,7 @@
 #include "satoru_api.h"
 
 #include <emscripten.h>
+
 #include <cstring>
 
 #include "core/container_skia.h"
@@ -109,9 +110,7 @@ void api_add_resource(const char *url, int type, const uint8_t *data, int size) 
     if (g_resourceManager) g_resourceManager->add(url, data, size, (ResourceType)type);
 }
 
-void api_scan_css(const char *css) {
-    g_context.fontManager.scanFontFaces(css);
-}
+void api_scan_css(const char *css) { g_context.fontManager.scanFontFaces(css); }
 
 void api_load_font(const char *name, const uint8_t *data, int size) {
     g_context.load_font(name, data, size);

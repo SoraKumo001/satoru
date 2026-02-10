@@ -69,7 +69,7 @@ std::vector<sk_sp<SkTypeface>> SatoruContext::get_typefaces(const std::string &f
     auto result = fontManager.matchFonts(family, weight, slant);
 
     if (!result.empty()) {
-        // Fake bold check (only for non-variable fonts, though this flag will be 
+        // Fake bold check (only for non-variable fonts, though this flag will be
         // overridden in container_skia if Variable Font cloning succeeds)
         if (weight >= 600 && result[0]->fontStyle().weight() < 500) {
             out_fake_bold = true;

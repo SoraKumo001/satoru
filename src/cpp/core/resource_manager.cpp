@@ -87,7 +87,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
                                "'; font-weight: " + weight + "; font-style: " + style +
                                "; src: url('" + url + "'); }";
         m_context.addCss(fontFace);
-        if (g_discovery_container) g_discovery_container->scan_font_faces(fontFace);
+        m_context.fontManager.scanFontFaces(fontFace);
 
     } else if (type == ResourceType::Image) {
         m_context.loadImageFromData(url.c_str(), data, size);
@@ -106,7 +106,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
         }
         std::string css((const char*)data, size);
         m_context.addCss(css);
-        if (g_discovery_container) g_discovery_container->scan_font_faces(css);
+        m_context.fontManager.scanFontFaces(css);
     }
 }
 

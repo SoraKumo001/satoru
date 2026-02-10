@@ -25,6 +25,18 @@ async function runWorker() {
           if (font && fs.existsSync(font.path)) {
             return new Uint8Array(fs.readFileSync(font.path));
           }
+          // If not in map but is a URL, try fetching it
+          if (r.url && r.url.startsWith("http")) {
+            try {
+              const resp = await fetch(r.url);
+              if (resp.ok) {
+                const buf = await resp.arrayBuffer();
+                return new Uint8Array(buf);
+              }
+            } catch (e) {
+              console.error(`Failed to fetch font from ${r.url}:`, e);
+            }
+          }
         } else if (r.type === "image") {
           // Resolve local paths relative to assetsDir
           if (r.url && !r.url.startsWith("data:") && !r.url.startsWith("http")) {

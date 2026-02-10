@@ -16,7 +16,7 @@ const WORKER_PATH = path.resolve(__dirname, "./convert_worker.ts");
 const FONT_MAP = [
   {
     name: "Roboto",
-    url: "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2",
+    url: "https://fonts.gstatic.com/s/roboto/v50/KFO7CnqEu92Fr1ME7kSn66aGLdTylUAMa3yUBA.woff2",
     path: path.join(TEMP_DIR, "roboto.woff2"),
   },
   {

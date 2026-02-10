@@ -62,5 +62,15 @@
       "fill": 0,
       "outline": 0
     }
+  },
+  "07-heading-test.html": {
+    "direct": {
+      "fill": 0.8597499999999999,
+      "outline": 1.820625
+    },
+    "svg": {
+      "fill": 0.8597499999999999,
+      "outline": 1.820625
+    }
   }
 }

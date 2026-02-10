@@ -74,6 +74,7 @@ set(SATORU_SOURCES
     src/cpp/core/container_skia.cpp
     src/cpp/core/satoru_context.cpp
     src/cpp/core/resource_manager.cpp
+    src/cpp/core/font_manager.cpp
     src/cpp/renderers/svg_renderer.cpp
     src/cpp/renderers/png_renderer.cpp
     src/cpp/renderers/pdf_renderer.cpp

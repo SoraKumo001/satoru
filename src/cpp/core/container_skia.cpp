@@ -95,12 +95,9 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
         std::string item;
         while (std::getline(ss, item, ',')) {
             std::string family = trim(item);
-            std::string cleanName = clean_font_name(family.c_str());
-            if (m_context.typefaceCache.find(cleanName) == m_context.typefaceCache.end()) {
-                std::string url = get_font_url(family, desc.weight, slant);
-                if (!url.empty()) {
-                    m_resourceManager->request(url, family, ResourceType::Font);
-                }
+            std::string url = m_context.fontManager.getFontUrl(family, desc.weight, slant);
+            if (!url.empty()) {
+                m_resourceManager->request(url, family, ResourceType::Font);
             }
         }
     }
@@ -110,7 +107,8 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
         typefaces = m_context.get_typefaces("sans-serif", desc.weight, slant, fake_bold);
     }
 
-    for (auto &tf : m_context.fallbackTypefaces) {
+    // Add global fallbacks (e.g. Noto Sans JP)
+    for (auto &tf : m_context.fontManager.getFallbackTypefaces()) {
         bool found = false;
         for (auto &existing : typefaces) {
             if (existing.get() == tf.get()) {
@@ -125,11 +123,21 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
     fi->desc = desc;
     fi->fake_bold = fake_bold;
 
-    for (auto &typeface : typefaces) fi->fonts.push_back(new SkFont(typeface, (float)desc.size));
-    if (fi->fonts.empty() && m_context.defaultTypeface)
-        fi->fonts.push_back(new SkFont(m_context.defaultTypeface, (float)desc.size));
-    else if (fi->fonts.empty())
-        fi->fonts.push_back(new SkFont(SkTypeface::MakeEmpty(), (float)desc.size));
+    for (auto &typeface : typefaces) {
+        SkFont* font = m_context.fontManager.createSkFont(typeface, (float)desc.size, desc.weight);
+        if (font) {
+            fi->fonts.push_back(font);
+        }
+    }
+
+    if (fi->fonts.empty()) {
+        sk_sp<SkTypeface> def = m_context.fontManager.getDefaultTypeface();
+        if (def) {
+            fi->fonts.push_back(m_context.fontManager.createSkFont(def, (float)desc.size, desc.weight));
+        } else {
+            fi->fonts.push_back(new SkFont(SkTypeface::MakeEmpty(), (float)desc.size));
+        }
+    }
 
     SkFontMetrics skfm;
     fi->fonts[0]->getMetrics(&skfm);
@@ -467,7 +475,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
         } else {
             m_canvas->clipRRect(box_rrect, SkClipOp::kDifference, true);
             SkRRect shadow_rrect = box_rrect;
-            shadow_rrect.outset((float)s.spread.val(), (float)s.spread.val());
+            shadow_rrect.outset((float)s.spread.val(), (float)s.spread.val());\
             SkPaint p;
             p.setAntiAlias(true);
             p.setColor(shadow_color);
@@ -775,81 +783,10 @@ void container_skia::import_css(litehtml::string &text, const litehtml::string &
             m_resourceManager->request(url, url, ResourceType::Css);
         }
     } else {
-        scan_font_faces(text);
+        m_context.fontManager.scanFontFaces(text);
     }
 }
 
-void container_skia::scan_font_faces(const std::string &css) {
-    std::regex fontFaceRegex(R"(@font-face\s*\{([^}]+)\})", std::regex::icase);
-    std::regex familyRegex(R"(font-family:\s*([^;]+);?)", std::regex::icase);
-    std::regex weightRegex(R"(font-weight:\s*([^;]+);?)", std::regex::icase);
-    std::regex styleRegex(R"(font-style:\s*([^;]+);?)", std::regex::icase);
-    std::regex urlRegex(R"(url\s*\(\s*['"]?([^'\"\)]+)['"]?\s*\))", std::regex::icase);
-    auto words_begin = std::sregex_iterator(css.begin(), css.end(), fontFaceRegex);
-    for (std::sregex_iterator i = words_begin; i != std::sregex_iterator(); ++i) {
-        std::string body = (*i)[1].str();
-        std::smatch m;
-        font_request req;
-        req.weight = 400;
-        req.slant = SkFontStyle::kUpright_Slant;
-        if (std::regex_search(body, m, familyRegex))
-            req.family = clean_font_name(m[1].str().c_str());
-        if (std::regex_search(body, m, weightRegex)) {
-            std::string w = trim(m[1].str());
-            if (w == "bold")
-                req.weight = 700;
-            else if (w == "normal")
-                req.weight = 400;
-            else
-                try {
-                    req.weight = std::stoi(w);
-                } catch (...) {
-                }
-        }
-        if (std::regex_search(body, m, styleRegex)) {
-            std::string s = trim(m[1].str());
-            if (s == "italic" || s == "oblique") req.slant = SkFontStyle::kItalic_Slant;
-        }
-        if (!req.family.empty() && std::regex_search(body, m, urlRegex))
-            m_fontFaces[req] = trim(m[1].str());
-    }
-}
-std::string container_skia::get_font_url(const std::string &family, int weight,
-                                         SkFontStyle::Slant slant) const {
-    std::stringstream ss(family);
-    std::string item;
-    bool hasGeneric = false;
-    while (std::getline(ss, item, ',')) {
-        std::string cleanFamily = clean_font_name(trim(item).c_str());
-        if (cleanFamily == "sans-serif" || cleanFamily == "serif" || cleanFamily == "monospace") {
-            hasGeneric = true;
-            continue;
-        }
-        font_request req = {cleanFamily, weight, slant};
-        auto it = m_fontFaces.find(req);
-        if (it != m_fontFaces.end()) return it->second;
-        int minDiff = 1000;
-        std::string bestUrl = "";
-        for (const auto &pair : m_fontFaces) {
-            if (pair.first.family == cleanFamily && pair.first.slant == slant) {
-                int diff = std::abs(pair.first.weight - weight);
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    bestUrl = pair.second;
-                }
-            }
-        }
-        if (!bestUrl.empty()) return bestUrl;
-    }
-
-    // Fallback: If a generic family was requested and no exact match found, use the first available
-    // font
-    if (hasGeneric && !m_fontFaces.empty()) {
-        return m_fontFaces.begin()->second;
-    }
-
-    return "";
-}
 void container_skia::set_clip(const litehtml::position &pos,
                               const litehtml::border_radiuses &bdr_radius) {
     if (m_canvas)

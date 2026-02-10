@@ -75,9 +75,9 @@ std::string api_collect_resources(const char *html, int width) {
     std::string master_css_full = get_full_master_css();
 
     if (!g_context.getExtraCss().empty()) {
-        g_discovery_container->scan_font_faces(g_context.getExtraCss());
+        g_context.fontManager.scanFontFaces(g_context.getExtraCss());
     }
-    g_discovery_container->scan_font_faces(html);
+    g_context.fontManager.scanFontFaces(html);
 
     auto doc =
         litehtml::document::createFromString(html, g_discovery_container, master_css_full.c_str());
@@ -100,7 +100,7 @@ void api_add_resource(const char *url, int type, const uint8_t *data, int size) 
 }
 
 void api_scan_css(const char *css) {
-    if (g_discovery_container) g_discovery_container->scan_font_faces(css);
+    g_context.fontManager.scanFontFaces(css);
 }
 
 void api_load_font(const char *name, const uint8_t *data, int size) {

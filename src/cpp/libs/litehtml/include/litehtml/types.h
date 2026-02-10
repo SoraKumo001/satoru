@@ -1004,7 +1004,7 @@ namespace litehtml
                 render_fixed_only,
         };
 
-        const char* const split_delims_spaces = " 	\r\f\v";
+        const char* const split_delims_spaces = " \t\r\f\v";
 
         // List of the Void Elements (can't have any contents)
         const char* const void_elements = "area;base;br;col;command;embed;hr;img;input;keygen;link;meta;param;source;track;wbr";
@@ -1047,7 +1047,7 @@ namespace litehtml
         };
 
 #define self_position_strings           "center;start;end;self-start;self-end;flex-start;flex-end"
-#define flex_align_items_strings        "auto;normal;stretch;baseline; " self_position_strings        
+#define flex_align_items_strings        "auto;normal;stretch;baseline;" self_position_strings        
 
         enum flex_align_items
         {

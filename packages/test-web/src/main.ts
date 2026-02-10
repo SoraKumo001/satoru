@@ -50,7 +50,7 @@ async function init() {
                         <fieldset style="flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white;">
                             <legend style="font-weight: bold;">Rendering Options</legend>
                             <div style="display: flex; flex-direction: column; gap: 10px;">
-                                <label>Width: <input type="number" id="canvasWidth" value="580" style="width: 80px;"></label>
+                                <label>Width: <input type="number" id="canvasWidth" value="588" style="width: 80px;"></label>
                                 <label>Format: 
                                     <select id="formatSelect" style="padding: 2px 5px; border-radius: 4px;">
                                         <option value="svg" selected>SVG (Vector)</option>
@@ -100,22 +100,47 @@ async function init() {
                 </div>
             `;
 
-      const convertBtn = document.getElementById("convertBtn") as HTMLButtonElement;
-      const downloadBtn = document.getElementById("downloadBtn") as HTMLButtonElement;
-      const htmlInput = document.getElementById("htmlInput") as HTMLTextAreaElement;
-      const htmlPreview = document.getElementById("htmlPreview") as HTMLIFrameElement;
-      const renderContainer = document.getElementById("renderContainer") as HTMLDivElement;
-      const outputSource = document.getElementById("outputSource") as HTMLTextAreaElement;
-      const canvasWidthInput = document.getElementById("canvasWidth") as HTMLInputElement;
-      const formatSelect = document.getElementById("formatSelect") as HTMLSelectElement;
-      const assetSelect = document.getElementById("assetSelect") as HTMLSelectElement;
-      const previewTitle = document.getElementById("previewTitle") as HTMLHeadingElement;
-      const sourceTitle = document.getElementById("sourceTitle") as HTMLHeadingElement;
+      const convertBtn = document.getElementById(
+        "convertBtn",
+      ) as HTMLButtonElement;
+      const downloadBtn = document.getElementById(
+        "downloadBtn",
+      ) as HTMLButtonElement;
+      const htmlInput = document.getElementById(
+        "htmlInput",
+      ) as HTMLTextAreaElement;
+      const htmlPreview = document.getElementById(
+        "htmlPreview",
+      ) as HTMLIFrameElement;
+      const renderContainer = document.getElementById(
+        "renderContainer",
+      ) as HTMLDivElement;
+      const outputSource = document.getElementById(
+        "outputSource",
+      ) as HTMLTextAreaElement;
+      const canvasWidthInput = document.getElementById(
+        "canvasWidth",
+      ) as HTMLInputElement;
+      const formatSelect = document.getElementById(
+        "formatSelect",
+      ) as HTMLSelectElement;
+      const assetSelect = document.getElementById(
+        "assetSelect",
+      ) as HTMLSelectElement;
+      const previewTitle = document.getElementById(
+        "previewTitle",
+      ) as HTMLHeadingElement;
+      const sourceTitle = document.getElementById(
+        "sourceTitle",
+      ) as HTMLHeadingElement;
 
       // Automatically populate asset dropdown
-      const assetFiles = import.meta.glob('../../../assets/*.html', { query: '?raw', import: 'default' });
-      Object.keys(assetFiles).forEach(path => {
-        const fileName = path.split('/').pop()!;
+      const assetFiles = import.meta.glob("../../../assets/*.html", {
+        query: "?raw",
+        import: "default",
+      });
+      Object.keys(assetFiles).forEach((path) => {
+        const fileName = path.split("/").pop()!;
         const option = new Option(fileName, fileName);
         assetSelect.add(option);
       });
@@ -124,13 +149,14 @@ async function init() {
       let lastResult: string | Uint8Array | null = null;
 
       const updatePreview = () => {
-        const doc = htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
+        const doc =
+          htmlPreview.contentDocument || htmlPreview.contentWindow?.document;
         if (doc) {
           doc.open();
           const baseTag = `<base href="${window.location.origin}${window.location.pathname}assets/">`;
           const html = htmlInput.value;
-          const htmlWithBase = html.includes("<head>") 
-            ? html.replace("<head>", `<head>${baseTag}`) 
+          const htmlWithBase = html.includes("<head>")
+            ? html.replace("<head>", `<head>${baseTag}`)
             : baseTag + html;
           doc.write(htmlWithBase);
           doc.close();
@@ -140,7 +166,8 @@ async function init() {
       const resourceResolver = async (r: RequiredResource) => {
         console.log(`[Satoru] Resolving ${r.type}: ${r.url}`);
         try {
-          const url = r.url.startsWith("http") || r.url.startsWith("data:")
+          const url =
+            r.url.startsWith("http") || r.url.startsWith("data:")
               ? r.url
               : `assets/${r.url}`;
 
@@ -156,7 +183,7 @@ async function init() {
       };
 
       const convert = async () => {
-        const width = parseInt(canvasWidthInput.value, 10) || 580;
+        const width = parseInt(canvasWidthInput.value, 10) || 588;
         const html = htmlInput.value;
         const format = formatSelect.value as "svg" | "png" | "pdf";
         if (!html) return;
@@ -183,14 +210,15 @@ async function init() {
           lastResult = result;
 
           previewTitle.innerText = `${format.toUpperCase()} Render Preview:`;
-          sourceTitle.innerText = `${format.toUpperCase()} Output Source${format !== 'svg' ? ' (Base64)' : ''}:`;
+          sourceTitle.innerText = `${format.toUpperCase()} Output Source${format !== "svg" ? " (Base64)" : ""}:`;
 
           if (result) {
             if (format === "svg" && typeof result === "string") {
               renderContainer.innerHTML = result;
               outputSource.value = result;
             } else if (result instanceof Uint8Array) {
-              const mimeType = format === "png" ? "image/png" : "application/pdf";
+              const mimeType =
+                format === "png" ? "image/png" : "application/pdf";
               // Use slice() to ensure we have a standard Uint8Array on a standard ArrayBuffer
               const resultCopy = result.slice();
               const blob = new Blob([resultCopy], { type: mimeType });
@@ -201,7 +229,7 @@ async function init() {
               } else {
                 renderContainer.innerHTML = `<embed src="${currentObjectURL}" type="application/pdf" class="preview-frame">`;
               }
-              
+
               // Show Base64 in source for binary formats
               let binary = "";
               const len = result.byteLength;
@@ -213,7 +241,8 @@ async function init() {
             downloadBtn.style.display = "block";
             downloadBtn.innerText = `Download .${format}`;
           } else {
-            renderContainer.innerHTML = '<div style="color:orange; padding: 20px;">Rendering returned no result.</div>';
+            renderContainer.innerHTML =
+              '<div style="color:orange; padding: 20px;">Rendering returned no result.</div>';
             outputSource.value = "";
           }
         } catch (e) {
@@ -250,12 +279,18 @@ async function init() {
       downloadBtn.addEventListener("click", () => {
         if (!lastResult) return;
         const format = formatSelect.value;
-        const mimeType = format === "svg" ? "image/svg+xml" : (format === "png" ? "image/png" : "application/pdf");
-        
+        const mimeType =
+          format === "svg"
+            ? "image/svg+xml"
+            : format === "png"
+              ? "image/png"
+              : "application/pdf";
+
         // Ensure standard Uint8Array for Blob
-        const content = typeof lastResult === "string" ? lastResult : lastResult.slice();
+        const content =
+          typeof lastResult === "string" ? lastResult : lastResult.slice();
         const blob = new Blob([content as BlobPart], { type: mimeType });
-        
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -266,7 +301,9 @@ async function init() {
 
       htmlInput.addEventListener("input", updatePreview);
 
-      const initialAsset = new URLSearchParams(window.location.search).get("asset") || "01-layout.html";
+      const initialAsset =
+        new URLSearchParams(window.location.search).get("asset") ||
+        "01-layout.html";
       try {
         const resp = await fetch(`assets/${initialAsset}`);
         const html = await resp.text();

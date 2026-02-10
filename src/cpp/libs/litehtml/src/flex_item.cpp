@@ -353,7 +353,7 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 	
 	if (el->css().get_min_height().is_predefined())
 	{
-		el->render(0, 0, self_size.new_width(self_size.width, containing_block_context::size_mode_content), fmt_ctx);
+		el->render(0, 0, self_size.new_width(self_size.render_width, containing_block_context::size_mode_content), fmt_ctx);
 		min_size = el->height();
 	} else
 	{
@@ -438,7 +438,7 @@ bool litehtml::flex_item_column_direction::apply_cross_auto_margins(pixel_t cros
 		pixel_t margin = (cross_size - el->width()) / margins_num;
 		if(auto_margin_cross_start)
 		{
-			el->get_margins().top = margin;
+			el->get_margins().left = margin;
 			el->pos().x = el->content_offset_left();
 		}
 		if(auto_margin_cross_end)
@@ -471,7 +471,7 @@ void litehtml::flex_item_column_direction::perform_render(litehtml::flex_line &l
 		mode |= containing_block_context::size_mode_content;
 	}
 	el->render(el->left(), el->top(), self_size.new_width_height(
-			self_size.width,
+			stretch ? self_size.width : self_size.render_width,
 			main_size - el->content_offset_height() + el->box_sizing_height(),
 			mode
 	), fmt_ctx);

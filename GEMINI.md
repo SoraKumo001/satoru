@@ -72,6 +72,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
     - **Fallback Logic:** The engine iterates through the entire `font-family` list. Even if the first font is available, it may still request subsequent fonts if they are needed for specific glyphs (e.g., Japanese).
     - **Generic Families:** Keywords like `sans-serif` or `serif` trigger a fallback to the first available font defined in `@font-face` if no exact system match is found.
     - **Metadata Inference:** The TS host infers `weight` and `style` from font URLs to generate correct `@font-face` blocks for WASM.
+    - **Asset Fonts:** When creating or modifying HTML files in the `assets/` directory that contain text, you MUST include `@font-face` declarations with valid font URLs to ensure correct rendering in the WASM environment.
 - **litehtml Types:**
     - Container overrides MUST return `litehtml::pixel_t` (float), not `int`, to match base class signatures.
 - **Layout Defaults:**

@@ -64,11 +64,6 @@ async function init() {
                             <legend style="font-weight: bold;">Load Sample Assets</legend>
                             <select id="assetSelect" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc; width: 100%;">
                                 <option value="">-- Select Asset --</option>
-                                <option value="01-layout.html">01-layout.html</option>
-                                <option value="02-typography.html">02-typography.html</option>
-                                <option value="03-graphics.html">03-graphics.html</option>
-                                <option value="04-box-effects.html">04-box-effects.html</option>
-                                <option value="05-images.html">05-images.html</option>
                             </select>
                         </fieldset>
                     </div>
@@ -116,6 +111,14 @@ async function init() {
       const assetSelect = document.getElementById("assetSelect") as HTMLSelectElement;
       const previewTitle = document.getElementById("previewTitle") as HTMLHeadingElement;
       const sourceTitle = document.getElementById("sourceTitle") as HTMLHeadingElement;
+
+      // Automatically populate asset dropdown
+      const assetFiles = import.meta.glob('../../../assets/*.html', { query: '?raw', import: 'default' });
+      Object.keys(assetFiles).forEach(path => {
+        const fileName = path.split('/').pop()!;
+        const option = new Option(fileName, fileName);
+        assetSelect.add(option);
+      });
 
       let currentObjectURL: string | null = null;
       let lastResult: string | Uint8Array | null = null;

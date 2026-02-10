@@ -230,7 +230,7 @@ set(COMMON_LINK_OPTIONS
     "-sERROR_ON_UNDEFINED_SYMBOLS=0"
     "-sWARN_ON_UNDEFINED_SYMBOLS=0"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','getValue','setValue','HEAPU8','stringToUTF8','lengthBytesUTF8']"
-    "-sEXPORTED_FUNCTIONS=['_init_engine','_html_to_svg','_html_to_png','_html_to_png_binary','_get_png_size','_html_to_pdf_binary','_get_pdf_size','_get_required_fonts','_collect_resources','_add_resource','_scan_css','_malloc','_free','_load_font','_clear_fonts','_load_image','_clear_images']"
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
     "-sALLOW_MEMORY_GROWTH=1"
 )
 
@@ -255,8 +255,8 @@ set_target_properties(satoru PROPERTIES
 
 # --- Target: satoru_single (WASM embedded in JS) ---
 add_executable(satoru_single $<TARGET_OBJECTS:satoru_obj>)
-target_link_libraries(satoru_single PRIVATE ${SATORU_LIBS})
 target_link_options(satoru_single PRIVATE ${COMMON_LINK_OPTIONS} "-sSINGLE_FILE=1")
+target_link_libraries(satoru_single PRIVATE ${SATORU_LIBS})
 
 set_target_properties(satoru_single PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/packages/satoru/dist"

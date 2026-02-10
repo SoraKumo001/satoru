@@ -87,7 +87,7 @@ async function init() {
                                 <h3 id="previewTitle">Output Render Preview:</h3>
                                 <button id="downloadBtn" style="display: none; background: #FF9800; color: white; border: none; padding: 6px 15px; cursor: pointer; border-radius: 4px;">Download</button>
                             </div>
-                            <div id="renderContainer" style="border: 1px solid #ddd; background: white; border-radius: 8px; height: 800px; display: flex;  overflow: auto; box-sizing: border-box; justify-content: center;">
+                            <div id="renderContainer" style="border: 1px solid #ddd; background: white; height: 800px; display: flex;  overflow: auto; box-sizing: border-box; justify-content: center;">
                                 <div style="color: #999; margin-top: 200px;">Result will appear here</div>
                             </div>
                         </div>

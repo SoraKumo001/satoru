@@ -7,9 +7,15 @@ async function runWorker() {
   const { files, assetsDir, tempDir, fontMap } = workerData;
 
   try {
-    const satoru = await Satoru.init();
+    let currentFile = "";
+    const satoru = await Satoru.init(undefined, {
+      onLog: (level, message) => {
+        parentPort?.postMessage({ type: "log", level, message, file: currentFile });
+      },
+    });
 
     for (const file of files) {
+      currentFile = file;
       satoru.clearFonts();
       satoru.clearImages();
 

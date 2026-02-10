@@ -299,32 +299,35 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
     pixel_t spacing_x = 0;	// Number of pixels to distribute between elements
     pixel_t shift_x = 0;	// Shift elements by X to apply the text-align
 
-    switch(m_text_align)
+    if (!(containing_block_size.size_mode & containing_block_context::size_mode_content))
     {
-        case text_align_right:
-            if(m_width < (m_right - m_left))
-            {
-				shift_x = (m_right - m_left) - m_width;
-            }
-            break;
-        case text_align_center:
-            if(m_width < (m_right - m_left))
-            {
-				shift_x = ((m_right - m_left) - m_width) / 2;
-            }
-            break;
-        case text_align_justify:
-            if (m_width < (m_right - m_left))
-            {
-				shift_x = 0;
-				spacing_x = (m_right - m_left) - m_width;
-				// don't justify for small lines
-                if (spacing_x > m_width / 4)
-					spacing_x = 0;
-            }
-            break;
-        default:
-			shift_x = 0;
+        switch (m_text_align)
+        {
+            case text_align_right:
+                if (m_width < (m_right - m_left))
+                {
+                    shift_x = (m_right - m_left) - m_width;
+                }
+                break;
+            case text_align_center:
+                if (m_width < (m_right - m_left))
+                {
+                    shift_x = ((m_right - m_left) - m_width) / 2;
+                }
+                break;
+            case text_align_justify:
+                if (m_width < (m_right - m_left))
+                {
+                    shift_x = 0;
+                    spacing_x = (m_right - m_left) - m_width;
+                    // don't justify for small lines
+                    if (spacing_x > m_width / 4)
+                        spacing_x = 0;
+                }
+                break;
+            default:
+                shift_x = 0;
+        }
     }
 
     int counter = 0;
@@ -877,7 +880,7 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::new_wi
 				(*i)->pos().x += add;
 				m_width += (*i)->get_el()->width();
             }
-			i++;
+		i++;
         }
         if(remove_begin != m_items.end())
         {

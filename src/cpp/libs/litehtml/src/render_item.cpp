@@ -1307,6 +1307,7 @@ void litehtml::render_item::calc_cb_length(const css_length& len, pixel_t percen
 litehtml::containing_block_context litehtml::render_item::calculate_containing_block_context(const containing_block_context& cb_context)
 {
 	containing_block_context ret;
+	ret.size_mode = cb_context.size_mode & containing_block_context::size_mode_content;
 	ret.context_idx = cb_context.context_idx + 1;
 	ret.width.value = ret.max_width.value = cb_context.width.value - content_offset_width();
 	if(src_el()->css().get_position() != element_position_absolute && src_el()->css().get_position() != element_position_fixed)

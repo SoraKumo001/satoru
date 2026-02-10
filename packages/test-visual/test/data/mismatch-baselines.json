@@ -1,12 +1,12 @@
 {
   "01-layout.html": {
     "direct": {
-      "fill": 4.0406249999999995,
-      "outline": 5.618
+      "fill": 1.50925,
+      "outline": 4.606
     },
     "svg": {
-      "fill": 3.7913750000000004,
-      "outline": 5.56825
+      "fill": 1.2978750000000001,
+      "outline": 4.647125
     }
   },
   "02-typography.html": {
@@ -21,12 +21,12 @@
   },
   "03-graphics.html": {
     "direct": {
-      "fill": 7.4855,
-      "outline": 2.40325
+      "fill": 6.691374999999999,
+      "outline": 2.376375
     },
     "svg": {
-      "fill": 7.474875,
-      "outline": 2.518125
+      "fill": 6.6805,
+      "outline": 2.49125
     }
   },
   "04-box-effects.html": {
@@ -42,11 +42,11 @@
   "05-images.html": {
     "direct": {
       "fill": 0.571625,
-      "outline": 3.4847499999999996
+      "outline": 3.04
     },
     "svg": {
       "fill": 0.6015,
-      "outline": 3.750875
+      "outline": 3.305125
     }
   },
   "test-ja.html": {
@@ -71,6 +71,26 @@
     "svg": {
       "fill": 0.8597499999999999,
       "outline": 1.820625
+    }
+  },
+  "08-font-weight-test.html": {
+    "direct": {
+      "fill": 2.1094999999999997,
+      "outline": 2.745875
+    },
+    "svg": {
+      "fill": 2.0875,
+      "outline": 2.654375
+    }
+  },
+  "09-flexbox-test.html": {
+    "direct": {
+      "fill": 10.159056886227544,
+      "outline": 10.070047405189621
+    },
+    "svg": {
+      "fill": 10.157996506986027,
+      "outline": 10.069610778443113
     }
   }
 }

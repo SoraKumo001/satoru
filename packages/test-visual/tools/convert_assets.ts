@@ -45,7 +45,26 @@ async function convertAssets() {
     await downloadFont(font.url, font.path);
   }
 
-  const files = fs.readdirSync(ASSETS_DIR).filter((f) => f.endsWith(".html"));
+  const args = process.argv.slice(2);
+  const verbose = args.includes("--verbose") || args.includes("-v");
+  let files = args.filter((arg) => !arg.startsWith("-"));
+
+  if (files.length === 0) {
+    files = fs.readdirSync(ASSETS_DIR).filter((f) => f.endsWith(".html"));
+  } else {
+    files = files.map((f) => (f.endsWith(".html") ? f : f + ".html"));
+    const missing = files.filter((f) => !fs.existsSync(path.join(ASSETS_DIR, f)));
+    if (missing.length > 0) {
+      console.warn(`Warning: Files not found in ${ASSETS_DIR}: ${missing.join(", ")}`);
+      files = files.filter((f) => fs.existsSync(path.join(ASSETS_DIR, f)));
+    }
+  }
+
+  if (files.length === 0) {
+    console.log("No files to convert.");
+    return;
+  }
+
   const cpuCount = Math.min(os.cpus().length, files.length);
   const chunks = Array.from({ length: cpuCount }, () => [] as string[]);
   
@@ -70,6 +89,11 @@ async function convertAssets() {
       worker.on("message", (msg) => {
         if (msg.type === "progress") {
           console.log(`[Worker ${i}] Finished: ${msg.file} in ${msg.duration}ms`);
+        } else if (msg.type === "log") {
+          if (verbose) {
+            const levelStr = ["DEBUG", "INFO", "WARNING", "ERROR"][msg.level] || "UNKNOWN";
+            console.log(`[WASM][${msg.file || "init"}][${levelStr}] ${msg.message}`);
+          }
         } else if (msg.type === "done") {
           resolve();
         }

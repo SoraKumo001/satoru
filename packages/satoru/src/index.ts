@@ -77,10 +77,28 @@ export class Satoru {
       }
     };
 
+    const onLog = (level: LogLevel, message: string) => {
+        if (options.onLog) {
+            options.onLog(level, message);
+        } else {
+            defaultOnLog(level, message);
+        }
+    };
+
     const mod = await createSatoruModuleFunc({
-      onLog: options.onLog || defaultOnLog,
+      onLog,
+      print: (text: string) => {
+          onLog(LogLevel.Info, text);
+      },
+      printErr: (text: string) => {
+          onLog(LogLevel.Error, text);
+      },
       ...options
     });
+    
+    // Ensure onLog is available on the module instance
+    mod.onLog = onLog;
+    
     mod._init_engine();
     return new Satoru(mod);
   }
@@ -162,7 +180,7 @@ export class Satoru {
 
             // Remove link tags that point to fonts/css we just handled
             if (r.type !== "image") {
-              const escapedUrl = r.url.replace(/[.*+?^${}()|[\\\]\\]/g, '\\$&');
+              const escapedUrl = r.url.replace(/[.*+?^${}()|[\\\\\\]\\\\]/g, '\\$&');
               const linkRegex = new RegExp(`<link[^>]*href=["']${escapedUrl}["'][^>]*>`, 'gi');
               processedHtml = processedHtml.replace(linkRegex, "");
             }

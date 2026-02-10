@@ -106,7 +106,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "packages/test-web/dist"
+          path: "packages/playground/dist"
   deploy:
     environment:
       name: github-pages

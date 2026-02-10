@@ -121,7 +121,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 
 ### 6. GitHub Pages Deployment
 
-To ensure the web-based test environments (e.g., `test-web`) work correctly on GitHub Pages (which often hosts projects in subdirectories):
+To ensure the web-based test environments (e.g., `playground`) work correctly on GitHub Pages (which often hosts projects in subdirectories):
 
 - **Relative Paths in HTML**: Always use relative paths for scripts and links (e.g., `src/main.ts` instead of `/src/main.ts`).
 - **Vite Configuration**: Set `base: \"./\"` in `vite.config.ts` to allow the application to be served from any base path.

@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "pnpm --filter test-web dev",
+    "dev": "pnpm --filter playground dev",
     "dev:worker": "pnpm --filter satoru-sample dev",
     "build": "pnpm -r --if-present build",
     "test": "pnpm --filter satoru test",

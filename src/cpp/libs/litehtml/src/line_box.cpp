@@ -218,7 +218,6 @@ litehtml::pixel_t litehtml::line_box::calc_va_baseline(const va_context& current
 std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish(bool last_box, const containing_block_context &containing_block_size)
 {
 	std::list< std::unique_ptr<line_box_item> > ret_items;
-
 	if(!last_box)
 	{
 		while(!m_items.empty())
@@ -293,15 +292,13 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
     {
         m_height = m_default_line_height.computed_value;
 		m_baseline = m_font_metrics.base_line();
-        return ret_items;
-    }
+        return ret_items;    }
 
     pixel_t spacing_x = 0;	// Number of pixels to distribute between elements
     pixel_t shift_x = 0;	// Shift elements by X to apply the text-align
 
     if (!(containing_block_size.size_mode & containing_block_context::size_mode_content))
-    {
-        switch (m_text_align)
+    {        switch (m_text_align)
         {
             case text_align_right:
                 if (m_width < (m_right - m_left))
@@ -330,16 +327,10 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
         }
     }
 
-    int counter = 0;
-    float offj  = float(spacing_x) / std::max(1.f, float(m_items.size()) - 1.f);
+    int counter = 0;    float offj  = float(spacing_x) / std::max(1.f, float(m_items.size()) - 1.f);
     float cixx  = 0.0f;
 
-	std::optional<pixel_t> line_height;
-
-	if(!m_default_line_height.css_value.is_predefined())
-	{
-		line_height = m_default_line_height.computed_value;
-	}
+	std::optional<pixel_t> line_height = m_default_line_height.computed_value;
 
 	va_context current_context;
 	std::list<va_context> contexts;
@@ -514,7 +505,7 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 			}
 		}
 
-		if(!lbi->get_el()->src_el()->is_inline_box() && !lbi->get_el()->css().line_height().css_value.is_predefined())
+		if(!lbi->get_el()->src_el()->is_inline_box())
 		{
 			if(line_height.has_value())
 			{
@@ -573,8 +564,7 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 			// We have inline boxes only
 			m_height = inline_boxes_dims.height();
 			top_shift = std::abs(inline_boxes_dims.top);
-			m_baseline = inline_boxes_dims.bottom;
-		} else
+			m_baseline = inline_boxes_dims.bottom;		} else
 		{
 			// We don't have inline items and inline boxes
 			top_shift = 0;
@@ -588,8 +578,7 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 			{
 				top_shift += bottom_aligned_max_height.height() - m_height;
 			}
-			m_height = top_down_height;
-		}
+			m_height = top_down_height;		}
 	} else
 	{
 		// Add inline boxes dimensions
@@ -686,8 +675,7 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 		{
 			if(!inlines.empty())
 			{
-				inlines.back().box.width = lbi->right() - inlines.back().box.x;
-				inlines.back().element->add_inline_box(inlines.back().box);
+				inlines.back().box.width = lbi->right() - inlines.back().box.x;				inlines.back().element->add_inline_box(inlines.back().box);
 				inlines.pop_back();
 			}
 		}
@@ -747,8 +735,7 @@ bool litehtml::line_box::can_hold(const std::unique_ptr<line_box_item>& item, wh
 		// the first word is always can be hold
 		if(!last_el)
 		{
-			return true;
-		}
+			return true;		}
 
 		// force new line if the last placed element was line break
 		// Skip If the break item is float clearing
@@ -871,8 +858,7 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::new_wi
 		while (i != m_items.end())
         {
             if(!(*i)->get_el()->skip())
-            {
-                if(m_left + m_width + (*i)->width() > m_right)
+            {                if(m_left + m_width + (*i)->width() > m_right)
                 {
                     remove_begin = i;
                     break;

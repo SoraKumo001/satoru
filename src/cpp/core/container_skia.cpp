@@ -140,6 +140,16 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
         }
     }
 
+    if (!fi->fonts.empty()) {
+        // Re-check actual typeface weight.
+        // If createSkFont succeeded in applying weight (e.g. Variable Font),
+        // we should disable fake_bold to avoid double bolding.
+        int actual_weight = fi->fonts[0]->getTypeface()->fontStyle().weight();
+        if (actual_weight >= desc.weight) {
+            fi->fake_bold = false;
+        }
+    }
+
     SkFontMetrics skfm;
     fi->fonts[0]->getMetrics(&skfm);
     if (fm) {

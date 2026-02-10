@@ -1,6 +1,13 @@
 // @ts-ignore
 import createSatoruModule from "../dist/satoru.js";
 
+export enum LogLevel {
+  Debug = 0,
+  Info = 1,
+  Warning = 2,
+  Error = 3,
+}
+
 export interface SatoruModule {
   _init_engine: () => void;
   _html_to_svg: (html: number, width: number, height: number) => number;
@@ -25,6 +32,7 @@ export interface SatoruModule {
     buffer: ArrayBuffer;
     set: (data: Uint8Array, ptr: number) => void;
   };
+  onLog?: (level: LogLevel, message: string) => void;
 }
 
 export interface RequiredResource {
@@ -38,6 +46,7 @@ export type ResourceResolver = (resource: RequiredResource) => Promise<Uint8Arra
 export interface SatoruOptions {
   locateFile?: (path: string) => string;
   instantiateWasm?: (imports: any, successCallback: any) => any;
+  onLog?: (level: LogLevel, message: string) => void;
 }
 
 export { createSatoruModule };
@@ -50,7 +59,28 @@ export class Satoru {
   }
 
   static async init(createSatoruModuleFunc: any = createSatoruModule, options: SatoruOptions = {}): Promise<Satoru> {
-    const mod = await createSatoruModuleFunc(options);
+    const defaultOnLog = (level: LogLevel, message: string) => {
+      const prefix = "[Satoru WASM]";
+      switch (level) {
+        case LogLevel.Debug:
+          console.debug(`${prefix} DEBUG: ${message}`);
+          break;
+        case LogLevel.Info:
+          console.info(`${prefix} INFO: ${message}`);
+          break;
+        case LogLevel.Warning:
+          console.warn(`${prefix} WARNING: ${message}`);
+          break;
+        case LogLevel.Error:
+          console.error(`${prefix} ERROR: ${message}`);
+          break;
+      }
+    };
+
+    const mod = await createSatoruModuleFunc({
+      onLog: options.onLog || defaultOnLog,
+      ...options
+    });
     mod._init_engine();
     return new Satoru(mod);
   }
@@ -132,7 +162,7 @@ export class Satoru {
 
             // Remove link tags that point to fonts/css we just handled
             if (r.type !== "image") {
-              const escapedUrl = r.url.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+              const escapedUrl = r.url.replace(/[.*+?^${}()|[\\\]\\]/g, '\\$&');
               const linkRegex = new RegExp(`<link[^>]*href=["']${escapedUrl}["'][^>]*>`, 'gi');
               processedHtml = processedHtml.replace(linkRegex, "");
             }

@@ -53,6 +53,11 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
     - `src/cpp/renderers`: PNG/SVG/PDF specific rendering implementation.
     - `src/cpp/utils`: Skia-specific utility functions and Base64 helpers.
 - **API Layer:** All functionality exported to WASM should be defined in `src/cpp/api/satoru_api.h` and implemented in `satoru_api.cpp`. `main.cpp` serves as the Emscripten entry point and binding definition.
+- **Logging Bridge:**
+    - Unified logging function `satoru_log(LogLevel level, const char *message)` is used in C++.
+    - `LogLevel` enum (Debug, Info, Warning, Error) is defined in `bridge_types.h`.
+    - Bridges to JS via `EM_JS` calling `Module.onLog`.
+    - The TS wrapper (`Satoru` class) accepts an `onLog` callback in `init()` to handle these logs.
 - **Global State:** Global instances like `SatoruContext` and `ResourceManager` are maintained in `satoru_api.cpp`. Do not mark them `static` if they need to be accessed via `extern` from other core components.
 - **SVG Rendering (2-Pass):**
     1. **Pass 1 (Measurement):** Layout with a dummy container to determine exact content height.
@@ -78,13 +83,16 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 - **Layout Defaults:**
     - **line-height:** Default value for `normal` is set to `1.2` times the font height in `css_properties.cpp`.
     - **box-sizing:** Defaulted to `border-box` for `button`, `input`, `select`, and `textarea` in `master_css.h`.
+- **Flexbox Fixes:**
+    - **Column Direction Sizing:** Fixed a bug where items with fixed width were forced to shrink to content size. Now `size_mode_content` is only applied if `width` is `auto` and `align-items` is not `stretch`.
+    - **Margin Calculation:** Fixed cross-axis auto margin calculation in column direction to correctly use `left/right` instead of `top/bottom`.
 
 ### 4. Skia API & Release Notes
 
 - **SkPath Immutability:** Use `SkPathBuilder` instead of direct `SkPath` modification methods.
 - **Radial Gradients:** Circular by default. For **Elliptical** gradients, apply an `SkMatrix` scale transform (e.g., `ry/rx` on Y-axis) to the shader.
 - **PathOps:** Required for complex clipping and path operations, especially in PDF/SVG backends.
-- **C++ Logs:** Bridge `printf` to JS `console.log`. Ensure `\\n` or `fflush(stdout)` is used.
+- **C++ Logs:** Use `satoru_log` for structured logging to JS. Standard `printf` is bridged to JS `console.log` but lacks level information.
 
 ### 5. Testing & Validation
 

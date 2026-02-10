@@ -5,6 +5,10 @@
 #include <string>
 #include <vector>
 
+#include "../bridge/bridge_types.h"
+
+void satoru_log(LogLevel level, const char *message);
+
 void api_init_engine();
 std::string api_html_to_svg(const char *html, int width, int height);
 std::string api_html_to_png(const char *html, int width, int height);

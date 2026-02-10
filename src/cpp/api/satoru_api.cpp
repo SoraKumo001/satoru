@@ -1,5 +1,6 @@
 #include "satoru_api.h"
 
+#include <emscripten.h>
 #include <cstring>
 
 #include "core/container_skia.h"
@@ -9,6 +10,14 @@
 #include "renderers/pdf_renderer.h"
 #include "renderers/png_renderer.h"
 #include "renderers/svg_renderer.h"
+
+EM_JS(void, satoru_log_js, (int level, const char *message), {
+    if (Module.onLog) {
+        Module.onLog(level, UTF8ToString(message));
+    }
+});
+
+void satoru_log(LogLevel level, const char *message) { satoru_log_js((int)level, message); }
 
 SatoruContext g_context;
 ResourceManager *g_resourceManager = nullptr;
@@ -20,6 +29,7 @@ static std::string get_full_master_css() {
 }
 
 void api_init_engine() {
+    satoru_log(LogLevel::Info, "Satoru Engine Initializing...");
     g_context.init();
     if (!g_resourceManager) {
         g_resourceManager = new ResourceManager(g_context);

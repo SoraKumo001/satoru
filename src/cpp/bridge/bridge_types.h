@@ -8,6 +8,8 @@
 #include "include/core/SkFontStyle.h"
 #include "libs/litehtml/include/litehtml.h"
 
+enum class LogLevel { Debug = 0, Info = 1, Warning = 2, Error = 3 };
+
 struct font_info {
     litehtml::font_description desc;
     std::vector<class SkFont *> fonts;
@@ -58,6 +60,11 @@ struct conic_gradient_info {
 struct radial_gradient_info {
     litehtml::background_layer layer;
     litehtml::background_layer::radial_gradient gradient;
+};
+
+struct image_resource_info {
+    std::string url;
+    std::vector<uint8_t> data;
 };
 
 struct linear_gradient_info {

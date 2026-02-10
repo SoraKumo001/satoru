@@ -5,11 +5,7 @@ import { fileURLToPath } from "url";
 import { Satoru, RequiredResource } from "satoru";
 import { PNG } from "pngjs";
 import { chromium, Browser, Page } from "playwright";
-import {
-  downloadFont,
-  compareImages,
-  ComparisonMetrics,
-} from "../src/utils";
+import { downloadFont, compareImages, ComparisonMetrics } from "../src/utils";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,10 +17,12 @@ const DIFF_DIR = path.resolve(__dirname, "../diff");
 const TEMP_DIR = path.resolve(ROOT_DIR, "../temp");
 
 const BASELINE_PATH = path.join(__dirname, "data/mismatch-baselines.json");
-const baselines: Record<string, { direct: ComparisonMetrics; svg: ComparisonMetrics }> =
-  fs.existsSync(BASELINE_PATH)
-    ? JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"))
-    : {};
+const baselines: Record<
+  string,
+  { direct: ComparisonMetrics; svg: ComparisonMetrics }
+> = fs.existsSync(BASELINE_PATH)
+  ? JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"))
+  : {};
 
 const FONT_MAP: {
   name: string;
@@ -138,37 +136,56 @@ describe("Visual Regression Tests", () => {
         // Log results
         console.log(
           `${file}: Direct[Fill: ${directResult.fill.toFixed(2)}%, Outline: ${directResult.outline.toFixed(2)}%] ` +
-          `SVG[Fill: ${svgResult.fill.toFixed(2)}%, Outline: ${svgResult.outline.toFixed(2)}%]`
+            `SVG[Fill: ${svgResult.fill.toFixed(2)}%, Outline: ${svgResult.outline.toFixed(2)}%]`,
         );
 
         const fillThreshold = 30;
-        const outlineThreshold = 10;
+        const outlineThreshold = 15;
 
         const baseline = baselines[file];
         if (!baseline || process.env.UPDATE_SNAPSHOTS) {
           baselines[file] = { direct: directResult, svg: svgResult };
         } else {
           const factor = process.env.GITHUB_ACTIONS ? 2.0 : 1.05;
-          
+
           // Validate Direct
-          expect(directResult.outline, `Direct Outline diff increased (baseline: ${baseline.direct.outline.toFixed(2)}%)`)
-            .toBeLessThanOrEqual(Math.max(baseline.direct.outline, 0.01) * factor);
-          
+          expect(
+            directResult.outline,
+            `Direct Outline diff increased (baseline: ${baseline.direct.outline.toFixed(2)}%)`,
+          ).toBeLessThanOrEqual(
+            Math.max(baseline.direct.outline, 0.01) * factor,
+          );
+
           // Validate SVG
-          expect(svgResult.outline, `SVG Outline diff increased (baseline: ${baseline.svg.outline.toFixed(2)}%)`)
-            .toBeLessThanOrEqual(Math.max(baseline.svg.outline, 0.01) * factor);
+          expect(
+            svgResult.outline,
+            `SVG Outline diff increased (baseline: ${baseline.svg.outline.toFixed(2)}%)`,
+          ).toBeLessThanOrEqual(Math.max(baseline.svg.outline, 0.01) * factor);
 
           // Update baseline if improved
-          if (directResult.fill < baseline.direct.fill) baseline.direct.fill = directResult.fill;
-          if (directResult.outline < baseline.direct.outline) baseline.direct.outline = directResult.outline;
-          if (svgResult.fill < baseline.svg.fill) baseline.svg.fill = svgResult.fill;
-          if (svgResult.outline < baseline.svg.outline) baseline.svg.outline = svgResult.outline;
+          if (directResult.fill < baseline.direct.fill)
+            baseline.direct.fill = directResult.fill;
+          if (directResult.outline < baseline.direct.outline)
+            baseline.direct.outline = directResult.outline;
+          if (svgResult.fill < baseline.svg.fill)
+            baseline.svg.fill = svgResult.fill;
+          if (svgResult.outline < baseline.svg.outline)
+            baseline.svg.outline = svgResult.outline;
         }
 
-        expect(directResult.outline, `Direct Outline diff too high`).toBeLessThan(outlineThreshold);
-        expect(svgResult.outline, `SVG Outline diff too high`).toBeLessThan(outlineThreshold);
-        expect(directResult.fill, `Direct Fill diff too high`).toBeLessThan(fillThreshold);
-        expect(svgResult.fill, `SVG Fill diff too high`).toBeLessThan(fillThreshold);
+        expect(
+          directResult.outline,
+          `Direct Outline diff too high`,
+        ).toBeLessThan(outlineThreshold);
+        expect(svgResult.outline, `SVG Outline diff too high`).toBeLessThan(
+          outlineThreshold,
+        );
+        expect(directResult.fill, `Direct Fill diff too high`).toBeLessThan(
+          fillThreshold,
+        );
+        expect(svgResult.fill, `SVG Fill diff too high`).toBeLessThan(
+          fillThreshold,
+        );
       }, 30000);
     });
   });

@@ -2,7 +2,8 @@
 #define SATORU_MASTER_CSS_H
 
 const char *satoru_master_css =
-    "html, body { display: block; margin: 0; padding: 0; }\n"
+    "html { display: block; margin: 0; padding: 0; }\n"
+    "body { display: block; margin: 8px; padding: 0; }\n"
     "p { display: block; margin: 1em 0; }\n"
     "b, strong { font-weight: bold; }\n"
     "i, em { font-style: italic; }\n"

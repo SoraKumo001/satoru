@@ -84,6 +84,18 @@ export default defineConfig({
         }
       },
     },
+    {
+      name: "watch-external-assets",
+      configureServer(server) {
+        const assetsPath = path.resolve(__dirname, "../../assets");
+        server.watcher.add(assetsPath);
+        server.watcher.on("change", (file) => {
+          if (file.startsWith(assetsPath)) {
+            server.ws.send({ type: "full-reload" });
+          }
+        });
+      },
+    },
   ],
   build: {
     outDir: "dist",

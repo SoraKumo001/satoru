@@ -146,6 +146,10 @@ std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string &
                 }
             }
             if (bestMatch) result.push_back(bestMatch);
+        } else if (cleaned == "sans-serif" || cleaned == "serif" || cleaned == "monospace") {
+            if (m_defaultTypeface) {
+                result.push_back(m_defaultTypeface);
+            }
         }
     }
     return result;

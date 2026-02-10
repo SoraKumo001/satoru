@@ -253,7 +253,7 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   m_line_height.css_value = el->get_property<css_length>(_line_height_, true, normal, offset(m_line_height.css_value));
   if (m_line_height.css_value.is_predefined())
   {
-    m_line_height.computed_value = (pixel_t)(m_font_metrics.height * 1.2);
+    m_line_height.computed_value = (pixel_t)(m_font_metrics.height);
   }
   else if (m_line_height.css_value.units() == css_units_none)
   {

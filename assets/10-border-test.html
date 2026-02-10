@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    @font-face {
+      font-family: 'Roboto';
+      src: url('https://fonts.gstatic.com/s/roboto/v50/KFO7CnqEu92Fr1ME7kSn66aGLdTylUAMa3yUBA.woff2');
+      font-weight: 100 900;
+      font-style: normal;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+    }
+
+    .box {
+      width: 100px;
+      height: 50px;
+      margin: 10px;
+      background-color: #f0f0f0;
+      border-width: 6px;
+      border-color: black;
+      display: inline-block;
+    }
+
+    .dotted {
+      border-style: dotted;
+    }
+
+    .dashed {
+      border-style: dashed;
+    }
+
+    .solid {
+      border-style: solid;
+    }
+
+    .double {
+      border-style: double;
+    }
+
+    .groove {
+      border-style: groove;
+    }
+
+    .ridge {
+      border-style: ridge;
+    }
+
+    .inset {
+      border-style: inset;
+    }
+
+    .outset {
+      border-style: outset;
+    }
+
+    .rounded {
+      border-radius: 15px;
+    }
+
+    .mixed {
+      border-top-style: solid;
+      border-right-style: dashed;
+      border-bottom-style: dotted;
+      border-left-style: double;
+      border-top-color: red;
+      border-right-color: green;
+      border-bottom-color: blue;
+      border-left-color: orange;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="box solid">solid</div>
+  <div class="box dotted">dotted</div>
+  <div class="box dashed">dashed</div>
+  <div class="box double">double</div>
+  <br>
+  <div class="box groove">groove</div>
+  <div class="box ridge">ridge</div>
+  <div class="box inset">inset</div>
+  <div class="box outset">outset</div>
+  <br>
+  <div class="box solid rounded">solid rounded</div>
+  <div class="box dotted rounded">dotted rounded</div>
+  <div class="box dashed rounded">dashed rounded</div>
+  <div class="box double rounded">double rounded</div>
+  <br>
+  <div class="box mixed">mixed</div>
+  <div class="box mixed rounded">mixed rounded</div>
+</body>
+
+</html>

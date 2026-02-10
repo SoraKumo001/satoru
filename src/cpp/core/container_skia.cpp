@@ -21,10 +21,10 @@
 
 namespace {
 static SkColor darken(litehtml::web_color c, float fraction) {
-    return SkColorSetARGB(
-        c.alpha, (uint8_t)std::max(0.0f, (float)c.red - ((float)c.red * fraction)),
-        (uint8_t)std::max(0.0f, (float)c.green - ((float)c.green * fraction)),
-        (uint8_t)std::max(0.0f, (float)c.blue - ((float)c.blue * fraction)));
+    return SkColorSetARGB(c.alpha,
+                          (uint8_t)std::max(0.0f, (float)c.red - ((float)c.red * fraction)),
+                          (uint8_t)std::max(0.0f, (float)c.green - ((float)c.green * fraction)),
+                          (uint8_t)std::max(0.0f, (float)c.blue - ((float)c.blue * fraction)));
 }
 
 static SkColor lighten(litehtml::web_color c, float fraction) {
@@ -475,7 +475,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
         return;
     }
     for (auto it = shadows.rbegin(); it != shadows.rend(); ++it) {
-        const auto &s = *it;\
+        const auto &s = *it;
         if (s.inset != inset) continue;
         SkRRect box_rrect = make_rrect(pos, radius);
         SkColor shadow_color =
@@ -546,7 +546,7 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
 void container_skia::draw_solid_fill(litehtml::uint_ptr hdc,
                                      const litehtml::background_layer &layer,
                                      const litehtml::web_color &color) {
-    if (!m_canvas) return;\
+    if (!m_canvas) return;
     SkPaint p;
     p.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     p.setAntiAlias(true);
@@ -560,7 +560,7 @@ void container_skia::draw_linear_gradient(
     if (m_tagging) {
         linear_gradient_info info;
         info.layer = layer;
-        info.gradient = gradient;\
+        info.gradient = gradient;
         m_usedLinearGradients.push_back(info);
         int index = (int)m_usedLinearGradients.size();
         SkPaint p;
@@ -592,7 +592,7 @@ void container_skia::draw_radial_gradient(
     if (m_tagging) {
         radial_gradient_info info;
         info.layer = layer;
-        info.gradient = gradient;\
+        info.gradient = gradient;
         m_usedRadialGradients.push_back(info);
         int index = (int)m_usedRadialGradients.size();
         SkPaint p;
@@ -625,7 +625,7 @@ void container_skia::draw_conic_gradient(
     const litehtml::background_layer::conic_gradient &gradient) {
     if (!m_canvas) return;
     if (m_tagging) {
-        conic_gradient_info info;\
+        conic_gradient_info info;
         info.layer = layer;
         info.gradient = gradient;
         m_usedConicGradients.push_back(info);
@@ -649,7 +649,7 @@ void container_skia::draw_conic_gradient(
         }
         if (!pos.empty() && pos.back() > 1.0f) {
             float max_val = pos.back();
-            for (auto &p : pos) p /= max_val;\
+            for (auto &p : pos) p /= max_val;
             pos.back() = 1.0f;
         }
         SkGradient grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos), SkTileMode::kClamp),
@@ -700,7 +700,7 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                 intervals[1] = 2.0f * (float)borders.top.width;
                 p.setStrokeCap(SkPaint::kRound_Cap);
             } else {
-                intervals[0] = 3.0f * (float)borders.top.width;
+                intervals[0] = std::max(3.0f, 2.0f * (float)borders.top.width);
                 intervals[1] = (float)borders.top.width;
             }
             p.setPathEffect(SkDashPathEffect::Make(SkSpan<const float>(intervals, 2), 0));
@@ -750,7 +750,8 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
             p.setAntiAlias(true);
             p.setColor(SkColorSetARGB(b.color.alpha, b.color.red, b.color.green, b.color.blue));
 
-            if (b.style == litehtml::border_style_dotted || b.style == litehtml::border_style_dashed) {
+            if (b.style == litehtml::border_style_dotted ||
+                b.style == litehtml::border_style_dashed) {
                 p.setStyle(SkPaint::kStroke_Style);
                 p.setStrokeWidth((float)b.width);
                 float intervals[2];
@@ -759,7 +760,7 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                     intervals[1] = 2.0f * (float)b.width;
                     p.setStrokeCap(SkPaint::kRound_Cap);
                 } else {
-                    intervals[0] = 3.0f * (float)b.width;
+                    intervals[0] = std::max(3.0f, 2.0f * (float)b.width);
                     intervals[1] = (float)b.width;
                 }
                 p.setPathEffect(SkDashPathEffect::Make(SkSpan<const float>(intervals, 2), 0));
@@ -778,7 +779,7 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
             } else if (b.style == litehtml::border_style_groove ||
                        b.style == litehtml::border_style_ridge) {
                 bool ridge = (b.style == litehtml::border_style_ridge);
-                SkColor c1, c2;\
+                SkColor c1, c2;
                 if (is_top_left) {
                     c1 = ridge ? lighten(b.color, 0.2f) : darken(b.color, 0.2f);
                     c2 = ridge ? darken(b.color, 0.2f) : lighten(b.color, 0.2f);
@@ -809,15 +810,14 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                 SkRect ir = SkRect::MakeXYWH(x + lw, y + tw, w - lw - rw, h - tw - bw);
                 SkRRect inner_rr;
                 if (ir.width() > 0 && ir.height() > 0) {
-                    SkVector rads[4] = {
-                        {std::max(0.0f, (float)borders.radius.top_left_x - lw),
-                         std::max(0.0f, (float)borders.radius.top_left_y - tw)},
-                        {std::max(0.0f, (float)borders.radius.top_right_x - rw),
-                         std::max(0.0f, (float)borders.radius.top_right_y - tw)},
-                        {std::max(0.0f, (float)borders.radius.bottom_right_x - rw),
-                         std::max(0.0f, (float)borders.radius.bottom_right_y - bw)},
-                        {std::max(0.0f, (float)borders.radius.bottom_left_x - lw),
-                         std::max(0.0f, (float)borders.radius.bottom_left_y - bw)}};
+                    SkVector rads[4] = {{std::max(0.0f, (float)borders.radius.top_left_x - lw),
+                                         std::max(0.0f, (float)borders.radius.top_left_y - tw)},
+                                        {std::max(0.0f, (float)borders.radius.top_right_x - rw),
+                                         std::max(0.0f, (float)borders.radius.top_right_y - tw)},
+                                        {std::max(0.0f, (float)borders.radius.bottom_right_x - rw),
+                                         std::max(0.0f, (float)borders.radius.bottom_right_y - bw)},
+                                        {std::max(0.0f, (float)borders.radius.bottom_left_x - lw),
+                                         std::max(0.0f, (float)borders.radius.bottom_left_y - bw)}};
                     inner_rr.setRectRadii(ir, rads);
                     m_canvas->drawDRRect(outer_rr, inner_rr, p);
                 } else
@@ -884,7 +884,7 @@ void container_skia::load_image(const char *src, const char *baseurl, bool redra
 void container_skia::get_image_size(const char *src, const char *baseurl, litehtml::size &sz) {
     int w, h;
     if (m_context.get_image_size(src, w, h)) {
-        sz.width = w;\
+        sz.width = w;
         sz.height = h;
     } else {
         sz.width = 0;

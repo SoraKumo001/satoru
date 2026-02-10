@@ -54,35 +54,29 @@ std::string trim(const std::string &s) {
 
 char32_t decode_utf8(const char **ptr) {
     const uint8_t *p = (const uint8_t *)*ptr;
-    if (!*p) return 0;
+    if (!p || !*p) return 0;
+
+    uint32_t cp = 0;
     uint8_t b1 = *p++;
-    if (!(b1 & 0x80)) {
-        *ptr = (const char *)p;
-        return b1;
+
+    if (b1 < 0x80) {
+        cp = b1;
+    } else if ((b1 & 0xE0) == 0xC0) {
+        cp = (b1 & 0x1F) << 6;
+        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F);
+    } else if ((b1 & 0xF0) == 0xE0) {
+        cp = (b1 & 0x0F) << 12;
+        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F) << 6;
+        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F);
+    } else if ((b1 & 0xF8) == 0xF0) {
+        cp = (b1 & 0x07) << 18;
+        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F) << 12;
+        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F) << 6;
+        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F);
     }
-    if ((b1 & 0xE0) == 0xC0) {
-        char32_t r = (b1 & 0x1F) << 6;
-        if (*p) r |= (*p++ & 0x3F);
-        *ptr = (const char *)p;
-        return r;
-    }
-    if ((b1 & 0xF0) == 0xE0) {
-        char32_t r = (b1 & 0x0F) << 12;
-        if (*p) r |= (*p++ & 0x3F) << 6;
-        if (*p) r |= (*p++ & 0x3F);
-        *ptr = (const char *)p;
-        return r;
-    }
-    if ((b1 & 0xF8) == 0xF0) {
-        char32_t r = (b1 & 0x07) << 18;
-        if (*p) r |= (*p++ & 0x3F) << 12;
-        if (*p) r |= (*p++ & 0x3F) << 6;
-        if (*p) r |= (*p++ & 0x3F);
-        *ptr = (const char *)p;
-        return r;
-    }
+
     *ptr = (const char *)p;
-    return 0;
+    return (char32_t)cp;
 }
 }  // namespace
 
@@ -102,16 +96,25 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
                                    ? SkFontStyle::kUpright_Slant
                                    : SkFontStyle::kItalic_Slant;
 
+    std::vector<sk_sp<SkTypeface>> typefaces;
     bool fake_bold = false;
-    auto typefaces = m_context.get_typefaces(desc.family, desc.weight, slant, fake_bold);
 
-    if (m_resourceManager) {
-        std::stringstream ss(desc.family);
-        std::string item;
-        while (std::getline(ss, item, ',')) {
-            std::string family = trim(item);
-            std::string url = m_context.fontManager.getFontUrl(family, desc.weight, slant);
-            if (!url.empty()) {
+    std::stringstream ss(desc.family);
+    std::string item;
+    while (std::getline(ss, item, ',')) {
+        std::string family = trim(item);
+        if (family.empty()) continue;
+        
+        bool fb = false;
+        auto tfs = m_context.get_typefaces(family, desc.weight, slant, fb);
+        for (auto &tf : tfs) {
+            typefaces.push_back(tf);
+        }
+        if (fb) fake_bold = true;
+
+        if (m_resourceManager) {
+            std::vector<std::string> urls = m_context.fontManager.getFontUrls(family, desc.weight, slant);
+            for (const auto& url : urls) {
                 m_resourceManager->request(url, family, ResourceType::Font);
             }
         }
@@ -145,6 +148,10 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
         }
     }
 
+    if (fi->fonts.size() > 1) {
+        // printf("[WASM] create_font: Family '%s' has %zu subset fonts loaded.\n", desc.family.c_str(), fi->fonts.size());
+    }
+
     if (fi->fonts.empty()) {
         sk_sp<SkTypeface> def = m_context.fontManager.getDefaultTypeface();
         if (def) {
@@ -156,9 +163,6 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
     }
 
     if (!fi->fonts.empty()) {
-        // Re-check actual typeface weight.
-        // If createSkFont succeeded in applying weight (e.g. Variable Font),
-        // we should disable fake_bold to avoid double bolding.
         int actual_weight = fi->fonts[0]->getTypeface()->fontStyle().weight();
         if (actual_weight >= desc.weight) {
             fi->fake_bold = false;
@@ -200,15 +204,21 @@ litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_pt
         char32_t u = decode_utf8(&next_p);
         SkFont *font = nullptr;
         for (auto f : fi->fonts) {
-            SkGlyphID glyph;
-            f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>((const SkUnichar *)&u, 1),
+            SkGlyphID glyph = 0;
+            SkUnichar sc = (SkUnichar)u;
+            f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
                                                SkSpan<SkGlyphID>(&glyph, 1));
             if (glyph != 0) {
                 font = f;
                 break;
             }
         }
-        if (!font) font = fi->fonts[0];
+        if (!font) {
+            if (u > 127) {
+                printf("[WASM] text_width: Glyph NOT FOUND for U+%04X in %zu fonts (family: %s)\n", (uint32_t)u, fi->fonts.size(), fi->desc.family.c_str());
+            }
+            font = fi->fonts[0];
+        }
         if (font != current_font) {
             if (current_font && p > run_start)
                 total_width +=
@@ -257,9 +267,10 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                     char32_t u = decode_utf8(&next_p);
                     SkFont *font = nullptr;
                     for (auto f : fi->fonts) {
-                        SkGlyphID glyph;
+                        SkGlyphID glyph = 0;
+                        SkUnichar sc = (SkUnichar)u;
                         f->getTypeface()->unicharsToGlyphs(
-                            SkSpan<const SkUnichar>((const SkUnichar *)&u, 1),
+                            SkSpan<const SkUnichar>(&sc, 1),
                             SkSpan<SkGlyphID>(&glyph, 1));
                         if (glyph != 0) {
                             font = f;
@@ -345,16 +356,22 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
             char32_t u = decode_utf8(&next_ptr);
             SkFont *font = nullptr;
             for (auto f : fi->fonts) {
-                SkGlyphID glyph;
+                SkGlyphID glyph = 0;
+                SkUnichar sc = (SkUnichar)u;
                 f->getTypeface()->unicharsToGlyphs(
-                    SkSpan<const SkUnichar>((const SkUnichar *)&u, 1),
+                    SkSpan<const SkUnichar>(&sc, 1),
                     SkSpan<SkGlyphID>(&glyph, 1));
                 if (glyph != 0) {
                     font = f;
                     break;
                 }
             }
-            if (!font) font = fi->fonts[0];
+            if (!font) {
+                if (u > 127) {
+                    printf("[WASM] draw_text: Glyph NOT FOUND for U+%04X in %zu fonts (family: %s)\n", (uint32_t)u, fi->fonts.size(), fi->desc.family.c_str());
+                }
+                font = fi->fonts[0];
+            }
             if (font != current_font) {
                 if (current_font && ptr > run_start) {
                     SkFont render_font = *current_font;
@@ -754,8 +771,7 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                 b.style == litehtml::border_style_dashed) {
                 p.setStyle(SkPaint::kStroke_Style);
                 p.setStrokeWidth((float)b.width);
-                float intervals[2];
-                if (b.style == litehtml::border_style_dotted) {
+                float intervals[2];                if (b.style == litehtml::border_style_dotted) {
                     intervals[0] = 0.0f;
                     intervals[1] = 2.0f * (float)b.width;
                     p.setStrokeCap(SkPaint::kRound_Cap);
@@ -889,9 +905,9 @@ void container_skia::get_image_size(const char *src, const char *baseurl, liteht
     } else {
         sz.width = 0;
         sz.height = 0;
-    }
+    }\
 }
-void container_skia::get_viewport(litehtml::position &viewport) const {
+void container_skia::get_viewport(litehtml::position &viewport) const {\
     viewport.x = 0;
     viewport.y = 0;
     viewport.width = m_width;

@@ -142,7 +142,8 @@ export class Satoru {
     let processedHtml = html;
     const resolvedUrls = new Set<string>();
 
-    for (let i = 0; i < 3; i++) {
+    // Increased loop count to 10 to support multi-pass resource resolution (CSS -> Font Segments)
+    for (let i = 0; i < 10; i++) {
       const resources = this.getPendingResources(processedHtml, width);
       const pending = resources.filter(r => !resolvedUrls.has(r.url));
       
@@ -177,19 +178,21 @@ export class Satoru {
             if (data instanceof Uint8Array) {
               this.addResource(r.url, r.type, data);
             }
-
-            // Remove link tags that point to fonts/css we just handled
-            if (r.type !== "image") {
-              const escapedUrl = r.url.replace(/[.*+?^${}()|[\\\\\\]\\\\]/g, '\\$&');
-              const linkRegex = new RegExp(`<link[^>]*href=["']${escapedUrl}["'][^>]*>`, 'gi');
-              processedHtml = processedHtml.replace(linkRegex, "");
-            }
           } catch (e) {
             console.warn(`Failed to resolve resource: ${r.url}`, e);
           }
         })
       );
     }
+
+    // After all resources are resolved, we remove the link tags to prevent litehtml 
+    // from attempting to fetch them again during the final layout/drawing pass.
+    resolvedUrls.forEach(url => {
+      // Escape special regex characters in the URL
+      const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const linkRegex = new RegExp(`<link[^>]*href=["']${escapedUrl}["'][^>]*>`, 'gi');
+      processedHtml = processedHtml.replace(linkRegex, "");
+    });
 
     switch (format) {
       case "png":

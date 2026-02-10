@@ -78,6 +78,8 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
             weight = "500";
         else if (std::regex_search(url, std::regex("[-._]900\\\\b|black", std::regex::icase)))
             weight = "900";
+        else if (std::regex_search(url, std::regex("[-._]100\\\\b|thin", std::regex::icase)))
+            weight = "100";
 
         std::string style = "normal";
         if (std::regex_search(url, std::regex("italic|oblique", std::regex::icase)))

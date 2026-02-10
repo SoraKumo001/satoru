@@ -24,7 +24,7 @@ async function runWorker() {
       const html = fs.readFileSync(inputPath, "utf-8");
 
       const resolveResource = async (r: any) => {
-        if (r.type === "font") {
+        if (r.type === "font" || r.type === "css") {
           const font = fontMap.find(
             (f: any) => f.url === r.url || f.name === r.name,
           );
@@ -34,13 +34,17 @@ async function runWorker() {
           // If not in map but is a URL, try fetching it
           if (r.url && r.url.startsWith("http")) {
             try {
-              const resp = await fetch(r.url);
+              // Set a browser-like User-Agent to get proper fonts from Google Fonts
+              const headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+              };
+              const resp = await fetch(r.url, { headers });
               if (resp.ok) {
                 const buf = await resp.arrayBuffer();
                 return new Uint8Array(buf);
               }
             } catch (e) {
-              console.error(`Failed to fetch font from ${r.url}:`, e);
+              console.error(`Failed to fetch ${r.type} from ${r.url}:`, e);
             }
           }
         } else if (r.type === "image") {
@@ -49,6 +53,16 @@ async function runWorker() {
             const imgPath = path.join(assetsDir, r.url);
             if (fs.existsSync(imgPath)) {
               return new Uint8Array(fs.readFileSync(imgPath));
+            }
+          } else if (r.url && r.url.startsWith("http")) {
+             try {
+              const resp = await fetch(r.url);
+              if (resp.ok) {
+                const buf = await resp.arrayBuffer();
+                return new Uint8Array(buf);
+              }
+            } catch (e) {
+              console.error(`Failed to fetch image from ${r.url}:`, e);
             }
           }
         }

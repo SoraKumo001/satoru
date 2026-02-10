@@ -146,7 +146,7 @@ describe("Visual Regression Tests", () => {
         if (!baseline || process.env.UPDATE_SNAPSHOTS) {
           baselines[file] = { direct: directResult, svg: svgResult };
         } else {
-          const factor = process.env.GITHUB_ACTIONS ? 2.0 : 1.05;
+          const factor = process.env.GITHUB_ACTIONS ? 2.0 : 1.0;
 
           // Validate Direct
           expect(

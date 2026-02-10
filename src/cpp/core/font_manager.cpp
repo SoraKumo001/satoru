@@ -6,6 +6,7 @@
 
 #include "include/core/SkData.h"
 #include "include/core/SkFontArguments.h"
+#include "include/core/SkSpan.h"
 #include "utils/skia_utils.h"
 
 // External declaration for the custom empty font manager
@@ -33,9 +34,12 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
 
     auto typeface = m_fontMgr->makeFromData(std::move(data_ptr));
     if (typeface) {
-        std::string cleaned = clean_font_name(name);
+        std::string cleaned = cleanName(name);
         m_typefaceCache[cleaned].push_back(typeface);
         if (!m_defaultTypeface) m_defaultTypeface = typeface;
+        printf("[WASM] loadFont: Loaded '%s' (Total for family: %zu)\n", cleaned.c_str(), m_typefaceCache[cleaned].size());
+    } else {
+        printf("[WASM] loadFont: FAILED to load font data (%d bytes)\n", size);
     }
 }
 
@@ -47,129 +51,163 @@ void SatoruFontManager::clear() {
 }
 
 void SatoruFontManager::scanFontFaces(const std::string &css) {
-    std::regex fontFaceRegex(R"(@font-face\s*\{([^}]+)\})", std::regex::icase);
-    std::regex familyRegex(R"(font-family:\s*([^;]+);?)", std::regex::icase);
-    std::regex weightRegex(R"(font-weight:\s*([^;]+);?)", std::regex::icase);
-    std::regex styleRegex(R"(font-style:\s*([^;]+);?)", std::regex::icase);
+    std::regex fontFaceRegex(R"(@font-face\s*\{([^{}]*)\})", std::regex::icase);
+    std::regex familyRegex(R"(font-family:\s*([^;\}]+);?)", std::regex::icase);
+    std::regex weightRegex(R"(font-weight:\s*([^;\}]+);?)", std::regex::icase);
+    std::regex styleRegex(R"(font-style:\s*([^;\}]+);?)", std::regex::icase);
     std::regex urlRegex(R"(url\s*\(\s*['"]?([^'\"\)]+)['"]?\s*\))", std::regex::icase);
+    std::regex unicodeRangeRegex(R"(unicode-range:\s*([^;\}]+);?)", std::regex::icase);
 
     auto words_begin = std::sregex_iterator(css.begin(), css.end(), fontFaceRegex);
     for (std::sregex_iterator i = words_begin; i != std::sregex_iterator(); ++i) {
         std::string body = (*i)[1].str();
         std::smatch m;
-        font_request req;
-        req.weight = 400;
-        req.slant = SkFontStyle::kUpright_Slant;
+        std::string family = "";
+        std::vector<int> weights;
+        SkFontStyle::Slant slant = SkFontStyle::kUpright_Slant;
 
         if (std::regex_search(body, m, familyRegex))
-            req.family = clean_font_name(m[1].str().c_str());
+            family = cleanName(m[1].str().c_str());
 
         if (std::regex_search(body, m, weightRegex)) {
             std::string w = trim(m[1].str());
             if (w == "bold")
-                req.weight = 700;
+                weights.push_back(700);
             else if (w == "normal")
-                req.weight = 400;
-            else
+                weights.push_back(400);
+            else {
                 try {
-                    req.weight = std::stoi(w);
+                    std::regex rangeRegex(R"((\d+)\s+(\d+))");
+                    std::smatch rm;
+                    if (std::regex_search(w, rm, rangeRegex)) {
+                        int start = std::stoi(rm[1].str());
+                        int end = std::stoi(rm[2].str());
+                        for (int v = 100; v <= 900; v += 100) {
+                            if (v >= start && v <= end) weights.push_back(v);
+                        }
+                    } else {
+                        weights.push_back(std::stoi(w));
+                    }
                 } catch (...) {
                 }
+            }
         }
+        
+        if (weights.empty()) weights.push_back(400);
 
         if (std::regex_search(body, m, styleRegex)) {
             std::string s = trim(m[1].str());
-            if (s == "italic" || s == "oblique") req.slant = SkFontStyle::kItalic_Slant;
+            if (s == "italic" || s == "oblique") slant = SkFontStyle::kItalic_Slant;
         }
 
-        if (!req.family.empty() && std::regex_search(body, m, urlRegex))
-            m_fontFaces[req] = trim(m[1].str());
+        if (!family.empty() && std::regex_search(body, m, urlRegex)) {
+            font_face_source src;
+            src.url = trim(m[1].str());
+            if (std::regex_search(body, m, unicodeRangeRegex)) {
+                src.unicode_range = trim(m[1].str());
+            }
+            
+            for (int w : weights) {
+                font_request req;
+                req.family = family;
+                req.weight = w;
+                req.slant = slant;
+                m_fontFaces[req].push_back(src);
+            }
+        }
     }
+}
+
+std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &family, int weight,
+                                                     SkFontStyle::Slant slant) const {
+    font_request req;
+    req.family = cleanName(family.c_str());
+    req.weight = weight;
+    req.slant = slant;
+
+    std::vector<std::string> urls;
+    auto it = m_fontFaces.find(req);
+    if (it != m_fontFaces.end()) {
+        for (const auto &src : it->second) {
+            urls.push_back(src.url);
+        }
+    }
+    
+    if (urls.empty()) {
+        for (const auto &entry : m_fontFaces) {
+            if (entry.first.family == req.family && entry.first.slant == req.slant) {
+                for (const auto &src : entry.second) {
+                    if (std::find(urls.begin(), urls.end(), src.url) == urls.end()) {
+                        urls.push_back(src.url);
+                    }
+                }
+            }
+        }
+    }
+    
+    return urls;
 }
 
 std::string SatoruFontManager::getFontUrl(const std::string &family, int weight,
                                           SkFontStyle::Slant slant) const {
-    std::stringstream ss(family);
-    std::string item;
-    bool hasGeneric = false;
-
-    while (std::getline(ss, item, ',')) {
-        std::string cleanFamily = clean_font_name(trim(item).c_str());
-        if (cleanFamily == "sans-serif" || cleanFamily == "serif" || cleanFamily == "monospace") {
-            hasGeneric = true;
-            continue;
-        }
-
-        font_request req = {cleanFamily, weight, slant};
-        auto it = m_fontFaces.find(req);
-        if (it != m_fontFaces.end()) return it->second;
-
-        int minDiff = 1000;
-        std::string bestUrl = "";
-        for (const auto &pair : m_fontFaces) {
-            if (pair.first.family == cleanFamily && pair.first.slant == slant) {
-                int diff = std::abs(pair.first.weight - weight);
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    bestUrl = pair.second;
-                }
-            }
-        }
-        if (!bestUrl.empty()) return bestUrl;
-    }
-
-    if (hasGeneric && !m_fontFaces.empty()) {
-        return m_fontFaces.begin()->second;
-    }
-    return "";
+    auto urls = getFontUrls(family, weight, slant);
+    return urls.empty() ? "" : urls[0];
 }
 
 std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string &family, int weight,
-                                                             SkFontStyle::Slant slant) {
-    std::vector<sk_sp<SkTypeface>> result;
-    std::stringstream ss(family);
-    std::string item;
-
-    while (std::getline(ss, item, ',')) {
-        std::string cleaned = clean_font_name(trim(item).c_str());
-        if (m_typefaceCache.count(cleaned)) {
-            const auto &list = m_typefaceCache[cleaned];
-            sk_sp<SkTypeface> bestMatch = nullptr;
-            int minDiff = 1000;
-
-            for (const auto &tf : list) {
-                SkFontStyle style = tf->fontStyle();
-                int diff = std::abs(style.weight() - weight) + (style.slant() == slant ? 0 : 500);
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    bestMatch = tf;
-                }
-            }
-            if (bestMatch) result.push_back(bestMatch);
-        } else if (cleaned == "sans-serif" || cleaned == "serif" || cleaned == "monospace") {
-            if (m_defaultTypeface) {
-                result.push_back(m_defaultTypeface);
-            }
-        }
+                                                         SkFontStyle::Slant slant) {
+    std::string cleanFamily = cleanName(family.c_str());
+    auto it = m_typefaceCache.find(cleanFamily);
+    if (it != m_typefaceCache.end()) {
+        return it->second;
     }
-    return result;
+    
+    if (cleanFamily == "serif" || cleanFamily == "sans-serif" || cleanFamily == "monospace") {
+        if (m_defaultTypeface) return { m_defaultTypeface };
+    }
+
+    return {};
 }
 
 SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, int weight) {
     if (!typeface) return nullptr;
 
-    sk_sp<SkTypeface> tf = typeface;
-
-    // Apply wght variation for Variable Fonts
-    SkFontArguments::VariationPosition::Coordinate coords[] = {
-        {SkSetFourByteTag('w', 'g', 'h', 't'), (float)weight}};
-    SkFontArguments args;
-    args.setVariationDesignPosition({coords, 1});
-
-    auto clone = typeface->makeClone(args);
-    if (clone) {
-        tf = clone;
+    int count = typeface->getVariationDesignPosition(SkSpan<SkFontArguments::VariationPosition::Coordinate>());
+    if (count > 0) {
+        std::vector<SkFontArguments::VariationPosition::Coordinate> coords(count);
+        typeface->getVariationDesignPosition(SkSpan(coords));
+        
+        bool found = false;
+        for (auto& coord : coords) {
+            if (coord.axis == SkSetFourByteTag('w', 'g', 'h', 't')) {
+                coord.value = (float)weight;
+                found = true;
+                break;
+            }
+        }
+        
+        if (found) {
+            SkFontArguments args;
+            SkFontArguments::VariationPosition pos = {coords.data(), (int)coords.size()};
+            args.setVariationDesignPosition(pos);
+            sk_sp<SkTypeface> varTypeface = typeface->makeClone(args);
+            if (varTypeface) {
+                return new SkFont(varTypeface, size);
+            }
+        }
     }
 
-    return new SkFont(tf, size);
+    return new SkFont(typeface, size);
+}
+
+std::string SatoruFontManager::cleanName(const char *name) const {
+    if (!name) return "";
+    std::string s = name;
+    std::string res = "";
+    for (char c : s) {
+        if (c == '\'' || c == '\"') continue;
+        if (c == ' ' || c == '\t' || c == '\r' || c == '\n') continue;
+        res += (char)tolower(c);
+    }
+    return res;
 }

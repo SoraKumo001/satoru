@@ -5,53 +5,49 @@
       "outline": 4.606
     },
     "svg": {
-      "fill": 1.2978750000000001,
-      "outline": 4.647125
+      "fill": 1.294625,
+      "outline": 4.564375
     }
   },
   "02-typography.html": {
     "direct": {
-      "fill": 7.1011962890625,
-      "outline": 11.063232421875
+      "fill": 7.743149038461539,
+      "outline": 9.17920673076923
     },
     "svg": {
-      "fill": 7.1019287109375,
-      "outline": 11.06591796875
+      "fill": 7.743990384615385,
+      "outline": 9.17920673076923
     }
   },
   "03-graphics.html": {
     "direct": {
-      "fill": 6.0516250000000005,
-      "outline": 3.01225
+      "fill": 6.69125,
+      "outline": 2.377625
     },
     "svg": {
-      "fill": 6.0447500000000005,
-      "outline": 3.2015000000000002
+      "fill": 6.68025,
+      "outline": 2.49075
     }
   },
   "04-box-effects.html": {
     "direct": {
-      "fill": 3.04875,
-      "outline": 3.071625
+      "fill": 0.308125,
+      "outline": 0.605625
     },
     "svg": {
-      "fill": 2.99475,
-      "outline": 3.1233750000000002
+      "fill": 0.308125,
+      "outline": 0.5473750000000001
     }
   },
   "05-images.html": {
     "direct": {
-      "fill": 0.5695,
-      "outline": 4.2285
+      "fill": 0.541,
+      "outline": 2.818875
     },
     "svg": {
-      "fill": 0.594875,
-      "outline": 4.41625
+      "fill": 0.5745,
+      "outline": 3.068
     }
-  },
-  "test-ja.html": {
-    "direct": 0.07725,
-    "svg": 0.07725
   },
   "06-box-layout.html": {
     "direct": {
@@ -75,32 +71,32 @@
   },
   "08-font-weight-test.html": {
     "direct": {
-      "fill": 2.1094999999999997,
-      "outline": 2.745875
+      "fill": 2.133875,
+      "outline": 2.7365
     },
     "svg": {
-      "fill": 2.0875,
-      "outline": 2.654375
+      "fill": 2.1025,
+      "outline": 2.6557500000000003
     }
   },
   "09-flexbox-test.html": {
     "direct": {
-      "fill": 10.762409513960703,
-      "outline": 11.19170113753878
+      "fill": 10.533076923076923,
+      "outline": 9.929166666666667
     },
     "svg": {
-      "fill": 10.761375387797312,
-      "outline": 11.192282833505688
+      "fill": 10.53173076923077,
+      "outline": 9.928589743589743
     }
   },
   "b.html": {
     "direct": {
-      "fill": 2.2955,
-      "outline": 0.56325
+      "fill": 14.803749999999999,
+      "outline": 0.592
     },
     "svg": {
-      "fill": 2.2955,
-      "outline": 0.56325
+      "fill": 14.803749999999999,
+      "outline": 0.592
     }
   }
 }

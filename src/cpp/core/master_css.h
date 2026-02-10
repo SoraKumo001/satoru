@@ -17,6 +17,17 @@ const char *satoru_master_css =
     "h4 { display: block; font-size: 1em; font-weight: bold; margin: 1.33em 0; }\n"
     "h5 { display: block; font-size: .83em; font-weight: bold; margin: 1.67em 0; }\n"
     "h6 { display: block; font-size: .67em; font-weight: bold; margin: 2.33em 0; }\n"
+    "button {\n"
+    "    display: inline-block;\n"
+    "    text-align: center;\n"
+    "    vertical-align: middle;\n"
+    "    cursor: default;\n"
+    "    box-sizing: border-box;\n"
+    "    padding: 1px 6px;\n"
+    "    border: 2px outset #767676;\n"
+    "    background-color: #efefef;\n"
+    "    color: #000;\n"
+    "}\n"
     "button, input, select, textarea { box-sizing: border-box; }\n";
 
 #endif  // SATORU_MASTER_CSS_H

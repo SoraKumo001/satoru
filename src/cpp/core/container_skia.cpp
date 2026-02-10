@@ -1,5 +1,6 @@
 #include "container_skia.h"
 
+#include <algorithm>
 #include <iostream>
 #include <regex>
 #include <sstream>
@@ -19,6 +20,20 @@
 #include "utils/skia_utils.h"
 
 namespace {
+static SkColor darken(litehtml::web_color c, float fraction) {
+    return SkColorSetARGB(
+        c.alpha, (uint8_t)std::max(0.0f, (float)c.red - ((float)c.red * fraction)),
+        (uint8_t)std::max(0.0f, (float)c.green - ((float)c.green * fraction)),
+        (uint8_t)std::max(0.0f, (float)c.blue - ((float)c.blue * fraction)));
+}
+
+static SkColor lighten(litehtml::web_color c, float fraction) {
+    return SkColorSetARGB(
+        c.alpha, (uint8_t)std::min(255.0f, (float)c.red + ((255.0f - (float)c.red) * fraction)),
+        (uint8_t)std::min(255.0f, (float)c.green + ((255.0f - (float)c.green) * fraction)),
+        (uint8_t)std::min(255.0f, (float)c.blue + ((255.0f - (float)c.blue) * fraction)));
+}
+
 SkRRect make_rrect(const litehtml::position &pos, const litehtml::border_radiuses &radius) {
     SkRect rect = SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height);
     SkVector rad[4] = {{(float)radius.top_left_x, (float)radius.top_left_y},
@@ -460,7 +475,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
         return;
     }
     for (auto it = shadows.rbegin(); it != shadows.rend(); ++it) {
-        const auto &s = *it;
+        const auto &s = *it;\
         if (s.inset != inset) continue;
         SkRRect box_rrect = make_rrect(pos, radius);
         SkColor shadow_color =
@@ -531,7 +546,7 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
 void container_skia::draw_solid_fill(litehtml::uint_ptr hdc,
                                      const litehtml::background_layer &layer,
                                      const litehtml::web_color &color) {
-    if (!m_canvas) return;
+    if (!m_canvas) return;\
     SkPaint p;
     p.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     p.setAntiAlias(true);
@@ -545,7 +560,7 @@ void container_skia::draw_linear_gradient(
     if (m_tagging) {
         linear_gradient_info info;
         info.layer = layer;
-        info.gradient = gradient;
+        info.gradient = gradient;\
         m_usedLinearGradients.push_back(info);
         int index = (int)m_usedLinearGradients.size();
         SkPaint p;
@@ -577,7 +592,7 @@ void container_skia::draw_radial_gradient(
     if (m_tagging) {
         radial_gradient_info info;
         info.layer = layer;
-        info.gradient = gradient;
+        info.gradient = gradient;\
         m_usedRadialGradients.push_back(info);
         int index = (int)m_usedRadialGradients.size();
         SkPaint p;
@@ -610,7 +625,7 @@ void container_skia::draw_conic_gradient(
     const litehtml::background_layer::conic_gradient &gradient) {
     if (!m_canvas) return;
     if (m_tagging) {
-        conic_gradient_info info;
+        conic_gradient_info info;\
         info.layer = layer;
         info.gradient = gradient;
         m_usedConicGradients.push_back(info);
@@ -634,7 +649,7 @@ void container_skia::draw_conic_gradient(
         }
         if (!pos.empty() && pos.back() > 1.0f) {
             float max_val = pos.back();
-            for (auto &p : pos) p /= max_val;
+            for (auto &p : pos) p /= max_val;\
             pos.back() = 1.0f;
         }
         SkGradient grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos), SkTileMode::kClamp),
@@ -651,101 +666,211 @@ void container_skia::draw_conic_gradient(
 void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::borders &borders,
                                   const litehtml::position &draw_pos, bool root) {
     if (!m_canvas) return;
+
     bool uniform =
         borders.top.width == borders.bottom.width && borders.top.width == borders.left.width &&
         borders.top.width == borders.right.width && borders.top.color == borders.bottom.color &&
-        borders.top.color == borders.left.color && borders.top.color == borders.right.color;
+        borders.top.color == borders.left.color && borders.top.color == borders.right.color &&
+        borders.top.style == borders.bottom.style && borders.top.style == borders.left.style &&
+        borders.top.style == borders.right.style &&
+        borders.top.style != litehtml::border_style_groove &&
+        borders.top.style != litehtml::border_style_ridge &&
+        borders.top.style != litehtml::border_style_inset &&
+        borders.top.style != litehtml::border_style_outset;
+
     if (uniform && borders.top.width > 0) {
+        if (borders.top.style == litehtml::border_style_none ||
+            borders.top.style == litehtml::border_style_hidden)
+            return;
+
         SkPaint p;
         p.setColor(SkColorSetARGB(borders.top.color.alpha, borders.top.color.red,
                                   borders.top.color.green, borders.top.color.blue));
-        p.setStrokeWidth((float)borders.top.width);
-        p.setStyle(SkPaint::kStroke_Style);
         p.setAntiAlias(true);
+
         SkRRect rr = make_rrect(draw_pos, borders.radius);
-        rr.inset((float)borders.top.width / 2.0f, (float)borders.top.width / 2.0f);
-        m_canvas->drawRRect(rr, p);
-    } else {
-        litehtml::web_color common = {0, 0, 0, 0};
-        bool mc = false;
-        int active = 0;
-        auto chk = [&](const litehtml::border &b) {
-            if (b.width > 0 && b.style != litehtml::border_style_none &&
-                b.style != litehtml::border_style_hidden) {
-                if (active == 0)
-                    common = b.color;
-                else if (b.color != common)
-                    mc = true;
-                active++;
+
+        if (borders.top.style == litehtml::border_style_dotted ||
+            borders.top.style == litehtml::border_style_dashed) {
+            p.setStrokeWidth((float)borders.top.width);
+            p.setStyle(SkPaint::kStroke_Style);
+            float intervals[2];
+            if (borders.top.style == litehtml::border_style_dotted) {
+                intervals[0] = 0.0f;
+                intervals[1] = 2.0f * (float)borders.top.width;
+                p.setStrokeCap(SkPaint::kRound_Cap);
+            } else {
+                intervals[0] = 3.0f * (float)borders.top.width;
+                intervals[1] = (float)borders.top.width;
             }
-        };
-        chk(borders.top);
-        chk(borders.bottom);
-        chk(borders.left);
-        chk(borders.right);
-        if (active == 0) return;
-        m_canvas->save();
-        SkRRect outer = make_rrect(draw_pos, borders.radius);
-        if (!mc) {
-            SkPaint p;
-            p.setColor(SkColorSetARGB(common.alpha, common.red, common.green, common.blue));
-            p.setAntiAlias(true);
-            SkRect ir = SkRect::MakeXYWH(
-                (float)draw_pos.x + borders.left.width, (float)draw_pos.y + borders.top.width,
-                (float)draw_pos.width - borders.left.width - borders.right.width,
-                (float)draw_pos.height - borders.top.width - borders.bottom.width);
-            if (ir.width() > 0 && ir.height() > 0) {
-                SkVector rads[4] = {
-                    {std::max(0.0f, (float)borders.radius.top_left_x - (float)borders.left.width),
-                     std::max(0.0f, (float)borders.radius.top_left_y - (float)borders.top.width)},
-                    {std::max(0.0f, (float)borders.radius.top_right_x - (float)borders.right.width),
-                     std::max(0.0f, (float)borders.radius.top_right_y - (float)borders.top.width)},
-                    {std::max(0.0f,
-                              (float)borders.radius.bottom_right_x - (float)borders.right.width),
-                     std::max(0.0f,
-                              (float)borders.radius.bottom_right_y - (float)borders.bottom.width)},
-                    {std::max(0.0f,
-                              (float)borders.radius.bottom_left_x - (float)borders.left.width),
-                     std::max(0.0f,
-                              (float)borders.radius.bottom_left_y - (float)borders.bottom.width)}};
-                SkRRect inner;
-                inner.setRectRadii(ir, rads);
-                m_canvas->drawPath(SkPathBuilder()
-                                       .addRRect(outer, SkPathDirection::kCW)
-                                       .addRRect(inner, SkPathDirection::kCCW)
-                                       .detach(),
-                                   p);
-            } else
-                m_canvas->drawRRect(outer, p);
+            p.setPathEffect(SkDashPathEffect::Make(SkSpan<const float>(intervals, 2), 0));
+            rr.inset((float)borders.top.width / 2.0f, (float)borders.top.width / 2.0f);
+            m_canvas->drawRRect(rr, p);
+        } else if (borders.top.style == litehtml::border_style_double) {
+            p.setStrokeWidth((float)borders.top.width / 3.0f);
+            p.setStyle(SkPaint::kStroke_Style);
+            // Outer ring
+            SkRRect outer = rr;
+            outer.inset((float)borders.top.width / 6.0f, (float)borders.top.width / 6.0f);
+            m_canvas->drawRRect(outer, p);
+            // Inner ring
+            SkRRect inner = rr;
+            inner.inset((float)borders.top.width * 5.0f / 6.0f,
+                        (float)borders.top.width * 5.0f / 6.0f);
+            m_canvas->drawRRect(inner, p);
         } else {
-            m_canvas->clipRRect(outer, true);
-            auto dseg = [&](const litehtml::border &b, float x1, float y1, float x2, float y2,
-                            float x3, float y3, float x4, float y4) {
-                if (b.width <= 0 || b.style == litehtml::border_style_none ||
-                    b.style == litehtml::border_style_hidden)
-                    return;
-                SkPaint p;
-                p.setColor(SkColorSetARGB(b.color.alpha, b.color.red, b.color.green, b.color.blue));
-                p.setAntiAlias(true);
-                m_canvas->drawPath(SkPathBuilder()
-                                       .moveTo(x1, y1)
-                                       .lineTo(x2, y2)
-                                       .lineTo(x3, y3)
-                                       .lineTo(x4, y4)
-                                       .close()
-                                       .detach(),
-                                   p);
-            };
-            float x = (float)draw_pos.x, y = (float)draw_pos.y, w = (float)draw_pos.width,
-                  h = (float)draw_pos.height, lw = (float)borders.left.width,
-                  tw = (float)borders.top.width, rw = (float)borders.right.width,
-                  bw = (float)borders.bottom.width;
-            dseg(borders.top, x, y, x + w, y, x + w - rw, y + tw, x + lw, y + tw);
-            dseg(borders.bottom, x, y + h, x + w, y + h, x + w - rw, y + h - bw, x + lw,
-                 y + h - bw);
-            dseg(borders.left, x, y, x + lw, y + tw, x + lw, y + h - bw, x, y + h);
-            dseg(borders.right, x + w, y, x + w - rw, y + tw, x + w - rw, y + h - bw, x + w, y + h);
+            // solid
+            p.setStrokeWidth((float)borders.top.width);
+            p.setStyle(SkPaint::kStroke_Style);
+            rr.inset((float)borders.top.width / 2.0f, (float)borders.top.width / 2.0f);
+            m_canvas->drawRRect(rr, p);
         }
+    } else {
+        float x = (float)draw_pos.x, y = (float)draw_pos.y, w = (float)draw_pos.width,
+              h = (float)draw_pos.height, lw = (float)borders.left.width,
+              tw = (float)borders.top.width, rw = (float)borders.right.width,
+              bw = (float)borders.bottom.width;
+
+        if (lw <= 0 && tw <= 0 && rw <= 0 && bw <= 0) return;
+
+        m_canvas->save();
+        SkRRect outer_rr = make_rrect(draw_pos, borders.radius);
+        SkPoint center = {x + w / 2.0f, y + h / 2.0f};
+
+        auto draw_side = [&](const litehtml::border &b, const SkPath &quadrant, bool is_top_left,
+                             float sw) {
+            if (b.width <= 0 || b.style == litehtml::border_style_none ||
+                b.style == litehtml::border_style_hidden)
+                return;
+
+            m_canvas->save();
+            m_canvas->clipPath(quadrant, true);
+
+            SkPaint p;
+            p.setAntiAlias(true);
+            p.setColor(SkColorSetARGB(b.color.alpha, b.color.red, b.color.green, b.color.blue));
+
+            if (b.style == litehtml::border_style_dotted || b.style == litehtml::border_style_dashed) {
+                p.setStyle(SkPaint::kStroke_Style);
+                p.setStrokeWidth((float)b.width);
+                float intervals[2];
+                if (b.style == litehtml::border_style_dotted) {
+                    intervals[0] = 0.0f;
+                    intervals[1] = 2.0f * (float)b.width;
+                    p.setStrokeCap(SkPaint::kRound_Cap);
+                } else {
+                    intervals[0] = 3.0f * (float)b.width;
+                    intervals[1] = (float)b.width;
+                }
+                p.setPathEffect(SkDashPathEffect::Make(SkSpan<const float>(intervals, 2), 0));
+                SkRRect stroke_rr = outer_rr;
+                stroke_rr.inset(sw / 2.0f, sw / 2.0f);
+                m_canvas->drawRRect(stroke_rr, p);
+            } else if (b.style == litehtml::border_style_double) {
+                p.setStyle(SkPaint::kStroke_Style);
+                p.setStrokeWidth(sw / 3.0f);
+                SkRRect r1 = outer_rr;
+                r1.inset(sw / 6.0f, sw / 6.0f);
+                m_canvas->drawRRect(r1, p);
+                SkRRect r2 = outer_rr;
+                r2.inset(sw * 5.0f / 6.0f, sw * 5.0f / 6.0f);
+                m_canvas->drawRRect(r2, p);
+            } else if (b.style == litehtml::border_style_groove ||
+                       b.style == litehtml::border_style_ridge) {
+                bool ridge = (b.style == litehtml::border_style_ridge);
+                SkColor c1, c2;\
+                if (is_top_left) {
+                    c1 = ridge ? lighten(b.color, 0.2f) : darken(b.color, 0.2f);
+                    c2 = ridge ? darken(b.color, 0.2f) : lighten(b.color, 0.2f);
+                } else {
+                    c1 = ridge ? darken(b.color, 0.2f) : lighten(b.color, 0.2f);
+                    c2 = ridge ? lighten(b.color, 0.2f) : darken(b.color, 0.2f);
+                }
+                SkRRect r1 = outer_rr;
+                SkRRect r2 = outer_rr;
+                r2.inset(sw / 2.0f, sw / 2.0f);
+                SkRRect r3 = outer_rr;
+                r3.inset(sw, sw);
+                p.setColor(c1);
+                m_canvas->drawDRRect(r1, r2, p);
+                p.setColor(c2);
+                m_canvas->drawDRRect(r2, r3, p);
+            } else {
+                // solid, inset, outset
+                if (b.style == litehtml::border_style_inset ||
+                    b.style == litehtml::border_style_outset) {
+                    bool outset = (b.style == litehtml::border_style_outset);
+                    if (is_top_left) {
+                        p.setColor(outset ? lighten(b.color, 0.2f) : darken(b.color, 0.2f));
+                    } else {
+                        p.setColor(outset ? darken(b.color, 0.2f) : lighten(b.color, 0.2f));
+                    }
+                }
+                SkRect ir = SkRect::MakeXYWH(x + lw, y + tw, w - lw - rw, h - tw - bw);
+                SkRRect inner_rr;
+                if (ir.width() > 0 && ir.height() > 0) {
+                    SkVector rads[4] = {
+                        {std::max(0.0f, (float)borders.radius.top_left_x - lw),
+                         std::max(0.0f, (float)borders.radius.top_left_y - tw)},
+                        {std::max(0.0f, (float)borders.radius.top_right_x - rw),
+                         std::max(0.0f, (float)borders.radius.top_right_y - tw)},
+                        {std::max(0.0f, (float)borders.radius.bottom_right_x - rw),
+                         std::max(0.0f, (float)borders.radius.bottom_right_y - bw)},
+                        {std::max(0.0f, (float)borders.radius.bottom_left_x - lw),
+                         std::max(0.0f, (float)borders.radius.bottom_left_y - bw)}};
+                    inner_rr.setRectRadii(ir, rads);
+                    m_canvas->drawDRRect(outer_rr, inner_rr, p);
+                } else
+                    m_canvas->drawRRect(outer_rr, p);
+            }
+            m_canvas->restore();
+        };
+
+        // Top
+        draw_side(borders.top,
+                  SkPathBuilder()
+                      .moveTo(x, y)
+                      .lineTo(x + w, y)
+                      .lineTo(x + w - rw, y + tw)
+                      .lineTo(center.fX, center.fY)
+                      .lineTo(x + lw, y + tw)
+                      .close()
+                      .detach(),
+                  true, tw);
+        // Bottom
+        draw_side(borders.bottom,
+                  SkPathBuilder()
+                      .moveTo(x, y + h)
+                      .lineTo(x + w, y + h)
+                      .lineTo(x + w - rw, y + h - bw)
+                      .lineTo(center.fX, center.fY)
+                      .lineTo(x + lw, y + h - bw)
+                      .close()
+                      .detach(),
+                  false, bw);
+        // Left
+        draw_side(borders.left,
+                  SkPathBuilder()
+                      .moveTo(x, y)
+                      .lineTo(x + lw, y + tw)
+                      .lineTo(center.fX, center.fY)
+                      .lineTo(x + lw, y + h - bw)
+                      .lineTo(x, y + h)
+                      .close()
+                      .detach(),
+                  true, lw);
+        // Right
+        draw_side(borders.right,
+                  SkPathBuilder()
+                      .moveTo(x + w, y)
+                      .lineTo(x + w - rw, y + tw)
+                      .lineTo(center.fX, center.fY)
+                      .lineTo(x + w - rw, y + h - bw)
+                      .lineTo(x + w, y + h)
+                      .close()
+                      .detach(),
+                  false, rw);
+
         m_canvas->restore();
     }
 }
@@ -759,7 +884,7 @@ void container_skia::load_image(const char *src, const char *baseurl, bool redra
 void container_skia::get_image_size(const char *src, const char *baseurl, litehtml::size &sz) {
     int w, h;
     if (m_context.get_image_size(src, w, h)) {
-        sz.width = w;
+        sz.width = w;\
         sz.height = h;
     } else {
         sz.width = 0;

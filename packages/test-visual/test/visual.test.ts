@@ -102,7 +102,9 @@ describe("Visual Regression Tests", () => {
         };
 
         // 1. Direct PNG (Skia)
-        const directPngData = (await satoru.render(html, 800, {
+        const directPngData = (await satoru.render({
+          html,
+          width: 800,
           format: "png",
           resolveResource,
         })) as Uint8Array;
@@ -113,7 +115,9 @@ describe("Visual Regression Tests", () => {
         );
 
         // 2. SVG -> Browser PNG
-        const svg = (await satoru.render(html, 800, {
+        const svg = (await satoru.render({
+          html,
+          width: 800,
           format: "svg",
           resolveResource,
         })) as string;

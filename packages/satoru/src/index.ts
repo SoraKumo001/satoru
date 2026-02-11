@@ -16,11 +16,21 @@ export interface SatoruModule {
   _html_to_pdf: (html: number, width: number, height: number) => number;
   _get_pdf_size: () => number;
   _collect_resources: (html: number, width: number) => void;
-  _add_resource: (url: number, type: number, data: number, size: number) => void;
+  _add_resource: (
+    url: number,
+    type: number,
+    data: number,
+    size: number,
+  ) => void;
   _scan_css: (css: number) => void;
   _load_font: (name: number, data: number, size: number) => void;
   _clear_fonts: () => void;
-  _load_image: (name: number, url: number, width: number, height: number) => void;
+  _load_image: (
+    name: number,
+    url: number,
+    width: number,
+    height: number,
+  ) => void;
   _clear_images: () => void;
   _malloc: (size: number) => number;
   _free: (ptr: number) => void;
@@ -41,7 +51,9 @@ export interface RequiredResource {
   name: string;
 }
 
-export type ResourceResolver = (resource: RequiredResource) => Promise<Uint8Array | null>;
+export type ResourceResolver = (
+  resource: RequiredResource,
+) => Promise<Uint8Array | null>;
 
 export interface SatoruOptions {
   locateFile?: (path: string) => string;
@@ -58,7 +70,10 @@ export class Satoru {
     this.mod = mod;
   }
 
-  static async init(createSatoruModuleFunc: any = createSatoruModule, options: SatoruOptions = {}): Promise<Satoru> {
+  static async init(
+    createSatoruModuleFunc: any = createSatoruModule,
+    options: SatoruOptions = {},
+  ): Promise<Satoru> {
     const defaultOnLog = (level: LogLevel, message: string) => {
       const prefix = "[Satoru WASM]";
       switch (level) {
@@ -78,27 +93,27 @@ export class Satoru {
     };
 
     const onLog = (level: LogLevel, message: string) => {
-        if (options.onLog) {
-            options.onLog(level, message);
-        } else {
-            defaultOnLog(level, message);
-        }
+      if (options.onLog) {
+        options.onLog(level, message);
+      } else {
+        defaultOnLog(level, message);
+      }
     };
 
     const mod = await createSatoruModuleFunc({
       onLog,
       print: (text: string) => {
-          onLog(LogLevel.Info, text);
+        onLog(LogLevel.Info, text);
       },
       printErr: (text: string) => {
-          onLog(LogLevel.Error, text);
+        onLog(LogLevel.Error, text);
       },
-      ...options
+      ...options,
     });
-    
+
     // Ensure onLog is available on the module instance
     mod.onLog = onLog;
-    
+
     mod._init_engine();
     return new Satoru(mod);
   }
@@ -128,25 +143,27 @@ export class Satoru {
     this.mod._clear_images();
   }
 
-  async render(
-    html: string,
-    width: number,
-    options: {
-      height?: number;
-      format?: "svg" | "png" | "pdf";
-      resolveResource?: ResourceResolver;
-    } = {}
-  ): Promise<string | Uint8Array | null> {
-    const { height = 0, format = "svg", resolveResource } = options;
-
+  async render({
+    html,
+    width,
+    height = 0,
+    format = "svg",
+    resolveResource,
+  }: {
+    html: string;
+    width: number;
+    height?: number;
+    format?: "svg" | "png" | "pdf";
+    resolveResource?: ResourceResolver;
+  }): Promise<string | Uint8Array | null> {
     let processedHtml = html;
     const resolvedUrls = new Set<string>();
 
     // Increased loop count to 10 to support multi-pass resource resolution (CSS -> Font Segments)
     for (let i = 0; i < 10; i++) {
       const resources = this.getPendingResources(processedHtml, width);
-      const pending = resources.filter(r => !resolvedUrls.has(r.url));
-      
+      const pending = resources.filter((r) => !resolvedUrls.has(r.url));
+
       if (pending.length === 0) break;
 
       await Promise.all(
@@ -158,29 +175,32 @@ export class Satoru {
             if (resolveResource) {
               data = await resolveResource({ ...r });
             }
-            
+
             if (data instanceof Uint8Array) {
               this.addResource(r.url, r.type, data);
             }
           } catch (e) {
             console.warn(`Failed to resolve resource: ${r.url}`, e);
           }
-        })
+        }),
       );
     }
 
-    // After all resources are resolved, we remove the link tags to prevent litehtml 
+    // After all resources are resolved, we remove the link tags to prevent litehtml
     // from attempting to fetch them again during the final layout/drawing pass.
-    resolvedUrls.forEach(url => {
+    resolvedUrls.forEach((url) => {
       // Escape special regex characters in the URL
-      const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const linkRegex = new RegExp(`<link[^>]*href=["']${escapedUrl}["'][^>]*>`, 'gi');
+      const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const linkRegex = new RegExp(
+        `<link[^>]*href=["']${escapedUrl}["'][^>]*>`,
+        "gi",
+      );
       processedHtml = processedHtml.replace(linkRegex, "");
     });
 
     switch (format) {
       case "png":
-        return this.toPngBinary(processedHtml, width, height);
+        return this.toPng(processedHtml, width, height);
       case "pdf":
         return this.toPdf(processedHtml, width, height);
       default:
@@ -197,11 +217,11 @@ export class Satoru {
     return svg;
   }
 
-  toPngBinary(html: string, width: number, height: number = 0): Uint8Array | null {
+  toPng(html: string, width: number, height: number = 0): Uint8Array | null {
     const htmlPtr = this.stringToPtr(html);
     const pngPtr = this.mod._html_to_png(htmlPtr, width, height);
     const size = this.mod._get_png_size();
-    
+
     let result: Uint8Array | null = null;
     if (pngPtr && size > 0) {
       result = new Uint8Array(this.mod.HEAPU8.buffer, pngPtr, size).slice();
@@ -216,7 +236,7 @@ export class Satoru {
     const htmlPtr = this.stringToPtr(html);
     const pdfPtr = this.mod._html_to_pdf(htmlPtr, width, height);
     const size = this.mod._get_pdf_size();
-    
+
     let result: Uint8Array | null = null;
     if (pdfPtr && size > 0) {
       result = new Uint8Array(this.mod.HEAPU8.buffer, pdfPtr, size).slice();
@@ -236,7 +256,11 @@ export class Satoru {
     const resources: RequiredResource[] = [];
 
     // Temporary callback to collect resources from WASM
-    this.mod.onRequestResource = (url: string, typeInt: number, name: string) => {
+    this.mod.onRequestResource = (
+      url: string,
+      typeInt: number,
+      name: string,
+    ) => {
       let type: "font" | "css" | "image" = "font";
       if (typeInt === 2) type = "image";
       if (typeInt === 3) type = "css";
@@ -244,7 +268,7 @@ export class Satoru {
     };
 
     this.mod._collect_resources(htmlPtr, width);
-    
+
     // Cleanup
     this.mod._free(htmlPtr);
     this.mod.onRequestResource = undefined;
@@ -252,18 +276,18 @@ export class Satoru {
     return resources;
   }
   addResource(url: string, type: "font" | "css" | "image", data: Uint8Array) {
-      const urlPtr = this.stringToPtr(url);
-      const dataPtr = this.mod._malloc(data.length);
-      this.mod.HEAPU8.set(data, dataPtr);
-      
-      let typeInt = 1;
-      if (type === "image") typeInt = 2;
-      if (type === "css") typeInt = 3;
-      
-      this.mod._add_resource(urlPtr, typeInt, dataPtr, data.length);
-      
-      this.mod._free(urlPtr);
-      this.mod._free(dataPtr);
+    const urlPtr = this.stringToPtr(url);
+    const dataPtr = this.mod._malloc(data.length);
+    this.mod.HEAPU8.set(data, dataPtr);
+
+    let typeInt = 1;
+    if (type === "image") typeInt = 2;
+    if (type === "css") typeInt = 3;
+
+    this.mod._add_resource(urlPtr, typeInt, dataPtr, data.length);
+
+    this.mod._free(urlPtr);
+    this.mod._free(dataPtr);
   }
 
   scanCss(css: string) {

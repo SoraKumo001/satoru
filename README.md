@@ -126,16 +126,16 @@ const html = `
     @font-face {
       font-family: 'Roboto';
       src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2');
-    }
-  </style>
-  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;">
+    }\n  </style>\n  <div style=\"font-family: 'Roboto'; color: #2196F3; font-size: 40px;\">
     Hello Satoru!
-    <img src="https://example.com/logo.png" style="width: 50px;">
+    <img src=\"https://example.com/logo.png\" style=\"width: 50px;\">
   </div>
 `;
 
 // Render to PDF
-const pdf = await satoru.render(html, 600, {
+const pdf = await satoru.render({
+  html,
+  width: 600,
   format: "pdf",
   resolveResource: async (resource) => {
     const res = await fetch(resource.url);
@@ -165,7 +165,9 @@ export default {
       <div style='font-family: CustomFont'>Edge Rendered PDF</div>
     `;
 
-    const pdf = await satoru.render(html, 800, {
+    const pdf = await satoru.render({
+      html,
+      width: 800,
       format: "pdf",
       resolveResource: async (resource) => {
         const res = await fetch(resource.url);
@@ -189,7 +191,7 @@ import { Satoru } from "satoru/single";
 
 // Initialize the engine (no external .wasm file needed)
 const satoru = await Satoru.init();
-const png = await satoru.render("<div>Embedded WASM!</div>", 600, { format: "png" });
+const png = await satoru.render({ html: "<div>Embedded WASM!</div>", width: 600, format: "png" });
 ```
 
 ### 🎨 Manual Resource Management

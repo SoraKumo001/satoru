@@ -220,7 +220,9 @@ export default {
       const satoru = await Satoru.init();
 
       // 動的リソース（フォント、画像等）の解決
-      const result = await satoru.render(html, width, {
+      const result = await satoru.render({
+        html,
+        width,
         format,
         resolveResource: async (resource: RequiredResource) => {
           // キャッシュを確認

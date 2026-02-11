@@ -69,7 +69,9 @@ async function runWorker() {
         return null;
       };
 
-      const svg = await satoru.render(html, 800, {
+      const svg = await satoru.render({
+        html,
+        width: 800,
         format: "svg",
         resolveResource,
       });
@@ -80,7 +82,9 @@ async function runWorker() {
         );
       }
 
-      const png = await satoru.render(html, 800, {
+      const png = await satoru.render({
+        html,
+        width: 800,
         format: "png",
         resolveResource,
       });
@@ -91,7 +95,9 @@ async function runWorker() {
         );
       }
 
-      const pdf = await satoru.render(html, 800, {
+      const pdf = await satoru.render({
+        html,
+        width: 800,
         format: "pdf",
         resolveResource,
       });

@@ -203,7 +203,9 @@ async function init() {
         renderContainer.appendChild(loading);
 
         try {
-          const result = await satoru.render(html, width, {
+          const result = await satoru.render({
+            html,
+            width,
             format,
             resolveResource: resourceResolver,
           });

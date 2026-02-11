@@ -1,7 +1,7 @@
 {
   "name": "satoru",
   "version": "1.0.0",
-  "description": "HTML/CSS to SVG converter via Wasm (Skia + litehtml)",
+  "description": "High-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -52,7 +52,32 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SoraKumo001/satoru.git",
+    "directory": "packages/satoru"
+  },
+  "author": "SoraKumo <info@croud.jp>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SoraKumo001/satoru/issues"
+  },
+  "homepage": "https://github.com/SoraKumo001/satoru/tree/master/packages/satoru#readme",
+  "keywords": [
+    "html",
+    "css",
+    "svg",
+    "png",
+    "pdf",
+    "wasm",
+    "skia",
+    "litehtml",
+    "webassembly",
+    "cloudflare-workers"
   ],
   "devDependencies": {
     "rolldown": "1.0.0-rc.3",

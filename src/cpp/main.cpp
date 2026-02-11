@@ -49,13 +49,16 @@ int get_pdf_size() { return api_get_last_pdf_size(); }
 
 EMSCRIPTEN_KEEPALIVE
 const char *collect_resources(const char *html, int width) {
-    return string_to_heap(api_collect_resources(html, width));
+    api_collect_resources(html, width);
+    return nullptr;
 }
 
 EMSCRIPTEN_KEEPALIVE
 const char *get_required_fonts(const char *html, int width) {
-    return collect_resources(html, width);
+    collect_resources(html, width);
+    return nullptr;
 }
+
 
 EMSCRIPTEN_KEEPALIVE
 void add_resource(const char *url, int type, const uint8_t *data, int size) {

@@ -20,6 +20,12 @@ EM_JS(void, satoru_log_js, (int level, const char *message), {
 
 void satoru_log(LogLevel level, const char *message) { satoru_log_js((int)level, message); }
 
+EM_JS(void, satoru_request_resource_js, (const char *url, int type, const char *name), {
+    if (Module.onRequestResource) {
+        Module.onRequestResource(UTF8ToString(url), type, UTF8ToString(name));
+    }
+});
+
 SatoruContext g_context;
 ResourceManager *g_resourceManager = nullptr;
 container_skia *g_discovery_container = nullptr;
@@ -74,7 +80,7 @@ int api_get_last_png_size() { return (int)g_context.get_last_png().size(); }
 
 int api_get_last_pdf_size() { return (int)g_context.get_last_pdf().size(); }
 
-std::string api_collect_resources(const char *html, int width) {
+void api_collect_resources(const char *html, int width) {
     if (!g_resourceManager) {
         g_context.init();
         g_resourceManager = new ResourceManager(g_context);
@@ -94,16 +100,13 @@ std::string api_collect_resources(const char *html, int width) {
         litehtml::document::createFromString(html, g_discovery_container, master_css_full.c_str());
     if (doc) doc->render(width);
 
-    std::string output = "";
     auto requests = g_resourceManager->getPendingRequests();
     for (const auto &req : requests) {
-        if (!output.empty()) output += ";;";
         int typeInt = 1;
         if (req.type == ResourceType::Image) typeInt = 2;
         if (req.type == ResourceType::Css) typeInt = 3;
-        output += req.url + "|" + std::to_string(typeInt) + "|" + req.name;
+        satoru_request_resource_js(req.url.c_str(), typeInt, req.name.c_str());
     }
-    return output;
 }
 
 void api_add_resource(const char *url, int type, const uint8_t *data, int size) {

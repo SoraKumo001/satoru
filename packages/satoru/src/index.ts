@@ -16,7 +16,7 @@ export interface SatoruModule {
   _get_png_size: () => number;
   _html_to_pdf_binary: (html: number, width: number, height: number) => number;
   _get_pdf_size: () => number;
-  _collect_resources: (html: number, width: number) => number;
+  _collect_resources: (html: number, width: number) => void;
   _add_resource: (url: number, type: number, data: number, size: number) => void;
   _scan_css: (css: number) => void;
   _load_font: (name: number, data: number, size: number) => void;
@@ -33,6 +33,7 @@ export interface SatoruModule {
     set: (data: Uint8Array, ptr: number) => void;
   };
   onLog?: (level: LogLevel, message: string) => void;
+  onRequestResource?: (url: string, type: number, name: string) => void;
 }
 
 export interface RequiredResource {
@@ -260,24 +261,24 @@ export class Satoru {
 
   getPendingResources(html: string, width: number): RequiredResource[] {
     const htmlPtr = this.stringToPtr(html);
-    const ptr = this.mod._collect_resources(htmlPtr, width);
-    const resultStr = this.mod.UTF8ToString(ptr);
-    this.mod._free(htmlPtr);
-    this.mod._free(ptr); // CRITICAL: Free the string returned by malloc in C++
+    const resources: RequiredResource[] = [];
 
-    if (!resultStr) return [];
-
-    return resultStr.split(";;").map((part: string) => {
-      const [url, typeStr, name] = part.split("|");
-      const typeInt = parseInt(typeStr, 10);
+    // Temporary callback to collect resources from WASM
+    this.mod.onRequestResource = (url: string, typeInt: number, name: string) => {
       let type: "font" | "css" | "image" = "font";
       if (typeInt === 2) type = "image";
       if (typeInt === 3) type = "css";
-      
-      return { type, name: name || "", url: url || "" };
-    });
-  }
+      resources.push({ type, name, url });
+    };
 
+    this.mod._collect_resources(htmlPtr, width);
+    
+    // Cleanup
+    this.mod._free(htmlPtr);
+    this.mod.onRequestResource = undefined;
+
+    return resources;
+  }
   addResource(url: string, type: "font" | "css" | "image", data: Uint8Array) {
       const urlPtr = this.stringToPtr(url);
       const dataPtr = this.mod._malloc(data.length);

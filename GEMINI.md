@@ -58,72 +58,76 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
   - `src/cpp/core`: Core rendering logic (`container_skia`), resource management, and master CSS.
   - `src/cpp/renderers`: PNG/SVG/PDF specific rendering implementation.
   - `src/cpp/utils`: Skia-specific utility functions and Base64 helpers.
-- **API Layer:** All functionality exported to WASM should be defined in `src/cpp/api/satoru_api.h` and implemented in `satoru_api.cpp`. `main.cpp` serves as the Emscripten entry point and binding definition.
+
+- **API Layer:**
+  - All functionality exported to WASM is defined in `src/cpp/api/satoru_api.h` and implemented in `satoru_api.cpp`.
+  - `main.cpp` serves as the Emscripten entry point and binding definition.
+
+- **Resource Management:**
+  - **Callback-Based Resolution:** WASM notifies JS of resource requests (Fonts, Images, CSS) via the `satoru_request_resource_js` bridge.
+  - **JS Integration:** The `SatoruModule` interface includes an optional `onRequestResource` callback.
+  - **Data Flow:** `_collect_resources` (C++) iterates requests -> calls `onRequestResource` (JS) -> JS collects into array -> `Promise.all` fetches data -> `_add_resource` (C++) injects data.
+  - **Efficiency:** `api_collect_resources` returns `void` to avoid large string allocations/parsing.
+
 - **Logging Bridge:**
   - Unified logging function `satoru_log(LogLevel level, const char *message)` is used in C++.
   - Bridges to JS via `EM_JS` calling `Module.onLog`.
   - Standard Emscripten `print` and `printErr` are also redirected to the `onLog` interface in the TS wrapper.
-- **Global State:** Global instances like `SatoruContext` and `ResourceManager` are maintained in `satoru_api.cpp`. Do not mark them `static` if they need to be accessed via `extern` from other core components.
-- **SVG Rendering (2-Pass):**
-  1. **Pass 1 (Measurement):** Layout with a dummy container to determine exact content height.
-  2. **Pass 2 (Drawing):** Render to `SkSVGCanvas` with the calculated dimensions.
-- **PDF Rendering (2-Pass):**
-  1. **Pass 1 (Measurement):** Determine content height.
-  2. **Pass 2 (Drawing):** Render to `SkPDFDocument`. Requires explicit registration of `jpegDecoder` and `jpegEncoder` in `SkPDF::Metadata` to avoid runtime assertions.
-- **Tag-Based Post-Processing (SVG only):**
-  - Advanced effects (Shadows, Images, Conics) are \"tagged\" during drawing with unique colors (e.g., `rgb(0,1,index)` for shadows).
-  - The resulting SVG string is processed via **Regular Expressions** to replace these tagged elements with real SVG filters or `<image>` tags.
+
+- **Global State:**
+  - Global instances like `SatoruContext` and `ResourceManager` are maintained in `satoru_api.cpp`.
+  - Do not mark them `static` if they need to be accessed via `extern` from other core components.
+
+- **Rendering Pipelines:**
+  - **SVG (2-Pass):**
+    1. **Measurement:** Layout with dummy container for height.
+    2. **Drawing:** Render to `SkSVGCanvas`.
+    3. **Post-Processing:** Regex replacement of tagged elements (shadows, images) with real SVG filters.
+  - **PDF (2-Pass):**
+    1. **Measurement:** Determine content height.
+    2. **Drawing:** Render to `SkPDFDocument`. Requires explicit JPEG decoder/encoder registration.
+  - **PNG:** Render to `SkSurface` -> `SkImage` -> Encode to PNG.
+
 - **Box Shadow Logic:**
-  - **Outer Shadow:** Uses `feGaussianBlur` + `feOffset` + `feFlood`.
-  - **Inset Shadow:** Uses `feComposite` with `operator=\"out\"` to invert the shape, then `blur/offset`, and finally `operator=\"in\"` to clip the shadow within the original shape.
-  - **Alpha Reference:** Tagged elements must maintain a fill (e.g., `fill=\"black\"`) so `SourceAlpha` works for filters, but `feMerge` controls visibility.
+  - **Outer Shadow:** `feGaussianBlur` + `feOffset` + `feFlood`.
+  - **Inset Shadow:** `feComposite` (out) -> blur/offset -> `feComposite` (in).
+  - **Alpha Reference:** Tagged elements use `fill="black"` for `SourceAlpha`, visibility controlled by `feMerge`.
+
 - **Font Handling:**
-  - **2-Pass Loading:** Missing fonts are detected during layout and requested from the JS host.
-  - **Fallback Logic:** The engine iterates through the entire `font-family` list. Even if the first font is available, it may still request subsequent fonts if they are needed for specific glyphs (e.g., Japanese).
-  - **Generic Families:** Keywords like `sans-serif` or `serif` trigger a fallback to the first available font defined in `@font-face` if no exact system match is found.
-  - **Metadata Inference:** The TS host infers `weight` and `style` from font URLs to generate correct `@font-face` blocks for WASM.
-  - **Asset Fonts:** When creating or modifying HTML files in the `assets/` directory that contain text, you MUST include `@font-face` declarations with valid font URLs to ensure correct rendering in the WASM environment.
+  - **2-Pass Loading:** Layout detects missing fonts -> Requests from JS -> Re-layout.
+  - **Fallback:** Iterates through `font-family` list; generic keywords (`sans-serif`) trigger fallback to first available `@font-face`.
+  - **Metadata:** JS infers weight/style from URLs for `@font-face` generation.
+
 - **litehtml Types:**
-  - Container overrides MUST return `litehtml::pixel_t` (float), not `int`, to match base class signatures.
+  - Container overrides MUST return `litehtml::pixel_t` (float), not `int`.
+
 - **Layout Defaults:**
-  - **line-height:** Default value for `normal` is set to `1.2` times the font height in `css_properties.cpp`.
-  - **box-sizing:** Defaulted to `border-box` for `button`, `input`, `select`, and `textarea` in `master_css.h`.
-- **Flexbox Fixes:**
-  - **Measurement Accuracy:** Wrapped `text-align` logic in `line_box::finish` with a check for `size_mode_content` to prevent layout shifts during the intrinsic sizing phase.
-  - **Flag Propagation:** Ensured `size_mode_content` is propagated to child rendering contexts in `render_item::calculate_containing_block_context`.
+  - `line-height`: `1.2` times font height for `normal`.
+  - `box-sizing`: `border-box` for inputs/buttons.
 
 ### 4. Skia API & Release Notes
 
-- **SkPath Immutability:** Use `SkPathBuilder` instead of direct `SkPath` modification methods.
-- **Radial Gradients:** Circular by default. For **Elliptical** gradients, apply an `SkMatrix` scale transform (e.g., `ry/rx` on Y-axis) to the shader.
-- **PathOps:** Required for complex clipping and path operations, especially in PDF/SVG backends.
-- **C++ Logs:** Use `satoru_log` for structured logging to JS. Standard `printf` is bridged to JS `console.log` but lacks level information.
+- **SkPath Immutability:** Use `SkPathBuilder` instead of direct `SkPath` modification.
+- **Radial Gradients:** Circular by default. Use `SkMatrix` scale for Elliptical.
+- **PathOps:** Required for complex clipping/paths.
+- **C++ Logs:** Use `satoru_log` for structured logging.
 
 ### 5. Testing & Validation
 
 - **Visual Regression Suite (`packages/test-visual`)**:
-  - **Multi-Format Validation**: Compares **Direct Skia PNG**, **SVG-rendered PNG**, and **PDF output** against reference expectations.
-  - **Numerical Diff**: Reports pixel difference percentage for raster paths.
-  - **Stabilization**: Uses `flattenAlpha` (blending with white) and white-pixel padding to handle dimension mismatches and transparency flakiness.
+  - Compares Skia PNG, SVG-rendered PNG, and PDF output.
+  - Uses `flattenAlpha` and white-pixel padding for stabilization.
 - **Output Validation**:
-  - **Crucial**: To verify generated output files (PNG/SVG/PDF) for all assets, always use the `convert-assets` command.
-  - Command: `pnpm --filter test-visual convert-assets [file.html] [--verbose]`
-  - **Partial Conversion**: You can specify one or more filenames to convert only those specific assets.
-  - **Verbose Logging**: Use `--verbose` or `-v` to show detailed WASM/rendering logs in the console (hidden by default).
-  - Output: Files are generated in `packages/test-visual/temp/`. Use these files to manually inspect the rendering quality and correctness.
-- **Performance Optimizations**:
-  - **Reference Generation (`tools/generate-reference.ts`)**: Uses Playwright Concurrency (Batch size/Concurrency: 4) to speed up reference image capture.
-  - **Multi-threaded Asset Conversion (`tools/convert_assets.ts`)**: Uses `worker_threads` to spawn multiple WASM instances (one per core). Each worker carries its own WASM context for parallel conversion.
+  - Use `pnpm --filter test-visual convert-assets [file.html] [--verbose]` to verify rendering.
+  - Output generated in `packages/test-visual/temp/`.
 - **Tooling Paths**:
   - Reference generation: `packages/test-visual/tools/generate-reference.ts`.
   - Conversion worker: `packages/test-visual/tools/convert_worker.ts`.
-  - Assets: `assets/*.html` (at project root).
+  - Assets: `assets/*.html`.
 
 ### 6. GitHub Pages Deployment
 
-To ensure the web-based test environments (e.g., `playground`) work correctly on GitHub Pages (which often hosts projects in subdirectories):
-
-- **Relative Paths in HTML**: Always use relative paths for scripts and links (e.g., `src/main.ts` instead of `/src/main.ts`).
-- **Vite Configuration**: Set `base: \"./\"` in `vite.config.ts` to allow the application to be served from any base path.
-- **Asset Resolution**: In TypeScript, resolve asset URLs relative to the deployment root (e.g., `assets/file.html`) rather than using local development relative paths (e.g., `../../assets/`).
-- **Artifact Management**: Ensure Wasm (`satoru.wasm`) and JS (`satoru.js`) artifacts are copied to the `dist` directory during the build process, as they are typically located in the workspace's shared output directory.
+- **Relative Paths:** Use relative paths in HTML/TS (`./src/main.ts`).
+- **Vite Config:** Set `base: "./"`.
+- **Asset Resolution:** Resolve relative to deployment root.
+- **Artifacts:** Copy `satoru.wasm` and `satoru.js` to `dist`.

@@ -16,7 +16,7 @@ const uint8_t *api_html_to_png_binary(const char *html, int width, int height, i
 const uint8_t *api_html_to_pdf_binary(const char *html, int width, int height, int &out_size);
 int api_get_last_png_size();
 int api_get_last_pdf_size();
-std::string api_collect_resources(const char *html, int width);
+void api_collect_resources(const char *html, int width);
 void api_add_resource(const char *url, int type, const uint8_t *data, int size);
 void api_scan_css(const char *css);
 void api_load_font(const char *name, const uint8_t *data, int size);

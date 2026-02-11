@@ -10,7 +10,7 @@ You are operating in a **Windows PowerShell** environment.
 
 - **Constraint:** PowerShell does not support `&&` or `||` for command chaining.
 - **Instruction:** Use the semicolon `;` separator for sequential execution.
-- ✅ **Correct:** `mkdir test_dir ; cd test_dir`
+- \u2705 **Correct:** `mkdir test_dir ; cd test_dir`
 
 ### 2. File Editing Protocol (mcp-text-editor)
 
@@ -116,15 +116,15 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 
 ### 5. Testing & Validation
 
-- **Visual Regression Suite (`packages/test-visual`)**:
+- **Visual Regression Suite (`packages/visual-test`)**:
   - Compares Skia PNG, SVG-rendered PNG, and PDF output.
   - Uses `flattenAlpha` and white-pixel padding for stabilization.
 - **Output Validation**:
-  - Use `pnpm --filter test-visual convert-assets [file.html] [--verbose]` to verify rendering.
-  - Output generated in `packages/test-visual/temp/`.
+  - Use `pnpm --filter visual-test convert-assets [file.html] [--verbose]` to verify rendering.
+  - Output generated in `packages/visual-test/temp/`.
 - **Tooling Paths**:
-  - Reference generation: `packages/test-visual/tools/generate-reference.ts`.
-  - Conversion worker: `packages/test-visual/tools/convert_worker.ts`.
+  - Reference generation: `packages/visual-test/tools/generate-reference.ts`.
+  - Conversion worker: `packages/visual-test/tools/convert_worker.ts`.
   - Assets: `assets/*.html`.
 
 ### 6. GitHub Pages Deployment

@@ -26,7 +26,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/satoru/package.json ./packages/satoru/
 COPY packages/playground/package.json ./packages/playground/
 COPY packages/test-cloudflare/package.json ./packages/test-cloudflare/
-COPY packages/test-visual/package.json ./packages/test-visual/
+COPY packages/visual-test/package.json ./packages/visual-test/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile

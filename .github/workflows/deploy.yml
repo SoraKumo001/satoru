@@ -55,7 +55,7 @@ jobs:
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: latest
-          actions-cache-folder: 'emsdk-cache'
+          actions-cache-folder: "emsdk-cache"
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -92,16 +92,16 @@ jobs:
         run: ccache -s
 
       - name: Build TS Packages
-        run: pnpm run build
+        run: pnpm run build:js
 
       - name: Install Playwright Browsers
-        run: pnpm --filter test-visual exec playwright install chromium --with-deps
+        run: pnpm --filter visual-test exec playwright install chromium --with-deps
 
       - name: Generate Reference PNGs
-        run: pnpm --filter test-visual gen-ref
+        run: pnpm --filter visual-test gen-ref
 
       - name: Run Visual Tests
-        run: pnpm --filter test-visual test
+        run: pnpm --filter visual-test test
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

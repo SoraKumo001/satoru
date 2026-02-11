@@ -5,7 +5,7 @@ build-wasm
 external/skia
 .git
 .vscode
-packages/test-visual/temp
-packages/test-visual/diff
-packages/test-visual/reference
+packages/visual-test/temp
+packages/visual-test/diff
+packages/visual-test/reference
 *.log

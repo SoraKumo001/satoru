@@ -4,7 +4,7 @@ https://sorakumo001.github.io/satoru/
 
 **Satoru** is a portable, WebAssembly-powered HTML rendering engine. It combines the **Skia Graphics Engine** and **litehtml** to provide high-quality, pixel-perfect SVG, PNG, and PDF generation entirely within WebAssembly.
 
-## 🚀 Project Status: High-Fidelity Rendering & Edge Ready
+## \ud83d\ude80 Project Status: High-Fidelity Rendering & Edge Ready
 
 The engine supports full text layout with custom fonts, complex CSS styling, and efficient binary data transfer. It is now compatible with **Cloudflare Workers (workerd)**, allowing for serverless, edge-side image and document generation.
 
@@ -28,7 +28,7 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
   - **Text Decoration**: Supports `underline`, `line-through`, `overline` with `solid`, `dotted`, and `dashed` styles.
   - **Text Shadow**: Multiple shadows with blur, offset, and color support (PNG/SVG/PDF).
 
-## 📋 Supported CSS Properties
+## \ud83d\udccb Supported CSS Properties
 
 Satoru supports a wide range of CSS properties for high-fidelity layout and styling.
 
@@ -66,7 +66,7 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 ### Others
 - `caption-side`, `content`, `appearance`
 
-## 🔄 Conversion Flow
+## \ud83d\udd04 Conversion Flow
 
 The following diagram illustrates how Satoru processes HTML/CSS into vector or raster outputs:
 
@@ -105,7 +105,7 @@ graph TD
     style WASM_Raster_Path fill:#e8f5e9,stroke:#1b5e20
 ```
 
-## 🛠️ Usage (TypeScript)
+## \ud83d\udee0\ufe0f Usage (TypeScript)
 
 ### Standard Environment (Node.js / Browser)
 
@@ -148,7 +148,7 @@ const pdf = await satoru.render({
 });
 ```
 
-### ☁️ Cloudflare Workers (Edge)
+### \u2601\ufe0f Cloudflare Workers (Edge)
 
 Satoru is optimized for Cloudflare Workers. Use the `workerd` specific export for proper WASM instantiation.
 
@@ -173,7 +173,7 @@ export default {
 };
 ```
 
-### 📦 Single-file (Embedded WASM)
+### \ud83d\udce6 Single-file (Embedded WASM)
 
 For environments where deploying a separate `.wasm` file is difficult, use the `single` export which includes the WASM binary embedded.
 
@@ -188,7 +188,7 @@ const png = await satoru.render({
 });
 ```
 
-### 🧵 Multi-threaded Rendering (Worker Proxy)
+### \ud83e\uddf5 Multi-threaded Rendering (Worker Proxy)
 
 For high-throughput applications, the Worker proxy distributes rendering tasks across multiple threads. You can configure all resources in a single `render` call for stateless operation.
 
@@ -211,7 +211,7 @@ const png = await satoru.render({
 });
 ```
 
-### 🎨 Manual Resource Management
+### \ud83c\udfa8 Manual Resource Management
 
 For scenarios where you want to manage resources manually:
 
@@ -228,11 +228,11 @@ satoru.clearImages();
 satoru.clearCss();
 ```
 
-## 🧪 Testing & Validation
+## \ud83e\uddea Testing & Validation
 
 The project includes a robust **Visual Regression Suite** to ensure rendering fidelity.
 
-### Visual Regression Tests (`packages/test-visual`)
+### Visual Regression Tests (`packages/visual-test`)
 
 This suite compares Satoru's outputs against Chromium's rendering.
 
@@ -242,20 +242,19 @@ This suite compares Satoru's outputs against Chromium's rendering.
 
 #### Run Tests
 ```bash
-pnpm --filter test-visual test
+pnpm --filter visual-test test
 ```
 
 #### Generate Reference Images
-```bash
-pnpm --filter test-visual gen-ref
+```bash\npnpm --filter visual-test gen-ref
 ```
 
 #### Batch Convert Assets (Multithreaded)
 ```bash
-pnpm --filter test-visual convert-assets
+pnpm --filter visual-test convert-assets
 ```
 
-## 🏗️ Build & Run
+## \ud83c\udfd7\ufe0f Build & Run
 
 ### Local Environment
 Requires Emscripten SDK and vcpkg.
@@ -276,7 +275,7 @@ pnpm wasm:docker:build
 pnpm build
 ```
 
-## 🗺️ Roadmap
+## \ud83d\uddfa\ufe0f Roadmap
 
 - [x] High-level TypeScript Wrapper API with automatic resource resolution.
 - [x] Binary PNG export support via shared memory.
@@ -291,6 +290,6 @@ pnpm build
 - [ ] Support for CSS Masks & Filters.
 - [ ] Optional SVG `<text>` element output (currently paths).
 
-## 📜 License
+## \ud83d\udcdc License
 
 MIT License - SoraKumo <info@croud.jp>

@@ -81,7 +81,7 @@ importers:
         specifier: ^3.107.2
         version: 3.114.17(@cloudflare/workers-types@4.20260206.0)
 
-  packages/test-visual:
+  packages/visual-test:
     devDependencies:
       '@playwright/test':
         specifier: 1.58.2

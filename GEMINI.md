@@ -10,7 +10,7 @@ You are operating in a **Windows PowerShell** environment.
 
 - **Constraint:** PowerShell does not support `&&` or `||` for command chaining.
 - **Instruction:** Use the semicolon `;` separator for sequential execution.
-- \u2705 **Correct:** `mkdir test_dir ; cd test_dir`
+- ✅ **Correct:** `mkdir test_dir ; cd test_dir`
 
 ### 2. File Editing Protocol (mcp-text-editor)
 
@@ -43,6 +43,11 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 - **Monorepo:** Organized as pnpm workspaces.
 - **Core:** `litehtml` (Layout) + `Skia` (Rendering).
 - **Target:** WASM via Emscripten.
+- **Packages:**
+  - `packages/satoru`: Core library and TS wrappers.
+  - `packages/cloudflare-ogp`: OGP image generation using JSX and Cloudflare Workers.
+  - `packages/visual-test`: Visual regression testing suite.
+  - `packages/playground`: Web-based demo application.
 
 ### 2. Build System
 
@@ -93,7 +98,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 - **Box Shadow Logic:**
   - **Outer Shadow:** `feGaussianBlur` + `feOffset` + `feFlood`.
   - **Inset Shadow:** `feComposite` (out) -> blur/offset -> `feComposite` (in).
-  - **Alpha Reference:** Tagged elements use `fill="black"` for `SourceAlpha`, visibility controlled by `feMerge`.
+  - **Alpha Reference:** Tagged elements use `fill=\"black\"` for `SourceAlpha`, visibility controlled by `feMerge`.
 
 - **Font Handling:**
   - **2-Pass Loading:** Layout detects missing fonts -> Requests from JS -> Re-layout.
@@ -139,6 +144,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 - **Rolldown:** Used for bundling web workers in `packages/satoru`.
 - **Entry Points:**
   - `index.ts`: Core logic, depends on external `.wasm`.
+  - `react.ts`: Utility for converting React elements to HTML strings.
   - `single.ts`: Embedded WASM version (Base64). Default export.
   - `workerd.ts`: Specialized for Cloudflare Workers.
   - `workers.ts`: Multi-threaded worker proxy entry point.

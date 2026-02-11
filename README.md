@@ -231,6 +231,25 @@ const png = await satoru.render({
 });
 ```
 
+### 💣 React Integration
+
+Satoru provides a utility to easily convert React elements to HTML strings for rendering.
+
+```typescript
+import { Satoru } from "satoru";
+import { toHtml } from "satoru/react";
+import React from "react";
+
+const satoru = await Satoru.init();
+const html = toHtml(
+  <div style={{ color: "#2196F3", fontSize: "40px" }}>
+    Hello from React!
+  </div>
+);
+
+const png = await satoru.render({ html, width: 600, format: "png" });
+```
+
 ### 🎨 Manual Resource Management
 
 For scenarios where you want to manage resources manually:

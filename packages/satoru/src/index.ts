@@ -99,6 +99,7 @@ export interface RenderOptions {
   clear?: boolean;
   baseUrl?: string;
   logLevel?: LogLevel;
+  removeDefaultMargin?: boolean;
 }
 
 export { createSatoruModule };
@@ -236,7 +237,12 @@ export class Satoru {
     this.clearCss();
   }
 
-  async render(options: RenderOptions): Promise<string | Uint8Array | null> {
+  render(
+    options: RenderOptions & { format: "png" | "pdf" },
+  ): Promise<Uint8Array>;
+  render(options: RenderOptions & { format?: "svg" }): Promise<string>;
+  render(options: RenderOptions): Promise<string | Uint8Array>;
+  async render(options: RenderOptions): Promise<string | Uint8Array> {
     const {
       html,
       width,
@@ -248,6 +254,7 @@ export class Satoru {
       clear = false,
       baseUrl,
       logLevel,
+      removeDefaultMargin = true,
     } = options;
 
     const prevLogLevel = this.mod.logLevel;
@@ -268,6 +275,9 @@ export class Satoru {
         for (const img of images) {
           this.loadImage(img.name, img.url, img.width ?? 0, img.height ?? 0);
         }
+      }
+      if (removeDefaultMargin) {
+        this.scanCss("body { margin: 0; }");
       }
       if (css) {
         this.scanCss(css);
@@ -371,7 +381,7 @@ export class Satoru {
       // from attempting to fetch them again during the final layout/drawing pass.
       resolvedUrls.forEach((url) => {
         // Escape special regex characters in the URL
-        const escapedUrl = url.replace(/[.*+?^${}()|[\\]]/g, "\\$&");
+        const escapedUrl = url.replace(/[.*+?^${}()|[\\\]]/g, "\\$&");
         const linkRegex = new RegExp(
           `<link[^>]*href\\s*=\\s*(["'])${escapedUrl}\\1[^>]*>`,
           "gi",
@@ -381,9 +391,9 @@ export class Satoru {
 
       switch (format) {
         case "png":
-          return this.toPng(processedHtml, width, height);
+          return this.toPng(processedHtml, width, height) || new Uint8Array();
         case "pdf":
-          return this.toPdf(processedHtml, width, height);
+          return this.toPdf(processedHtml, width, height) || new Uint8Array();
         default:
           return this.toSvg(processedHtml, width, height);
       }

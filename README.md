@@ -16,7 +16,7 @@ https://sorakumo001.github.io/satoru/
 | **Font Formats**   | TTF, OTF, WOFF                     | **TTF, OTF, WOFF2, TTC**                       |
 | **Typography**     | SVG Paths / Fonts                  | **Full Skia Typeface support**                 |
 | **Performance**    | High (Lightweight)                 | **High (Wasm-accelerated Skia)**               |
-| **Edge Ready**     | Yes (Node/Edge)                    | **Yes (Wasm/Edge/Cloudflare)**                 |
+| **Edge Ready**     | Yes (Node/Edge/Cloudflare)         | **Yes (Wasm/Edge/Cloudflare)**                 |
 
 ## 🚀 Project Status: High-Fidelity Rendering & Edge Ready
 

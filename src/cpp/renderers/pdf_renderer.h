@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "satoru_context.h"
+#include "core/satoru_context.h"
 
 std::vector<uint8_t> renderHtmlToPdf(const char *html, int width, int height,
                                      SatoruContext &context, const char *master_css);

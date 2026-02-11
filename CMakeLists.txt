@@ -153,12 +153,7 @@ list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*
 # --- Common Settings ---
 set(SATORU_INCLUDES
     "src/cpp"
-    "src/cpp/api"
-    "src/cpp/bridge"
-    "src/cpp/core"
-    "src/cpp/renderers"
-    "src/cpp"
-    "src/cpp/utils"
+
     "${LITEHTML_DIR}/include"
     "${LITEHTML_DIR}/include/litehtml"
     "${LITEHTML_DIR}/src"

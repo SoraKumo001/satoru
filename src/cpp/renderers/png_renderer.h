@@ -3,8 +3,8 @@
 
 #include <string>
 
+#include "core/satoru_context.h"
 #include "include/core/SkData.h"
-#include "satoru_context.h"
 
 std::string renderHtmlToPng(const char *html, int width, int height, SatoruContext &context,
                             const char *master_css);

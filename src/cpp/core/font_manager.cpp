@@ -37,7 +37,8 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
         std::string cleaned = cleanName(name);
         m_typefaceCache[cleaned].push_back(typeface);
         if (!m_defaultTypeface) m_defaultTypeface = typeface;
-        printf("[WASM] loadFont: Loaded '%s' (Total for family: %zu)\n", cleaned.c_str(), m_typefaceCache[cleaned].size());
+        printf("[WASM] loadFont: Loaded '%s' (Total for family: %zu)\n", cleaned.c_str(),
+               m_typefaceCache[cleaned].size());
     } else {
         printf("[WASM] loadFont: FAILED to load font data (%d bytes)\n", size);
     }
@@ -66,8 +67,7 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
         std::vector<int> weights;
         SkFontStyle::Slant slant = SkFontStyle::kUpright_Slant;
 
-        if (std::regex_search(body, m, familyRegex))
-            family = cleanName(m[1].str().c_str());
+        if (std::regex_search(body, m, familyRegex)) family = cleanName(m[1].str().c_str());
 
         if (std::regex_search(body, m, weightRegex)) {
             std::string w = trim(m[1].str());
@@ -92,7 +92,7 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
                 }
             }
         }
-        
+
         if (weights.empty()) weights.push_back(400);
 
         if (std::regex_search(body, m, styleRegex)) {
@@ -106,7 +106,7 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
             if (std::regex_search(body, m, unicodeRangeRegex)) {
                 src.unicode_range = trim(m[1].str());
             }
-            
+
             for (int w : weights) {
                 font_request req;
                 req.family = family;
@@ -119,7 +119,7 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
 }
 
 std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &family, int weight,
-                                                     SkFontStyle::Slant slant) const {
+                                                        SkFontStyle::Slant slant) const {
     font_request req;
     req.family = cleanName(family.c_str());
     req.weight = weight;
@@ -132,7 +132,7 @@ std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &famil
             urls.push_back(src.url);
         }
     }
-    
+
     if (urls.empty()) {
         for (const auto &entry : m_fontFaces) {
             if (entry.first.family == req.family && entry.first.slant == req.slant) {
@@ -144,7 +144,7 @@ std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &famil
             }
         }
     }
-    
+
     return urls;
 }
 
@@ -155,15 +155,15 @@ std::string SatoruFontManager::getFontUrl(const std::string &family, int weight,
 }
 
 std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string &family, int weight,
-                                                         SkFontStyle::Slant slant) {
+                                                             SkFontStyle::Slant slant) {
     std::string cleanFamily = cleanName(family.c_str());
     auto it = m_typefaceCache.find(cleanFamily);
     if (it != m_typefaceCache.end()) {
         return it->second;
     }
-    
+
     if (cleanFamily == "serif" || cleanFamily == "sans-serif" || cleanFamily == "monospace") {
-        if (m_defaultTypeface) return { m_defaultTypeface };
+        if (m_defaultTypeface) return {m_defaultTypeface};
     }
 
     return {};
@@ -172,20 +172,21 @@ std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string &
 SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, int weight) {
     if (!typeface) return nullptr;
 
-    int count = typeface->getVariationDesignPosition(SkSpan<SkFontArguments::VariationPosition::Coordinate>());
+    int count = typeface->getVariationDesignPosition(
+        SkSpan<SkFontArguments::VariationPosition::Coordinate>());
     if (count > 0) {
         std::vector<SkFontArguments::VariationPosition::Coordinate> coords(count);
         typeface->getVariationDesignPosition(SkSpan(coords));
-        
+
         bool found = false;
-        for (auto& coord : coords) {
+        for (auto &coord : coords) {
             if (coord.axis == SkSetFourByteTag('w', 'g', 'h', 't')) {
                 coord.value = (float)weight;
                 found = true;
                 break;
             }
         }
-        
+
         if (found) {
             SkFontArguments args;
             SkFontArguments::VariationPosition pos = {coords.data(), (int)coords.size()};

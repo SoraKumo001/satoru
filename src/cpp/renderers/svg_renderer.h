@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "satoru_context.h"
+#include "core/satoru_context.h"
 
 std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context,
                             const char *master_css);

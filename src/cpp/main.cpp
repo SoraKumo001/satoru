@@ -63,6 +63,9 @@ EMSCRIPTEN_KEEPALIVE
 void scan_css(const char *css) { api_scan_css(css); }
 
 EMSCRIPTEN_KEEPALIVE
+void clear_css() { api_clear_css(); }
+
+EMSCRIPTEN_KEEPALIVE
 void load_font(const char *name, const uint8_t *data, int size) { api_load_font(name, data, size); }
 
 EMSCRIPTEN_KEEPALIVE
@@ -88,6 +91,7 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("get_required_fonts", &get_required_fonts, allow_raw_pointers());
     function("add_resource", &add_resource, allow_raw_pointers());
     function("scan_css", &scan_css, allow_raw_pointers());
+    function("clear_css", &clear_css);
     function("load_font", &load_font, allow_raw_pointers());
     function("clear_fonts", &clear_fonts);
     function("load_image", &load_image, allow_raw_pointers());

@@ -23,6 +23,7 @@ export interface SatoruModule {
     size: number,
   ) => void;
   _scan_css: (css: number) => void;
+  _clear_css: () => void;
   _load_font: (name: number, data: number, size: number) => void;
   _clear_fonts: () => void;
   _load_image: (
@@ -143,6 +144,16 @@ export class Satoru {
     this.mod._clear_images();
   }
 
+  clearCss() {
+    this.mod._clear_css();
+  }
+
+  clearAll() {
+    this.clearFonts();
+    this.clearImages();
+    this.clearCss();
+  }
+
   async render({
     html,
     width,
@@ -190,7 +201,7 @@ export class Satoru {
     // from attempting to fetch them again during the final layout/drawing pass.
     resolvedUrls.forEach((url) => {
       // Escape special regex characters in the URL
-      const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escapedUrl = url.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&");
       const linkRegex = new RegExp(
         `<link[^>]*href=["']${escapedUrl}["'][^>]*>`,
         "gi",

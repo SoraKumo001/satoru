@@ -110,14 +110,25 @@ void api_add_resource(const char *url, int type, const uint8_t *data, int size) 
 
 void api_scan_css(const char *css) { g_context.fontManager.scanFontFaces(css); }
 
+void api_clear_css() {
+    g_context.clearCss();
+    if (g_resourceManager) g_resourceManager->clear(ResourceType::Css);
+}
+
 void api_load_font(const char *name, const uint8_t *data, int size) {
     g_context.load_font(name, data, size);
 }
 
-void api_clear_fonts() { g_context.clear_fonts(); }
+void api_clear_fonts() {
+    g_context.clearFonts();
+    if (g_resourceManager) g_resourceManager->clear(ResourceType::Font);
+}
 
 void api_load_image(const char *name, const char *data_url, int width, int height) {
     g_context.load_image(name, data_url, width, height);
 }
 
-void api_clear_images() { g_context.clear_images(); }
+void api_clear_images() {
+    g_context.clearImages();
+    if (g_resourceManager) g_resourceManager->clear(ResourceType::Image);
+}

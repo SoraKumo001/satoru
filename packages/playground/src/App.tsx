@@ -75,6 +75,11 @@ const App: React.FC = () => {
       const url = new URL(window.location.href);
       url.searchParams.set("asset", name);
       window.history.replaceState({}, "", url.toString());
+
+      // Trigger conversion immediately if satoru is ready
+      if (satoru) {
+        handleConvert(text);
+      }
     } catch (e) {
       console.error("Failed to load asset", e);
     }
@@ -99,11 +104,16 @@ const App: React.FC = () => {
     }
   };
 
-  const handleConvert = async () => {
-    if (!satoru || !html) return;
+  const handleConvert = async (overrideHtml?: string) => {
+    const currentHtml = overrideHtml !== undefined ? overrideHtml : html;
+    if (!satoru || !currentHtml) return;
 
     setIsRendering(true);
     setError(null);
+
+    // Clear resources for a clean state
+    satoru.clearFonts();
+    satoru.clearImages();
 
     if (objectUrl) {
       URL.revokeObjectURL(objectUrl);
@@ -112,7 +122,7 @@ const App: React.FC = () => {
 
     try {
       const result = await satoru.render({
-        html,
+        html: currentHtml,
         width,
         format,
         resolveResource: resourceResolver,
@@ -296,7 +306,7 @@ const App: React.FC = () => {
       </div>
 
       <button
-        onClick={handleConvert}
+        onClick={() => handleConvert()}
         disabled={isRendering || !satoru}
         style={{
           padding: "15px 30px",

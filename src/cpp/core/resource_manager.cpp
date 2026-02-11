@@ -48,7 +48,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
                           ResourceType type) {
     if (url.empty()) return;
 
-    m_resolvedUrls.insert(url);
+    m_resolvedUrls[url] = type;
 
     if (!data || size == 0) {
         std::cerr << "ResourceManager: Received empty data for " << url << std::endl;
@@ -129,3 +129,30 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
 }
 
 bool ResourceManager::has(const std::string& url) const { return m_resolvedUrls.count(url) > 0; }
+
+void ResourceManager::clear() {
+    m_requests.clear();
+    m_resolvedUrls.clear();
+    m_urlToNames.clear();
+}
+
+void ResourceManager::clear(ResourceType type) {
+    // Clear pending requests of this type
+    for (auto it = m_requests.begin(); it != m_requests.end();) {
+        if (it->type == type) {
+            it = m_requests.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    // Clear resolved URLs of this type
+    for (auto it = m_resolvedUrls.begin(); it != m_resolvedUrls.end();) {
+        if (it->second == type) {
+            m_urlToNames.erase(it->first);
+            it = m_resolvedUrls.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}

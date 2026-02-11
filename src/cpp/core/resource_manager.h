@@ -39,10 +39,13 @@ class ResourceManager {
 
     bool has(const std::string& url) const;
 
+    void clear();
+    void clear(ResourceType type);
+
    private:
     SatoruContext& m_context;
     std::set<ResourceRequest> m_requests;
-    std::set<std::string> m_resolvedUrls;
+    std::map<std::string, ResourceType> m_resolvedUrls;
     std::map<std::string, std::set<std::string>>
         m_urlToNames;  // Map URL to requested names (e.g. Font Families)
 };

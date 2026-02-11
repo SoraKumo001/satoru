@@ -18,6 +18,7 @@ int api_get_last_pdf_size();
 void api_collect_resources(const char *html, int width);
 void api_add_resource(const char *url, int type, const uint8_t *data, int size);
 void api_scan_css(const char *css);
+void api_clear_css();
 void api_load_font(const char *name, const uint8_t *data, int size);
 void api_clear_fonts();
 void api_load_image(const char *name, const char *data_url, int width, int height);

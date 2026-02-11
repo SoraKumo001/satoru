@@ -153,32 +153,10 @@ list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*
 # --- Common Settings ---
 set(SATORU_INCLUDES
     "src/cpp"
-
     "${LITEHTML_DIR}/include"
     "${LITEHTML_DIR}/include/litehtml"
-    "${LITEHTML_DIR}/src"
     "${SKIA_CONFIG_DIR}"
     "${skia_SOURCE_DIR}"
-    "${skia_SOURCE_DIR}/include/core"
-    "${skia_SOURCE_DIR}/include/config"
-    "${skia_SOURCE_DIR}/include/utils"
-    "${skia_SOURCE_DIR}/include/private"
-    "${skia_SOURCE_DIR}/include/ports"
-    "${skia_SOURCE_DIR}/include/ports"
-    "${skia_SOURCE_DIR}/include/effects"
-    "${skia_SOURCE_DIR}/include/svg"
-    "${skia_SOURCE_DIR}/include/encode"
-    "${skia_SOURCE_DIR}/include/codec"
-    "${skia_SOURCE_DIR}/include/docs"
-    "${skia_SOURCE_DIR}/include/pathops"
-    "${skia_SOURCE_DIR}/modules/skcms"
-    "${skia_SOURCE_DIR}/src/core"
-    "${skia_SOURCE_DIR}/src/base"
-    "${skia_SOURCE_DIR}/src/text"
-    "${skia_SOURCE_DIR}/src/utils"
-    "${skia_SOURCE_DIR}/src/codec"
-    "${skia_SOURCE_DIR}/src/encode"
-    "${skia_SOURCE_DIR}/src/pathops"
 )
 
 set(SATORU_COMPILE_OPTIONS

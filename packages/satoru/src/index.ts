@@ -273,7 +273,12 @@ export class Satoru {
 
   toSvg(html: string, width: number, height: number = 0): string {
     const htmlPtr = this.stringToPtr(html);
-    const svgPtr = this.mod._html_to_svg(this.instancePtr, htmlPtr, width, height);
+    const svgPtr = this.mod._html_to_svg(
+      this.instancePtr,
+      htmlPtr,
+      width,
+      height,
+    );
     const svg = this.mod.UTF8ToString(svgPtr);
     this.mod._free(htmlPtr);
     this.mod._free(svgPtr); // CRITICAL: Free the string returned by malloc in C++
@@ -329,11 +334,7 @@ export class Satoru {
     const resources: RequiredResource[] = [];
 
     // Temporary callback to collect resources from WASM
-    this.onResourceRequested = (
-      url: string,
-      typeInt: number,
-      name: string,
-    ) => {
+    this.onResourceRequested = (url: string, typeInt: number, name: string) => {
       let type: "font" | "css" | "image" = "font";
       if (typeInt === 2) type = "image";
       if (typeInt === 3) type = "css";
@@ -387,3 +388,6 @@ export class Satoru {
     return ptr;
   }
 }
+
+export { createSatoruWorker } from "./single.js";
+export type { SatoruWorker } from "./workers.js";

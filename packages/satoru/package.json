@@ -23,6 +23,10 @@
       "types": "./dist/workerd.d.ts",
       "import": "./dist/workerd.js"
     },
+    "./workers": {
+      "types": "./dist/workers.d.ts",
+      "import": "./dist/workers.js"
+    },
     "./single": {
       "types": "./dist/single.d.ts",
       "import": "./dist/single.js"
@@ -53,5 +57,8 @@
   "devDependencies": {
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "worker-lib": "2.0.8"
   }
 }

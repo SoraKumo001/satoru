@@ -24,13 +24,10 @@ app.get("/", async (c) => {
     ${toHtml(
       <html>
         <head>
-          <style>
-            {`
-            <link
-              href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap"
-              rel="stylesheet"
-            >`}
-          </style>
+          <link
+            href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap"
+            rel="stylesheet"
+          />
         </head>
         <body>
           <div
@@ -46,6 +43,21 @@ app.get("/", async (c) => {
               fontFamily: "'Noto Sans JP', sans-serif",
             }}
           >
+            <img
+              style={{
+                borderRadius: "100%",
+                padding: "24px",
+                opacity: 0.4,
+                position: "absolute",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+              }}
+              width={480}
+              height={480}
+              src="https://raw.githubusercontent.com/SoraKumo001/cloudflare-ogp/refs/heads/master/sample/image.jpg"
+              alt=""
+            />
             <div
               style={{
                 fontSize: "80px",

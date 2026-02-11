@@ -51,9 +51,7 @@ describe("Visual Regression Tests", () => {
       (dir) => !fs.existsSync(dir) && fs.mkdirSync(dir, { recursive: true }),
     );
     const wasmPath = path.resolve(ROOT_DIR, "packages/satoru/dist/satoru.wasm");
-    satoru = await Satoru.init(undefined, {
-      locateFile: (url: string) => (url.endsWith(".wasm") ? wasmPath : url),
-    });
+    satoru = await Satoru.init();
     browser = await chromium.launch();
     page = await browser.newPage();
   });
@@ -106,6 +104,7 @@ describe("Visual Regression Tests", () => {
           html,
           width: 800,
           format: "png",
+          removeDefaultMargin: false,
           resolveResource,
         })) as Uint8Array;
         const directResult = compareImages(
@@ -119,6 +118,7 @@ describe("Visual Regression Tests", () => {
           html,
           width: 800,
           format: "svg",
+          removeDefaultMargin: false,
           resolveResource,
         })) as string;
         const widthMatch = svg.match(/width="(\d+)"/);

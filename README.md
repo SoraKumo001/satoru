@@ -6,17 +6,17 @@ https://sorakumo001.github.io/satoru/
 
 ## 📊 Satoru vs Satori
 
-| Feature            | Satori (Vercel)                    | **Satoru**                                 |
-| ------------------ | ---------------------------------- | ------------------------------------------ |
-| **Engine**         | Yoga (Flexbox only)                | **litehtml (Full CSS Layout)**             |
-| **Renderer**       | Custom SVG Generator               | **Skia Graphics Engine**                   |
-| **Output Formats** | SVG                                | **SVG, PNG, PDF**                          |
-| **CSS Support**    | Limited subset (Flexbox)           | **Extensive (Floats, Box-shadow, etc.)**   |
-| **Images**         | External URLs, Base64, ArrayBuffer | **Embedded/Local (PNG, JPEG, WebP, AVIF)** |
-| **Font Formats**   | TTF, OTF, WOFF                     | **TTF, OTF, WOFF2, TTC**                   |
-| **Typography**     | SVG Paths / Fonts                  | **Full Skia Typeface support**             |
-| **Performance**    | High (Lightweight)                 | **High (Wasm-accelerated Skia)**           |
-| **Edge Ready**     | Yes (Node/Edge)                    | **Yes (Wasm/Edge/Cloudflare)**             |
+| Feature            | Satori (Vercel)                    | **Satoru**                                     |
+| ------------------ | ---------------------------------- | ---------------------------------------------- |
+| **Engine**         | Yoga (Flexbox only)                | **litehtml (Full CSS Layout)**                 |
+| **Renderer**       | Custom SVG Generator               | **Skia Graphics Engine**                       |
+| **Output Formats** | SVG                                | **SVG, PNG, PDF**                              |
+| **CSS Support**    | Limited subset (Flexbox)           | **Extensive (Floats, Box-shadow, etc.)**       |
+| **Images**         | External URLs, Base64, ArrayBuffer | **Embedded/Local/Url (PNG, JPEG, WebP, AVIF)** |
+| **Font Formats**   | TTF, OTF, WOFF                     | **TTF, OTF, WOFF2, TTC**                       |
+| **Typography**     | SVG Paths / Fonts                  | **Full Skia Typeface support**                 |
+| **Performance**    | High (Lightweight)                 | **High (Wasm-accelerated Skia)**               |
+| **Edge Ready**     | Yes (Node/Edge)                    | **Yes (Wasm/Edge/Cloudflare)**                 |
 
 ## 🚀 Project Status: High-Fidelity Rendering & Edge Ready
 

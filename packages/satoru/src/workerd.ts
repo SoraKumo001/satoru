@@ -7,6 +7,14 @@ import {
 // @ts-ignore
 import satoruWasm from "../dist/satoru.wasm";
 
+export type {
+  SatoruOptions,
+  SatoruModule,
+  RequiredResource,
+  ResourceResolver,
+  RenderOptions,
+} from "./index.js";
+
 /**
  * Cloudflare Workers (workerd) specialized wrapper for Satoru.
  * Handles the specific WASM instantiation requirements for the environment.

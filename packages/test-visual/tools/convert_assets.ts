@@ -1,4 +1,4 @@
-﻿import fs from "fs";
+import fs from "fs";
 import path from "path";
 import os from "os";
 import { fileURLToPath } from "url";
@@ -49,16 +49,10 @@ async function convertAssets() {
   // Give some time for NodeWorker to be imported in the background
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  // Set assets directory for all workers
-  await satoru.setAssetsDir(ASSETS_DIR);
-
   const tasks = files.map(async (file) => {
     const start = Date.now();
     const inputPath = path.join(ASSETS_DIR, file);
     const html = fs.readFileSync(inputPath, "utf-8");
-
-    // Clear caches for a clean state
-    await satoru.clearAll();
 
     const formats: ("svg" | "png" | "pdf")[] = ["svg", "png", "pdf"];
 
@@ -67,6 +61,8 @@ async function convertAssets() {
         html,
         width: 800,
         format,
+        baseUrl: ASSETS_DIR,
+        clear: true,
       });
 
       if (result) {

@@ -8,6 +8,7 @@ export type {
   SatoruModule,
   RequiredResource,
   ResourceResolver,
+  RenderOptions,
 } from "./index.js";
 
 /**
@@ -33,8 +34,8 @@ export const createSatoruWorker = (params: {
     }
     const workerUrl =
       typeof window !== "undefined"
-        ? new URL("./web-workers.js", import.meta.url)
-        : new URL("./node-workers.js", import.meta.url);
+        ? new URL("./workers/web-workers.js", import.meta.url)
+        : new URL("./workers/node-workers.js", import.meta.url);
 
     if (typeof Worker !== "undefined") {
       return new Worker(workerUrl, { type: "module" });

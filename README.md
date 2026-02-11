@@ -33,14 +33,12 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 Satoru supports a wide range of CSS properties for high-fidelity layout and styling.
 
 ### Box Model & Layout
-
 - `display`, `position`, `float`, `clear`, `visibility`, `z-index`, `overflow`, `box-sizing`
 - `width`, `height`, `min-width`, `min-height`, `max-width`, `max-height`
 - `margin` (top, right, bottom, left)
 - `padding` (top, right, bottom, left)
 
 ### Typography & Text
-
 - `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`
 - `text-align`, `vertical-align`, `text-decoration` (line, color, style, thickness)
 - `text-transform`, `text-indent`, `text-overflow`, `white-space`
@@ -48,20 +46,17 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `line-clamp` / `-webkit-line-clamp`, `-webkit-box-orient`
 
 ### Backgrounds
-
 - `background-color`
 - `background-image` (Supports `url()`, `linear-gradient`, `radial-gradient`, `conic-gradient`)
 - `background-position`, `background-size`, `background-repeat`, `background-attachment`
 
 ### Borders & Shadows
-
 - `border`, `border-width`, `border-style`, `border-color` (top, right, bottom, left)
 - `border-radius` (Full support for all corners)
 - `border-collapse`, `border-spacing`
 - `box-shadow` (High-quality **Outer** and **Inset** shadows)
 
 ### Flexbox
-
 - `display: flex`, `display: inline-flex`
 - `flex-direction`, `flex-wrap`, `flex-flow`
 - `justify-content`, `align-items`, `align-content`, `align-self`
@@ -69,7 +64,6 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `row-gap`, `column-gap`, `gap`, `order`
 
 ### Others
-
 - `caption-side`, `content`, `appearance`
 
 ## 🔄 Conversion Flow
@@ -119,10 +113,10 @@ The `Satoru` class provides a high-level API for rendering HTML. It is initializ
 
 #### Basic Rendering (Automatic Resource Resolution)
 
-The `render` method supports automated 2-pass resource resolution. It identifies missing fonts, images, and external CSS from the HTML and requests them via the `resolveResource` callback.
+The `render` method supports automated multi-pass resource resolution. It identifies missing fonts, images, and external CSS and requests them via the `resolveResource` callback.
 
 ```typescript
-import { Satoru } from "satoru";
+import { Satoru, LogLevel } from "satoru";
 
 // Initialize the engine
 const satoru = await Satoru.init();
@@ -136,15 +130,17 @@ const html = `
   </style>
   <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;">
     Hello Satoru!
-    <img src="https://example.com/logo.png" style="width: 50px;">
+    <img src="logo.png" style="width: 50px;">
   </div>
 `;
 
-// Render to PDF
+// Render to PDF with automatic resource resolution
 const pdf = await satoru.render({
   html,
   width: 600,
   format: "pdf",
+  baseUrl: "https://example.com/assets/", // Optional: resolve relative URLs
+  logLevel: LogLevel.Info, // Enable logging for this call (default is LogLevel.None)
   resolveResource: async (resource) => {
     const res = await fetch(resource.url);
     return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
@@ -154,33 +150,20 @@ const pdf = await satoru.render({
 
 ### ☁️ Cloudflare Workers (Edge)
 
-Satoru is optimized for Cloudflare Workers. The `render` method's `resolveResource` callback works seamlessly with the standard `fetch` API on the edge.
+Satoru is optimized for Cloudflare Workers. Use the `workerd` specific export for proper WASM instantiation.
 
 ```typescript
-import { Satoru } from "satoru"; // Resolves to workerd-specific implementation
+import { Satoru } from "satoru/workerd";
 
 export default {
   async fetch(request) {
     const satoru = await Satoru.init();
 
-    const html = `
-      <style>
-        @font-face {
-          font-family: 'CustomFont';
-          src: url('https://example.com/font.woff2');
-        }
-      </style>
-      <div style='font-family: CustomFont'>Edge Rendered PDF</div>
-    `;
-
     const pdf = await satoru.render({
-      html,
+      html: "<h1>Edge Rendered</h1>",
       width: 800,
       format: "pdf",
-      resolveResource: async (resource) => {
-        const res = await fetch(resource.url);
-        return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
-      },
+      baseUrl: "https://example.com/"
     });
 
     return new Response(pdf, {
@@ -192,48 +175,45 @@ export default {
 
 ### 📦 Single-file (Embedded WASM)
 
-For environments where deploying a separate `.wasm` file is difficult (e.g., some CI/CD pipelines or restricted Node.js environments), you can use the `single` export which includes the WASM binary embedded within the JS file.
+For environments where deploying a separate `.wasm` file is difficult, use the `single` export which includes the WASM binary embedded.
 
 ```typescript
 import { Satoru } from "satoru/single";
 
-// Initialize the engine (no external .wasm file needed)
 const satoru = await Satoru.init();
-const png = await satoru.render({
-  html: "<div>Embedded WASM!</div>",
-  width: 600,
-  format: "png",
+const png = await satoru.render({ 
+  html: "<div>Embedded WASM!</div>", 
+  width: 600, 
+  format: "png" 
 });
 ```
 
 ### 🧵 Multi-threaded Rendering (Worker Proxy)
 
-For high-throughput applications or to keep the UI responsive in browsers, you can use the Worker proxy. This automatically distributes rendering tasks across multiple background threads.
+For high-throughput applications, the Worker proxy distributes rendering tasks across multiple threads. You can configure all resources in a single `render` call for stateless operation.
 
 ```typescript
-import { createSatoruWorker } from "satoru";
+import { createSatoruWorker, LogLevel } from "satoru";
 
 // Create a worker proxy with up to 4 parallel instances
 const satoru = createSatoruWorker({ maxParallel: 4 });
 
-// Use it just like the standard Satoru instance (returns Promises for all methods)
-const png = await satoru.render({
-// Use it just like the standard Satoru instance (returns Promises for all methods)
-// Workers support an optional baseUrl to automatically resolve relative fonts/images
-const png = await satoru.render({
-  html: '<img src="logo.png">',
-  width: 800,
+// Render with full configuration in one go
+const png = await satoru.render({ 
+  html: "<h1>Parallel Rendering</h1><img src='icon.png'>", 
+  width: 800, 
   format: "png",
-  baseUrl: "https://example.com/assets/"
+  baseUrl: "https://example.com/assets/",
+  clear: true, // Start with a fresh state for this task
+  logLevel: LogLevel.Debug, // Enable debug logs for this task
+  fonts: [{ name: "CustomFont", data: fontData }], // Pre-load fonts
+  css: "h1 { color: red; }" // Inject extra CSS
 });
-
-// Remember to close the worker pool when done (if applicable)
-// satoru.close();
 ```
 
 ### 🎨 Manual Resource Management
 
-For scenarios where you want to pre-load resources or manage them manually without the `render` callback:
+For scenarios where you want to manage resources manually:
 
 ```typescript
 // Load a font globally
@@ -245,6 +225,7 @@ satoru.loadImage("logo-id", "https://example.com/logo.png", width, height);
 // Clear caches
 satoru.clearFonts();
 satoru.clearImages();
+satoru.clearCss();
 ```
 
 ## 🧪 Testing & Validation
@@ -255,29 +236,21 @@ The project includes a robust **Visual Regression Suite** to ensure rendering fi
 
 This suite compares Satoru's outputs against Chromium's rendering.
 
-- **Triple Validation Pipeline**: Every test asset is verified through three formats:
-  1. **Direct PNG**: Satoru's native Skia-based PNG output.
-  2. **SVG Output**: Satoru's SVG output.
-  3. **PDF Output**: Satoru's PDF output.
-- **Numerical Precision**: PNG tests report the exact pixel difference percentage.
-- **Fast Execution**:
-  - **Reference Generation**: Multi-threaded using Playwright with shared contexts (~3s for 14 assets).
-  - **Batch Conversion**: Multi-threaded using Node.js Worker Threads, running multiple Wasm instances in parallel (~1.8s for 14 assets).
+- **Triple Validation Pipeline**: Every test asset is verified through PNG, SVG, and PDF formats.
+- **Numerical Precision**: PNG tests report exact pixel difference percentages.
+- **Fast Execution**: Multi-threaded reference generation and batch conversion.
 
 #### Run Tests
-
 ```bash
 pnpm --filter test-visual test
 ```
 
 #### Generate Reference Images
-
 ```bash
 pnpm --filter test-visual gen-ref
 ```
 
 #### Batch Convert Assets (Multithreaded)
-
 ```bash
 pnpm --filter test-visual convert-assets
 ```
@@ -285,33 +258,21 @@ pnpm --filter test-visual convert-assets
 ## 🏗️ Build & Run
 
 ### Local Environment
-
 Requires Emscripten SDK and vcpkg.
 
 ```bash
-# 1. Install dependencies
 pnpm install
-
-# 2. Configure & Build WASM
 pnpm wasm:configure
 pnpm wasm:build
-
-# 3. Build TS packages
 pnpm build
-
-# 4. Start Development UI
 pnpm dev
 ```
 
 ### Docker Environment (Recommended)
-
-Build Wasm artifacts inside a Docker container. No local C++ toolchain required.
+Build Wasm artifacts inside a Docker container without local toolchains.
 
 ```bash
-# 1. Build Wasm via Docker
 pnpm wasm:docker:build
-
-# 2. Build TS packages
 pnpm build
 ```
 

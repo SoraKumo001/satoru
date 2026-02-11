@@ -8,7 +8,7 @@
 #include "include/core/SkFontStyle.h"
 #include "libs/litehtml/include/litehtml.h"
 
-enum class LogLevel { Debug = 0, Info = 1, Warning = 2, Error = 3 };
+enum class LogLevel { None = 0, Error = 1, Warning = 2, Info = 3, Debug = 4 };
 
 struct font_info {
     litehtml::font_description desc;

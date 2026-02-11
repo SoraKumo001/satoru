@@ -1,5 +1,5 @@
-﻿import { initWorker } from "worker-lib";
-import { Satoru } from "../single.js";
+import { initWorker } from "worker-lib";
+import { Satoru, type RenderOptions } from "../single.js";
 
 let satoru: Satoru | undefined;
 
@@ -15,36 +15,9 @@ const getSatoru = async () => {
  * Exposes Satoru methods via worker-lib.
  */
 const actions = {
-  async render(options: any) {
+  async render(options: RenderOptions) {
     const s = await getSatoru();
-    const { baseUrl, ...renderOptions } = options;
-
-    // Provide a default resource resolver if baseUrl is present and no resolver is provided
-    // (Note: function resolvers can't be passed through worker-lib easily)
-    if (baseUrl && !renderOptions.resolveResource) {
-      renderOptions.resolveResource = async (r: {
-        type: string;
-        url: string;
-      }) => {
-        try {
-          const url =
-            r.url.startsWith("http") || r.url.startsWith("data:")
-              ? r.url
-              : new URL(r.url, baseUrl).href;
-
-          const resp = await fetch(url);
-          if (!resp.ok) return null;
-
-          const buf = await resp.arrayBuffer();
-          return new Uint8Array(buf);
-        } catch (e) {
-          console.warn(`[Satoru Worker] Failed to fetch ${r.url}`, e);
-          return null;
-        }
-      };
-    }
-
-    return s.render(renderOptions);
+    return s.render(options);
   },
 
   async toSvg(html: string, width: number, height: number = 0) {

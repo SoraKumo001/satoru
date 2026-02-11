@@ -2,10 +2,11 @@
 import createSatoruModule from "../dist/satoru.js";
 
 export enum LogLevel {
-  Debug = 0,
-  Info = 1,
+  None = 0,
+  Error = 1,
   Warning = 2,
-  Error = 3,
+  Info = 3,
+  Debug = 4,
 }
 
 export interface SatoruModule {
@@ -67,6 +68,7 @@ export interface SatoruModule {
     type: number,
     name: string,
   ) => void;
+  logLevel: LogLevel;
 }
 
 export interface RequiredResource {
@@ -83,6 +85,20 @@ export interface SatoruOptions {
   locateFile?: (path: string) => string;
   instantiateWasm?: (imports: any, successCallback: any) => any;
   onLog?: (level: LogLevel, message: string) => void;
+}
+
+export interface RenderOptions {
+  html: string;
+  width: number;
+  height?: number;
+  format?: "svg" | "png" | "pdf";
+  resolveResource?: ResourceResolver;
+  fonts?: { name: string; data: Uint8Array }[];
+  images?: { name: string; url: string; width?: number; height?: number }[];
+  css?: string;
+  clear?: boolean;
+  baseUrl?: string;
+  logLevel?: LogLevel;
 }
 
 export { createSatoruModule };
@@ -140,7 +156,10 @@ export class Satoru {
       }
     };
 
+    let mod: SatoruModule;
     const onLog = (level: LogLevel, message: string) => {
+      if (mod && level > mod.logLevel) return;
+
       if (options.onLog) {
         options.onLog(level, message);
       } else {
@@ -148,7 +167,7 @@ export class Satoru {
       }
     };
 
-    const mod = (await createSatoruModuleFunc({
+    mod = (await createSatoruModuleFunc({
       onLog,
       print: (text: string) => {
         onLog(LogLevel.Info, text);
@@ -161,6 +180,7 @@ export class Satoru {
 
     // Ensure onLog is available on the module instance
     mod.onLog = onLog;
+    mod.logLevel = LogLevel.None;
 
     const instancePtr = mod._create_instance();
     return new Satoru(mod, instancePtr);
@@ -206,68 +226,156 @@ export class Satoru {
     this.clearCss();
   }
 
-  async render({
-    html,
-    width,
-    height = 0,
-    format = "svg",
-    resolveResource,
-  }: {
-    html: string;
-    width: number;
-    height?: number;
-    format?: "svg" | "png" | "pdf";
-    resolveResource?: ResourceResolver;
-  }): Promise<string | Uint8Array | null> {
-    let processedHtml = html;
-    const resolvedUrls = new Set<string>();
+  async render(options: RenderOptions): Promise<string | Uint8Array | null> {
+    const {
+      html,
+      width,
+      height = 0,
+      format = "svg",
+      fonts,
+      images,
+      css,
+      clear = false,
+      baseUrl,
+      logLevel,
+    } = options;
 
-    // Increased loop count to 10 to support multi-pass resource resolution (CSS -> Font Segments)
-    for (let i = 0; i < 10; i++) {
-      const resources = this.getPendingResources(processedHtml, width);
-      const pending = resources.filter((r) => !resolvedUrls.has(r.url));
-
-      if (pending.length === 0) break;
-
-      await Promise.all(
-        pending.map(async (r) => {
-          try {
-            resolvedUrls.add(r.url);
-            let data: Uint8Array | null = null;
-
-            if (resolveResource) {
-              data = await resolveResource({ ...r });
-            }
-
-            if (data instanceof Uint8Array) {
-              this.addResource(r.url, r.type, data);
-            }
-          } catch (e) {
-            console.warn(`Failed to resolve resource: ${r.url}`, e);
-          }
-        }),
-      );
+    const prevLogLevel = this.mod.logLevel;
+    if (logLevel !== undefined) {
+      this.mod.logLevel = logLevel;
     }
 
-    // After all resources are resolved, we remove the link tags to prevent litehtml
-    // from attempting to fetch them again during the final layout/drawing pass.
-    resolvedUrls.forEach((url) => {
-      // Escape special regex characters in the URL
-      const escapedUrl = url.replace(/[.*+?^${}()|[\\\]]/g, "\\$&");
-      const linkRegex = new RegExp(
-        `<link[^>]*href\\s*=\\s*(["'])${escapedUrl}\\1[^>]*>`,
-        "gi",
-      );
-      processedHtml = processedHtml.replace(linkRegex, "");
-    });
+    try {
+      if (clear) {
+        this.clearAll();
+      }
+      if (fonts) {
+        for (const f of fonts) {
+          this.loadFont(f.name, f.data);
+        }
+      }
+      if (images) {
+        for (const img of images) {
+          this.loadImage(img.name, img.url, img.width ?? 0, img.height ?? 0);
+        }
+      }
+      if (css) {
+        this.scanCss(css);
+      }
 
-    switch (format) {
-      case "png":
-        return this.toPng(processedHtml, width, height);
-      case "pdf":
-        return this.toPdf(processedHtml, width, height);
-      default:
-        return this.toSvg(processedHtml, width, height);
+      let { resolveResource } = options;
+
+      // Provide a default resource resolver if baseUrl is present
+      if (!resolveResource && baseUrl) {
+        resolveResource = async (r: RequiredResource) => {
+          try {
+            const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(r.url);
+
+            // Node.js local file resolution for relative URLs
+            if (
+              !isAbsolute &&
+              typeof process !== "undefined" &&
+              process.versions?.node
+            ) {
+              try {
+                const path = await import("path");
+                const fs = await import("fs");
+                // If baseUrl is a path or file:// URL
+                let baseDir = baseUrl.startsWith("file://")
+                  ? baseUrl.slice(7)
+                  : baseUrl;
+
+                // On Windows, slice(7) might leave a leading slash like /C:/...
+                if (process.platform === "win32" && baseDir.startsWith("/")) {
+                  baseDir = baseDir.slice(1);
+                }
+
+                // Check if it's NOT a protocol (http://, https://, etc.)
+                // We assume it's a local path if it doesn't have "://" or "data:"
+                if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(baseDir) && !baseDir.startsWith("data:")) {
+                  const filePath = path.join(baseDir, r.url);
+                  if (fs.existsSync(filePath)) {
+                    return new Uint8Array(fs.readFileSync(filePath));
+                  }
+                }
+              } catch (e) {
+                // ignore
+              }
+            }
+
+            let finalUrl: string;
+            if (isAbsolute) {
+              finalUrl = r.url;
+            } else {
+              // baseUrl must be an absolute URL (with protocol) if we reach here
+              if (!/^[a-z][a-z0-9+.-]*:/i.test(baseUrl)) return null;
+              finalUrl = new URL(r.url, baseUrl).href;
+            }
+
+            const resp = await fetch(finalUrl);
+            if (!resp.ok) return null;
+
+            const buf = await resp.arrayBuffer();
+            return new Uint8Array(buf);
+          } catch (e) {
+            console.warn(`[Satoru] Failed to resolve resource: ${r.url}`, e);
+            return null;
+          }
+        };
+      }
+
+      let processedHtml = html;
+      const resolvedUrls = new Set<string>();
+
+      // Increased loop count to 10 to support multi-pass resource resolution (CSS -> Font Segments)
+      for (let i = 0; i < 10; i++) {
+        const resources = this.getPendingResources(processedHtml, width);
+        const pending = resources.filter((r) => !resolvedUrls.has(r.url));
+
+        if (pending.length === 0) break;
+
+        await Promise.all(
+          pending.map(async (r) => {
+            try {
+              resolvedUrls.add(r.url);
+              let data: Uint8Array | null = null;
+
+              if (resolveResource) {
+                data = await resolveResource({ ...r });
+              }
+
+              if (data instanceof Uint8Array) {
+                this.addResource(r.url, r.type, data);
+              }
+            } catch (e) {
+              console.warn(`Failed to resolve resource: ${r.url}`, e);
+            }
+          }),
+        );
+      }
+
+      // After all resources are resolved, we remove the link tags to prevent litehtml
+      // from attempting to fetch them again during the final layout/drawing pass.
+      resolvedUrls.forEach((url) => {
+        // Escape special regex characters in the URL
+        const escapedUrl = url.replace(/[.*+?^${}()|[\\]]/g, "\\$&");
+        const linkRegex = new RegExp(
+          `<link[^>]*href\\s*=\\s*(["'])${escapedUrl}\\1[^>]*>`,
+          "gi",
+        );
+        processedHtml = processedHtml.replace(linkRegex, "");
+      });
+
+      switch (format) {
+        case "png":
+          return this.toPng(processedHtml, width, height);
+        case "pdf":
+          return this.toPdf(processedHtml, width, height);
+        default:
+          return this.toSvg(processedHtml, width, height);
+      }
+    } finally {
+      this.mod.logLevel = prevLogLevel;
     }
   }
 

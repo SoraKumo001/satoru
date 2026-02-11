@@ -1,10 +1,8 @@
-﻿import { initWorker } from "worker-lib";
-import { Satoru } from "../single.js";
-import path from "path";
-import fs from "fs";
+import { initWorker } from "worker-lib";
+import { Satoru, type RenderOptions } from "../single.js";
 
 let satoru: Satoru | undefined;
-let globalAssetsDir: string | undefined;
+let globalBaseUrl: string | undefined;
 
 const getSatoru = async () => {
   if (!satoru) {
@@ -18,51 +16,16 @@ const getSatoru = async () => {
  * Exposes Satoru methods via worker-lib.
  */
 const actions = {
-  async setAssetsDir(dir: string) {
-    globalAssetsDir = dir;
+  async setBaseUrl(url: string) {
+    globalBaseUrl = url;
   },
 
-  async render(options: any) {
+  async render(options: RenderOptions) {
     const s = await getSatoru();
-    const { baseUrl, ...renderOptions } = options;
+    const renderOptions = { ...options };
 
-    // Provide a default resource resolver if baseUrl or assetsDir is present
-    if (!renderOptions.resolveResource && (baseUrl || globalAssetsDir)) {
-      renderOptions.resolveResource = async (r: {
-        type: string;
-        url: string;
-      }) => {
-        try {
-          if (
-            globalAssetsDir &&
-            !r.url.startsWith("http") &&
-            !r.url.startsWith("data:")
-          ) {
-            const filePath = path.join(globalAssetsDir, r.url);
-            if (fs.existsSync(filePath)) {
-              return new Uint8Array(fs.readFileSync(filePath));
-            }
-          }
-
-          const url =
-            r.url.startsWith("http") || r.url.startsWith("data:")
-              ? r.url
-              : baseUrl
-                ? new URL(r.url, baseUrl).href
-                : undefined;
-
-          if (!url) return null;
-
-          const resp = await fetch(url);
-          if (!resp.ok) return null;
-
-          const buf = await resp.arrayBuffer();
-          return new Uint8Array(buf);
-        } catch (e) {
-          console.warn(`[Satoru Worker] Failed to fetch ${r.url}`, e);
-          return null;
-        }
-      };
+    if (globalBaseUrl && !renderOptions.baseUrl) {
+      renderOptions.baseUrl = globalBaseUrl;
     }
 
     return s.render(renderOptions);

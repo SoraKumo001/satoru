@@ -11,7 +11,10 @@ using namespace emscripten;
 extern "C" {
 
 EMSCRIPTEN_KEEPALIVE
-void init_engine() { api_init_engine(); }
+SatoruInstance *create_instance() { return api_create_instance(); }
+
+EMSCRIPTEN_KEEPALIVE
+void destroy_instance(SatoruInstance *inst) { api_destroy_instance(inst); }
 
 static const char *string_to_heap(const std::string &str) {
     char *res = (char *)malloc(str.length() + 1);
@@ -20,80 +23,84 @@ static const char *string_to_heap(const std::string &str) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-const char *html_to_svg(const char *html, int width, int height) {
-    return string_to_heap(api_html_to_svg(html, width, height));
+const char *html_to_svg(SatoruInstance *inst, const char *html, int width, int height) {
+    return string_to_heap(api_html_to_svg(inst, html, width, height));
 }
 
 EMSCRIPTEN_KEEPALIVE
-const uint8_t *html_to_png(const char *html, int width, int height) {
+const uint8_t *html_to_png(SatoruInstance *inst, const char *html, int width, int height) {
     int size = 0;
-    return api_html_to_png(html, width, height, size);
+    return api_html_to_png(inst, html, width, height, size);
 }
 
 EMSCRIPTEN_KEEPALIVE
-int get_png_size() { return api_get_last_png_size(); }
+int get_png_size(SatoruInstance *inst) { return api_get_last_png_size(inst); }
 
 EMSCRIPTEN_KEEPALIVE
-const uint8_t *html_to_pdf(const char *html, int width, int height) {
+const uint8_t *html_to_pdf(SatoruInstance *inst, const char *html, int width, int height) {
     int size = 0;
-    return api_html_to_pdf(html, width, height, size);
+    return api_html_to_pdf(inst, html, width, height, size);
 }
 
 EMSCRIPTEN_KEEPALIVE
-int get_pdf_size() { return api_get_last_pdf_size(); }
+int get_pdf_size(SatoruInstance *inst) { return api_get_last_pdf_size(inst); }
 
 EMSCRIPTEN_KEEPALIVE
-const char *collect_resources(const char *html, int width) {
-    api_collect_resources(html, width);
+const char *collect_resources(SatoruInstance *inst, const char *html, int width) {
+    api_collect_resources(inst, html, width);
     return nullptr;
 }
 
 EMSCRIPTEN_KEEPALIVE
-const char *get_required_fonts(const char *html, int width) {
-    collect_resources(html, width);
+const char *get_required_fonts(SatoruInstance *inst, const char *html, int width) {
+    collect_resources(inst, html, width);
     return nullptr;
 }
 
 EMSCRIPTEN_KEEPALIVE
-void add_resource(const char *url, int type, const uint8_t *data, int size) {
-    api_add_resource(url, type, data, size);
+void add_resource(SatoruInstance *inst, const char *url, int type, const uint8_t *data, int size) {
+    api_add_resource(inst, url, type, data, size);
 }
 
 EMSCRIPTEN_KEEPALIVE
-void scan_css(const char *css) { api_scan_css(css); }
+void scan_css(SatoruInstance *inst, const char *css) { api_scan_css(inst, css); }
 
 EMSCRIPTEN_KEEPALIVE
-void clear_css() { api_clear_css(); }
+void clear_css(SatoruInstance *inst) { api_clear_css(inst); }
 
 EMSCRIPTEN_KEEPALIVE
-void load_font(const char *name, const uint8_t *data, int size) { api_load_font(name, data, size); }
-
-EMSCRIPTEN_KEEPALIVE
-void clear_fonts() { api_clear_fonts(); }
-
-EMSCRIPTEN_KEEPALIVE
-void load_image(const char *name, const char *data_url, int width, int height) {
-    api_load_image(name, data_url, width, height);
+void load_font(SatoruInstance *inst, const char *name, const uint8_t *data, int size) {
+    api_load_font(inst, name, data, size);
 }
 
 EMSCRIPTEN_KEEPALIVE
-void clear_images() { api_clear_images(); }
+void clear_fonts(SatoruInstance *inst) { api_clear_fonts(inst); }
+
+EMSCRIPTEN_KEEPALIVE
+void load_image(SatoruInstance *inst, const char *name, const char *data_url, int width,
+                int height) {
+    api_load_image(inst, name, data_url, width, height);
+}
+
+EMSCRIPTEN_KEEPALIVE
+void clear_images(SatoruInstance *inst) { api_clear_images(inst); }
 }
 
 EMSCRIPTEN_BINDINGS(satoru) {
-    function("init_engine", &init_engine);
+    function("create_instance", &create_instance, allow_raw_pointers());
+    function("destroy_instance", &destroy_instance, allow_raw_pointers());
     function("html_to_svg", &html_to_svg, allow_raw_pointers());
     function("html_to_png", &html_to_png, allow_raw_pointers());
-    function("get_png_size", &get_png_size);
+    function("get_png_size", &get_png_size, allow_raw_pointers());
     function("html_to_pdf", &html_to_pdf, allow_raw_pointers());
-    function("get_pdf_size", &get_pdf_size);
+    function("get_pdf_size", &get_pdf_size, allow_raw_pointers());
     function("collect_resources", &collect_resources, allow_raw_pointers());
     function("get_required_fonts", &get_required_fonts, allow_raw_pointers());
     function("add_resource", &add_resource, allow_raw_pointers());
     function("scan_css", &scan_css, allow_raw_pointers());
-    function("clear_css", &clear_css);
+    function("clear_css", &clear_css, allow_raw_pointers());
     function("load_font", &load_font, allow_raw_pointers());
-    function("clear_fonts", &clear_fonts);
+    function("clear_fonts", &clear_fonts, allow_raw_pointers());
     function("load_image", &load_image, allow_raw_pointers());
-    function("clear_images", &clear_images);
+    function("clear_images", &clear_images, allow_raw_pointers());
 }

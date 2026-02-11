@@ -1,4 +1,9 @@
-import { Satoru as BaseSatoru, createSatoruModule, SatoruOptions, SatoruModule } from "./index.js";
+import {
+  Satoru as BaseSatoru,
+  createSatoruModule,
+  SatoruOptions,
+  SatoruModule,
+} from "./index.js";
 // @ts-ignore
 import satoruWasm from "../dist/satoru.wasm";
 
@@ -8,8 +13,8 @@ import satoruWasm from "../dist/satoru.wasm";
  */
 export class Satoru extends BaseSatoru {
   // Use protected constructor from base
-  private constructor(mod: SatoruModule) {
-    super(mod);
+  private constructor(mod: SatoruModule, instancePtr: number) {
+    super(mod, instancePtr);
   }
 
   /**
@@ -17,7 +22,10 @@ export class Satoru extends BaseSatoru {
    * @param wasm The compiled WASM module (defaults to the bundled one)
    * @param options Additional Satoru options
    */
-  static async init(wasm: WebAssembly.Module = satoruWasm, options?: SatoruOptions): Promise<Satoru> {
+  static async init(
+    wasm: WebAssembly.Module = satoruWasm,
+    options?: SatoruOptions,
+  ): Promise<Satoru> {
     const mod = await createSatoruModule({
       ...options,
       instantiateWasm: (imports: any, successCallback: any) => {
@@ -32,8 +40,8 @@ export class Satoru extends BaseSatoru {
         return {}; // Return empty object as emscripten expects
       },
     });
-    
-    mod._init_engine();
-    return new Satoru(mod);
+
+    const instancePtr = mod._create_instance();
+    return new Satoru(mod, instancePtr);
   }
 }

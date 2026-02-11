@@ -9,30 +9,48 @@ export enum LogLevel {
 }
 
 export interface SatoruModule {
-  _init_engine: () => void;
-  _html_to_svg: (html: number, width: number, height: number) => number;
-  _html_to_png: (html: number, width: number, height: number) => number;
-  _get_png_size: () => number;
-  _html_to_pdf: (html: number, width: number, height: number) => number;
-  _get_pdf_size: () => number;
-  _collect_resources: (html: number, width: number) => void;
+  _create_instance: () => number;
+  _destroy_instance: (ptr: number) => void;
+  _html_to_svg: (
+    inst: number,
+    html: number,
+    width: number,
+    height: number,
+  ) => number;
+  _html_to_png: (
+    inst: number,
+    html: number,
+    width: number,
+    height: number,
+  ) => number;
+  _get_png_size: (inst: number) => number;
+  _html_to_pdf: (
+    inst: number,
+    html: number,
+    width: number,
+    height: number,
+  ) => number;
+  _get_pdf_size: (inst: number) => number;
+  _collect_resources: (inst: number, html: number, width: number) => void;
   _add_resource: (
+    inst: number,
     url: number,
     type: number,
     data: number,
     size: number,
   ) => void;
-  _scan_css: (css: number) => void;
-  _clear_css: () => void;
-  _load_font: (name: number, data: number, size: number) => void;
-  _clear_fonts: () => void;
+  _scan_css: (inst: number, css: number) => void;
+  _clear_css: (inst: number) => void;
+  _load_font: (inst: number, name: number, data: number, size: number) => void;
+  _clear_fonts: (inst: number) => void;
   _load_image: (
+    inst: number,
     name: number,
     url: number,
     width: number,
     height: number,
   ) => void;
-  _clear_images: () => void;
+  _clear_images: (inst: number) => void;
   _malloc: (size: number) => number;
   _free: (ptr: number) => void;
   UTF8ToString: (ptr: number) => string;
@@ -43,7 +61,12 @@ export interface SatoruModule {
     set: (data: Uint8Array, ptr: number) => void;
   };
   onLog?: (level: LogLevel, message: string) => void;
-  onRequestResource?: (url: string, type: number, name: string) => void;
+  onRequestResource?: (
+    handle: number,
+    url: string,
+    type: number,
+    name: string,
+  ) => void;
 }
 
 export interface RequiredResource {
@@ -66,10 +89,34 @@ export { createSatoruModule };
 
 export class Satoru {
   protected mod: SatoruModule;
+  protected instancePtr: number;
+  private static instances = new Map<number, Satoru>();
 
-  protected constructor(mod: SatoruModule) {
+  protected constructor(mod: SatoruModule, instancePtr: number) {
     this.mod = mod;
+    this.instancePtr = instancePtr;
+    Satoru.instances.set(instancePtr, this);
+
+    if (!mod.onRequestResource) {
+      mod.onRequestResource = (
+        handle: number,
+        url: string,
+        typeInt: number,
+        name: string,
+      ) => {
+        const inst = Satoru.instances.get(handle);
+        if (inst && inst.onResourceRequested) {
+          inst.onResourceRequested(url, typeInt, name);
+        }
+      };
+    }
   }
+
+  private onResourceRequested?: (
+    url: string,
+    type: number,
+    name: string,
+  ) => void;
 
   static async init(
     createSatoruModuleFunc: any = createSatoruModule,
@@ -115,37 +162,42 @@ export class Satoru {
     // Ensure onLog is available on the module instance
     mod.onLog = onLog;
 
-    mod._init_engine();
-    return new Satoru(mod);
+    const instancePtr = mod._create_instance();
+    return new Satoru(mod, instancePtr);
+  }
+
+  destroy() {
+    Satoru.instances.delete(this.instancePtr);
+    this.mod._destroy_instance(this.instancePtr);
   }
 
   loadFont(name: string, data: Uint8Array) {
     const namePtr = this.stringToPtr(name);
     const dataPtr = this.mod._malloc(data.length);
     this.mod.HEAPU8.set(data, dataPtr);
-    this.mod._load_font(namePtr, dataPtr, data.length);
+    this.mod._load_font(this.instancePtr, namePtr, dataPtr, data.length);
     this.mod._free(namePtr);
     this.mod._free(dataPtr);
   }
 
   clearFonts() {
-    this.mod._clear_fonts();
+    this.mod._clear_fonts(this.instancePtr);
   }
 
   loadImage(name: string, dataUrl: string, width: number, height: number) {
     const namePtr = this.stringToPtr(name);
     const urlPtr = this.stringToPtr(dataUrl);
-    this.mod._load_image(namePtr, urlPtr, width, height);
+    this.mod._load_image(this.instancePtr, namePtr, urlPtr, width, height);
     this.mod._free(namePtr);
     this.mod._free(urlPtr);
   }
 
   clearImages() {
-    this.mod._clear_images();
+    this.mod._clear_images(this.instancePtr);
   }
 
   clearCss() {
-    this.mod._clear_css();
+    this.mod._clear_css(this.instancePtr);
   }
 
   clearAll() {
@@ -201,7 +253,7 @@ export class Satoru {
     // from attempting to fetch them again during the final layout/drawing pass.
     resolvedUrls.forEach((url) => {
       // Escape special regex characters in the URL
-      const escapedUrl = url.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&");
+      const escapedUrl = url.replace(/[.*+?^${}()|[\\\\]]/g, "\\\\$&");
       const linkRegex = new RegExp(
         `<link[^>]*href=["']${escapedUrl}["'][^>]*>`,
         "gi",
@@ -221,7 +273,7 @@ export class Satoru {
 
   toSvg(html: string, width: number, height: number = 0): string {
     const htmlPtr = this.stringToPtr(html);
-    const svgPtr = this.mod._html_to_svg(htmlPtr, width, height);
+    const svgPtr = this.mod._html_to_svg(this.instancePtr, htmlPtr, width, height);
     const svg = this.mod.UTF8ToString(svgPtr);
     this.mod._free(htmlPtr);
     this.mod._free(svgPtr); // CRITICAL: Free the string returned by malloc in C++
@@ -230,8 +282,13 @@ export class Satoru {
 
   toPng(html: string, width: number, height: number = 0): Uint8Array | null {
     const htmlPtr = this.stringToPtr(html);
-    const pngPtr = this.mod._html_to_png(htmlPtr, width, height);
-    const size = this.mod._get_png_size();
+    const pngPtr = this.mod._html_to_png(
+      this.instancePtr,
+      htmlPtr,
+      width,
+      height,
+    );
+    const size = this.mod._get_png_size(this.instancePtr);
 
     let result: Uint8Array | null = null;
     if (pngPtr && size > 0) {
@@ -245,8 +302,13 @@ export class Satoru {
 
   toPdf(html: string, width: number, height: number = 0): Uint8Array | null {
     const htmlPtr = this.stringToPtr(html);
-    const pdfPtr = this.mod._html_to_pdf(htmlPtr, width, height);
-    const size = this.mod._get_pdf_size();
+    const pdfPtr = this.mod._html_to_pdf(
+      this.instancePtr,
+      htmlPtr,
+      width,
+      height,
+    );
+    const size = this.mod._get_pdf_size(this.instancePtr);
 
     let result: Uint8Array | null = null;
     if (pdfPtr && size > 0) {
@@ -267,7 +329,7 @@ export class Satoru {
     const resources: RequiredResource[] = [];
 
     // Temporary callback to collect resources from WASM
-    this.mod.onRequestResource = (
+    this.onResourceRequested = (
       url: string,
       typeInt: number,
       name: string,
@@ -278,11 +340,11 @@ export class Satoru {
       resources.push({ type, name, url });
     };
 
-    this.mod._collect_resources(htmlPtr, width);
+    this.mod._collect_resources(this.instancePtr, htmlPtr, width);
 
     // Cleanup
     this.mod._free(htmlPtr);
-    this.mod.onRequestResource = undefined;
+    this.onResourceRequested = undefined;
 
     return resources;
   }
@@ -295,7 +357,13 @@ export class Satoru {
     if (type === "image") typeInt = 2;
     if (type === "css") typeInt = 3;
 
-    this.mod._add_resource(urlPtr, typeInt, dataPtr, data.length);
+    this.mod._add_resource(
+      this.instancePtr,
+      urlPtr,
+      typeInt,
+      dataPtr,
+      data.length,
+    );
 
     this.mod._free(urlPtr);
     this.mod._free(dataPtr);
@@ -303,7 +371,7 @@ export class Satoru {
 
   scanCss(css: string) {
     const cssPtr = this.stringToPtr(css);
-    this.mod._scan_css(cssPtr);
+    this.mod._scan_css(this.instancePtr, cssPtr);
     this.mod._free(cssPtr);
   }
 

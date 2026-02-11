@@ -12,6 +12,17 @@
 #include "renderers/png_renderer.h"
 #include "renderers/svg_renderer.h"
 
+struct SatoruInstance {
+    SatoruContext context;
+    ResourceManager resourceManager;
+    container_skia *discovery_container = nullptr;
+
+    SatoruInstance() : resourceManager(context) { context.init(); }
+    ~SatoruInstance() {
+        if (discovery_container) delete discovery_container;
+    }
+};
+
 EM_JS(void, satoru_log_js, (int level, const char *message), {
     if (Module.onLog) {
         Module.onLog(level, UTF8ToString(message));
@@ -20,35 +31,30 @@ EM_JS(void, satoru_log_js, (int level, const char *message), {
 
 void satoru_log(LogLevel level, const char *message) { satoru_log_js((int)level, message); }
 
-EM_JS(void, satoru_request_resource_js, (const char *url, int type, const char *name), {
-    if (Module.onRequestResource) {
-        Module.onRequestResource(UTF8ToString(url), type, UTF8ToString(name));
-    }
-});
+EM_JS(void, satoru_request_resource_js, (void *handle, const char *url, int type, const char *name),
+      {
+          if (Module.onRequestResource) {
+              Module.onRequestResource(handle, UTF8ToString(url), type, UTF8ToString(name));
+          }
+      });
 
-SatoruContext g_context;
-ResourceManager *g_resourceManager = nullptr;
-container_skia *g_discovery_container = nullptr;
-
-static std::string get_full_master_css() {
+static std::string get_full_master_css(SatoruInstance *inst) {
     return std::string(litehtml::master_css) + "\n" + satoru_master_css + "\n" +
-           g_context.getExtraCss();
+           inst->context.getExtraCss();
 }
 
-void api_init_engine() {
-    satoru_log(LogLevel::Info, "Satoru Engine Initializing...");
-    g_context.init();
-    if (!g_resourceManager) {
-        g_resourceManager = new ResourceManager(g_context);
-    }
+SatoruInstance *api_create_instance() { return new SatoruInstance(); }
+
+void api_destroy_instance(SatoruInstance *inst) { delete inst; }
+
+std::string api_html_to_svg(SatoruInstance *inst, const char *html, int width, int height) {
+    return renderHtmlToSvg(html, width, height, inst->context, get_full_master_css(inst).c_str());
 }
 
-std::string api_html_to_svg(const char *html, int width, int height) {
-    return renderHtmlToSvg(html, width, height, g_context, get_full_master_css().c_str());
-}
-
-const uint8_t *api_html_to_png(const char *html, int width, int height, int &out_size) {
-    auto data = renderHtmlToPng(html, width, height, g_context, get_full_master_css().c_str());
+const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width, int height,
+                               int &out_size) {
+    auto data =
+        renderHtmlToPng(html, width, height, inst->context, get_full_master_css(inst).c_str());
     if (!data) {
         out_size = 0;
         return nullptr;
@@ -56,79 +62,81 @@ const uint8_t *api_html_to_png(const char *html, int width, int height, int &out
     std::vector<uint8_t> bytes(data->size());
     memcpy(bytes.data(), data->data(), data->size());
     out_size = (int)bytes.size();
-    g_context.set_last_png(std::move(bytes));
-    return g_context.get_last_png().data();
+    inst->context.set_last_png(std::move(bytes));
+    return inst->context.get_last_png().data();
 }
 
-const uint8_t *api_html_to_pdf(const char *html, int width, int height, int &out_size) {
-    auto data = renderHtmlToPdf(html, width, height, g_context, get_full_master_css().c_str());
+const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width, int height,
+                               int &out_size) {
+    auto data =
+        renderHtmlToPdf(html, width, height, inst->context, get_full_master_css(inst).c_str());
     if (data.empty()) {
         out_size = 0;
         return nullptr;
     }
     out_size = (int)data.size();
-    g_context.set_last_pdf(std::move(data));
-    return g_context.get_last_pdf().data();
+    inst->context.set_last_pdf(std::move(data));
+    return inst->context.get_last_pdf().data();
 }
 
-int api_get_last_png_size() { return (int)g_context.get_last_png().size(); }
+int api_get_last_png_size(SatoruInstance *inst) { return (int)inst->context.get_last_png().size(); }
 
-int api_get_last_pdf_size() { return (int)g_context.get_last_pdf().size(); }
+int api_get_last_pdf_size(SatoruInstance *inst) { return (int)inst->context.get_last_pdf().size(); }
 
-void api_collect_resources(const char *html, int width) {
-    if (!g_resourceManager) {
-        g_context.init();
-        g_resourceManager = new ResourceManager(g_context);
+void api_collect_resources(SatoruInstance *inst, const char *html, int width) {
+    if (inst->discovery_container) delete inst->discovery_container;
+    inst->discovery_container =
+        new container_skia(width, 1000, nullptr, inst->context, &inst->resourceManager, false);
+
+    std::string master_css_full = get_full_master_css(inst);
+
+    if (!inst->context.getExtraCss().empty()) {
+        inst->context.fontManager.scanFontFaces(inst->context.getExtraCss());
     }
-    if (g_discovery_container) delete g_discovery_container;
-    g_discovery_container =
-        new container_skia(width, 1000, nullptr, g_context, g_resourceManager, false);
+    inst->context.fontManager.scanFontFaces(html);
 
-    std::string master_css_full = get_full_master_css();
-
-    if (!g_context.getExtraCss().empty()) {
-        g_context.fontManager.scanFontFaces(g_context.getExtraCss());
-    }
-    g_context.fontManager.scanFontFaces(html);
-
-    auto doc =
-        litehtml::document::createFromString(html, g_discovery_container, master_css_full.c_str());
+    auto doc = litehtml::document::createFromString(html, inst->discovery_container,
+                                                    master_css_full.c_str());
     if (doc) doc->render(width);
 
-    auto requests = g_resourceManager->getPendingRequests();
+    auto requests = inst->resourceManager.getPendingRequests();
     for (const auto &req : requests) {
         int typeInt = 1;
         if (req.type == ResourceType::Image) typeInt = 2;
         if (req.type == ResourceType::Css) typeInt = 3;
-        satoru_request_resource_js(req.url.c_str(), typeInt, req.name.c_str());
+        satoru_request_resource_js(inst, req.url.c_str(), typeInt, req.name.c_str());
     }
 }
 
-void api_add_resource(const char *url, int type, const uint8_t *data, int size) {
-    if (g_resourceManager) g_resourceManager->add(url, data, size, (ResourceType)type);
+void api_add_resource(SatoruInstance *inst, const char *url, int type, const uint8_t *data,
+                      int size) {
+    inst->resourceManager.add(url, data, size, (ResourceType)type);
 }
 
-void api_scan_css(const char *css) { g_context.fontManager.scanFontFaces(css); }
-
-void api_clear_css() {
-    g_context.clearCss();
-    if (g_resourceManager) g_resourceManager->clear(ResourceType::Css);
+void api_scan_css(SatoruInstance *inst, const char *css) {
+    inst->context.fontManager.scanFontFaces(css);
 }
 
-void api_load_font(const char *name, const uint8_t *data, int size) {
-    g_context.load_font(name, data, size);
+void api_clear_css(SatoruInstance *inst) {
+    inst->context.clearCss();
+    inst->resourceManager.clear(ResourceType::Css);
 }
 
-void api_clear_fonts() {
-    g_context.clearFonts();
-    if (g_resourceManager) g_resourceManager->clear(ResourceType::Font);
+void api_load_font(SatoruInstance *inst, const char *name, const uint8_t *data, int size) {
+    inst->context.load_font(name, data, size);
 }
 
-void api_load_image(const char *name, const char *data_url, int width, int height) {
-    g_context.load_image(name, data_url, width, height);
+void api_clear_fonts(SatoruInstance *inst) {
+    inst->context.clearFonts();
+    inst->resourceManager.clear(ResourceType::Font);
 }
 
-void api_clear_images() {
-    g_context.clearImages();
-    if (g_resourceManager) g_resourceManager->clear(ResourceType::Image);
+void api_load_image(SatoruInstance *inst, const char *name, const char *data_url, int width,
+                    int height) {
+    inst->context.load_image(name, data_url, width, height);
+}
+
+void api_clear_images(SatoruInstance *inst) {
+    inst->context.clearImages();
+    inst->resourceManager.clear(ResourceType::Image);
 }

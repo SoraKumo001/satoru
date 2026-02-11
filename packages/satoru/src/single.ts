@@ -8,8 +8,8 @@ import createSatoruModuleSingle from "../dist/satoru-single.js";
  */
 export class Satoru extends BaseSatoru {
   // Use protected constructor from base
-  private constructor(mod: SatoruModule) {
-    super(mod);
+  private constructor(mod: SatoruModule, instancePtr: number) {
+    super(mod, instancePtr);
   }
 
   /**
@@ -18,7 +18,7 @@ export class Satoru extends BaseSatoru {
    */
   static async init(options: SatoruOptions = {}): Promise<Satoru> {
     const mod = await createSatoruModuleSingle(options);
-    mod._init_engine();
-    return new Satoru(mod);
+    const instancePtr = mod._create_instance();
+    return new Satoru(mod, instancePtr);
   }
 }

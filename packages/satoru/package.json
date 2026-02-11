@@ -5,6 +5,10 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc && rolldown -c rolldown.config.js",
+    "test": "vitest run"
+  },
   "exports": {
     ".": {
       "workerd": {
@@ -50,11 +54,8 @@
   "files": [
     "dist"
   ],
-  "scripts": {
-    "build": "tsc",
-    "test": "vitest run"
-  },
   "devDependencies": {
+    "rolldown": "1.0.0-rc.3",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },

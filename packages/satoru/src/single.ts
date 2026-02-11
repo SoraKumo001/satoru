@@ -24,7 +24,6 @@ export class Satoru extends BaseSatoru {
    * @param options Additional Satoru options
    */
   static async init(options: SatoruOptions = {}): Promise<Satoru> {
-    console.log("init");
     const { default: createSatoruModuleSingle } =
       // @ts-ignore
       await import("../dist/satoru-single.js");

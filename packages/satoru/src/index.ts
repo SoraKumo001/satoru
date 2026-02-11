@@ -8,6 +8,8 @@ export enum LogLevel {
   Error = 3,
 }
 
+export { createSatoruWorker } from "./workers.js";
+
 export interface SatoruModule {
   _create_instance: () => number;
   _destroy_instance: (ptr: number) => void;
@@ -253,9 +255,9 @@ export class Satoru {
     // from attempting to fetch them again during the final layout/drawing pass.
     resolvedUrls.forEach((url) => {
       // Escape special regex characters in the URL
-      const escapedUrl = url.replace(/[.*+?^${}()|[\\\\]]/g, "\\\\$&");
+      const escapedUrl = url.replace(/[.*+?^${}()|[\\\]]/g, "\\$&");
       const linkRegex = new RegExp(
-        `<link[^>]*href=["']${escapedUrl}["'][^>]*>`,
+        `<link[^>]*href\\s*=\\s*(["'])${escapedUrl}\\1[^>]*>`,
         "gi",
       );
       processedHtml = processedHtml.replace(linkRegex, "");

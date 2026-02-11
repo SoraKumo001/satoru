@@ -4,7 +4,21 @@ https://sorakumo001.github.io/satoru/
 
 **Satoru** is a portable, WebAssembly-powered HTML rendering engine. It combines the **Skia Graphics Engine** and **litehtml** to provide high-quality, pixel-perfect SVG, PNG, and PDF generation entirely within WebAssembly.
 
-## \ud83d\ude80 Project Status: High-Fidelity Rendering & Edge Ready
+## 📊 Satoru vs Satori
+
+| Feature            | Satori (Vercel)                    | **Satoru**                                 |
+| ------------------ | ---------------------------------- | ------------------------------------------ |
+| **Engine**         | Yoga (Flexbox only)                | **litehtml (Full CSS Layout)**             |
+| **Renderer**       | Custom SVG Generator               | **Skia Graphics Engine**                   |
+| **Output Formats** | SVG                                | **SVG, PNG, PDF**                          |
+| **CSS Support**    | Limited subset (Flexbox)           | **Extensive (Floats, Box-shadow, etc.)**   |
+| **Images**         | External URLs, Base64, ArrayBuffer | **Embedded/Local (PNG, JPEG, WebP, AVIF)** |
+| **Font Formats**   | TTF, OTF, WOFF                     | **TTF, OTF, WOFF2, TTC**                   |
+| **Typography**     | SVG Paths / Fonts                  | **Full Skia Typeface support**             |
+| **Performance**    | High (Lightweight)                 | **High (Wasm-accelerated Skia)**           |
+| **Edge Ready**     | Yes (Node/Edge)                    | **Yes (Wasm/Edge/Cloudflare)**             |
+
+## 🚀 Project Status: High-Fidelity Rendering & Edge Ready
 
 The engine supports full text layout with custom fonts, complex CSS styling, and efficient binary data transfer. It is now compatible with **Cloudflare Workers (workerd)**, allowing for serverless, edge-side image and document generation.
 
@@ -28,17 +42,19 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
   - **Text Decoration**: Supports `underline`, `line-through`, `overline` with `solid`, `dotted`, and `dashed` styles.
   - **Text Shadow**: Multiple shadows with blur, offset, and color support (PNG/SVG/PDF).
 
-## \ud83d\udccb Supported CSS Properties
+## 📋 Supported CSS Properties
 
 Satoru supports a wide range of CSS properties for high-fidelity layout and styling.
 
 ### Box Model & Layout
+
 - `display`, `position`, `float`, `clear`, `visibility`, `z-index`, `overflow`, `box-sizing`
 - `width`, `height`, `min-width`, `min-height`, `max-width`, `max-height`
 - `margin` (top, right, bottom, left)
 - `padding` (top, right, bottom, left)
 
 ### Typography & Text
+
 - `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`
 - `text-align`, `vertical-align`, `text-decoration` (line, color, style, thickness)
 - `text-transform`, `text-indent`, `text-overflow`, `white-space`
@@ -46,17 +62,20 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `line-clamp` / `-webkit-line-clamp`, `-webkit-box-orient`
 
 ### Backgrounds
+
 - `background-color`
 - `background-image` (Supports `url()`, `linear-gradient`, `radial-gradient`, `conic-gradient`)
 - `background-position`, `background-size`, `background-repeat`, `background-attachment`
 
 ### Borders & Shadows
+
 - `border`, `border-width`, `border-style`, `border-color` (top, right, bottom, left)
 - `border-radius` (Full support for all corners)
 - `border-collapse`, `border-spacing`
 - `box-shadow` (High-quality **Outer** and **Inset** shadows)
 
 ### Flexbox
+
 - `display: flex`, `display: inline-flex`
 - `flex-direction`, `flex-wrap`, `flex-flow`
 - `justify-content`, `align-items`, `align-content`, `align-self`
@@ -64,9 +83,10 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `row-gap`, `column-gap`, `gap`, `order`
 
 ### Others
+
 - `caption-side`, `content`, `appearance`
 
-## \ud83d\udd04 Conversion Flow
+## 🔄 Conversion Flow
 
 The following diagram illustrates how Satoru processes HTML/CSS into vector or raster outputs:
 
@@ -105,7 +125,7 @@ graph TD
     style WASM_Raster_Path fill:#e8f5e9,stroke:#1b5e20
 ```
 
-## \ud83d\udee0\ufe0f Usage (TypeScript)
+## 🛠️ Usage (TypeScript)
 
 ### Standard Environment (Node.js / Browser)
 
@@ -148,7 +168,7 @@ const pdf = await satoru.render({
 });
 ```
 
-### \u2601\ufe0f Cloudflare Workers (Edge)
+### ☁️ Cloudflare Workers (Edge)
 
 Satoru is optimized for Cloudflare Workers. Use the `workerd` specific export for proper WASM instantiation.
 
@@ -163,7 +183,7 @@ export default {
       html: "<h1>Edge Rendered</h1>",
       width: 800,
       format: "pdf",
-      baseUrl: "https://example.com/"
+      baseUrl: "https://example.com/",
     });
 
     return new Response(pdf, {
@@ -173,7 +193,7 @@ export default {
 };
 ```
 
-### \ud83d\udce6 Single-file (Embedded WASM)
+### 📦 Single-file (Embedded WASM)
 
 For environments where deploying a separate `.wasm` file is difficult, use the `single` export which includes the WASM binary embedded.
 
@@ -181,14 +201,14 @@ For environments where deploying a separate `.wasm` file is difficult, use the `
 import { Satoru } from "satoru/single";
 
 const satoru = await Satoru.init();
-const png = await satoru.render({ 
-  html: "<div>Embedded WASM!</div>", 
-  width: 600, 
-  format: "png" 
+const png = await satoru.render({
+  html: "<div>Embedded WASM!</div>",
+  width: 600,
+  format: "png",
 });
 ```
 
-### \ud83e\uddf5 Multi-threaded Rendering (Worker Proxy)
+### 🧵 Multi-threaded Rendering (Worker Proxy)
 
 For high-throughput applications, the Worker proxy distributes rendering tasks across multiple threads. You can configure all resources in a single `render` call for stateless operation.
 
@@ -199,19 +219,19 @@ import { createSatoruWorker, LogLevel } from "satoru";
 const satoru = createSatoruWorker({ maxParallel: 4 });
 
 // Render with full configuration in one go
-const png = await satoru.render({ 
-  html: "<h1>Parallel Rendering</h1><img src='icon.png'>", 
-  width: 800, 
+const png = await satoru.render({
+  html: "<h1>Parallel Rendering</h1><img src='icon.png'>",
+  width: 800,
   format: "png",
   baseUrl: "https://example.com/assets/",
   clear: true, // Start with a fresh state for this task
   logLevel: LogLevel.Debug, // Enable debug logs for this task
   fonts: [{ name: "CustomFont", data: fontData }], // Pre-load fonts
-  css: "h1 { color: red; }" // Inject extra CSS
+  css: "h1 { color: red; }", // Inject extra CSS
 });
 ```
 
-### \ud83c\udfa8 Manual Resource Management
+### 🎨 Manual Resource Management
 
 For scenarios where you want to manage resources manually:
 
@@ -228,7 +248,7 @@ satoru.clearImages();
 satoru.clearCss();
 ```
 
-## \ud83e\uddea Testing & Validation
+## 🧪 Testing & Validation
 
 The project includes a robust **Visual Regression Suite** to ensure rendering fidelity.
 
@@ -241,22 +261,27 @@ This suite compares Satoru's outputs against Chromium's rendering.
 - **Fast Execution**: Multi-threaded reference generation and batch conversion.
 
 #### Run Tests
+
 ```bash
 pnpm --filter visual-test test
 ```
 
 #### Generate Reference Images
-```bash\npnpm --filter visual-test gen-ref
+
+```bash
+pnpm --filter visual-test gen-ref
 ```
 
 #### Batch Convert Assets (Multithreaded)
+
 ```bash
 pnpm --filter visual-test convert-assets
 ```
 
-## \ud83c\udfd7\ufe0f Build & Run
+## 🏗️ Build & Run
 
 ### Local Environment
+
 Requires Emscripten SDK and vcpkg.
 
 ```bash
@@ -268,6 +293,7 @@ pnpm dev
 ```
 
 ### Docker Environment (Recommended)
+
 Build Wasm artifacts inside a Docker container without local toolchains.
 
 ```bash
@@ -275,7 +301,7 @@ pnpm wasm:docker:build
 pnpm build
 ```
 
-## \ud83d\uddfa\ufe0f Roadmap
+## 🗺️ Roadmap
 
 - [x] High-level TypeScript Wrapper API with automatic resource resolution.
 - [x] Binary PNG export support via shared memory.
@@ -290,6 +316,6 @@ pnpm build
 - [ ] Support for CSS Masks & Filters.
 - [ ] Optional SVG `<text>` element output (currently paths).
 
-## \ud83d\udcdc License
+## 📜 License
 
 MIT License - SoraKumo <info@croud.jp>

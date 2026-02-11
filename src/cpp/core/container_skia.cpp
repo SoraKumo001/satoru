@@ -216,10 +216,6 @@ litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_pt
             }
         }
         if (!font) {
-            if (u > 127) {
-                printf("[WASM] text_width: Glyph NOT FOUND for U+%04X in %zu fonts (family: %s)\n",
-                       (uint32_t)u, fi->fonts.size(), fi->desc.family.c_str());
-            }
             font = fi->fonts[0];
         }
         if (font != current_font) {
@@ -368,11 +364,6 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                 }
             }
             if (!font) {
-                if (u > 127) {
-                    printf(
-                        "[WASM] draw_text: Glyph NOT FOUND for U+%04X in %zu fonts (family: %s)\n",
-                        (uint32_t)u, fi->fonts.size(), fi->desc.family.c_str());
-                }
                 font = fi->fonts[0];
             }
             if (font != current_font) {

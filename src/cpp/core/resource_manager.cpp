@@ -1,3 +1,4 @@
+#include "../utils/skia_utils.h"
 #include "resource_manager.h"
 
 #include <iostream>
@@ -14,12 +15,27 @@ void ResourceManager::request(const std::string& url, const std::string& name, R
     if (url.empty()) return;
     if (m_resolvedUrls.count(url)) return;  // Already resolved
 
-    m_requests.insert({url, name, type});
-
     // Track name association
     if (!name.empty()) {
         m_urlToNames[url].insert(name);
     }
+
+    if (url.substr(0, 5) == "data:") {
+        size_t commaPos = url.find(',');
+        if (commaPos != std::string::npos) {
+            std::string metadata = url.substr(0, commaPos);
+            if (metadata.find(";base64") != std::string::npos) {
+                std::string base64Data = url.substr(commaPos + 1);
+                std::vector<uint8_t> decoded = base64_decode(base64Data);
+                if (!decoded.empty()) {
+                    this->add(url, decoded.data(), decoded.size(), type);
+                    return;
+                }
+            }
+        }
+    }
+
+    m_requests.insert({url, name, type});
 }
 
 std::vector<ResourceRequest> ResourceManager::getPendingRequests() {

@@ -156,23 +156,7 @@ export class Satoru {
             resolvedUrls.add(r.url);
             let data: Uint8Array | null = null;
 
-            if (r.url.startsWith("data:")) {
-              const commaIndex = r.url.indexOf(",");
-              if (commaIndex !== -1) {
-                const metadata = r.url.substring(0, commaIndex);
-                const base64 = r.url.substring(commaIndex + 1).replace(/\s/g, "");
-                if (metadata.includes(";base64")) {
-                  const bin = atob(base64);
-                  data = new Uint8Array(bin.length);
-                  for (let j = 0; j < bin.length; j++) {
-                    data[j] = bin.charCodeAt(j);
-                  }
-                } else {
-                  const decoded = decodeURIComponent(base64);
-                  data = new TextEncoder().encode(decoded);
-                }
-              }
-            } else if (resolveResource) {
+            if (resolveResource) {
               data = await resolveResource({ ...r });
             }
             
@@ -190,7 +174,7 @@ export class Satoru {
     // from attempting to fetch them again during the final layout/drawing pass.
     resolvedUrls.forEach(url => {
       // Escape special regex characters in the URL
-      const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedUrl = url.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
       const linkRegex = new RegExp(`<link[^>]*href=["']${escapedUrl}["'][^>]*>`, 'gi');
       processedHtml = processedHtml.replace(linkRegex, "");
     });

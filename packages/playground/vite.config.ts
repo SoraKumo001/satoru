@@ -25,36 +25,8 @@ export default defineConfig({
     react(),
     {
       name: "handle-satoru-artifacts",
-      // 開発サーバーでの配信
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
-          if (
-            req.url === "/satoru.js" ||
-            req.url === "/satoru.wasm" ||
-            req.url === "/single.js" ||
-            req.url === "/index.js" ||
-            req.url === "/satoru-single.js" ||
-            req.url?.startsWith("/workers/")
-          ) {
-            const artifactPath = path.resolve(
-              __dirname,
-              "../satoru/dist",
-              req.url.substring(1),
-            );
-            if (fs.existsSync(artifactPath) && fs.lstatSync(artifactPath).isFile()) {
-              res.setHeader(
-                "Content-Type",
-                req.url.endsWith(".js")
-                  ? "application/javascript"
-                  : req.url.endsWith(".wasm")
-                    ? "application/wasm"
-                    : "application/octet-stream",
-              );
-              res.end(fs.readFileSync(artifactPath));
-              return;
-            }
-          }
-
           if (req.url?.startsWith("/assets/")) {
             const urlPath = req.url.split("?")[0];
             const assetPath = path.resolve(
@@ -71,35 +43,15 @@ export default defineConfig({
           next();
         });
       },
-      // ビルド時にファイルをコピー
       closeBundle() {
         const distDir = path.resolve(__dirname, "dist");
         if (!fs.existsSync(distDir)) return;
-
-        // satoru artifacts
-        ["satoru.js", "satoru.wasm", "single.js", "index.js", "satoru-single.js"].forEach((file) => {
-          const src = path.resolve(__dirname, "../satoru/dist", file);
-          const dest = path.resolve(distDir, file);
-          if (fs.existsSync(src)) {
-            fs.copyFileSync(src, dest);
-            console.log(`Copied ${file} to dist/`);
-          }
-        });
-
         // assets directory
         const srcAssets = path.resolve(__dirname, "../../assets");
         const destAssets = path.resolve(distDir, "assets");
         if (fs.existsSync(srcAssets)) {
           copyRecursiveSync(srcAssets, destAssets);
           console.log(`Copied assets/ to dist/assets/`);
-        }
-
-        // workers directory
-        const srcWorkers = path.resolve(__dirname, "../satoru/dist/workers");
-        const destWorkers = path.resolve(distDir, "workers");
-        if (fs.existsSync(srcWorkers)) {
-          copyRecursiveSync(srcWorkers, destWorkers);
-          console.log(`Copied workers/ to dist/workers/`);
         }
       },
     },

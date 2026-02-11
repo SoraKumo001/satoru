@@ -33,12 +33,14 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 Satoru supports a wide range of CSS properties for high-fidelity layout and styling.
 
 ### Box Model & Layout
+
 - `display`, `position`, `float`, `clear`, `visibility`, `z-index`, `overflow`, `box-sizing`
 - `width`, `height`, `min-width`, `min-height`, `max-width`, `max-height`
 - `margin` (top, right, bottom, left)
 - `padding` (top, right, bottom, left)
 
 ### Typography & Text
+
 - `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`
 - `text-align`, `vertical-align`, `text-decoration` (line, color, style, thickness)
 - `text-transform`, `text-indent`, `text-overflow`, `white-space`
@@ -46,17 +48,20 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `line-clamp` / `-webkit-line-clamp`, `-webkit-box-orient`
 
 ### Backgrounds
+
 - `background-color`
 - `background-image` (Supports `url()`, `linear-gradient`, `radial-gradient`, `conic-gradient`)
 - `background-position`, `background-size`, `background-repeat`, `background-attachment`
 
 ### Borders & Shadows
+
 - `border`, `border-width`, `border-style`, `border-color` (top, right, bottom, left)
 - `border-radius` (Full support for all corners)
 - `border-collapse`, `border-spacing`
 - `box-shadow` (High-quality **Outer** and **Inset** shadows)
 
 ### Flexbox
+
 - `display: flex`, `display: inline-flex`
 - `flex-direction`, `flex-wrap`, `flex-flow`
 - `justify-content`, `align-items`, `align-content`, `align-self`
@@ -64,6 +69,7 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `row-gap`, `column-gap`, `gap`, `order`
 
 ### Others
+
 - `caption-side`, `content`, `appearance`
 
 ## 🔄 Conversion Flow
@@ -193,7 +199,11 @@ import { Satoru } from "satoru/single";
 
 // Initialize the engine (no external .wasm file needed)
 const satoru = await Satoru.init();
-const png = await satoru.render({ html: "<div>Embedded WASM!</div>", width: 600, format: "png" });
+const png = await satoru.render({
+  html: "<div>Embedded WASM!</div>",
+  width: 600,
+  format: "png",
+});
 ```
 
 ### 🧵 Multi-threaded Rendering (Worker Proxy)
@@ -207,10 +217,14 @@ import { createSatoruWorker } from "satoru";
 const satoru = createSatoruWorker({ maxParallel: 4 });
 
 // Use it just like the standard Satoru instance (returns Promises for all methods)
-const png = await satoru.render({ 
-  html: "<h1>Parallel Rendering</h1>", 
-  width: 800, 
-  format: "png" 
+const png = await satoru.render({
+// Use it just like the standard Satoru instance (returns Promises for all methods)
+// Workers support an optional baseUrl to automatically resolve relative fonts/images
+const png = await satoru.render({
+  html: '<img src="logo.png">',
+  width: 800,
+  format: "png",
+  baseUrl: "https://example.com/assets/"
 });
 
 // Remember to close the worker pool when done (if applicable)

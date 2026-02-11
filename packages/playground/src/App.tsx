@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { createSatoruWorker } from "satoru/workers";
+import { createSatoruWorker } from "satoru";
 
 const satoru = createSatoruWorker({
   maxParallel: 1,

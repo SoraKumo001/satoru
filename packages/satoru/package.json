@@ -6,7 +6,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc && rolldown -c rolldown.config.js",
+    "build": "tsc -b && rolldown -c rolldown.config.js",
     "test": "vitest run"
   },
   "exports": {
@@ -19,7 +19,7 @@
         "types": "./dist/single.d.ts",
         "import": "./dist/single.js"
       },
-      "types": "./dist/index.d.ts",
+      "types": "./dist/single.d.ts",
       "import": "./dist/single.js",
       "default": "./dist/single.js"
     },
@@ -47,7 +47,7 @@
         "./dist/single.d.ts"
       ],
       "*": [
-        "./dist/index.d.ts"
+        "./dist/single.d.ts"
       ]
     }
   },

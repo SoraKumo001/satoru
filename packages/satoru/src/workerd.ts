@@ -26,7 +26,7 @@ export class Satoru extends BaseSatoru {
     wasm: WebAssembly.Module = satoruWasm,
     options?: SatoruOptions,
   ): Promise<Satoru> {
-    const mod = await createSatoruModule({
+    const mod = (await createSatoruModule({
       ...options,
       instantiateWasm: (imports: any, successCallback: any) => {
         // Cloudflare Workers requires using the pre-compiled WebAssembly.Module
@@ -39,7 +39,7 @@ export class Satoru extends BaseSatoru {
           });
         return {}; // Return empty object as emscripten expects
       },
-    });
+    })) as SatoruModule;
 
     const instancePtr = mod._create_instance();
     return new Satoru(mod, instancePtr);

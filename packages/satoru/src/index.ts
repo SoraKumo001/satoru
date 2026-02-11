@@ -8,8 +8,6 @@ export enum LogLevel {
   Error = 3,
 }
 
-export { createSatoruWorker } from "./workers.js";
-
 export interface SatoruModule {
   _create_instance: () => number;
   _destroy_instance: (ptr: number) => void;
@@ -150,7 +148,7 @@ export class Satoru {
       }
     };
 
-    const mod = await createSatoruModuleFunc({
+    const mod = (await createSatoruModuleFunc({
       onLog,
       print: (text: string) => {
         onLog(LogLevel.Info, text);
@@ -159,7 +157,7 @@ export class Satoru {
         onLog(LogLevel.Error, text);
       },
       ...options,
-    });
+    })) as SatoruModule;
 
     // Ensure onLog is available on the module instance
     mod.onLog = onLog;

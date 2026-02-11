@@ -46,9 +46,10 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 
 ### 2. Build System
 
-- `pnpm wasm:configure`: Configure CMake for WASM build.
-- `pnpm wasm:build`: Compile C++ to WASM (Separate: `satoru.js`/`.wasm`, Single: `satoru-single.js`).
-- `pnpm build`: Build all package wrappers.
+- `pnpm wasm:configure`: Configure CMake for WASM build via `tsx ./scripts/build-wasm.ts`.
+- `pnpm wasm:build`: Compile C++ to WASM. Produces `satoru.js`/`.wasm` and `satoru-single.js` in `packages/satoru/dist`.
+- `pnpm wasm:docker:build`: Build WASM inside Docker.
+- `pnpm build:all`: Build everything (WASM + TS wrappers).
 
 ### 3. Implementation Details
 
@@ -64,7 +65,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
   - `main.cpp` serves as the Emscripten entry point and binding definition.
 
 - **Resource Management:**
-  - **Callback-Based Resolution:** WASM notifies JS of resource requests (Fonts, Images, CSS) via the `satoru_request_resource_js` bridge.\n  - **JS Integration:** The `SatoruModule` interface includes an optional `onRequestResource` callback.\n  - **Worker Support:** `createSatoruWorker` provides a multi-threaded proxy using `worker-lib`, allowing parallel execution of Wasm instances.\n  - **Data Flow:** `_collect_resources` (C++) iterates requests -> calls `onRequestResource` (JS) -> JS collects into array -> `Promise.all` fetches data -> `_add_resource` (C++) injects data.\n
+  - **Callback-Based Resolution:** WASM notifies JS of resource requests (Fonts, Images, CSS) via the `satoru_request_resource_js` bridge.\n - **JS Integration:** The `SatoruModule` interface includes an optional `onRequestResource` callback.\n - **Worker Support:** `createSatoruWorker` provides a multi-threaded proxy using `worker-lib`, allowing parallel execution of Wasm instances.\n - **Data Flow:** `_collect_resources` (C++) iterates requests -> calls `onRequestResource` (JS) -> JS collects into array -> `Promise.all` fetches data -> `_add_resource` (C++) injects data.\n
   - **Efficiency:** `api_collect_resources` returns `void` to avoid large string allocations/parsing.
 
 - **Logging Bridge:**
@@ -129,3 +130,14 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 - **Vite Config:** Set `base: "./"`.
 - **Asset Resolution:** Resolve relative to deployment root.
 - **Artifacts:** Copy `satoru.wasm` and `satoru.js` to `dist`.
+
+### 7. Bundling & Workers
+
+- **Rolldown:** Used for bundling web workers in `packages/satoru`.
+- **Entry Points:**
+  - `index.ts`: Core logic, depends on external `.wasm`.
+  - `single.ts`: Embedded WASM version (Base64). Default export.
+  - `workerd.ts`: Specialized for Cloudflare Workers.
+  - `workers.ts`: Multi-threaded worker proxy entry point.
+- **Environment Detection:** Workers automatically detect Node.js vs Web environment and load appropriate worker implementation.
+- **worker-lib:** Facilitates communication between main thread and workers.

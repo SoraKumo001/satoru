@@ -134,9 +134,16 @@ export class Satoru {
     name: string,
   ) => void;
 
+  /**
+   * Initialize Satoru.
+   * @param createSatoruModuleFunc Factory function from satoru.js
+   * @param options Initialization options
+   * @param logLevel Default log level (defaults to None)
+   */
   static async init(
     createSatoruModuleFunc: any = createSatoruModule,
     options: SatoruOptions = {},
+    logLevel: LogLevel = LogLevel.None,
   ): Promise<Satoru> {
     const defaultOnLog = (level: LogLevel, message: string) => {
       const prefix = "[Satoru WASM]";
@@ -158,7 +165,10 @@ export class Satoru {
 
     let mod: SatoruModule;
     const onLog = (level: LogLevel, message: string) => {
-      if (mod && level > mod.logLevel) return;
+      // If module is not yet assigned or level is higher than current setting, skip
+      // (level 0 = None, messages are 1-4, so level > None(0) is always true)
+      const currentLevel = mod ? mod.logLevel : logLevel;
+      if (level > currentLevel) return;
 
       if (options.onLog) {
         options.onLog(level, message);
@@ -180,7 +190,7 @@ export class Satoru {
 
     // Ensure onLog is available on the module instance
     mod.onLog = onLog;
-    mod.logLevel = LogLevel.None;
+    mod.logLevel = logLevel;
 
     const instancePtr = mod._create_instance();
     return new Satoru(mod, instancePtr);
@@ -292,7 +302,10 @@ export class Satoru {
 
                 // Check if it's NOT a protocol (http://, https://, etc.)
                 // We assume it's a local path if it doesn't have "://" or "data:"
-                if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(baseDir) && !baseDir.startsWith("data:")) {
+                if (
+                  !/^[a-z][a-z0-9+.-]*:\/\//i.test(baseDir) &&
+                  !baseDir.startsWith("data:")
+                ) {
                   const filePath = path.join(baseDir, r.url);
                   if (fs.existsSync(filePath)) {
                     return new Uint8Array(fs.readFileSync(filePath));
@@ -497,4 +510,4 @@ export class Satoru {
   }
 }
 
-export type { SatoruWorker } from "./workers/web-workers.js";
+export type { SatoruWorker } from "./child-workers.js";

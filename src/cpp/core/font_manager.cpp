@@ -4,6 +4,7 @@
 #include <regex>
 #include <sstream>
 
+#include "../api/satoru_api.h"
 #include "include/core/SkData.h"
 #include "include/core/SkFontArguments.h"
 #include "include/core/SkSpan.h"
@@ -37,10 +38,14 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
         std::string cleaned = cleanName(name);
         m_typefaceCache[cleaned].push_back(typeface);
         if (!m_defaultTypeface) m_defaultTypeface = typeface;
-        printf("[WASM] loadFont: Loaded '%s' (Total for family: %zu)\n", cleaned.c_str(),
-               m_typefaceCache[cleaned].size());
+
+        std::stringstream ss;
+        ss << "loadFont: Loaded '" << cleaned << "' (Total for family: " << m_typefaceCache[cleaned].size() << ")";
+        satoru_log(LogLevel::Info, ss.str().c_str());
     } else {
-        printf("[WASM] loadFont: FAILED to load font data (%d bytes)\n", size);
+        std::stringstream ss;
+        ss << "loadFont: FAILED to load font data (" << size << " bytes)";
+        satoru_log(LogLevel::Error, ss.str().c_str());
     }
 }
 

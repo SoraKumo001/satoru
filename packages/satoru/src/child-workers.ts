@@ -1,8 +1,7 @@
 import { initWorker } from "worker-lib";
-import { Satoru, type RenderOptions } from "../single.js";
+import { Satoru, type RenderOptions } from "./single.js";
 
 let satoru: Satoru | undefined;
-let globalBaseUrl: string | undefined;
 
 const getSatoru = async () => {
   if (!satoru) {
@@ -16,19 +15,9 @@ const getSatoru = async () => {
  * Exposes Satoru methods via worker-lib.
  */
 const actions = {
-  async setBaseUrl(url: string) {
-    globalBaseUrl = url;
-  },
-
   async render(options: RenderOptions) {
     const s = await getSatoru();
-    const renderOptions = { ...options };
-
-    if (globalBaseUrl && !renderOptions.baseUrl) {
-      renderOptions.baseUrl = globalBaseUrl;
-    }
-
-    return s.render(renderOptions);
+    return s.render(options);
   },
 
   async toSvg(html: string, width: number, height: number = 0) {

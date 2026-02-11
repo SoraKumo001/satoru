@@ -1,6 +1,6 @@
 import { createWorker } from "worker-lib";
-import type { SatoruWorker } from "./workers/node-workers.js";
-export type { SatoruWorker } from "./workers/node-workers.js";
+import type { SatoruWorker } from "./child-workers.js";
+export type { SatoruWorker } from "./child-workers.js";
 
 export { LogLevel } from "./index.js";
 export type {
@@ -34,8 +34,8 @@ export const createSatoruWorker = (params: {
     }
     const workerUrl =
       typeof window !== "undefined"
-        ? new URL("./workers/web-workers.js", import.meta.url)
-        : new URL("./workers/node-workers.js", import.meta.url);
+        ? new URL("./web-workers.js", import.meta.url)
+        : new URL("./child-workers.js", import.meta.url);
 
     if (typeof Worker !== "undefined") {
       return new Worker(workerUrl, { type: "module" });

@@ -1,9 +1,9 @@
 import { defineConfig } from "rolldown";
 
 export default defineConfig({
-  input: "src/workers/web-workers.ts",
+  input: "src/child-workers.ts",
   output: {
-    file: "dist/workers/web-workers.js",
+    file: "dist/web-workers.js",
     format: "esm",
     codeSplitting: false,
   },
@@ -12,4 +12,5 @@ export default defineConfig({
       ".js": [".ts", ".js"],
     },
   },
+  external: [/node:.*/, "worker_threads"],
 });

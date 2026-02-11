@@ -35,6 +35,10 @@
       "types": "./dist/single.d.ts",
       "import": "./dist/single.js"
     },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    },
     "./satoru.js": "./dist/satoru.js",
     "./satoru.wasm": "./dist/satoru.wasm"
   },
@@ -45,6 +49,9 @@
       ],
       "single": [
         "./dist/single.d.ts"
+      ],
+      "react": [
+        "./dist/react.d.ts"
       ],
       "*": [
         "./dist/single.d.ts"
@@ -80,11 +87,25 @@
     "cloudflare-workers"
   ],
   "devDependencies": {
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
     "rolldown": "1.0.0-rc.3",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
   "dependencies": {
     "worker-lib": "2.0.8"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
+    "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   }
 }

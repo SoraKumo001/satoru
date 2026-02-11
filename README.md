@@ -126,9 +126,11 @@ const html = `
     @font-face {
       font-family: 'Roboto';
       src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2');
-    }\n  </style>\n  <div style=\"font-family: 'Roboto'; color: #2196F3; font-size: 40px;\">
+    }
+  </style>
+  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;">
     Hello Satoru!
-    <img src=\"https://example.com/logo.png\" style=\"width: 50px;\">
+    <img src="https://example.com/logo.png" style="width: 50px;">
   </div>
 `;
 
@@ -192,6 +194,27 @@ import { Satoru } from "satoru/single";
 // Initialize the engine (no external .wasm file needed)
 const satoru = await Satoru.init();
 const png = await satoru.render({ html: "<div>Embedded WASM!</div>", width: 600, format: "png" });
+```
+
+### 🧵 Multi-threaded Rendering (Worker Proxy)
+
+For high-throughput applications or to keep the UI responsive in browsers, you can use the Worker proxy. This automatically distributes rendering tasks across multiple background threads.
+
+```typescript
+import { createSatoruWorker } from "satoru";
+
+// Create a worker proxy with up to 4 parallel instances
+const satoru = createSatoruWorker({ maxParallel: 4 });
+
+// Use it just like the standard Satoru instance (returns Promises for all methods)
+const png = await satoru.render({ 
+  html: "<h1>Parallel Rendering</h1>", 
+  width: 800, 
+  format: "png" 
+});
+
+// Remember to close the worker pool when done (if applicable)
+// satoru.close();
 ```
 
 ### 🎨 Manual Resource Management

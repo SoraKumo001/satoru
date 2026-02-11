@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -21,6 +22,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    react(),
     {
       name: "handle-satoru-artifacts",
       // 開発サーバーでの配信

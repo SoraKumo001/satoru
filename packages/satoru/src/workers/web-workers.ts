@@ -1,5 +1,5 @@
-import { initWorker } from "worker-lib";
-import { Satoru } from "./single.js";
+﻿import { initWorker } from "worker-lib";
+import { Satoru } from "../single.js";
 
 let satoru: Satoru | undefined;
 

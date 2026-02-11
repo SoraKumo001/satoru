@@ -12,9 +12,8 @@ export interface SatoruModule {
   _init_engine: () => void;
   _html_to_svg: (html: number, width: number, height: number) => number;
   _html_to_png: (html: number, width: number, height: number) => number;
-  _html_to_png_binary: (html: number, width: number, height: number) => number;
   _get_png_size: () => number;
-  _html_to_pdf_binary: (html: number, width: number, height: number) => number;
+  _html_to_pdf: (html: number, width: number, height: number) => number;
   _get_pdf_size: () => number;
   _collect_resources: (html: number, width: number) => void;
   _add_resource: (url: number, type: number, data: number, size: number) => void;
@@ -134,7 +133,7 @@ export class Satoru {
     width: number,
     options: {
       height?: number;
-      format?: "svg" | "png" | "pdf" | "dataurl";
+      format?: "svg" | "png" | "pdf";
       resolveResource?: ResourceResolver;
     } = {}
   ): Promise<string | Uint8Array | null> {
@@ -174,7 +173,7 @@ export class Satoru {
     // from attempting to fetch them again during the final layout/drawing pass.
     resolvedUrls.forEach(url => {
       // Escape special regex characters in the URL
-      const escapedUrl = url.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
+      const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const linkRegex = new RegExp(`<link[^>]*href=["']${escapedUrl}["'][^>]*>`, 'gi');
       processedHtml = processedHtml.replace(linkRegex, "");
     });
@@ -184,8 +183,6 @@ export class Satoru {
         return this.toPngBinary(processedHtml, width, height);
       case "pdf":
         return this.toPdf(processedHtml, width, height);
-      case "dataurl":
-        return this.toPngDataUrl(processedHtml, width, height);
       default:
         return this.toSvg(processedHtml, width, height);
     }
@@ -202,7 +199,7 @@ export class Satoru {
 
   toPngBinary(html: string, width: number, height: number = 0): Uint8Array | null {
     const htmlPtr = this.stringToPtr(html);
-    const pngPtr = this.mod._html_to_png_binary(htmlPtr, width, height);
+    const pngPtr = this.mod._html_to_png(htmlPtr, width, height);
     const size = this.mod._get_png_size();
     
     let result: Uint8Array | null = null;
@@ -215,18 +212,9 @@ export class Satoru {
     return result;
   }
 
-  toPngDataUrl(html: string, width: number, height: number = 0): string {
-    const htmlPtr = this.stringToPtr(html);
-    const ptr = this.mod._html_to_png(htmlPtr, width, height);
-    const dataUrl = this.mod.UTF8ToString(ptr);
-    this.mod._free(htmlPtr);
-    this.mod._free(ptr); // CRITICAL: Free the string returned by malloc in C++
-    return dataUrl;
-  }
-
   toPdf(html: string, width: number, height: number = 0): Uint8Array | null {
     const htmlPtr = this.stringToPtr(html);
-    const pdfPtr = this.mod._html_to_pdf_binary(htmlPtr, width, height);
+    const pdfPtr = this.mod._html_to_pdf(htmlPtr, width, height);
     const size = this.mod._get_pdf_size();
     
     let result: Uint8Array | null = null;

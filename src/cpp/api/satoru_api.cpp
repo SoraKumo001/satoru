@@ -47,13 +47,8 @@ std::string api_html_to_svg(const char *html, int width, int height) {
     return renderHtmlToSvg(html, width, height, g_context, get_full_master_css().c_str());
 }
 
-std::string api_html_to_png(const char *html, int width, int height) {
-    return renderHtmlToPng(html, width, height, g_context, get_full_master_css().c_str());
-}
-
-const uint8_t *api_html_to_png_binary(const char *html, int width, int height, int &out_size) {
-    auto data =
-        renderHtmlToPngBinary(html, width, height, g_context, get_full_master_css().c_str());
+const uint8_t *api_html_to_png(const char *html, int width, int height, int &out_size) {
+    auto data = renderHtmlToPng(html, width, height, g_context, get_full_master_css().c_str());
     if (!data) {
         out_size = 0;
         return nullptr;
@@ -65,7 +60,7 @@ const uint8_t *api_html_to_png_binary(const char *html, int width, int height, i
     return g_context.get_last_png().data();
 }
 
-const uint8_t *api_html_to_pdf_binary(const char *html, int width, int height, int &out_size) {
+const uint8_t *api_html_to_pdf(const char *html, int width, int height, int &out_size) {
     auto data = renderHtmlToPdf(html, width, height, g_context, get_full_master_css().c_str());
     if (data.empty()) {
         out_size = 0;

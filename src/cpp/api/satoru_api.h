@@ -11,9 +11,8 @@ void satoru_log(LogLevel level, const char *message);
 
 void api_init_engine();
 std::string api_html_to_svg(const char *html, int width, int height);
-std::string api_html_to_png(const char *html, int width, int height);
-const uint8_t *api_html_to_png_binary(const char *html, int width, int height, int &out_size);
-const uint8_t *api_html_to_pdf_binary(const char *html, int width, int height, int &out_size);
+const uint8_t *api_html_to_png(const char *html, int width, int height, int &out_size);
+const uint8_t *api_html_to_pdf(const char *html, int width, int height, int &out_size);
 int api_get_last_png_size();
 int api_get_last_pdf_size();
 void api_collect_resources(const char *html, int width);

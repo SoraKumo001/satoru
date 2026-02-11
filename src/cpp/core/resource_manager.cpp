@@ -1,9 +1,9 @@
-#include "../utils/skia_utils.h"
 #include "resource_manager.h"
 
 #include <iostream>
 #include <regex>
 
+#include "../utils/skia_utils.h"
 #include "container_skia.h"
 #include "satoru_context.h"
 

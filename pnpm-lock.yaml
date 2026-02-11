@@ -21,6 +21,22 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/cloudflare-test:
+    dependencies:
+      satoru:
+        specifier: workspace:*
+        version: link:../satoru
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250124.3
+        version: 4.20260206.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      wrangler:
+        specifier: ^3.107.2
+        version: 3.114.17(@cloudflare/workers-types@4.20260206.0)
+
   packages/playground:
     dependencies:
       react:
@@ -64,22 +80,6 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@25.2.0)(tsx@4.21.0)
-
-  packages/test-cloudflare:
-    dependencies:
-      satoru:
-        specifier: workspace:*
-        version: link:../satoru
-    devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20250124.3
-        version: 4.20260206.0
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-      wrangler:
-        specifier: ^3.107.2
-        version: 3.114.17(@cloudflare/workers-types@4.20260206.0)
 
   packages/visual-test:
     devDependencies:

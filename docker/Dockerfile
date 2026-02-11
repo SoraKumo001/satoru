@@ -25,7 +25,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/satoru/package.json ./packages/satoru/
 COPY packages/playground/package.json ./packages/playground/
-COPY packages/test-cloudflare/package.json ./packages/test-cloudflare/
+COPY packages/cloudflare-test/package.json ./packages/cloudflare-test/
 COPY packages/visual-test/package.json ./packages/visual-test/
 
 # Install dependencies

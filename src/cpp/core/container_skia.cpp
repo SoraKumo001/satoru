@@ -18,6 +18,7 @@
 #include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkGradient.h"
 #include "utils/skia_utils.h"
+#include "include/core/SkTileMode.h"
 
 namespace {
 static SkColor darken(litehtml::web_color c, float fraction) {
@@ -544,11 +545,43 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
             p.setAntiAlias(true);
             m_canvas->save();
             m_canvas->clipRRect(make_rrect(layer.border_box, layer.border_radius), true);
-            m_canvas->drawImageRect(
-                it->second.skImage,
-                SkRect::MakeXYWH((float)layer.origin_box.x, (float)layer.origin_box.y,
-                                 (float)layer.origin_box.width, (float)layer.origin_box.height),
-                SkSamplingOptions(SkFilterMode::kLinear), &p);
+            SkTileMode tileX = SkTileMode::kRepeat;
+            SkTileMode tileY = SkTileMode::kRepeat;
+
+            switch (layer.repeat) {
+                case litehtml::background_repeat_repeat:
+                    tileX = SkTileMode::kRepeat;
+                    tileY = SkTileMode::kRepeat;
+                    break;
+                case litehtml::background_repeat_repeat_x:
+                    tileX = SkTileMode::kRepeat;
+                    tileY = SkTileMode::kDecal;
+                    break;
+                case litehtml::background_repeat_repeat_y:
+                    tileX = SkTileMode::kDecal;
+                    tileY = SkTileMode::kRepeat;
+                    break;
+                case litehtml::background_repeat_no_repeat:
+                    tileX = SkTileMode::kDecal;
+                    tileY = SkTileMode::kDecal;
+                    break;
+            }
+
+            float scaleX = (float)layer.origin_box.width / it->second.skImage->width();
+            float scaleY = (float)layer.origin_box.height / it->second.skImage->height();
+
+            SkMatrix matrix;
+            matrix.setScaleTranslate(scaleX, scaleY, (float)layer.origin_box.x,
+                                     (float)layer.origin_box.y);
+
+            p.setShader(it->second.skImage->makeShader(tileX, tileY,
+                                                       SkSamplingOptions(SkFilterMode::kLinear),
+                                                       &matrix));
+
+            m_canvas->drawRect(
+                SkRect::MakeXYWH((float)layer.clip_box.x, (float)layer.clip_box.y,
+                                 (float)layer.clip_box.width, (float)layer.clip_box.height),
+                p);
             m_canvas->restore();
         }
     }

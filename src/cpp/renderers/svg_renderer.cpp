@@ -152,17 +152,29 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                               it->second.skImage->height());
                         SkCanvas bitmapCanvas(bitmap);
                         bitmapCanvas.drawImage(it->second.skImage, 0, 0);
+                        std::string dataUrl = bitmapToDataUrl(bitmap);
 
                         std::stringstream ss;
-                        ss << "<image x=\"" << draw.layer.origin_box.x << "\" y=\""
-                           << draw.layer.origin_box.y << "\" width=\""
-                           << draw.layer.origin_box.width << "\" height=\""
-                           << draw.layer.origin_box.height << "\" href=\""
-                           << bitmapToDataUrl(bitmap) << "\"";
-                        if (has_radius(draw.layer.border_radius)) {
-                            ss << " clip-path=\"url(#clip-img-" << b << ")\"";
+                        if (draw.layer.repeat == litehtml::background_repeat_no_repeat) {
+                            ss << "<image x=\"" << draw.layer.origin_box.x << "\" y=\""
+                               << draw.layer.origin_box.y << "\" width=\""
+                               << draw.layer.origin_box.width << "\" height=\""
+                               << draw.layer.origin_box.height << "\" href=\"" << dataUrl << "\"";
+                            if (has_radius(draw.layer.border_radius)) {
+                                ss << " clip-path=\"url(#clip-img-" << b << ")\"";
+                            }
+                            ss << " />";
+                        } else {
+                            ss << "<rect x=\"" << draw.layer.clip_box.x << "\" y=\""
+                               << draw.layer.clip_box.y << "\" width=\""
+                               << draw.layer.clip_box.width << "\" height=\""
+                               << draw.layer.clip_box.height << "\" fill=\"url(#pattern-img-"
+                               << b << ")\"";
+                            if (has_radius(draw.layer.border_radius)) {
+                                ss << " clip-path=\"url(#clip-img-" << b << ")\"";
+                            }
+                            ss << " />";
                         }
-                        ss << " />";
 
                         result.erase(result.size() - (pos - elementStart));
                         result.append(ss.str());
@@ -425,11 +437,36 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     const auto &images = render_container.get_used_image_draws();
     for (size_t i = 0; i < images.size(); ++i) {
         const auto &draw = images[i];
+        int index = (int)(i + 1);
         if (has_radius(draw.layer.border_radius)) {
-            defs << "<clipPath id=\"clip-img-" << (i + 1) << "\">";
+            defs << "<clipPath id=\"clip-img-" << index << "\">";
             defs << "<path d=\"" << path_from_rrect(draw.layer.border_box, draw.layer.border_radius)
                  << "\" />";
             defs << "</clipPath>";
+        }
+        if (draw.layer.repeat != litehtml::background_repeat_no_repeat) {
+            auto it = context.imageCache.find(draw.url);
+            if (it != context.imageCache.end() && it->second.skImage) {
+                SkBitmap bitmap;
+                bitmap.allocN32Pixels(it->second.skImage->width(), it->second.skImage->height());
+                SkCanvas bitmapCanvas(bitmap);
+                bitmapCanvas.drawImage(it->second.skImage, 0, 0);
+                std::string dataUrl = bitmapToDataUrl(bitmap);
+
+                float pW = (float)draw.layer.origin_box.width;
+                float pH = (float)draw.layer.origin_box.height;
+                if (draw.layer.repeat == litehtml::background_repeat_repeat_x) pH = 1000000.0f;
+                if (draw.layer.repeat == litehtml::background_repeat_repeat_y) pW = 1000000.0f;
+
+                defs << "<pattern id=\"pattern-img-" << index
+                     << "\" patternUnits=\"userSpaceOnUse\" x=\""
+                     << draw.layer.origin_box.x << "\" y=\"" << draw.layer.origin_box.y
+                     << "\" width=\"" << pW << "\" height=\"" << pH << "\">";
+                defs << "<image x=\"0\" y=\"0\" width=\"" << draw.layer.origin_box.width
+                     << "\" height=\"" << draw.layer.origin_box.height << "\" href=\""
+                     << dataUrl << "\" />";
+                defs << "</pattern>";
+            }
         }
     }
 

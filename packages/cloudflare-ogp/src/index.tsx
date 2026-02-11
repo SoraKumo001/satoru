@@ -40,7 +40,7 @@ app.get("/", async (c) => {
               alignItems: "center",
               background: "linear-gradient(135deg, #1e3a8a 0%, #4c1d95 100%)",
               color: "white",
-              fontFamily: "'Noto Sans JP', sans-serif",
+              fontFamily: "'Noto Sans JP'",
             }}
           >
             <img

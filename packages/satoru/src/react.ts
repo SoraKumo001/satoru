@@ -1,4 +1,4 @@
-import { ReactElement } from "react";
+import { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 /**
@@ -8,6 +8,6 @@ import { renderToStaticMarkup } from "react-dom/server";
  * @param element - The React element to convert.
  * @returns The resulting HTML string.
  */
-export function toHtml(element: ReactElement): string {
+export function toHtml(element: ReactNode): string {
   return renderToStaticMarkup(element);
 }

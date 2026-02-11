@@ -114,6 +114,7 @@ void api_add_resource(SatoruInstance *inst, const char *url, int type, const uin
 }
 
 void api_scan_css(SatoruInstance *inst, const char *css) {
+    inst->context.addCss(css);
     inst->context.fontManager.scanFontFaces(css);
 }
 

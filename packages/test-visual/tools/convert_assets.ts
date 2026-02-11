@@ -2,7 +2,7 @@
 import path from "path";
 import os from "os";
 import { fileURLToPath } from "url";
-import { createSatoruWorker } from "satoru";
+import { createSatoruWorker } from "satoru/workers";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

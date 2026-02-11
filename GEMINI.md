@@ -32,7 +32,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 
 ### 3. Troubleshooting
 
-- If a `Hash Mismatch` error occurs: Re-read the file ranges and retry the edit with fresh hashes. If the error persists or becomes recurrent, rewrite the entire file using `write_file` to ensure consistency.
+- **Hash Mismatch Handling:** If a `Hash Mismatch` error occurs, immediately re-read the file using `get_text_file_contents` to synchronize. If the error persists or if the file has significant changes, rewrite the entire file using `write_file` to ensure consistency and resolve the conflict.
 
 ## Project Context: Satoru
 

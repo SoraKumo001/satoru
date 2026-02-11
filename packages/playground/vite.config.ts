@@ -28,18 +28,27 @@ export default defineConfig({
       // 開発サーバーでの配信
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
-          if (req.url === "/satoru.js" || req.url === "/satoru.wasm") {
+          if (
+            req.url === "/satoru.js" ||
+            req.url === "/satoru.wasm" ||
+            req.url === "/single.js" ||
+            req.url === "/index.js" ||
+            req.url === "/satoru-single.js" ||
+            req.url?.startsWith("/workers/")
+          ) {
             const artifactPath = path.resolve(
               __dirname,
               "../satoru/dist",
               req.url.substring(1),
             );
-            if (fs.existsSync(artifactPath)) {
+            if (fs.existsSync(artifactPath) && fs.lstatSync(artifactPath).isFile()) {
               res.setHeader(
                 "Content-Type",
                 req.url.endsWith(".js")
                   ? "application/javascript"
-                  : "application/wasm",
+                  : req.url.endsWith(".wasm")
+                    ? "application/wasm"
+                    : "application/octet-stream",
               );
               res.end(fs.readFileSync(artifactPath));
               return;
@@ -68,7 +77,7 @@ export default defineConfig({
         if (!fs.existsSync(distDir)) return;
 
         // satoru artifacts
-        ["satoru.js", "satoru.wasm"].forEach((file) => {
+        ["satoru.js", "satoru.wasm", "single.js", "index.js", "satoru-single.js"].forEach((file) => {
           const src = path.resolve(__dirname, "../satoru/dist", file);
           const dest = path.resolve(distDir, file);
           if (fs.existsSync(src)) {
@@ -83,6 +92,14 @@ export default defineConfig({
         if (fs.existsSync(srcAssets)) {
           copyRecursiveSync(srcAssets, destAssets);
           console.log(`Copied assets/ to dist/assets/`);
+        }
+
+        // workers directory
+        const srcWorkers = path.resolve(__dirname, "../satoru/dist/workers");
+        const destWorkers = path.resolve(distDir, "workers");
+        if (fs.existsSync(srcWorkers)) {
+          copyRecursiveSync(srcWorkers, destWorkers);
+          console.log(`Copied workers/ to dist/workers/`);
         }
       },
     },

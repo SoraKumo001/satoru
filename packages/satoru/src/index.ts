@@ -389,5 +389,4 @@ export class Satoru {
   }
 }
 
-export { createSatoruWorker } from "./single.js";
 export type { SatoruWorker } from "./workers/web-workers.js";

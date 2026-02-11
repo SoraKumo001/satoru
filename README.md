@@ -1,5 +1,7 @@
 # Satoru Wasm: High-Performance HTML to SVG/PNG/PDF Engine
 
+## Playground
+
 https://sorakumo001.github.io/satoru/
 
 **Satoru** is a portable, WebAssembly-powered HTML rendering engine. It combines the **Skia Graphics Engine** and **litehtml** to provide high-quality, pixel-perfect SVG, PNG, and PDF generation entirely within WebAssembly.

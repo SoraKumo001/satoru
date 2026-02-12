@@ -151,6 +151,22 @@ std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &famil
         }
     }
 
+    if (urls.empty() &&
+        (req.family == "sans-serif" || req.family == "serif" || req.family == "monospace")) {
+        if (!m_fontFaces.empty()) {
+            std::string fallbackFamily = m_fontFaces.begin()->first.family;
+            for (const auto &entry : m_fontFaces) {
+                if (entry.first.family == fallbackFamily) {
+                    for (const auto &src : entry.second) {
+                        if (std::find(urls.begin(), urls.end(), src.url) == urls.end()) {
+                            urls.push_back(src.url);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     return urls;
 }
 

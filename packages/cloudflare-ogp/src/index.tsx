@@ -41,7 +41,6 @@ app.get("/", async (c) => {
               alignItems: "center",
               background: "linear-gradient(135deg, #1e3a8a 0%, #4c1d95 100%)",
               color: "white",
-              fontFamily: "'Noto Sans JP'",
             }}
           >
             <img
@@ -100,6 +99,7 @@ app.get("/", async (c) => {
       </html>,
     )}
   `;
+  console.log(html);
 
   // Render to PNG with automatic font resolution
   const png = await satoru.render({

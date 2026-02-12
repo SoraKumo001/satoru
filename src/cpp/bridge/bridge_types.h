@@ -50,16 +50,19 @@ struct shadow_info {
 struct image_draw_info {
     std::string url;
     litehtml::background_layer layer;
+    float opacity;
 };
 
 struct conic_gradient_info {
     litehtml::background_layer layer;
     litehtml::background_layer::conic_gradient gradient;
+    float opacity;
 };
 
 struct radial_gradient_info {
     litehtml::background_layer layer;
     litehtml::background_layer::radial_gradient gradient;
+    float opacity;
 };
 
 struct image_resource_info {
@@ -70,6 +73,7 @@ struct image_resource_info {
 struct linear_gradient_info {
     litehtml::background_layer layer;
     litehtml::background_layer::linear_gradient gradient;
+    float opacity;
 };
 
 struct text_shadow_info {

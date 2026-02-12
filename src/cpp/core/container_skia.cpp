@@ -537,6 +537,7 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
         image_draw_info draw;
         draw.url = url;
         draw.layer = layer;
+        draw.opacity = get_current_opacity();
         m_usedImageDraws.push_back(draw);
         int index = (int)m_usedImageDraws.size();
         SkPaint p;
@@ -547,6 +548,8 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
         if (it != m_context.imageCache.end() && it->second.skImage) {
             SkPaint p;
             p.setAntiAlias(true);
+            // PNG mode uses saveLayer, so we don't need to apply opacity to p here
+            // unless we want to support non-stacking context opacity (rare in satoru).
             m_canvas->save();
             m_canvas->clipRRect(make_rrect(layer.border_box, layer.border_radius), true);
             SkTileMode tileX = SkTileMode::kRepeat;
@@ -611,6 +614,7 @@ void container_skia::draw_linear_gradient(
         linear_gradient_info info;
         info.layer = layer;
         info.gradient = gradient;
+        info.opacity = get_current_opacity();
         m_usedLinearGradients.push_back(info);
         int index = (int)m_usedLinearGradients.size();
         SkPaint p;
@@ -645,6 +649,7 @@ void container_skia::draw_radial_gradient(
         radial_gradient_info info;
         info.layer = layer;
         info.gradient = gradient;
+        info.opacity = get_current_opacity();
         m_usedRadialGradients.push_back(info);
         int index = (int)m_usedRadialGradients.size();
         SkPaint p;
@@ -682,6 +687,7 @@ void container_skia::draw_conic_gradient(
         conic_gradient_info info;
         info.layer = layer;
         info.gradient = gradient;
+        info.opacity = get_current_opacity();
         m_usedConicGradients.push_back(info);
         int index = (int)m_usedConicGradients.size();
         SkPaint p;

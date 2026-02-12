@@ -160,6 +160,9 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                << draw.layer.origin_box.y << "\" width=\""
                                << draw.layer.origin_box.width << "\" height=\""
                                << draw.layer.origin_box.height << "\" href=\"" << dataUrl << "\"";
+                            if (draw.opacity < 1.0f) {
+                                ss << " opacity=\"" << draw.opacity << "\"";
+                            }
                             if (has_radius(draw.layer.border_radius)) {
                                 ss << " clip-path=\"url(#clip-img-" << b << ")\"";
                             }
@@ -170,6 +173,9 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                << draw.layer.clip_box.width << "\" height=\""
                                << draw.layer.clip_box.height << "\" fill=\"url(#pattern-img-" << b
                                << ")\"";
+                            if (draw.opacity < 1.0f) {
+                                ss << " opacity=\"" << draw.opacity << "\"";
+                            }
                             if (has_radius(draw.layer.border_radius)) {
                                 ss << " clip-path=\"url(#clip-img-" << b << ")\"";
                             }
@@ -305,6 +311,16 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         ss << "<image x=\"" << border_box.x << "\" y=\"" << border_box.y
                            << "\" width=\"" << border_box.width << "\" height=\""
                            << border_box.height << "\" href=\"" << bitmapToDataUrl(bitmap) << "\"";
+                        
+                        float opacity = 1.0f;
+                        if (g == 1) opacity = conics[b - 1].opacity;
+                        else if (g == 2) opacity = radials[b - 1].opacity;
+                        else if (g == 3) opacity = linears[b - 1].opacity;
+
+                        if (opacity < 1.0f) {
+                            ss << " opacity=\"" << opacity << "\"";
+                        }
+
                         if (has_radius(border_radius)) {
                             ss << " clip-path=\"url(#clip-gradient-" << g << "-" << b << ")\"";
                         }

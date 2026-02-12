@@ -15,10 +15,10 @@
 #include "include/core/SkRRect.h"
 #include "include/core/SkShader.h"
 #include "include/core/SkString.h"
+#include "include/core/SkTileMode.h"
 #include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkGradient.h"
 #include "utils/skia_utils.h"
-#include "include/core/SkTileMode.h"
 
 namespace {
 static SkColor darken(litehtml::web_color c, float fraction) {
@@ -574,9 +574,8 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
             matrix.setScaleTranslate(scaleX, scaleY, (float)layer.origin_box.x,
                                      (float)layer.origin_box.y);
 
-            p.setShader(it->second.skImage->makeShader(tileX, tileY,
-                                                       SkSamplingOptions(SkFilterMode::kLinear),
-                                                       &matrix));
+            p.setShader(it->second.skImage->makeShader(
+                tileX, tileY, SkSamplingOptions(SkFilterMode::kLinear), &matrix));
 
             m_canvas->drawRect(
                 SkRect::MakeXYWH((float)layer.clip_box.x, (float)layer.clip_box.y,

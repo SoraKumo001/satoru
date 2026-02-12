@@ -168,8 +168,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                             ss << "<rect x=\"" << draw.layer.clip_box.x << "\" y=\""
                                << draw.layer.clip_box.y << "\" width=\""
                                << draw.layer.clip_box.width << "\" height=\""
-                               << draw.layer.clip_box.height << "\" fill=\"url(#pattern-img-"
-                               << b << ")\"";
+                               << draw.layer.clip_box.height << "\" fill=\"url(#pattern-img-" << b
+                               << ")\"";
                             if (has_radius(draw.layer.border_radius)) {
                                 ss << " clip-path=\"url(#clip-img-" << b << ")\"";
                             }
@@ -455,9 +455,9 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
 
                 float pW = (float)draw.layer.origin_box.width;
                 float pH = (float)draw.layer.origin_box.height;
-                
+
                 // SVG patterns repeat by default based on width/height.
-                // To prevent repeating in one direction, we set the pattern size to be 
+                // To prevent repeating in one direction, we set the pattern size to be
                 // larger than the clip area in that direction.
                 if (draw.layer.repeat == litehtml::background_repeat_repeat_x) {
                     pH = (float)draw.layer.clip_box.height + 1.0f;
@@ -466,12 +466,12 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
                 }
 
                 defs << "<pattern id=\"pattern-img-" << index
-                     << "\" patternUnits=\"userSpaceOnUse\" x=\""
-                     << draw.layer.origin_box.x << "\" y=\"" << draw.layer.origin_box.y
-                     << "\" width=\"" << pW << "\" height=\"" << pH << "\">";
+                     << "\" patternUnits=\"userSpaceOnUse\" x=\"" << draw.layer.origin_box.x
+                     << "\" y=\"" << draw.layer.origin_box.y << "\" width=\"" << pW
+                     << "\" height=\"" << pH << "\">";
                 defs << "<image x=\"0\" y=\"0\" width=\"" << draw.layer.origin_box.width
-                     << "\" height=\"" << draw.layer.origin_box.height << "\" href=\""
-                     << dataUrl << "\" />";
+                     << "\" height=\"" << draw.layer.origin_box.height << "\" href=\"" << dataUrl
+                     << "\" />";
                 defs << "</pattern>";
             }
         }

@@ -1,30 +1,30 @@
 import { initWorker } from "worker-lib";
-import { Satoru, type RenderOptions } from "./single.js";
+import { Satoru, type RenderOptions, LogLevel } from "./index.js";
 
 let satoru: Satoru | undefined;
 
+const sendLog = (level: LogLevel, message: string) => {
+  const payload = { __satoru_log: true, level, message };
+  if (typeof self !== "undefined" && typeof self.postMessage === "function") {
+    self.postMessage(payload);
+  } else {
+    try {
+      import("worker_threads").then((mod) => {
+        mod.parentPort?.postMessage(payload);
+      });
+    } catch (e) {
+      // ignore
+    }
+  }
+};
+
 const getSatoru = async () => {
   if (!satoru) {
-    satoru = await Satoru.init({
-      onLog: (level, message) => {
-        const payload = { __satoru_log: true, level, message };
-        // Detect environment and send message back to parent
-        if (typeof self !== "undefined" && typeof self.postMessage === "function") {
-          // Web Worker
-          self.postMessage(payload);
-        } else {
-          // Node.js worker_threads
-          try {
-            // dynamic import to avoid bundling issues in browser
-            import("worker_threads").then((mod) => {
-              mod.parentPort?.postMessage(payload);
-            });
-          } catch (e) {
-            // ignore
-          }
-        }
+    satoru = await Satoru.init(undefined, {
+      onLog: (level: LogLevel, message: string) => {
+        sendLog(level, message);
       },
-    });
+    }, LogLevel.Debug); // Set a high enough default log level to allow forwarding
   }
   return satoru;
 };
@@ -36,6 +36,13 @@ const getSatoru = async () => {
 const actions = {
   async render(options: RenderOptions) {
     const s = await getSatoru();
+    
+    // Override onLog to ensure it's captured by the parent's render callback.
+    // In workers, we always forward logs via postMessage.
+    options.onLog = (level: LogLevel, message: string) => {
+      sendLog(level, message);
+    };
+
     return s.render(options);
   },
 
@@ -90,7 +97,5 @@ const actions = {
   },
 };
 
-// Initialization process to make it usable in Worker.
 const map = initWorker(actions);
-// Export only the type for createWorker<SatoruWorker>
 export type SatoruWorker = typeof map;

@@ -100,6 +100,7 @@ export interface RenderOptions {
   baseUrl?: string;
   logLevel?: LogLevel;
   removeDefaultMargin?: boolean;
+  onLog?: (level: LogLevel, message: string) => void;
 }
 
 export { createSatoruModule };
@@ -108,6 +109,7 @@ export class Satoru {
   protected mod: SatoruModule;
   protected instancePtr: number;
   private static instances = new Map<number, Satoru>();
+  private activeOnLog?: (level: LogLevel, message: string) => void;
 
   protected constructor(mod: SatoruModule, instancePtr: number) {
     this.mod = mod;
@@ -166,15 +168,24 @@ export class Satoru {
 
     let mod: SatoruModule;
     const onLog = (level: LogLevel, message: string) => {
-      // If module is not yet assigned or level is higher than current setting, skip
-      // (level 0 = None, messages are 1-4, so level > None(0) is always true)
       const currentLevel = mod ? mod.logLevel : logLevel;
       if (level > currentLevel) return;
 
-      if (options.onLog) {
-        options.onLog(level, message);
-      } else {
-        defaultOnLog(level, message);
+      let handled = false;
+      for (const inst of Satoru.instances.values()) {
+        if (inst.activeOnLog) {
+          inst.activeOnLog(level, message);
+          handled = true;
+          break;
+        }
+      }
+
+      if (!handled) {
+        if (options.onLog) {
+          options.onLog(level, message);
+        } else {
+          defaultOnLog(level, message);
+        }
       }
     };
 
@@ -189,7 +200,6 @@ export class Satoru {
       ...options,
     })) as SatoruModule;
 
-    // Ensure onLog is available on the module instance
     mod.onLog = onLog;
     mod.logLevel = logLevel;
 
@@ -255,12 +265,16 @@ export class Satoru {
       baseUrl,
       logLevel,
       removeDefaultMargin = true,
+      onLog,
     } = options;
 
     const prevLogLevel = this.mod.logLevel;
     if (logLevel !== undefined) {
       this.mod.logLevel = logLevel;
     }
+
+    const prevOnLog = this.activeOnLog;
+    this.activeOnLog = onLog;
 
     try {
       if (clear) {
@@ -285,13 +299,10 @@ export class Satoru {
 
       let { resolveResource } = options;
 
-      // Provide a default resource resolver if baseUrl is present
       if (!resolveResource && baseUrl) {
         resolveResource = async (r: RequiredResource) => {
           try {
             const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(r.url);
-
-            // Node.js local file resolution for relative URLs
             if (
               !isAbsolute &&
               typeof process !== "undefined" &&
@@ -300,18 +311,12 @@ export class Satoru {
               try {
                 const path = await import("path");
                 const fs = await import("fs");
-                // If baseUrl is a path or file:// URL
                 let baseDir = baseUrl.startsWith("file://")
                   ? baseUrl.slice(7)
                   : baseUrl;
-
-                // On Windows, slice(7) might leave a leading slash like /C:/...
                 if (process.platform === "win32" && baseDir.startsWith("/")) {
                   baseDir = baseDir.slice(1);
                 }
-
-                // Check if it's NOT a protocol (http://, https://, etc.)
-                // We assume it's a local path if it doesn't have "://" or "data:"
                 if (
                   !/^[a-z][a-z0-9+.-]*:\/\//i.test(baseDir) &&
                   !baseDir.startsWith("data:")
@@ -330,14 +335,12 @@ export class Satoru {
             if (isAbsolute) {
               finalUrl = r.url;
             } else {
-              // baseUrl must be an absolute URL (with protocol) if we reach here
               if (!/^[a-z][a-z0-9+.-]*:/i.test(baseUrl)) return null;
               finalUrl = new URL(r.url, baseUrl).href;
             }
 
             const resp = await fetch(finalUrl);
             if (!resp.ok) return null;
-
             const buf = await resp.arrayBuffer();
             return new Uint8Array(buf);
           } catch (e) {
@@ -350,23 +353,18 @@ export class Satoru {
       let processedHtml = html;
       const resolvedUrls = new Set<string>();
 
-      // Increased loop count to 10 to support multi-pass resource resolution (CSS -> Font Segments)
       for (let i = 0; i < 10; i++) {
         const resources = this.getPendingResources(processedHtml, width);
         const pending = resources.filter((r) => !resolvedUrls.has(r.url));
-
         if (pending.length === 0) break;
-
         await Promise.all(
           pending.map(async (r) => {
             try {
               resolvedUrls.add(r.url);
               let data: Uint8Array | null = null;
-
               if (resolveResource) {
                 data = await resolveResource({ ...r });
               }
-
               if (data instanceof Uint8Array) {
                 this.addResource(r.url, r.type, data);
               }
@@ -377,13 +375,10 @@ export class Satoru {
         );
       }
 
-      // After all resources are resolved, we remove the link tags to prevent litehtml
-      // from attempting to fetch them again during the final layout/drawing pass.
       resolvedUrls.forEach((url) => {
-        // Escape special regex characters in the URL
-        const escapedUrl = url.replace(/[.*+?^${}()|[\\\]]/g, "\\$&");
+        const escapedUrl = url.replace(/[.*+?^${}()|[\\\\\\]]/g, "\\\\$&");
         const linkRegex = new RegExp(
-          `<link[^>]*href\\s*=\\s*(["'])${escapedUrl}\\1[^>]*>`,
+          `<link[^>]*href\\s*=\\s*([\"'])${escapedUrl}\\1[^>]*>`,
           "gi",
         );
         processedHtml = processedHtml.replace(linkRegex, "");
@@ -399,6 +394,7 @@ export class Satoru {
       }
     } finally {
       this.mod.logLevel = prevLogLevel;
+      this.activeOnLog = prevOnLog;
     }
   }
 
@@ -412,7 +408,7 @@ export class Satoru {
     );
     const svg = this.mod.UTF8ToString(svgPtr);
     this.mod._free(htmlPtr);
-    this.mod._free(svgPtr); // CRITICAL: Free the string returned by malloc in C++
+    this.mod._free(svgPtr);
     return svg;
   }
 
@@ -425,14 +421,11 @@ export class Satoru {
       height,
     );
     const size = this.mod._get_png_size(this.instancePtr);
-
     let result: Uint8Array | null = null;
     if (pngPtr && size > 0) {
       result = new Uint8Array(this.mod.HEAPU8.buffer, pngPtr, size).slice();
     }
-
     this.mod._free(htmlPtr);
-    // Note: pngPtr is managed inside g_context in C++, no need to free here
     return result;
   }
 
@@ -445,14 +438,11 @@ export class Satoru {
       height,
     );
     const size = this.mod._get_pdf_size(this.instancePtr);
-
     let result: Uint8Array | null = null;
     if (pdfPtr && size > 0) {
       result = new Uint8Array(this.mod.HEAPU8.buffer, pdfPtr, size).slice();
     }
-
     this.mod._free(htmlPtr);
-    // Note: pdfPtr is managed inside g_context in C++, no need to free here
     return result;
   }
 
@@ -463,32 +453,24 @@ export class Satoru {
   getPendingResources(html: string, width: number): RequiredResource[] {
     const htmlPtr = this.stringToPtr(html);
     const resources: RequiredResource[] = [];
-
-    // Temporary callback to collect resources from WASM
     this.onResourceRequested = (url: string, typeInt: number, name: string) => {
       let type: "font" | "css" | "image" = "font";
       if (typeInt === 2) type = "image";
       if (typeInt === 3) type = "css";
       resources.push({ type, name, url });
     };
-
     this.mod._collect_resources(this.instancePtr, htmlPtr, width);
-
-    // Cleanup
     this.mod._free(htmlPtr);
     this.onResourceRequested = undefined;
-
     return resources;
   }
   addResource(url: string, type: "font" | "css" | "image", data: Uint8Array) {
     const urlPtr = this.stringToPtr(url);
     const dataPtr = this.mod._malloc(data.length);
     this.mod.HEAPU8.set(data, dataPtr);
-
     let typeInt = 1;
     if (type === "image") typeInt = 2;
     if (type === "css") typeInt = 3;
-
     this.mod._add_resource(
       this.instancePtr,
       urlPtr,
@@ -496,7 +478,6 @@ export class Satoru {
       dataPtr,
       data.length,
     );
-
     this.mod._free(urlPtr);
     this.mod._free(dataPtr);
   }

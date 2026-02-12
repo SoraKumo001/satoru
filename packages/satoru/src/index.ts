@@ -1,6 +1,3 @@
-// @ts-ignore
-import createSatoruModule from "../dist/satoru-single.js";
-
 export enum LogLevel {
   None = 0,
   Error = 1,
@@ -103,8 +100,6 @@ export interface RenderOptions {
   onLog?: (level: LogLevel, message: string) => void;
 }
 
-export { createSatoruModule };
-
 export class Satoru {
   protected mod: SatoruModule;
   protected instancePtr: number;
@@ -144,7 +139,7 @@ export class Satoru {
    * @param logLevel Default log level (defaults to None)
    */
   static async init(
-    createSatoruModuleFunc: any = createSatoruModule,
+    createSatoruModuleFunc: any,
     options: SatoruOptions = {},
     logLevel: LogLevel = LogLevel.None,
   ): Promise<Satoru> {

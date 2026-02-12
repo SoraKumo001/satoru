@@ -1,9 +1,6 @@
-import {
-  Satoru as BaseSatoru,
-  createSatoruModule,
-  SatoruOptions,
-  SatoruModule,
-} from "./index.js";
+// @ts-ignore
+import createSatoruModule from "../dist/satoru.js";
+import { Satoru as BaseSatoru, SatoruOptions, SatoruModule } from "./index.js";
 // @ts-ignore
 import satoruWasm from "../dist/satoru.wasm";
 

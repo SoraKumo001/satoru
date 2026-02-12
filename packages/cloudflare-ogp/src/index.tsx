@@ -99,7 +99,6 @@ app.get("/", async (c) => {
       </html>,
     )}
   `;
-  console.log(html);
 
   // Render to PNG with automatic font resolution
   const png = await satoru.render({

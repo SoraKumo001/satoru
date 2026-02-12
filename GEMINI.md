@@ -12,7 +12,11 @@ You are operating in a **Windows PowerShell** environment.
 - **Instruction:** Use the semicolon `;` separator for sequential execution.
 - ✅ **Correct:** `mkdir test_dir ; cd test_dir`
 
-### 2. File Editing Protocol (mcp-text-editor)
+### 2. Communication Protocol
+
+- **Progress Reporting:** Always report what you are currently doing before and during each step of your work. Provide concise updates on your analysis, planning, and implementation progress to keep the user informed.
+
+### 3. File Editing Protocol (mcp-text-editor)
 
 When using `get_text_file_contents` and `edit_text_file_contents`, strictly follow these rules to ensure data integrity and avoid `Hash Mismatch` errors.
 
@@ -30,7 +34,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 - Always use standard JSON string escape sequences (`\n`) only.
 - Ensure that the generated file content contains actual newlines instead of the literal string `\n`.
 
-### 3. Troubleshooting
+### 4. Troubleshooting
 
 - **Hash Mismatch Handling:** If a `Hash Mismatch` error occurs, immediately re-read the file using `get_text_file_contents` to synchronize. If the error persists or if the file has significant changes, rewrite the entire file using `write_file` to ensure consistency and resolve the conflict.
 
@@ -135,7 +139,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 ### 6. GitHub Pages Deployment
 
 - **Relative Paths:** Use relative paths in HTML/TS (`./src/main.ts`).
-- **Vite Config:** Set `base: "./"`.
+- **Vite Config:** Set `base: \"./\"`.
 - **Asset Resolution:** Resolve relative to deployment root.
 - **Artifacts:** Copy `satoru.wasm` and `satoru.js` to `dist`.
 

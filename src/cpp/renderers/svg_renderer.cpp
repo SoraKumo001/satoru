@@ -455,8 +455,15 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
 
                 float pW = (float)draw.layer.origin_box.width;
                 float pH = (float)draw.layer.origin_box.height;
-                if (draw.layer.repeat == litehtml::background_repeat_repeat_x) pH = 1000000.0f;
-                if (draw.layer.repeat == litehtml::background_repeat_repeat_y) pW = 1000000.0f;
+                
+                // SVG patterns repeat by default based on width/height.
+                // To prevent repeating in one direction, we set the pattern size to be 
+                // larger than the clip area in that direction.
+                if (draw.layer.repeat == litehtml::background_repeat_repeat_x) {
+                    pH = (float)draw.layer.clip_box.height + 1.0f;
+                } else if (draw.layer.repeat == litehtml::background_repeat_repeat_y) {
+                    pW = (float)draw.layer.clip_box.width + 1.0f;
+                }
 
                 defs << "<pattern id=\"pattern-img-" << index
                      << "\" patternUnits=\"userSpaceOnUse\" x=\""

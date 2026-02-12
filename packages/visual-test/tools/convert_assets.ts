@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { fileURLToPath } from "url";
-import { createSatoruWorker } from "satoru/workers";
+import { createSatoruWorker, LogLevel } from "satoru/workers";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,7 +44,26 @@ async function convertAssets() {
   const cpuCount = Math.min(os.cpus().length, files.length);
   console.log(`Initializing ${cpuCount} workers for ${files.length} files...`);
 
-  const satoru = createSatoruWorker({ maxParallel: cpuCount });
+  const satoru = createSatoruWorker({
+    maxParallel: cpuCount,
+    onLog: (level, message) => {
+      const prefix = "[Satoru Worker]";
+      switch (level) {
+        case LogLevel.Debug:
+          console.debug(`${prefix} DEBUG: ${message}`);
+          break;
+        case LogLevel.Info:
+          console.info(`${prefix} INFO: ${message}`);
+          break;
+        case LogLevel.Warning:
+          console.warn(`${prefix} WARNING: ${message}`);
+          break;
+        case LogLevel.Error:
+          console.error(`${prefix} ERROR: ${message}`);
+          break;
+      }
+    },
+  });
 
   // Give some time for NodeWorker to be imported in the background
   await new Promise((resolve) => setTimeout(resolve, 500));

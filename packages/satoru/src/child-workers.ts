@@ -5,7 +5,26 @@ let satoru: Satoru | undefined;
 
 const getSatoru = async () => {
   if (!satoru) {
-    satoru = await Satoru.init();
+    satoru = await Satoru.init({
+      onLog: (level, message) => {
+        const payload = { __satoru_log: true, level, message };
+        // Detect environment and send message back to parent
+        if (typeof self !== "undefined" && typeof self.postMessage === "function") {
+          // Web Worker
+          self.postMessage(payload);
+        } else {
+          // Node.js worker_threads
+          try {
+            // dynamic import to avoid bundling issues in browser
+            import("worker_threads").then((mod) => {
+              mod.parentPort?.postMessage(payload);
+            });
+          } catch (e) {
+            // ignore
+          }
+        }
+      },
+    });
   }
   return satoru;
 };

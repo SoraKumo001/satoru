@@ -237,6 +237,15 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	m_pos.x += content_offset_left();
 	m_pos.y += content_offset_top();
 
+	for (const auto& el : m_children)
+	{
+		auto el_position = el->src_el()->css().get_position();
+		if (el_position == element_position_absolute || el_position == element_position_fixed)
+		{
+			el->render(0, 0, self_size, fmt_ctx);
+		}
+	}
+
 	return ret_width;
 }
 
@@ -265,6 +274,11 @@ std::list<litehtml::flex_line> litehtml::render_item_flex::get_lines(const liteh
 
 	for( auto& el : m_children)
 	{
+		if(el->src_el()->css().get_position() == element_position_absolute || el->src_el()->css().get_position() == element_position_fixed)
+		{
+			continue;
+		}
+
 		std::shared_ptr<flex_item> item = nullptr;
 		if(is_row_direction)
 		{

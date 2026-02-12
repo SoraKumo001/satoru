@@ -362,7 +362,6 @@ const App: React.FC = () => {
               display: "flex",
               overflow: "auto",
               boxSizing: "border-box",
-              justifyContent: "center",
               position: "relative",
             }}
           >
@@ -402,8 +401,6 @@ const App: React.FC = () => {
                 src={objectUrl}
                 alt="render result"
                 style={{
-                  maxWidth: "100%",
-                  height: "auto",
                   boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
                 }}
               />

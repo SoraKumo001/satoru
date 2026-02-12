@@ -31,6 +31,9 @@ class container_skia : public litehtml::document_container {
     std::vector<conic_gradient_info> m_usedConicGradients;
     std::vector<radial_gradient_info> m_usedRadialGradients;
     std::vector<linear_gradient_info> m_usedLinearGradients;
+    
+    std::set<char32_t> m_usedCodepoints;
+    std::set<font_request> m_requestedFontAttributes;
 
     std::set<font_request> m_missingFonts;
 
@@ -67,6 +70,11 @@ class container_skia : public litehtml::document_container {
     }
     const std::vector<shadow_info> &get_used_shadows() const { return m_usedShadows; }
     const std::vector<text_shadow_info> &get_used_text_shadows() const { return m_usedTextShadows; }
+
+    const std::set<char32_t> &get_used_codepoints() const { return m_usedCodepoints; }
+    const std::set<font_request> &get_requested_font_attributes() const {
+        return m_requestedFontAttributes;
+    }
 
     const std::set<font_request> &get_missing_fonts() const { return m_missingFonts; }
 

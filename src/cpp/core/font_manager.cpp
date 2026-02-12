@@ -125,7 +125,8 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
 }
 
 std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &family, int weight,
-                                                        SkFontStyle::Slant slant) const {
+                                                        SkFontStyle::Slant slant,
+                                                        const std::set<char32_t> *usedCodepoints) const {
     font_request req;
     req.family = cleanName(family.c_str());
     req.weight = weight;
@@ -135,7 +136,19 @@ std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &famil
     auto it = m_fontFaces.find(req);
     if (it != m_fontFaces.end()) {
         for (const auto &src : it->second) {
-            urls.push_back(src.url);
+            bool needed = true;
+            if (usedCodepoints && !src.unicode_range.empty()) {
+                needed = false;
+                for (char32_t cp : *usedCodepoints) {
+                    if (checkUnicodeRange(cp, src.unicode_range)) {
+                        needed = true;
+                        break;
+                    }
+                }
+            }
+            if (needed) {
+                urls.push_back(src.url);
+            }
         }
     }
 
@@ -144,7 +157,19 @@ std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &famil
             if (entry.first.family == req.family && entry.first.slant == req.slant) {
                 for (const auto &src : entry.second) {
                     if (std::find(urls.begin(), urls.end(), src.url) == urls.end()) {
-                        urls.push_back(src.url);
+                        bool needed = true;
+                        if (usedCodepoints && !src.unicode_range.empty()) {
+                            needed = false;
+                            for (char32_t cp : *usedCodepoints) {
+                                if (checkUnicodeRange(cp, src.unicode_range)) {
+                                    needed = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (needed) {
+                            urls.push_back(src.url);
+                        }
                     }
                 }
             }
@@ -159,7 +184,19 @@ std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &famil
                 if (entry.first.family == fallbackFamily) {
                     for (const auto &src : entry.second) {
                         if (std::find(urls.begin(), urls.end(), src.url) == urls.end()) {
-                            urls.push_back(src.url);
+                            bool needed = true;
+                            if (usedCodepoints && !src.unicode_range.empty()) {
+                                needed = false;
+                                for (char32_t cp : *usedCodepoints) {
+                                    if (checkUnicodeRange(cp, src.unicode_range)) {
+                                        needed = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (needed) {
+                                urls.push_back(src.url);
+                            }
                         }
                     }
                 }
@@ -233,4 +270,44 @@ std::string SatoruFontManager::cleanName(const char *name) const {
         res += (char)tolower(c);
     }
     return res;
+}
+
+bool SatoruFontManager::checkUnicodeRange(char32_t codepoint, const std::string &range) const {
+    if (range.empty()) return true;
+
+    // range format: "U+0-10FFFF, U+1234"
+    std::stringstream ss(range);
+    std::string segment;
+    while (std::getline(ss, segment, ',')) {
+        segment = trim(segment);
+        if (segment.empty()) continue;
+
+        // remove "U+" prefix if exists
+        size_t uPos = segment.find("U+");
+        if (uPos == std::string::npos) uPos = segment.find("u+");
+        if (uPos != std::string::npos) {
+            segment = segment.substr(uPos + 2);
+        }
+
+        size_t dashPos = segment.find('-');
+        uint32_t start = 0, end = 0;
+
+        try {
+            if (dashPos != std::string::npos) {
+                std::string startStr = segment.substr(0, dashPos);
+                std::string endStr = segment.substr(dashPos + 1);
+                // remove '?' wildcards if any (not supported yet fully, but handle basic)
+                // Google Fonts usually sends hex ranges.
+                start = std::stoul(startStr, nullptr, 16);
+                end = std::stoul(endStr, nullptr, 16);
+            } else {
+                start = std::stoul(segment, nullptr, 16);
+                end = start;
+            }
+            if (codepoint >= start && codepoint <= end) return true;
+        } catch (...) {
+            // parsing error
+        }
+    }
+    return false;
 }

@@ -1,5 +1,5 @@
 // @ts-ignore
-import createSatoruModule from "../dist/satoru.js";
+import createSatoruModule from "../dist/satoru-single.js";
 
 export enum LogLevel {
   None = 0,

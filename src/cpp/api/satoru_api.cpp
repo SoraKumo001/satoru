@@ -99,6 +99,17 @@ void api_collect_resources(SatoruInstance *inst, const char *html, int width) {
                                                     master_css_full.c_str());
     if (doc) doc->render(width);
 
+    const auto &usedCodepoints = inst->discovery_container->get_used_codepoints();
+    const auto &requestedAttribs = inst->discovery_container->get_requested_font_attributes();
+
+    for (const auto &req : requestedAttribs) {
+        std::vector<std::string> urls = inst->context.fontManager.getFontUrls(
+            req.family, req.weight, req.slant, &usedCodepoints);
+        for (const auto &url : urls) {
+            inst->resourceManager.request(url, req.family, ResourceType::Font);
+        }
+    }
+
     auto requests = inst->resourceManager.getPendingRequests();
     for (const auto &req : requests) {
         int typeInt = 1;

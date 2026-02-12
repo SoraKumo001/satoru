@@ -17,14 +17,18 @@ const sendLog = (level: LogLevel, message: string) => {
     }
   }
 };
-
+//
 const getSatoru = async () => {
   if (!satoru) {
-    satoru = await Satoru.init(undefined, {
-      onLog: (level: LogLevel, message: string) => {
-        sendLog(level, message);
+    satoru = await Satoru.init(
+      undefined,
+      {
+        onLog: (level: LogLevel, message: string) => {
+          sendLog(level, message);
+        },
       },
-    }, LogLevel.Debug); // Set a high enough default log level to allow forwarding
+      LogLevel.Debug,
+    ); // Set a high enough default log level to allow forwarding
   }
   return satoru;
 };
@@ -36,7 +40,7 @@ const getSatoru = async () => {
 const actions = {
   async render(options: RenderOptions) {
     const s = await getSatoru();
-    
+
     // Override onLog to ensure it's captured by the parent's render callback.
     // In workers, we always forward logs via postMessage.
     options.onLog = (level: LogLevel, message: string) => {

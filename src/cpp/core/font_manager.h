@@ -25,7 +25,8 @@ class SatoruFontManager {
     // @font-face 解析と URL 解決
     void scanFontFaces(const std::string& css);
     std::vector<std::string> getFontUrls(const std::string& family, int weight,
-                                         SkFontStyle::Slant slant) const;
+                                         SkFontStyle::Slant slant,
+                                         const std::set<char32_t>* usedCodepoints = nullptr) const;
     std::string getFontUrl(const std::string& family, int weight, SkFontStyle::Slant slant) const;
 
     // フォントマッチング
@@ -57,6 +58,7 @@ class SatoruFontManager {
     std::vector<sk_sp<SkTypeface>> m_fallbackTypefaces;
 
     std::string cleanName(const char* name) const;
+    bool checkUnicodeRange(char32_t codepoint, const std::string& range) const;
 };
 
 #endif  // SATORU_FONT_MANAGER_H

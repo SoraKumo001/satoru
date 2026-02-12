@@ -114,11 +114,11 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
         if (fb) fake_bold = true;
 
         if (m_resourceManager) {
-            std::vector<std::string> urls =
-                m_context.fontManager.getFontUrls(family, desc.weight, slant);
-            for (const auto &url : urls) {
-                m_resourceManager->request(url, family, ResourceType::Font);
-            }
+            font_request req;
+            req.family = family;
+            req.weight = desc.weight;
+            req.slant = slant;
+            m_requestedFontAttributes.insert(req);
         }
     }
 
@@ -205,6 +205,8 @@ litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_pt
     while (*p) {
         const char *next_p = p;
         char32_t u = decode_utf8(&next_p);
+        if (m_resourceManager) m_usedCodepoints.insert(u);
+
         SkFont *font = nullptr;
         for (auto f : fi->fonts) {
             SkGlyphID glyph = 0;
@@ -356,6 +358,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         while (ptr < end) {
             const char *next_ptr = ptr;
             char32_t u = decode_utf8(&next_ptr);
+            if (m_resourceManager) m_usedCodepoints.insert(u);
+
             SkFont *font = nullptr;
             for (auto f : fi->fonts) {
                 SkGlyphID glyph = 0;

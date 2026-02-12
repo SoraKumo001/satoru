@@ -14,7 +14,7 @@ You are operating in a **Windows PowerShell** environment.
 
 ### 2. Communication Protocol
 
-- **Progress Reporting:** Always report what you are currently doing before and during each step of your work. Provide concise updates on your analysis, planning, and implementation progress to keep the user informed.
+- **Progress Reporting:** Always report what you are currently doing before and during each step of your work. Provide concise updates on your analysis, planning, and implementation progress to keep the user informed. **Progress reporting should be conducted in the user's language.**
 
 ### 3. File Editing Protocol (mcp-text-editor)
 

@@ -30,11 +30,7 @@ export class Satoru extends BaseSatoru {
    * Initialize Satoru with embedded WASM.
    * @param options Additional Satoru options
    */
-  static async init(
-    createSatoruModuleFunc: any,
-    options: SatoruOptions = {},
-    logLevel: LogLevel = LogLevel.None,
-  ): Promise<Satoru> {
+  static async init(options: SatoruOptions = {}): Promise<Satoru> {
     const { default: createSatoruModuleSingle } =
       // @ts-ignore
       await import("../dist/satoru-single.js");

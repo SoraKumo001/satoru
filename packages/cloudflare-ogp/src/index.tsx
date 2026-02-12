@@ -34,6 +34,7 @@ app.get("/", async (c) => {
             style={{
               width: "1200px",
               height: "630px",
+              position: "relative",
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",

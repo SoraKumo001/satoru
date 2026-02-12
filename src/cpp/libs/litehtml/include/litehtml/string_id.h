@@ -323,6 +323,7 @@ namespace litehtml
 
       _box_shadow_,
       _text_shadow_,
+      _opacity_,
 
       // some CSS dimensions
       _deg_,

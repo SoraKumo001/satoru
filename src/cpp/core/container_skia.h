@@ -35,8 +35,17 @@ class container_skia : public litehtml::document_container {
     std::set<font_request> m_missingFonts;
 
     std::vector<std::pair<litehtml::position, litehtml::border_radiuses>> m_clips;
+    std::vector<float> m_opacity_stack;
 
     bool m_tagging;
+
+    float get_current_opacity() const {
+        float opacity = 1.0f;
+        for (float o : m_opacity_stack) {
+            opacity *= o;
+        }
+        return opacity;
+    }
 
    public:
     container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context, ResourceManager *rm,
@@ -113,6 +122,10 @@ class container_skia : public litehtml::document_container {
     virtual void get_viewport(litehtml::position &viewport) const override;
     virtual void get_media_features(litehtml::media_features &features) const override;
     virtual void get_language(litehtml::string &language, litehtml::string &culture) const override;
+
+    virtual void push_layer(litehtml::uint_ptr hdc, float opacity) override;
+    virtual void pop_layer(litehtml::uint_ptr hdc) override;
+
     virtual litehtml::element::ptr create_element(
         const char *tag_name, const litehtml::string_map &attributes,
         const std::shared_ptr<litehtml::document> &doc) override {

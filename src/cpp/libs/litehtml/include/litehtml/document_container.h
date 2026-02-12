@@ -72,6 +72,9 @@ namespace litehtml
                 virtual litehtml::string        resolve_color(const litehtml::string& /*color*/) const { return litehtml::string(); }
                 virtual void                            split_text(const char* text, const std::function<void(const char*)>& on_word, const std::function<void(const char*)>& on_space);
 
+                virtual void                            push_layer(uint_ptr hdc, float opacity) {}
+                virtual void                            pop_layer(uint_ptr hdc) {}
+
         protected:
                 virtual ~document_container() = default;
         };

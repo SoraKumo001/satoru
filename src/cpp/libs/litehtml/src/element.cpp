@@ -295,7 +295,8 @@ bool element::is_block_formatting_context() const
 		   m_css.get_float() != float_none ||
 		   m_css.get_position() == element_position_absolute ||
 		   m_css.get_position() == element_position_fixed ||
-		   m_css.get_overflow() > overflow_visible)
+		   m_css.get_overflow() > overflow_visible ||
+		   m_css.get_opacity() < 1.0f)
 	{
 		return true;
 	}

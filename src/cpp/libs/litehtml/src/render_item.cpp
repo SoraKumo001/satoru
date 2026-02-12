@@ -224,7 +224,7 @@ bool litehtml::render_item::fetch_positioned()
     for(auto& el : m_children)
     {
         el_pos = el->src_el()->css().get_position();
-        if (el_pos != element_position_static)
+        if (el_pos != element_position_static || el->src_el()->css().get_opacity() < 1.0f)
         {
             add_positioned(el);
         }
@@ -848,6 +848,9 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                 case draw_positioned:
                     if (el->src_el()->is_positioned() && el->src_el()->css().get_z_index() == zindex)
                     {
+                        float opacity = el->src_el()->css().get_opacity();
+                        if (opacity < 1.0f) doc->container()->push_layer(hdc, opacity);
+
                         if (el->src_el()->css().get_position() == element_position_fixed)
 						{
 							// Fixed elements position is always relative to the (0,0)
@@ -859,6 +862,8 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                             el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
                             el->draw_stacking_context(hdc, pos.x, pos.y, clip, true);
                         }
+
+                        if (opacity < 1.0f) doc->container()->pop_layer(hdc);
                         process = false;
                     }
                     break;

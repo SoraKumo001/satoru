@@ -3,6 +3,7 @@
 #include "css_parser.h"
 #include "internal.h"
 #include <set>
+#include <cstdio>
 #include "html_tag.h"
 #include "document.h"
 
@@ -419,6 +420,25 @@ namespace litehtml
     case _flex_:
       parse_flex(value, important);
       break;
+
+    case _opacity_:
+    {
+      css_length length;
+      if (length.from_token(val, f_number | f_percentage))
+      {
+        float opacity = 1.0f;
+        if (length.units() == css_units_percentage)
+          opacity = length.val() / 100.0f;
+        else
+          opacity = length.val();
+        if (opacity < 0)
+          opacity = 0;
+        if (opacity > 1)
+          opacity = 1;
+        add_parsed_property(name, property_value(opacity, important));
+      }
+      break;
+    }
 
     case _flex_grow_:
     case _flex_shrink_:

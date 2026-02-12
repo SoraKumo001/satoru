@@ -532,8 +532,13 @@ void document::draw( uint_ptr hdc, pixel_t x, pixel_t y, const position* clip )
 {
 	if(m_root && m_root_render)
 	{
+		float opacity = m_root->css().get_opacity();
+		if (opacity < 1.0f) m_container->push_layer(hdc, opacity);
+
 		m_root->draw(hdc, x, y, clip, m_root_render);
 		m_root_render->draw_stacking_context(hdc, x, y, clip, true);
+
+		if (opacity < 1.0f) m_container->pop_layer(hdc);
 	}
 }
 

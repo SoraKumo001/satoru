@@ -341,6 +341,9 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         paint.setColor(SkColorSetARGB(255, 0, 2, (index & 0xFF)));
     } else {
         paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
+        if (m_tagging) {
+            paint.setAlphaf(paint.getAlphaf() * get_current_opacity());
+        }
     }
 
     auto draw_text_internal = [&](const char *str, size_t len, double x, double y,
@@ -490,8 +493,9 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
         const auto &s = *it;
         if (s.inset != inset) continue;
         SkRRect box_rrect = make_rrect(pos, radius);
+        float current_opacity = get_current_opacity();
         SkColor shadow_color =
-            SkColorSetARGB(s.color.alpha, s.color.red, s.color.green, s.color.blue);
+            SkColorSetARGB((uint8_t)(s.color.alpha * current_opacity), s.color.red, s.color.green, s.color.blue);
         float blur_std_dev = (float)s.blur.val() * 0.5f;
         m_canvas->save();
         if (inset) {
@@ -592,6 +596,9 @@ void container_skia::draw_solid_fill(litehtml::uint_ptr hdc,
     if (!m_canvas) return;
     SkPaint p;
     p.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
+    if (m_tagging) {
+        p.setAlphaf(p.getAlphaf() * get_current_opacity());
+    }
     p.setAntiAlias(true);
     m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
 }
@@ -614,9 +621,11 @@ void container_skia::draw_linear_gradient(
                           SkPoint::Make((float)gradient.end.x, (float)gradient.end.y)};
         std::vector<SkColor4f> colors;
         std::vector<float> pos;
+        float current_opacity = get_current_opacity();
         for (const auto &stop : gradient.color_points) {
             colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
-                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                              stop.color.blue / 255.0f,
+                              (stop.color.alpha / 255.0f) * current_opacity});
             pos.push_back(stop.offset);
         }
         SkGradient grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos), SkTileMode::kClamp),
@@ -647,9 +656,11 @@ void container_skia::draw_radial_gradient(
         if (rx <= 0 || ry <= 0) return;
         std::vector<SkColor4f> colors;
         std::vector<float> pos;
+        float current_opacity = get_current_opacity();
         for (const auto &stop : gradient.color_points) {
             colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
-                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                              stop.color.blue / 255.0f,
+                              (stop.color.alpha / 255.0f) * current_opacity});
             pos.push_back(stop.offset);
         }
         SkMatrix matrix;
@@ -680,10 +691,12 @@ void container_skia::draw_conic_gradient(
         SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
         std::vector<SkColor4f> colors;
         std::vector<float> pos;
+        float current_opacity = get_current_opacity();
         for (size_t i = 0; i < gradient.color_points.size(); ++i) {
             const auto &stop = gradient.color_points[i];
             colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
-                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                              stop.color.blue / 255.0f,
+                              (stop.color.alpha / 255.0f) * current_opacity});
             float offset = stop.offset;
             if (i > 0 && offset <= pos.back()) {
                 offset = pos.back() + 0.00001f;
@@ -729,6 +742,9 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
         SkPaint p;
         p.setColor(SkColorSetARGB(borders.top.color.alpha, borders.top.color.red,
                                   borders.top.color.green, borders.top.color.blue));
+        if (m_tagging) {
+            p.setAlphaf(p.getAlphaf() * get_current_opacity());
+        }
         p.setAntiAlias(true);
 
         SkRRect rr = make_rrect(draw_pos, borders.radius);
@@ -792,6 +808,9 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
             SkPaint p;
             p.setAntiAlias(true);
             p.setColor(SkColorSetARGB(b.color.alpha, b.color.red, b.color.green, b.color.blue));
+            if (m_tagging) {
+                p.setAlphaf(p.getAlphaf() * get_current_opacity());
+            }
 
             if (b.style == litehtml::border_style_dotted ||
                 b.style == litehtml::border_style_dashed) {
@@ -995,4 +1014,26 @@ void container_skia::get_media_features(litehtml::media_features &features) cons
 void container_skia::get_language(litehtml::string &language, litehtml::string &culture) const {
     language = "en";
     culture = "en-US";
+}
+
+void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity) {
+    m_opacity_stack.push_back(opacity);
+    if (m_canvas) {
+        if (opacity < 1.0f && !m_tagging) {
+            SkPaint paint;
+            paint.setAlphaf(opacity);
+            m_canvas->saveLayer(nullptr, &paint);
+        } else {
+            m_canvas->save();
+        }
+    }
+}
+
+void container_skia::pop_layer(litehtml::uint_ptr hdc) {
+    if (!m_opacity_stack.empty()) {
+        m_opacity_stack.pop_back();
+    }
+    if (m_canvas) {
+        m_canvas->restore();
+    }
 }

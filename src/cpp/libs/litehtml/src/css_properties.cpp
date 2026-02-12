@@ -30,6 +30,7 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
 
   m_box_shadow = el->get_property<shadow_vector>(_box_shadow_, false, shadow_vector(), offset(m_box_shadow));
   m_text_shadow = el->get_property<shadow_vector>(_text_shadow_, true, shadow_vector(), offset(m_text_shadow));
+  m_opacity = el->get_property<float>(_opacity_, false, 1.0f, offset(m_opacity));
 
   // https://www.w3.org/TR/CSS22/visuren.html#dis-pos-flo
   if (m_display == display_none)
@@ -655,6 +656,7 @@ std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_proper
   ret.emplace_back("border_spacing_y", m_css_border_spacing_y.to_string());
   ret.emplace_back("line_clamp", std::to_string(m_line_clamp));
   ret.emplace_back("webkit_box_orient", index_value(m_webkit_box_orient, box_orient_strings));
+  ret.emplace_back("opacity", std::to_string(m_opacity));
 
   return ret;
 }

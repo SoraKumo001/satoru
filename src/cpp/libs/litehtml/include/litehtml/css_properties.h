@@ -101,6 +101,7 @@ namespace litehtml
     int m_order;
     int m_line_clamp;
     box_orient m_webkit_box_orient;
+    float m_opacity;
 
   private:
     void compute_font(const html_tag *el, const std::shared_ptr<document> &doc);
@@ -157,7 +158,8 @@ namespace litehtml
                        m_column_gap(0),
                        m_order(0),
                        m_line_clamp(0),
-                       m_webkit_box_orient(box_orient_horizontal)
+                       m_webkit_box_orient(box_orient_horizontal),
+                       m_opacity(1.0f)
     {
     }
 
@@ -307,6 +309,9 @@ namespace litehtml
 
     box_orient get_webkit_box_orient() const;
     void set_webkit_box_orient(box_orient orient);
+
+    float get_opacity() const;
+    void set_opacity(float opacity);
 
     int get_text_decoration_line() const;
     text_decoration_style get_text_decoration_style() const;
@@ -775,6 +780,16 @@ namespace litehtml
   inline void css_properties::set_webkit_box_orient(box_orient orient)
   {
     m_webkit_box_orient = orient;
+  }
+
+  inline float css_properties::get_opacity() const
+  {
+    return m_opacity;
+  }
+
+  inline void css_properties::set_opacity(float opacity)
+  {
+    m_opacity = opacity;
   }
 
   inline int css_properties::get_text_decoration_line() const

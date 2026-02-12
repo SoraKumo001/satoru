@@ -53,6 +53,7 @@ app.get("/", async (c) => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "flex-end",
+                zIndex: -1,
               }}
               width={480}
               height={480}
@@ -99,7 +100,6 @@ app.get("/", async (c) => {
       </html>,
     )}
   `;
-  console.log(html);
 
   // Render to PNG with automatic font resolution
   const png = await satoru.render({

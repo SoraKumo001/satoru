@@ -494,7 +494,9 @@ void litehtml::render_item::render_positioned(render_type rt)
 				// Then solve for 'left'
 				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
 				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
-				width = el->width();
+				position pos = el->m_pos;
+				width = el->render(0, 0, containing_block_size.new_width(containing_block_size.width, containing_block_context::size_mode_content), nullptr, false);
+				el->m_pos = pos;
 				right = css_right.calc_percent(containing_block_size.width);
 				left = containing_block_size.width - width - right;
 			} else if(css_left.is_predefined() && css_right.is_predefined() && !el_width.is_predefined())
@@ -513,7 +515,9 @@ void litehtml::render_item::render_positioned(render_type rt)
 				// Then solve for 'right'
 				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
 				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
-				width = el->width();
+				position pos = el->m_pos;
+				width = el->render(0, 0, containing_block_size.new_width(containing_block_size.width, containing_block_context::size_mode_content), nullptr, false);
+				el->m_pos = pos;
 				left = css_left.calc_percent(containing_block_size.width);
 			} else if(css_left.is_predefined() && !css_right.is_predefined() && !el_width.is_predefined())
 			{
@@ -584,7 +588,9 @@ void litehtml::render_item::render_positioned(render_type rt)
 				// rule number one below.
 				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
 				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
-				width = el->width();
+				position pos = el->m_pos;
+				width = el->render(0, 0, containing_block_size.new_width(containing_block_size.width, containing_block_context::size_mode_content), nullptr, false);
+				el->m_pos = pos;
 				left = el_static_x - el->content_offset_left();
 			} else
 			{

@@ -88,6 +88,7 @@ export interface SatoruOptions {
   locateFile?: (path: string) => string;
   instantiateWasm?: (imports: any, successCallback: any) => any;
   onLog?: (level: LogLevel, message: string) => void;
+  logLevel?: LogLevel;
 }
 
 export interface RenderOptions {
@@ -143,13 +144,12 @@ export class Satoru {
    * Initialize Satoru.
    * @param createSatoruModuleFunc Factory function from satoru.js
    * @param options Initialization options
-   * @param logLevel Default log level (defaults to None)
    */
   static async init(
     createSatoruModuleFunc: any,
     options: SatoruOptions = {},
-    logLevel: LogLevel = LogLevel.None,
   ): Promise<Satoru> {
+    const logLevel = options.logLevel ?? LogLevel.None;
     const defaultOnLog = (level: LogLevel, message: string) => {
       const prefix = "[Satoru WASM]";
       switch (level) {

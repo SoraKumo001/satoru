@@ -29,24 +29,24 @@ export class Satoru extends BaseSatoru {
    */
   static async init(
     wasm: WebAssembly.Module = satoruWasm,
-    options?: SatoruOptions,
+    options: SatoruOptions = {},
   ): Promise<Satoru> {
-    const mod = (await createSatoruModule({
-      ...options,
-      instantiateWasm: (imports: any, successCallback: any) => {
-        // Cloudflare Workers requires using the pre-compiled WebAssembly.Module
-        WebAssembly.instantiate(wasm, imports)
-          .then((instance) => {
-            successCallback(instance, wasm);
-          })
-          .catch((e) => {
-            console.error("Satoru [workerd]: Wasm instantiation failed:", e);
-          });
-        return {}; // Return empty object as emscripten expects
+    return BaseSatoru.init(
+      async (o: any) => createSatoruModule({ ...o, ...options }),
+      {
+        ...options,
+        instantiateWasm: (imports: any, successCallback: any) => {
+          // Cloudflare Workers requires using the pre-compiled WebAssembly.Module
+          WebAssembly.instantiate(wasm, imports)
+            .then((instance) => {
+              successCallback(instance, wasm);
+            })
+            .catch((e) => {
+              console.error("Satoru [workerd]: Wasm instantiation failed:", e);
+            });
+          return {}; // Return empty object as emscripten expects
+        },
       },
-    })) as SatoruModule;
-
-    const instancePtr = mod._create_instance();
-    return new Satoru(mod, instancePtr);
+    ) as Promise<Satoru>;
   }
 }

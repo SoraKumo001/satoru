@@ -9,7 +9,9 @@ import JSZip from "jszip";
  * Extract the stylesheet path from an XML string.
  */
 function getStylesheetPath(xmlContent: string): string | null {
-  const match = xmlContent.match(/<\?xml-stylesheet[^>]+href=["']([^"']+)["'][^>]*\?>/);
+  const match = xmlContent.match(
+    /<\?xml-stylesheet[^>]+href=["']([^"']+)["'][^>]*\?>/,
+  );
   return match ? match[1] : null;
 }
 
@@ -25,7 +27,11 @@ interface FileEntry {
  * Convert XSL/XML files to PDF.
  * Supports single XML file or a ZIP file containing XML/XSL files.
  */
-export async function convertToPdf(inputPath: string, outPdfPath: string, options: { width?: number; logLevel?: LogLevel } = {}) {
+export async function convertToPdf(
+  inputPath: string,
+  outPdfPath: string,
+  options: { width?: number; logLevel?: LogLevel } = {},
+) {
   const { width = 1122, logLevel = LogLevel.None } = options;
 
   if (!fs.existsSync(inputPath)) {
@@ -52,7 +58,7 @@ export async function convertToPdf(inputPath: string, outPdfPath: string, option
     const name = path.basename(inputPath);
     fileMap.set(name, content);
     xmlFiles.push(name);
-    
+
     // Also try to load nearby XSL files if any
     const xmlDir = path.dirname(inputPath);
     const xslHref = getStylesheetPath(content);
@@ -63,7 +69,9 @@ export async function convertToPdf(inputPath: string, outPdfPath: string, option
       }
     }
   } else {
-    throw new Error("Unsupported file type. Please provide a .xml or .zip file.");
+    throw new Error(
+      "Unsupported file type. Please provide a .xml or .zip file.",
+    );
   }
 
   if (xmlFiles.length === 0) {
@@ -85,9 +93,9 @@ export async function convertToPdf(inputPath: string, outPdfPath: string, option
     }
 
     // Resolve XSL path relative to XML if it's in a ZIP (simple filename match)
-    const xslName = xslHref.split('/').pop()!;
+    const xslName = xslHref.split("/").pop()!;
     let xslContent = fileMap.get(xslName);
-    
+
     // Try exact match if not found by filename
     if (!xslContent) {
       xslContent = fileMap.get(xslHref);
@@ -125,6 +133,7 @@ export async function convertToPdf(inputPath: string, outPdfPath: string, option
       } else {
         html = extraStyle + html;
       }
+      console.log(html);
 
       htmlPages.push(html);
     } catch (err: any) {
@@ -143,7 +152,7 @@ export async function convertToPdf(inputPath: string, outPdfPath: string, option
       if (level <= logLevel) {
         console.log(`[Satoru] ${message}`);
       }
-    }
+    },
   });
 
   try {
@@ -162,18 +171,25 @@ export async function convertToPdf(inputPath: string, outPdfPath: string, option
 }
 
 // CLI implementation
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+const isMain =
+  process.argv[1] &&
+  path.resolve(process.argv[1]) ===
+    path.resolve(fileURLToPath(import.meta.url));
 if (isMain) {
   const inputFile = process.argv[2];
-  const outFile = process.argv[3] || (inputFile ? inputFile.replace(/\.(xml|zip)$/i, ".pdf") : "output.pdf");
+  const outFile =
+    process.argv[3] ||
+    (inputFile ? inputFile.replace(/\.(xml|zip)$/i, ".pdf") : "output.pdf");
 
   if (!inputFile) {
     console.log("Usage: node dist/index.js <input.xml|input.zip> [output.pdf]");
     process.exit(1);
   }
 
-  convertToPdf(inputFile, outFile, { logLevel: LogLevel.Info })
-    .then(() => console.log(`Successfully converted ${inputFile} to ${outFile}`))
+  convertToPdf(inputFile, outFile, { logLevel: LogLevel.Debug })
+    .then(() =>
+      console.log(`Successfully converted ${inputFile} to ${outFile}`),
+    )
     .catch((err) => {
       console.error("Conversion failed:", err.message);
       process.exit(1);

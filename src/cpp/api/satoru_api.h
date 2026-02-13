@@ -10,8 +10,6 @@
 #include "core/resource_manager.h"
 #include "core/container_skia.h"
 
-void satoru_log(LogLevel level, const char *message);
-
 struct SatoruInstance {
     SatoruContext context;
     ResourceManager resourceManager;

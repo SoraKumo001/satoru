@@ -10,6 +10,8 @@
 
 enum class LogLevel { None = 0, Error = 1, Warning = 2, Info = 3, Debug = 4 };
 
+void satoru_log(LogLevel level, const char *message);
+
 struct font_info {
     litehtml::font_description desc;
     std::vector<class SkFont *> fonts;

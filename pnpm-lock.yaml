@@ -150,6 +150,9 @@ importers:
       satoru:
         specifier: workspace:*
         version: link:../satoru
+      sharp:
+        specifier: 0.34.5
+        version: 0.34.5
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { Satoru, RequiredResource } from "satoru";
 import { PNG } from "pngjs";
-import { chromium, Browser, Page } from "playwright";
+import sharp from "sharp";
 import { downloadFont, compareImages, ComparisonMetrics } from "../src/utils";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -43,17 +43,12 @@ const FONT_MAP: {
 
 describe("Visual Regression Tests", () => {
   let satoru: Satoru;
-  let browser: Browser;
-  let page: Page;
 
   beforeAll(async () => {
     [DIFF_DIR, TEMP_DIR].forEach(
       (dir) => !fs.existsSync(dir) && fs.mkdirSync(dir, { recursive: true }),
     );
-    const wasmPath = path.resolve(ROOT_DIR, "packages/satoru/dist/satoru.wasm");
     satoru = await Satoru.init();
-    browser = await chromium.launch();
-    page = await browser.newPage();
   });
 
   beforeEach(() => {
@@ -62,7 +57,6 @@ describe("Visual Regression Tests", () => {
   });
 
   afterAll(async () => {
-    if (browser) await browser.close();
     if (process.env.UPDATE_SNAPSHOTS || !fs.existsSync(BASELINE_PATH)) {
       const dataDir = path.dirname(BASELINE_PATH);
       if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
@@ -121,16 +115,10 @@ describe("Visual Regression Tests", () => {
           format: "svg",
           resolveResource,
         })) as string;
-        const widthMatch = svg.match(/width="(\d+)"/);
-        const heightMatch = svg.match(/height="(\d+)"/);
-        const svgWidth = widthMatch ? parseInt(widthMatch[1], 10) : 800;
-        const svgHeight = heightMatch ? parseInt(heightMatch[1], 10) : 1000;
 
-        await page.setViewportSize({ width: svgWidth, height: svgHeight });
-        await page.setContent(
-          `<style>body { margin: 0; padding: 0; overflow: hidden; }</style>${svg}`,
-        );
-        const svgPngBuffer = await page.screenshot({ omitBackground: true });
+        const svgPngBuffer = await sharp(Buffer.from(svg))
+          .png()
+          .toBuffer();
         const svgResult = compareImages(
           refImg,
           PNG.sync.read(svgPngBuffer),

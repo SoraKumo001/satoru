@@ -49,6 +49,12 @@ export interface SatoruModule {
     height: number,
   ) => void;
   _clear_images: (inst: number) => void;
+  htmls_to_pdf: (
+    inst: number,
+    htmls: string[],
+    width: number,
+    height: number,
+  ) => Uint8Array | null;
   _malloc: (size: number) => number;
   _free: (ptr: number) => void;
   UTF8ToString: (ptr: number) => string;
@@ -85,7 +91,7 @@ export interface SatoruOptions {
 }
 
 export interface RenderOptions {
-  html: string;
+  html: string | string[];
   width: number;
   height?: number;
   format?: "svg" | "png" | "pdf";
@@ -357,52 +363,77 @@ export class Satoru {
         };
       }
 
-      let processedHtml = html;
+      const inputHtmls = Array.isArray(html) ? html : [html];
+      const processedHtmls: string[] = [];
+
       const resolvedUrls = new Set<string>();
 
-      for (let i = 0; i < 10; i++) {
-        const resources = this.getPendingResources(processedHtml, width);
-        const pending = resources.filter((r) => !resolvedUrls.has(r.url));
-        if (pending.length === 0) break;
-        await Promise.all(
-          pending.map(async (r) => {
-            try {
-              resolvedUrls.add(r.url);
-              let data: Uint8Array | null = null;
-              if (resolveResource) {
-                data = await resolveResource({ ...r });
+      for (const rawHtml of inputHtmls) {
+        let processedHtml = rawHtml;
+        for (let i = 0; i < 10; i++) {
+          const resources = this.getPendingResources(processedHtml, width);
+          const pending = resources.filter((r) => !resolvedUrls.has(r.url));
+          if (pending.length === 0) break;
+          await Promise.all(
+            pending.map(async (r) => {
+              try {
+                resolvedUrls.add(r.url);
+                let data: Uint8Array | null = null;
+                if (resolveResource) {
+                  data = await resolveResource({ ...r });
+                }
+                if (data instanceof Uint8Array) {
+                  this.addResource(r.url, r.type, data);
+                }
+              } catch (e) {
+                console.warn(`Failed to resolve resource: ${r.url}`, e);
               }
-              if (data instanceof Uint8Array) {
-                this.addResource(r.url, r.type, data);
-              }
-            } catch (e) {
-              console.warn(`Failed to resolve resource: ${r.url}`, e);
-            }
-          }),
+            }),
+          );
+        }
+
+        resolvedUrls.forEach((url) => {
+          const escapedUrl = url.replace(/[.*+?^${}()|[\\\\\\]]/g, "\\\\$&");
+          const linkRegex = new RegExp(
+            `<link[^>]*href\\s*=\\s*([\"'])${escapedUrl}\\1[^>]*>`,
+            "gi",
+          );
+          processedHtml = processedHtml.replace(linkRegex, "");
+        });
+        processedHtmls.push(processedHtml);
+      }
+
+      if (format === "pdf" && Array.isArray(html)) {
+        return (
+          this.toPdfPages(processedHtmls, width, height) || new Uint8Array()
         );
       }
 
-      resolvedUrls.forEach((url) => {
-        const escapedUrl = url.replace(/[.*+?^${}()|[\\\\\\]]/g, "\\\\$&");
-        const linkRegex = new RegExp(
-          `<link[^>]*href\\s*=\\s*([\"'])${escapedUrl}\\1[^>]*>`,
-          "gi",
-        );
-        processedHtml = processedHtml.replace(linkRegex, "");
-      });
+      // Fallback for single page or other formats
+      const finalHtml = processedHtmls[0];
 
       switch (format) {
         case "png":
-          return this.toPng(processedHtml, width, height) || new Uint8Array();
+          return this.toPng(finalHtml, width, height) || new Uint8Array();
         case "pdf":
-          return this.toPdf(processedHtml, width, height) || new Uint8Array();
+          return this.toPdf(finalHtml, width, height) || new Uint8Array();
         default:
-          return this.toSvg(processedHtml, width, height);
+          return this.toSvg(finalHtml, width, height);
       }
     } finally {
       this.mod.logLevel = prevLogLevel;
       this.activeOnLog = prevOnLog;
     }
+  }
+
+  toPdfPages(
+    htmls: string[],
+    width: number,
+    height: number = 0,
+  ): Uint8Array | null {
+    const result = this.mod.htmls_to_pdf(this.instancePtr, htmls, width, height);
+
+    return result ? new Uint8Array(result) : null;
   }
 
   toSvg(html: string, width: number, height: number = 0): string {

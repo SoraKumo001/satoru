@@ -12,17 +12,6 @@
 #include "renderers/png_renderer.h"
 #include "renderers/svg_renderer.h"
 
-struct SatoruInstance {
-    SatoruContext context;
-    ResourceManager resourceManager;
-    container_skia *discovery_container = nullptr;
-
-    SatoruInstance() : resourceManager(context) { context.init(); }
-    ~SatoruInstance() {
-        if (discovery_container) delete discovery_container;
-    }
-};
-
 EM_JS(void, satoru_log_js, (int level, const char *message), {
     if (Module.onLog) {
         Module.onLog(level, UTF8ToString(message));
@@ -68,8 +57,23 @@ const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width
 
 const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width, int height,
                                int &out_size) {
+    std::vector<std::string> htmls;
+    htmls.push_back(std::string(html));
     auto data =
-        renderHtmlToPdf(html, width, height, inst->context, get_full_master_css(inst).c_str());
+        renderHtmlsToPdf(htmls, width, height, inst->context, get_full_master_css(inst).c_str());
+    if (data.empty()) {
+        out_size = 0;
+        return nullptr;
+    }
+    out_size = (int)data.size();
+    inst->context.set_last_pdf(std::move(data));
+    return inst->context.get_last_pdf().data();
+}
+
+const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::string> &htmls, int width, int height,
+                                int &out_size) {
+     auto data =
+        renderHtmlsToPdf(htmls, width, height, inst->context, get_full_master_css(inst).c_str());
     if (data.empty()) {
         out_size = 0;
         return nullptr;

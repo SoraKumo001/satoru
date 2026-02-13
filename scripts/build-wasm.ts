@@ -60,7 +60,8 @@ if (action === "configure") {
     `-DCMAKE_TOOLCHAIN_FILE="${vcpkgCmake}" ` +
     `-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${emscriptenCmake}" ` +
     `-DVCPKG_TARGET_TRIPLET=wasm32-emscripten-wasm-eh ` +
-    `-DVCPKG_OVERLAY_TRIPLETS="${projectRoot}/triplets"`;
+    `-DVCPKG_OVERLAY_TRIPLETS="${projectRoot}/triplets" ` +
+    `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`;
 
   run(cmakeCmd, "build-wasm");
 } else if (action === "build") {

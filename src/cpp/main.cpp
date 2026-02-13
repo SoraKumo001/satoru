@@ -1,8 +1,11 @@
 #include <emscripten.h>
 #include <emscripten/bind.h>
+#include <emscripten/val.h>
 
 #include <cstdlib>
 #include <cstring>
+#include <vector>
+#include <string>
 
 #include "api/satoru_api.h"
 
@@ -86,6 +89,22 @@ EMSCRIPTEN_KEEPALIVE
 void clear_images(SatoruInstance *inst) { api_clear_images(inst); }
 }
 
+// EMSCRIPTEN_BINDINGS helper
+val htmls_to_pdf_val(size_t inst_ptr, val htmls, int width, int height) {
+    SatoruInstance *inst = (SatoruInstance *)inst_ptr;
+    std::vector<std::string> html_vector;
+    auto l = htmls["length"].as<unsigned>();
+    for(unsigned i = 0; i < l; ++i) {
+        html_vector.push_back(htmls[i].as<std::string>());
+    }
+
+    int size = 0;
+    const uint8_t* data = api_htmls_to_pdf(inst, html_vector, width, height, size);
+    if (!data || size == 0) return val::null();
+    
+    return val(typed_memory_view(size, data));
+}
+
 EMSCRIPTEN_BINDINGS(satoru) {
     function("create_instance", &create_instance, allow_raw_pointers());
     function("destroy_instance", &destroy_instance, allow_raw_pointers());
@@ -93,6 +112,7 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("html_to_png", &html_to_png, allow_raw_pointers());
     function("get_png_size", &get_png_size, allow_raw_pointers());
     function("html_to_pdf", &html_to_pdf, allow_raw_pointers());
+    function("htmls_to_pdf", &htmls_to_pdf_val);
     function("get_pdf_size", &get_pdf_size, allow_raw_pointers());
     function("collect_resources", &collect_resources, allow_raw_pointers());
     function("get_required_fonts", &get_required_fonts, allow_raw_pointers());

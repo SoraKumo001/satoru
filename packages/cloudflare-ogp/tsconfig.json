@@ -9,7 +9,8 @@
     "lib": ["ESNext", "WebWorker", "DOM"],
     "types": ["@cloudflare/workers-types", "react/jsx-runtime"],
     "isolatedModules": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "noEmit": true
   },
   "include": ["src"]
 }

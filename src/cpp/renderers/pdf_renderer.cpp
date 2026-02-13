@@ -26,19 +26,9 @@ bool PdfJpegEncoder(SkWStream *dst, const SkPixmap &src, int quality) {
 }
 }  // namespace
 
-std::vector<uint8_t> renderHtmlToPdf(const char *html, int width, int height,
-                                     SatoruContext &context, const char *master_css) {
-    container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context, nullptr,
-                                     false);
-    std::string css = master_css ? master_css : litehtml::master_css;
-    css += "\nbr { display: -litehtml-br !important; }\n";
-
-    auto doc = litehtml::document::createFromString(html, &measure_container, css.c_str());
-    if (!doc) return {};
-    doc->render(width);
-
-    int content_height = (height > 0) ? height : (int)doc->height();
-    if (content_height < 1) content_height = 1;
+std::vector<uint8_t> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width, int height,
+                                      SatoruContext &context, const char *master_css) {
+    if (htmls.empty()) return {};
 
     SkDynamicMemoryWStream stream;
     SkPDF::Metadata metadata;
@@ -50,17 +40,35 @@ std::vector<uint8_t> renderHtmlToPdf(const char *html, int width, int height,
     auto pdf_doc = SkPDF::MakeDocument(&stream, metadata);
     if (!pdf_doc) return {};
 
-    SkCanvas *canvas = pdf_doc->beginPage((SkScalar)width, (SkScalar)content_height);
-    if (!canvas) return {};
+    std::string css = master_css ? master_css : litehtml::master_css;
+    css += "\nbr { display: -litehtml-br !important; }\n";
 
-    container_skia render_container(width, content_height, canvas, context, nullptr, false);
-    auto render_doc = litehtml::document::createFromString(html, &render_container, css.c_str());
-    render_doc->render(width);
+    for (const auto& html : htmls) {
+        // Measure pass
+        container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context, nullptr,
+                                         false);
+        auto measure_doc = litehtml::document::createFromString(html.c_str(), &measure_container, css.c_str());
+        if (!measure_doc) continue;
+        
+        measure_doc->render(width);
 
-    litehtml::position clip(0, 0, width, content_height);
-    render_doc->draw(0, 0, 0, &clip);
+        int content_height = (height > 0) ? height : (int)measure_doc->height();
+        if (content_height < 1) content_height = 1;
 
-    pdf_doc->endPage();
+        SkCanvas *canvas = pdf_doc->beginPage((SkScalar)width, (SkScalar)content_height);
+        if (!canvas) continue;
+
+        // Render pass
+        container_skia render_container(width, content_height, canvas, context, nullptr, false);
+        auto render_doc = litehtml::document::createFromString(html.c_str(), &render_container, css.c_str());
+        render_doc->render(width);
+
+        litehtml::position clip(0, 0, width, content_height);
+        render_doc->draw(0, 0, 0, &clip);
+
+        pdf_doc->endPage();
+    }
+
     pdf_doc->close();
 
     sk_sp<SkData> data = stream.detachAsData();

@@ -2,24 +2,9 @@
   "configurations": [
     {
       "name": "Emscripten",
-      "includePath": [
-        "${workspaceFolder}/**",
-        "${workspaceFolder}/src/cpp",
-        "${workspaceFolder}/src/cpp/libs/litehtml/include",
-        "${workspaceFolder}/src/cpp/libs/litehtml/src",
-        "${workspaceFolder}/external/skia",
-        "${env:EMSDK}/upstream/emscripten/system/include",
-        "${env:EMSDK}/upstream/emscripten/cache/sysroot/include"
-      ],
-      "defines": [
-        "_DEBUG",
-        "UNICODE",
-        "_UNICODE",
-        "__EMSCRIPTEN__",
-        "EMSCRIPTEN_KEEPALIVE=__attribute__((used))"
-      ],
-      "intelliSenseMode": "windows-gcc-x64",
       "compilerPath": "${env:EMSDK}/upstream/emscripten/em++.bat",
+      "compileCommands": "${workspaceFolder}/build-wasm/compile_commands.json",
+      "intelliSenseMode": "windows-clang-x64",
       "cStandard": "c17",
       "cppStandard": "c++17"
     }

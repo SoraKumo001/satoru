@@ -1,23 +1,59 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: white; }
-    ul, ol { margin-bottom: 20px; }
-    li { margin-bottom: 5px; }
-    .disc { list-style-type: disc; }
-    .circle { list-style-type: circle; }
-    .square { list-style-type: square; }
-    .decimal { list-style-type: decimal; }
-    .lower-alpha { list-style-type: lower-alpha; }
-    
+    @font-face {
+      font-family: 'Noto Sans JP';
+      src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFBEj75vY0rw-oME.ttf');
+      font-weight: 400;
+    }
+
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: white;
+    }
+
+    ul,
+    ol {
+      margin-bottom: 20px;
+    }
+
+    li {
+      margin-bottom: 5px;
+    }
+
+    .disc {
+      list-style-type: disc;
+    }
+
+    .circle {
+      list-style-type: circle;
+    }
+
+    .square {
+      list-style-type: square;
+    }
+
+    .decimal {
+      list-style-type: decimal;
+    }
+
+    .lower-alpha {
+      list-style-type: lower-alpha;
+    }
+
     /* 10x10 Red Square */
-    .image-marker { list-style-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFklEQVR42mP8z8AARg0Y2QABAAH//wMAwv4C/Yh5O94AAAAASUVORK5CYII='); }
+    .image-marker {
+      list-style-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFklEQVR42mP8z8AARg0Y2QABAAH//wMAwv4C/Yh5O94AAAAASUVORK5CYII=');
+    }
   </style>
 </head>
+
 <body>
   <h1>List Marker Test</h1>
-  
+
   <h2>Disc (Default)</h2>
   <ul class="disc">
     <li>Item 1</li>
@@ -52,11 +88,12 @@
     <li>Item B</li>
     <li>Item C</li>
   </ol>
-  
+
   <h2>Image Marker</h2>
   <ul class="image-marker">
     <li>Item 1</li>
     <li>Item 2</li>
   </ul>
 </body>
+
 </html>

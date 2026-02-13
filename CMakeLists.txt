@@ -183,6 +183,9 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/src/codec/SkAvifCodec.cpp"
     "${skia_SOURCE_DIR}/src/pdf/*.cpp"
     "${skia_SOURCE_DIR}/src/pathops/*.cpp"
+    "${skia_SOURCE_DIR}/modules/svg/src/*.cpp"
+    "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper.cpp"
+    "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper_primitive.cpp"
 )
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkGPU.*|.*SkDocument_PDF_None.cpp")
@@ -191,8 +194,10 @@ target_sources(skia_lib PRIVATE ${SKIA_CORE_SRC})
 target_include_directories(skia_lib PUBLIC
     "${SKIA_CONFIG_DIR}"
     "${skia_SOURCE_DIR}"
+    "${skia_SOURCE_DIR}/modules/svg/include"
+    "${skia_SOURCE_DIR}/modules/skshaper/include"
 )
-target_compile_definitions(skia_lib PUBLIC SK_USER_CONFIG_HEADER="SkUserConfig.h")
+target_compile_definitions(skia_lib PUBLIC SK_USER_CONFIG_HEADER="SkUserConfig.h" SK_ENABLE_SVG)
 target_compile_options(skia_lib PRIVATE ${COMMON_COMPILE_OPTIONS})
 target_link_libraries(skia_lib PUBLIC ${SATORU_LIBS})
 
@@ -202,6 +207,7 @@ target_sources(satoru_core PRIVATE
     src/cpp/main.cpp
     src/cpp/api/satoru_api.cpp
     src/cpp/core/container_skia.cpp
+    src/cpp/core/el_svg.cpp
     src/cpp/core/satoru_context.cpp
     src/cpp/core/resource_manager.cpp
     src/cpp/core/font_manager.cpp

@@ -42,6 +42,9 @@ class container_skia : public litehtml::document_container {
 
     bool m_tagging;
 
+    std::vector<std::string> m_usedInlineSvgs;
+    std::vector<litehtml::position> m_inlineSvgPositions;
+
     float get_current_opacity() const {
         float opacity = 1.0f;
         for (float o : m_opacity_stack) {
@@ -57,6 +60,17 @@ class container_skia : public litehtml::document_container {
 
     void set_canvas(SkCanvas *canvas) { m_canvas = canvas; }
     void set_height(int h) { m_height = h; }
+
+    SkCanvas* get_canvas() const { return m_canvas; }
+    bool is_tagging() const { return m_tagging; }
+
+    int add_inline_svg(const std::string& xml, const litehtml::position& pos) {
+        m_usedInlineSvgs.push_back(xml);
+        m_inlineSvgPositions.push_back(pos);
+        return (int)m_usedInlineSvgs.size();
+    }
+
+    const std::vector<std::string>& get_used_inline_svgs() const { return m_usedInlineSvgs; }
 
     const std::vector<image_draw_info> &get_used_image_draws() const { return m_usedImageDraws; }
     const std::vector<conic_gradient_info> &get_used_conic_gradients() const {

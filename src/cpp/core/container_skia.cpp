@@ -18,6 +18,7 @@
 #include "include/core/SkTileMode.h"
 #include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkGradient.h"
+#include "el_svg.h"
 #include "litehtml/el_table.h"
 #include "litehtml/el_td.h"
 #include "litehtml/el_tr.h"
@@ -1117,6 +1118,9 @@ litehtml::element::ptr container_skia::create_element(
     }
     if (tag == "td" || tag == "th") {
         return std::make_shared<litehtml::el_td>(doc);
+    }
+    if (tag == "svg") {
+        return std::make_shared<litehtml::el_svg>(doc);
     }
     return nullptr;
 }

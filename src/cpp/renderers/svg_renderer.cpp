@@ -181,6 +181,16 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         replaced = true;
                     }
                 }
+            } else if (r == 1 && g == 4 && b > 0 && b <= (int)container.get_used_inline_svgs().size()) {
+                size_t elementStart = svg.rfind('<', pos);
+                size_t elementEnd = svg.find("/>", valEnd);
+                if (elementStart != std::string::npos && elementEnd != std::string::npos) {
+                    const auto &inlineSvg = container.get_used_inline_svgs()[b - 1];
+                    result.erase(result.size() - (pos - elementStart));
+                    result.append(inlineSvg);
+                    lastPos = elementEnd + 2;
+                    replaced = true;
+                }
             } else if (r == 1 && (g == 1 || g == 2 || g == 3)) {
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);

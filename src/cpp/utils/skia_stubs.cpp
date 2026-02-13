@@ -1,8 +1,10 @@
 #include <stdint.h>
+#include <memory>
 
 #include "include/core/SkTypeface.h"
 #include "include/private/base/SkAPI.h"
 #include "include/private/base/SkSemaphore.h"
+#include "modules/skshaper/include/SkShaper.h"
 
 // SkSemaphore
 SkSemaphore::~SkSemaphore() {}
@@ -47,3 +49,8 @@ void _ZN9SkOTUtils26LocalizedStrings_NameTable18MakeForFamilyNamesERK10SkTypefac
     }
 }
 }
+
+// SkShaper Primitive Factory Stub
+namespace SkShapers::Primitive {
+std::unique_ptr<SkShaper> Factory() { return PrimitiveText(); }
+}  // namespace SkShapers::Primitive

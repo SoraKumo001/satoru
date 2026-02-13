@@ -18,6 +18,10 @@
 #include "include/core/SkData.h"
 #include "include/core/SkImage.h"
 #include "include/core/SkStream.h"
+#include "include/core/SkPath.h"
+#include "include/core/SkPathBuilder.h"
+#include "include/core/SkRRect.h"
+#include "include/utils/SkParsePath.h"
 #include "include/effects/SkGradient.h"
 #include "include/encode/SkPngEncoder.h"
 #include "include/svg/SkSVGCanvas.h"
@@ -39,26 +43,23 @@ static bool has_radius(const litehtml::border_radiuses &r) {
 
 static std::string path_from_rrect(const litehtml::position &pos,
                                    const litehtml::border_radiuses &r) {
-    std::stringstream ss;
-    float x = (float)pos.x, y = (float)pos.y, w = (float)pos.width, h = (float)pos.height;
-    ss << "M" << x + r.top_left_x << "," << y << " L" << x + w - r.top_right_x << "," << y;
-    if (r.top_right_x > 0 || r.top_right_y > 0)
-        ss << " A " << r.top_right_x << " " << r.top_right_y << " 0 0 1 " << x + w << " "
-           << y + r.top_right_y;
-    ss << " L" << x + w << "," << y + h - r.bottom_right_y;
-    if (r.bottom_right_x > 0 || r.bottom_right_y > 0)
-        ss << " A " << r.bottom_right_x << " " << r.bottom_right_y << " 0 0 1 "
-           << x + w - r.bottom_right_x << " " << y + h;
-    ss << " L" << x + r.bottom_left_x << "," << y + h;
-    if (r.bottom_left_x > 0 || r.bottom_left_y > 0)
-        ss << " A " << r.bottom_left_x << " " << r.bottom_left_y << " 0 0 1 " << x << " "
-           << y + h - r.bottom_left_y;
-    ss << " L" << x << "," << y + r.top_left_y;
-    if (r.top_left_x > 0 || r.top_left_y > 0)
-        ss << " A " << r.top_left_x << " " << r.top_left_y << " 0 0 1 " << x + r.top_left_x << " "
-           << y;
-    ss << " Z";
-    return ss.str();
+    SkRect rect = SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height);
+    SkVector radii[4] = {
+        {(float)r.top_left_x, (float)r.top_left_y},
+        {(float)r.top_right_x, (float)r.top_right_y},
+        {(float)r.bottom_right_x, (float)r.bottom_right_y},
+        {(float)r.bottom_left_x, (float)r.bottom_left_y}};
+
+    SkRRect rrect;
+    rrect.setRectRadii(rect, radii);
+
+    SkPathBuilder pathBuilder;
+    pathBuilder.addRRect(rrect);
+    SkPath path = pathBuilder.detach();
+
+    SkString svgPath = SkParsePath::ToSVGString(path);
+
+    return std::string(svgPath.c_str());
 }
 
 void processTags(std::string &svg, SatoruContext &context, const container_skia &container) {

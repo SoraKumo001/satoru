@@ -18,7 +18,6 @@
     "playwright": "1.58.2",
     "pngjs": "7.0.0",
     "satoru": "workspace:*",
-    "sharp": "0.34.5",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }

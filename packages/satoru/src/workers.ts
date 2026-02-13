@@ -45,10 +45,7 @@ export const createSatoruWorker = (params: {
     return w;
   };
 
-  const workerInstance = createWorker<SatoruWorker>(
-    factory as any,
-    maxParallel,
-  );
+  const workerInstance = createWorker<SatoruWorker>(factory, maxParallel);
 
   const proxy = new Proxy(workerInstance, {
     get(target, prop, receiver) {

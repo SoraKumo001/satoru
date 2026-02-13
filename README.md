@@ -31,7 +31,7 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 - **Triple Output Modes**:
   - **SVG**: Generates lean, vector-based Pure SVG strings with post-processed effects (Filters, Gradients).
   - **PNG**: Generates high-quality raster images via Skia, transferred as binary data for maximum performance.
-  - **PDF**: Generates high-fidelity vector documents via Skia's PDF backend, including native support for text, gradients, and images.
+  - **PDF**: Generates high-fidelity vector documents via Skia's PDF backend, including native support for text, gradients, images, and **multi-page output**.
 - **High-Level TS Wrapper**: Includes a `Satoru` class that abstracts Wasm memory management and provides a clean async API.
 - **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime with automatic weight/style inference.
 - **Japanese Support**: Full support for Japanese rendering with multi-font fallback logic.
@@ -252,6 +252,22 @@ const html = toHtml(
 const png = await satoru.render({ html, width: 600, format: "png" });
 ```
 
+### 📄 Multi-page PDF Generation
+
+You can generate a multi-page PDF by passing an array of HTML strings to the `html` property. Each string in the array will be rendered as a new page.
+
+```typescript
+const pdf = await satoru.render({
+  html: [
+    "<h1>Page 1</h1><p>First page content.</p>",
+    "<h1>Page 2</h1><p>Second page content.</p>",
+    "<h1>Page 3</h1><p>Third page content.</p>",
+  ],
+  width: 600,
+  format: "pdf",
+});
+```
+
 ### 🎨 Manual Resource Management
 
 For scenarios where you want to manage resources manually:
@@ -326,7 +342,7 @@ pnpm build
 
 - [x] High-level TypeScript Wrapper API with automatic resource resolution.
 - [x] Binary PNG export support via shared memory.
-- [x] **High-fidelity PDF export support via Skia's PDF backend.**
+- [x] **High-fidelity PDF export support via Skia's PDF backend (Single & Multi-page).**
 - [x] Linear, Elliptical Radial & Conic Gradient support.
 - [x] Border Radius & **Advanced Box Shadow (Outer/Inset)**.
 - [x] Japanese Language Rendering & Standard HTML Tag Support.

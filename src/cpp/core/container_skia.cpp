@@ -942,6 +942,74 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
 litehtml::pixel_t container_skia::pt_to_px(float pt) const { return pt * 96.0f / 72.0f; }
 litehtml::pixel_t container_skia::get_default_font_size() const { return 16.0f; }
 const char *container_skia::get_default_font_name() const { return "sans-serif"; }
+
+void container_skia::draw_list_marker(litehtml::uint_ptr hdc, const litehtml::list_marker &marker) {
+    if (!m_canvas) return;
+
+    if (!marker.image.empty()) {
+        std::string url = marker.image;
+        auto it = m_context.imageCache.find(url);
+        if (it != m_context.imageCache.end() && it->second.skImage) {
+            SkRect dst = SkRect::MakeXYWH((float)marker.pos.x, (float)marker.pos.y,
+                                          (float)marker.pos.width, (float)marker.pos.height);
+            SkPaint p;
+            p.setAntiAlias(true);
+            if (m_tagging) {
+                image_draw_info draw;
+                draw.url = url;
+                litehtml::background_layer layer;
+                layer.border_box = marker.pos;
+                layer.clip_box = marker.pos;
+                layer.origin_box = marker.pos;
+                draw.layer = layer;
+                draw.opacity = get_current_opacity();
+                m_usedImageDraws.push_back(draw);
+                int index = (int)m_usedImageDraws.size();
+                p.setColor(SkColorSetARGB(255, 1, 0, (index & 0xFF)));
+                m_canvas->drawRect(dst, p);
+            } else {
+                m_canvas->drawImageRect(it->second.skImage, dst,
+                                        SkSamplingOptions(SkFilterMode::kLinear), &p);
+            }
+        }
+        return;
+    }
+
+    SkPaint paint;
+    paint.setAntiAlias(true);
+    litehtml::web_color color = marker.color;
+    paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
+    if (m_tagging) {
+        paint.setAlphaf(paint.getAlphaf() * get_current_opacity());
+    }
+
+    SkRect rect = SkRect::MakeXYWH((float)marker.pos.x, (float)marker.pos.y,
+                                   (float)marker.pos.width, (float)marker.pos.height);
+
+    switch (marker.marker_type) {
+        case litehtml::list_style_type_circle: {
+            paint.setStyle(SkPaint::kStroke_Style);
+            float strokeWidth = std::max(1.0f, (float)marker.pos.width * 0.1f);
+            paint.setStrokeWidth(strokeWidth);
+            rect.inset(strokeWidth / 2.0f, strokeWidth / 2.0f);
+            m_canvas->drawOval(rect, paint);
+            break;
+        }
+        case litehtml::list_style_type_disc: {
+            paint.setStyle(SkPaint::kFill_Style);
+            m_canvas->drawOval(rect, paint);
+            break;
+        }
+        case litehtml::list_style_type_square: {
+            paint.setStyle(SkPaint::kFill_Style);
+            m_canvas->drawRect(rect, paint);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
 void container_skia::load_image(const char *src, const char *baseurl, bool redraw_on_ready) {
     if (m_resourceManager && src && *src) m_resourceManager->request(src, src, ResourceType::Image);
 }

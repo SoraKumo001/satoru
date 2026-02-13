@@ -91,7 +91,7 @@ class container_skia : public litehtml::document_container {
     virtual litehtml::pixel_t get_default_font_size() const override;
     virtual const char *get_default_font_name() const override;
     virtual void draw_list_marker(litehtml::uint_ptr hdc,
-                                  const litehtml::list_marker &marker) override {}
+                                  const litehtml::list_marker &marker) override;
     virtual void load_image(const char *src, const char *baseurl, bool redraw_on_ready) override;
     virtual void get_image_size(const char *src, const char *baseurl, litehtml::size &sz) override;
     virtual void draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer &layer,

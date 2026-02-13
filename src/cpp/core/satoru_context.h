@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "font_manager.h"
-#include "include/core/SkFontStyle.h"
 #include "include/core/SkData.h"
+#include "include/core/SkFontStyle.h"
 #include "utils/skia_utils.h"
 
 class SatoruContext {

@@ -31,15 +31,12 @@ static SkColor darken(litehtml::web_color c, float fraction) {
                           (uint8_t)std::max(0.0f, (float)c.blue - ((float)c.blue * fraction)));
 }
 
-
 static SkColor lighten(litehtml::web_color c, float fraction) {
     return SkColorSetARGB(
         c.alpha, (uint8_t)std::min(255.0f, (float)c.red + ((255.0f - (float)c.red) * fraction)),
         (uint8_t)std::min(255.0f, (float)c.green + ((255.0f - (float)c.green) * fraction)),
         (uint8_t)std::min(255.0f, (float)c.blue + ((255.0f - (float)c.blue) * fraction)));
 }
-
-
 
 std::string trim(const std::string &s) {
     auto start = s.find_first_not_of(" \t\r\n'\"");

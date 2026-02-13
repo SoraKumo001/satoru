@@ -26,8 +26,8 @@ bool PdfJpegEncoder(SkWStream *dst, const SkPixmap &src, int quality) {
 }
 }  // namespace
 
-sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width, int height,
-                                      SatoruContext &context, const char *master_css) {
+sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string> &htmls, int width, int height,
+                               SatoruContext &context, const char *master_css) {
     if (htmls.empty()) return nullptr;
 
     SkDynamicMemoryWStream stream;
@@ -43,13 +43,14 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width,
     std::string css = master_css ? master_css : litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";
 
-    for (const auto& html : htmls) {
+    for (const auto &html : htmls) {
         // Measure pass
-        container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context, nullptr,
-                                         false);
-        auto measure_doc = litehtml::document::createFromString(html.c_str(), &measure_container, css.c_str());
+        container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context,
+                                         nullptr, false);
+        auto measure_doc =
+            litehtml::document::createFromString(html.c_str(), &measure_container, css.c_str());
         if (!measure_doc) continue;
-        
+
         measure_doc->render(width);
 
         int content_height = (height > 0) ? height : (int)measure_doc->height();
@@ -60,7 +61,8 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width,
 
         // Render pass
         container_skia render_container(width, content_height, canvas, context, nullptr, false);
-        auto render_doc = litehtml::document::createFromString(html.c_str(), &render_container, css.c_str());
+        auto render_doc =
+            litehtml::document::createFromString(html.c_str(), &render_container, css.c_str());
         render_doc->render(width);
 
         litehtml::position clip(0, 0, width, content_height);

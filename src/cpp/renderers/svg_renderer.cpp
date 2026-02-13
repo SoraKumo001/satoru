@@ -17,14 +17,14 @@
 #include "include/core/SkCanvas.h"
 #include "include/core/SkData.h"
 #include "include/core/SkImage.h"
-#include "include/core/SkStream.h"
 #include "include/core/SkPath.h"
 #include "include/core/SkPathBuilder.h"
 #include "include/core/SkRRect.h"
-#include "include/utils/SkParsePath.h"
+#include "include/core/SkStream.h"
 #include "include/effects/SkGradient.h"
 #include "include/encode/SkPngEncoder.h"
 #include "include/svg/SkSVGCanvas.h"
+#include "include/utils/SkParsePath.h"
 #include "utils/skia_utils.h"
 
 namespace {

@@ -4,8 +4,8 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "api/satoru_api.h"
 
@@ -94,14 +94,14 @@ val htmls_to_pdf_val(size_t inst_ptr, val htmls, int width, int height) {
     SatoruInstance *inst = (SatoruInstance *)inst_ptr;
     std::vector<std::string> html_vector;
     auto l = htmls["length"].as<unsigned>();
-    for(unsigned i = 0; i < l; ++i) {
+    for (unsigned i = 0; i < l; ++i) {
         html_vector.push_back(htmls[i].as<std::string>());
     }
 
     int size = 0;
-    const uint8_t* data = api_htmls_to_pdf(inst, html_vector, width, height, size);
+    const uint8_t *data = api_htmls_to_pdf(inst, html_vector, width, height, size);
     if (!data || size == 0) return val::null();
-    
+
     return val(typed_memory_view(size, data));
 }
 

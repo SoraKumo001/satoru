@@ -6,9 +6,9 @@
 #include <vector>
 
 #include "../bridge/bridge_types.h"
-#include "core/satoru_context.h"
-#include "core/resource_manager.h"
 #include "core/container_skia.h"
+#include "core/resource_manager.h"
+#include "core/satoru_context.h"
 
 struct SatoruInstance {
     SatoruContext context;
@@ -29,8 +29,8 @@ const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width
                                int &out_size);
 const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width, int height,
                                int &out_size);
-const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::string> &htmls, int width, int height,
-                                int &out_size);
+const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::string> &htmls,
+                                int width, int height, int &out_size);
 int api_get_last_png_size(SatoruInstance *inst);
 int api_get_last_pdf_size(SatoruInstance *inst);
 void api_collect_resources(SatoruInstance *inst, const char *html, int width);

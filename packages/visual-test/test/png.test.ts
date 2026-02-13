@@ -46,20 +46,21 @@ describe("PNG (Skia) Visual Tests", () => {
       const current = fs.existsSync(BASELINE_PATH)
         ? JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"))
         : {};
-      fs.writeFileSync(
-        BASELINE_PATH,
-        JSON.stringify({ ...current, ...baselines }, null, 2),
-      );
+
+      for (const file in baselines) {
+        if (!current[file]) current[file] = {};
+        Object.assign(current[file], baselines[file]);
+      }
+
+      fs.writeFileSync(BASELINE_PATH, JSON.stringify(current, null, 2));
     }
   });
 
   const files = fs.readdirSync(ASSETS_DIR).filter((f) => f.endsWith(".html"));
 
   files.forEach((file) => {
-    it(`Direct PNG: ${file}`, async () => {
+    it(`PNG: ${file}`, async () => {
       const refPath = path.join(REFERENCE_DIR, file.replace(".html", ".png"));
-      if (!fs.existsSync(refPath)) return;
-      const refImg = PNG.sync.read(fs.readFileSync(refPath));
       const html = fs.readFileSync(path.join(ASSETS_DIR, file), "utf8");
 
       const resolveResource = async (r: RequiredResource) => {
@@ -84,20 +85,35 @@ describe("PNG (Skia) Visual Tests", () => {
         resolveResource,
       })) as Uint8Array;
 
+      const currentImg = PNG.sync.read(Buffer.from(pngData));
+      let refImg: PNG;
+
+      if (fs.existsSync(refPath)) {
+        refImg = PNG.sync.read(fs.readFileSync(refPath));
+      } else {
+        refImg = currentImg;
+        console.log(`Generated new reference for ${file}`);
+        fs.writeFileSync(refPath, Buffer.from(pngData));
+      }
+
       const result = compareImages(
         refImg,
-        PNG.sync.read(Buffer.from(pngData)),
+        currentImg,
         path.join(DIFF_DIR, `direct-${file.replace(".html", "")}`),
       );
+
+      if (process.env.UPDATE_SNAPSHOTS && fs.existsSync(refPath)) {
+        fs.writeFileSync(refPath, Buffer.from(pngData));
+      }
 
       console.log(
         `${file} (Direct): Fill: ${result.fill.toFixed(2)}%, Outline: ${result.outline.toFixed(2)}%`,
       );
 
-      const baseline = baselines[file]?.direct;
+      const baseline = baselines[file]?.png;
       if (!baseline || process.env.UPDATE_SNAPSHOTS) {
         if (!baselines[file]) baselines[file] = {};
-        baselines[file].direct = result;
+        baselines[file].png = result;
       } else {
         const factor = process.env.GITHUB_ACTIONS ? 2.0 : 1.0;
         expect(result.outline, `Outline diff increased`).toBeLessThanOrEqual(

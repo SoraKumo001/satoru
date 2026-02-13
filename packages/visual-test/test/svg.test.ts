@@ -52,10 +52,13 @@ describe("SVG (Browser) Visual Tests", () => {
       const current = fs.existsSync(BASELINE_PATH)
         ? JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"))
         : {};
-      fs.writeFileSync(
-        BASELINE_PATH,
-        JSON.stringify({ ...current, ...baselines }, null, 2),
-      );
+
+      for (const file in baselines) {
+        if (!current[file]) current[file] = {};
+        Object.assign(current[file], baselines[file]);
+      }
+
+      fs.writeFileSync(BASELINE_PATH, JSON.stringify(current, null, 2));
     }
   });
 
@@ -64,8 +67,6 @@ describe("SVG (Browser) Visual Tests", () => {
   files.forEach((file) => {
     it(`SVG: ${file}`, async () => {
       const refPath = path.join(REFERENCE_DIR, file.replace(".html", ".png"));
-      if (!fs.existsSync(refPath)) return;
-      const refImg = PNG.sync.read(fs.readFileSync(refPath));
       const html = fs.readFileSync(path.join(ASSETS_DIR, file), "utf8");
 
       const resolveResource = async (r: RequiredResource) => {
@@ -101,11 +102,26 @@ describe("SVG (Browser) Visual Tests", () => {
       );
       const svgPngBuffer = await page.screenshot({ omitBackground: true });
 
+      const currentImg = PNG.sync.read(svgPngBuffer);
+      let refImg: PNG;
+
+      if (fs.existsSync(refPath)) {
+        refImg = PNG.sync.read(fs.readFileSync(refPath));
+      } else {
+        refImg = currentImg;
+        console.log(`Generated new reference for ${file} (from SVG)`);
+        fs.writeFileSync(refPath, svgPngBuffer);
+      }
+
       const result = compareImages(
         refImg,
-        PNG.sync.read(svgPngBuffer),
+        currentImg,
         path.join(DIFF_DIR, `svg-${file.replace(".html", "")}`),
       );
+
+      if (process.env.UPDATE_SNAPSHOTS && fs.existsSync(refPath)) {
+        fs.writeFileSync(refPath, svgPngBuffer);
+      }
 
       console.log(
         `${file} (SVG): Fill: ${result.fill.toFixed(2)}%, Outline: ${result.outline.toFixed(2)}%`,

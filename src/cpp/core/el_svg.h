@@ -16,7 +16,7 @@ class el_svg : public html_tag {
     void get_content_size(size& sz, pixel_t max_width) override;
 
    private:
-    std::string reconstruct_xml() const;
+    std::string reconstruct_xml(int x, int y) const;
     void write_element(std::ostream& os, const element::ptr& el) const;
 };
 }  // namespace litehtml

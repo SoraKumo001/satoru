@@ -76,11 +76,11 @@ void el_svg::write_element(std::ostream& os, const element::ptr& el) const {
     }
 }
 
-std::string el_svg::reconstruct_xml() const {
+std::string el_svg::reconstruct_xml(int x, int y) const {
     std::stringstream ss;
-    ss << "<svg xmlns=\"http://www.w3.org/2000/svg\"";
+    ss << "<svg x=\"" << x << "\" y=\"" << y << "\" xmlns=\"http://www.w3.org/2000/svg\"";
     for (auto const& attr : m_attrs) {
-        if (attr.first == "xmlns") continue;
+        if (attr.first == "xmlns" || attr.first == "x" || attr.first == "y") continue;
         ss << " " << attr.first << "=\"" << attr.second << "\"";
     }
     ss << ">";
@@ -103,7 +103,7 @@ void el_svg::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position* clip,
     pos.x += x;
     pos.y += y;
 
-    std::string xml = reconstruct_xml();
+    std::string xml = reconstruct_xml(pos.x, pos.y);
 
     if (container->is_tagging()) {
         int index = container->add_inline_svg(xml, pos);

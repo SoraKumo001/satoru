@@ -1,152 +1,152 @@
 {
   "01-layout.html": {
-    "direct": {
-      "fill": 1.510125,
-      "outline": 4.608625
+    "png": {
+      "fill": 0,
+      "outline": 0.007435691318327975
     },
     "svg": {
-      "fill": 11.565625,
-      "outline": 7.052625
+      "fill": 0,
+      "outline": 0.007435691318327975
     }
   },
   "02-typography.html": {
-    "direct": {
-      "fill": 8.548317307692308,
-      "outline": 13.595793269230768
+    "png": {
+      "fill": 0,
+      "outline": 0
     },
     "svg": {
-      "fill": 4.4532630029440625,
-      "outline": 10.163518155053975
+      "fill": 0,
+      "outline": 0
     }
   },
   "03-graphics.html": {
-    "direct": {
-      "fill": 5.6998750000000005,
-      "outline": 3.5765
+    "png": {
+      "fill": 1.5718690702087288,
+      "outline": 0.724146110056926
     },
     "svg": {
-      "fill": 1.6310000000000002,
-      "outline": 2.47525
+      "fill": 1.5718690702087288,
+      "outline": 0.724146110056926
     }
   },
   "04-box-effects.html": {
-    "direct": {
-      "fill": 1.341875,
-      "outline": 1.309375
+    "png": {
+      "fill": 0,
+      "outline": 0.08640552995391705
     },
     "svg": {
-      "fill": 1.27425,
-      "outline": 1.445625
+      "fill": 0,
+      "outline": 0.08640552995391705
     }
   },
   "05-images.html": {
-    "direct": {
-      "fill": 0.9711249999999999,
-      "outline": 3.1725000000000003
+    "png": {
+      "fill": 0,
+      "outline": 0.032490974729241874
     },
     "svg": {
-      "fill": 0.6134999999999999,
-      "outline": 2.91375
+      "fill": 0,
+      "outline": 0.032490974729241874
     }
   },
   "06-box-layout.html": {
-    "direct": {
-      "fill": 0.304,
-      "outline": 0.32299999999999995
+    "png": {
+      "fill": 0,
+      "outline": 0
     },
     "svg": {
-      "fill": 1.99475,
-      "outline": 0.8888750000000001
+      "fill": 0,
+      "outline": 0
     }
   },
   "07-heading-test.html": {
-    "direct": {
-      "fill": 0.763875,
-      "outline": 0.8005
+    "png": {
+      "fill": 0,
+      "outline": 0
     },
     "svg": {
-      "fill": 0.8597499999999999,
-      "outline": 1.820625
+      "fill": 0,
+      "outline": 0
     }
   },
   "08-font-weight-test.html": {
-    "direct": {
-      "fill": 2.0862499999999997,
-      "outline": 2.656625
+    "png": {
+      "fill": 0,
+      "outline": 0
     },
     "svg": {
-      "fill": 1.27875,
-      "outline": 3.87275
+      "fill": 0,
+      "outline": 0
     }
   },
   "09-flexbox-test.html": {
-    "direct": {
-      "fill": 6.3240046535677354,
-      "outline": 9.562952430196484
+    "png": {
+      "fill": 0,
+      "outline": 0
     },
     "svg": {
-      "fill": 9.970889522821578,
-      "outline": 8.721278526970956
-    }
-  },
-  "b.html": {
-    "direct": {
-      "fill": 14.803749999999999,
-      "outline": 0.592
-    },
-    "svg": {
-      "fill": 14.803749999999999,
-      "outline": 0.592
+      "fill": 0,
+      "outline": 0
     }
   },
   "10-border-test.html": {
-    "direct": {
-      "fill": 1.31,
-      "outline": 1.034875
+    "png": {
+      "fill": 0.0014534883720930232,
+      "outline": 0.011991279069767442
     },
     "svg": {
-      "fill": 2.7203749999999998,
-      "outline": 3.5968750000000003
+      "fill": 0.0014534883720930232,
+      "outline": 0.011991279069767442
     }
   },
   "11-google-fonts-test.html": {
-    "direct": {
-      "fill": 3.5222499999999997,
-      "outline": 9.185749999999999
+    "png": {
+      "fill": 0,
+      "outline": 0
     },
     "svg": {
-      "fill": 1.8239999999999998,
-      "outline": 4.56275
+      "fill": 0,
+      "outline": 0
     }
   },
   "12-position-test.html": {
-    "direct": {
-      "fill": 0.690375,
-      "outline": 0.61875
+    "png": {
+      "fill": 18.337408312958438,
+      "outline": 0.0024449877750611247
     },
     "svg": {
-      "fill": 15.428,
-      "outline": 1.9755000000000003
+      "fill": 18.337408312958438,
+      "outline": 0.0024449877750611247
     }
   },
   "13-table-test.html": {
-    "direct": {
-      "fill": 4.9118454391891895,
-      "outline": 13.946684966216216
+    "png": {
+      "fill": 0,
+      "outline": 0
     },
     "svg": {
-      "fill": 3.257179054054054,
-      "outline": 12.922191722972972
+      "fill": 0,
+      "outline": 0
     }
   },
   "14-list-marker-test.html": {
-    "direct": {
-      "fill": 1.576388888888889,
-      "outline": 3.817409003831418
+    "png": {
+      "fill": 0,
+      "outline": 0
     },
     "svg": {
-      "fill": 0.9163074712643678,
-      "outline": 2.565493295019157
+      "fill": 0,
+      "outline": 0
+    }
+  },
+  "15-svg-test.html": {
+    "png": {
+      "fill": 0,
+      "outline": 0.1231060606060606
+    },
+    "svg": {
+      "fill": 0,
+      "outline": 0.1231060606060606
     }
   }
 }

@@ -14,7 +14,7 @@ https://sorakumo001.github.io/satoru/
 | **Renderer**       | Custom SVG Generator               | **Skia Graphics Engine**                       |
 | **Output Formats** | SVG                                | **SVG, PNG, PDF**                              |
 | **CSS Support**    | Limited subset (Flexbox)           | **Extensive (Floats, Box-shadow, etc.)**       |
-| **Images**         | External URLs, Base64, ArrayBuffer | **Embedded/Local/Url (PNG, JPEG, WebP, AVIF)** |
+| **Images**         | External URLs, Base64, ArrayBuffer | **Embedded/Local/Url (PNG, JPEG, WebP, AVIF, GIF)** |
 | **Font Formats**   | TTF, OTF, WOFF                     | **TTF, OTF, WOFF2, TTC**                       |
 | **Typography**     | SVG Paths / Fonts                  | **Full Skia Typeface support**                 |
 | **Performance**    | High (Lightweight)                 | **High (Wasm-accelerated Skia)**               |
@@ -35,7 +35,7 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 - **High-Level TS Wrapper**: Includes a `Satoru` class that abstracts Wasm memory management and provides a clean async API.
 - **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime with automatic weight/style inference.
 - **Japanese Support**: Full support for Japanese rendering with multi-font fallback logic.
-- **Image Format Support**: Native support for **PNG**, **JPEG**, **WebP**, **AVIF**, **BMP**, and **ICO** image formats.
+- **Image Format Support**: Native support for **PNG**, **JPEG**, **WebP**, **AVIF**, **GIF**, **BMP**, and **ICO** image formats.
 - **Advanced CSS Support**:
   - **Box Model**: Margin, padding, border, and accurate **Border Radius**.
   - **Box Shadow**: High-quality **Outer** and **Inset** shadows using advanced SVG filters (SVG) or Skia blurs (PNG/PDF).

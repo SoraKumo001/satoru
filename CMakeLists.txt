@@ -54,6 +54,15 @@ set(CMAKE_SKIP_INSTALL_RULES ON)
 FetchContent_MakeAvailable(libavif)
 set(CMAKE_SKIP_INSTALL_RULES OFF)
 
+# --- wuffs ---
+set(WUFFS_RELEASE_DIR "${CMAKE_BINARY_DIR}/wuffs")
+if(NOT EXISTS "${WUFFS_RELEASE_DIR}/wuffs-v0.3.c")
+    file(MAKE_DIRECTORY "${WUFFS_RELEASE_DIR}")
+    message(STATUS "Downloading wuffs-v0.3.c...")
+    file(DOWNLOAD https://raw.githubusercontent.com/google/wuffs/main/release/c/wuffs-v0.3.c
+         "${WUFFS_RELEASE_DIR}/wuffs-v0.3.c")
+endif()
+
 # --- Dependencies ---
 find_package(Freetype REQUIRED)
 find_package(PNG REQUIRED)
@@ -171,6 +180,8 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/src/codec/SkColorTable.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkPixmapUtils.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkHdrMetadata.cpp"
+    "${skia_SOURCE_DIR}/src/codec/SkWuffsCodec.cpp"
+    "src/cpp/libs/skia/wuffs_implementation.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkJpegCodec.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkJpegDecoderMgr.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkJpegMetadataDecoderImpl.cpp"
@@ -194,6 +205,7 @@ target_sources(skia_lib PRIVATE ${SKIA_CORE_SRC})
 target_include_directories(skia_lib PUBLIC
     "${SKIA_CONFIG_DIR}"
     "${skia_SOURCE_DIR}"
+    "${WUFFS_RELEASE_DIR}"
     "${skia_SOURCE_DIR}/modules/svg/include"
     "${skia_SOURCE_DIR}/modules/skshaper/include"
 )

@@ -7,6 +7,7 @@
 #include "include/codec/SkAvifDecoder.h"
 #include "include/codec/SkBmpDecoder.h"
 #include "include/codec/SkCodec.h"
+#include "include/codec/SkGifDecoder.h"
 #include "include/codec/SkIcoDecoder.h"
 #include "include/codec/SkJpegDecoder.h"
 #include "include/codec/SkPngDecoder.h"
@@ -23,6 +24,7 @@ void SatoruContext::init() {
     SkCodecs::Register(SkAvifDecoder::Decoder());
     SkCodecs::Register(SkBmpDecoder::Decoder());
     SkCodecs::Register(SkIcoDecoder::Decoder());
+    SkCodecs::Register(SkGifDecoder::Decoder());
 }
 
 void SatoruContext::loadImage(const char *name, const char *data_url, int width, int height) {
@@ -42,6 +44,7 @@ void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, siz
                                                      SkAvifDecoder::Decoder(),
                                                      SkBmpDecoder::Decoder(),
                                                      SkIcoDecoder::Decoder(),
+                                                     SkGifDecoder::Decoder(),
                                                  }));
     if (codec) {
         auto image = SkCodecs::DeferredImage(std::move(codec));

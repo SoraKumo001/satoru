@@ -62,30 +62,30 @@ async function main() {
   await Promise.all(
     files.map(async (file) => {
       const startFileTime = Date.now();
-      const fileName = path.basename(file);
-      const filePath = path.join(ASSETS_DIR, fileName);
-      if (!fs.existsSync(filePath)) {
-        console.warn(`File not found: ${filePath}`);
-        return;
-      }
+      const filePath = path.join(ASSETS_DIR, file);
+      if (!fs.existsSync(filePath)) return;
 
       const html = fs.readFileSync(filePath, "utf-8");
+      const formats: ("svg" | "png" | "pdf")[] = ["svg", "png", "pdf"];
 
-      const results = await satoru.renderAll({
-        html,
-        width: 800,
-        baseUrl: ASSETS_DIR,
-        clear: true,
-        css: "body { margin: 8px; }",
-        logLevel: verbose ? LogLevel.Debug : LogLevel.None,
-      }, verbose ? onLog : undefined);
+      for (const format of formats) {
+        const result = await satoru.render({
+          html,
+          width: 800,
+          format,
+          baseUrl: ASSETS_DIR,
+          clear: true,
+          css: "body { margin: 8px; }",
+          onLog: verbose ? onLog : undefined,
+          logLevel: verbose ? LogLevel.Debug : LogLevel.None,
+        });
 
-      if (results) {
-        fs.writeFileSync(path.join(TEMP_DIR, fileName.replace(".html", ".svg")), results.svg);
-        fs.writeFileSync(path.join(TEMP_DIR, fileName.replace(".html", ".png")), results.png);
-        fs.writeFileSync(path.join(TEMP_DIR, fileName.replace(".html", ".pdf")), results.pdf);
+        if (result) {
+          const ext = `.${format}`;
+          const outputPath = path.join(TEMP_DIR, file.replace(".html", ext));
+          fs.writeFileSync(outputPath, result);
+        }
       }
-
       console.log(`Finished: ${file} in ${Date.now() - startFileTime}ms`);
     }),
   );

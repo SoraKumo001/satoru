@@ -10,6 +10,7 @@ You are operating in a **Windows PowerShell** environment.
 
 - **Constraint:** PowerShell does not support `&&` or `||` for command chaining.
 - **Instruction:** Use the semicolon `;` separator for sequential execution.
+- **Restriction:** Do not write multiple shell commands simultaneously.
 - ✅ **Correct:** `mkdir test_dir ; cd test_dir`
 
 ### 2. Communication Protocol
@@ -111,6 +112,11 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
   - **Fallback:** Iterates through `font-family` list; generic keywords (`sans-serif`) trigger fallback to first available `@font-face`.
   - **Metadata:** JS infers weight/style from URLs for `@font-face` generation.
 
+- **List Markers:**
+  - Implemented in `container_skia::draw_list_marker`.
+  - Supports `disc` (filled oval), `circle` (stroked oval), `square` (filled rect).
+  - Supports `list-style-image` via `SkImage` drawing.
+
 - **litehtml Types:**
   - Container overrides MUST return `litehtml::pixel_t` (float), not `int`.
 
@@ -156,3 +162,8 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
   - `workers.ts`: Multi-threaded worker proxy entry point.
 - **Environment Detection:** Workers automatically detect Node.js vs Web environment and load appropriate worker implementation.
 - **worker-lib:** Facilitates communication between main thread and workers.
+
+### 8. Code Maintenance
+
+- **Formatting:** Always run `pnpm format` to ensure code style consistency. This project uses `clang-format` for C++ and Prettier/TSX scripts for TypeScript.
+

@@ -105,6 +105,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
   - **Alpha Reference:** Tagged elements use `fill=\"black\"` for `SourceAlpha`, visibility controlled by `feMerge`.
 
 - **Font Handling:**
+  - **No Default Font:** Satoru does not have any built-in default fonts. All fonts used in the HTML must be explicitly defined using `@font-face` or loaded via `<link>` tags. If no font is defined, text rendering will fail.
   - **2-Pass Loading:** Layout detects missing fonts -> Requests from JS -> Re-layout.
   - **Fallback:** Iterates through `font-family` list; generic keywords (`sans-serif`) trigger fallback to first available `@font-face`.
   - **Metadata:** JS infers weight/style from URLs for `@font-face` generation.

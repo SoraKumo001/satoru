@@ -102,7 +102,7 @@ app.get("/", async (c) => {
 
   // Render to PNG with automatic font resolution
   const png = await satoru.render({
-    html,
+    value: html,
     width: 1200,
     height: 630,
     format: "png",

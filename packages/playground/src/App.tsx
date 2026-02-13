@@ -100,7 +100,7 @@ const App: React.FC = () => {
     try {
       console.log("[Satoru] Rendering via Worker");
       const result = await satoru.render({
-        html: currentHtml,
+        value: currentHtml,
         width,
         format,
         css: "body { margin: 8px; }",

@@ -70,7 +70,7 @@ async function main() {
 
       for (const format of formats) {
         const result = await satoru.render({
-          html,
+          value: html,
           width: 800,
           format,
           baseUrl: ASSETS_DIR,

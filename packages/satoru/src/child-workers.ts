@@ -26,19 +26,19 @@ const actions = {
     return await s.render(options);
   },
 
-  async toSvg(html: string, width: number, height: number = 0) {
+  async toSvg(value: string, width: number, height: number = 0) {
     const s = await getSatoru();
-    return s.toSvg(html, width, height);
+    return s.toSvg(value, width, height);
   },
 
-  async toPng(html: string, width: number, height: number = 0) {
+  async toPng(value: string, width: number, height: number = 0) {
     const s = await getSatoru();
-    return s.toPng(html, width, height);
+    return s.toPng(value, width, height);
   },
 
-  async toPdf(html: string, width: number, height: number = 0) {
+  async toPdf(value: string, width: number, height: number = 0) {
     const s = await getSatoru();
-    return s.toPdf(html, width, height);
+    return s.toPdf(value, width, height);
   },
 
   async loadFont(name: string, data: Uint8Array) {

@@ -77,7 +77,7 @@ describe("PNG (Skia) Visual Tests", () => {
       };
 
       const pngData = (await satoru.render({
-        html,
+        value: html,
         width: 800,
         format: "png",
         css: "body { margin: 8px; }",

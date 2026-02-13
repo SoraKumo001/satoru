@@ -85,7 +85,7 @@ export type ResourceResolver = (
 ) => Promise<Uint8Array | null>;
 
 export interface RenderOptions {
-  html: string | string[];
+  value: string | string[];
   width: number;
   height?: number;
   format?: "svg" | "png" | "pdf";
@@ -231,7 +231,7 @@ export class Satoru {
   render(options: RenderOptions): Promise<string | Uint8Array>;
   async render(options: RenderOptions): Promise<string | Uint8Array> {
     const {
-      html,
+      value,
       width,
       height = 0,
       format = "svg",
@@ -334,7 +334,7 @@ export class Satoru {
         };
       }
 
-      const inputHtmls = Array.isArray(html) ? html : [html];
+      const inputHtmls = Array.isArray(value) ? value : [value];
       const processedHtmls: string[] = [];
 
       const resolvedUrls = new Set<string>();
@@ -374,7 +374,7 @@ export class Satoru {
         processedHtmls.push(processedHtml);
       }
 
-      if (format === "pdf" && Array.isArray(html)) {
+      if (format === "pdf" && Array.isArray(value)) {
         return (
           this.toPdfPages(processedHtmls, width, height) || new Uint8Array()
         );
@@ -412,8 +412,8 @@ export class Satoru {
     return result ? new Uint8Array(result) : null;
   }
 
-  toSvg(html: string, width: number, height: number = 0): string {
-    const htmlPtr = this.stringToPtr(html);
+  toSvg(value: string, width: number, height: number = 0): string {
+    const htmlPtr = this.stringToPtr(value);
     const svgPtr = this.mod._html_to_svg(
       this.instancePtr,
       htmlPtr,
@@ -426,8 +426,8 @@ export class Satoru {
     return svg;
   }
 
-  toPng(html: string, width: number, height: number = 0): Uint8Array | null {
-    const htmlPtr = this.stringToPtr(html);
+  toPng(value: string, width: number, height: number = 0): Uint8Array | null {
+    const htmlPtr = this.stringToPtr(value);
     const pngPtr = this.mod._html_to_png(
       this.instancePtr,
       htmlPtr,
@@ -443,8 +443,8 @@ export class Satoru {
     return result;
   }
 
-  toPdf(html: string, width: number, height: number = 0): Uint8Array | null {
-    const htmlPtr = this.stringToPtr(html);
+  toPdf(value: string, width: number, height: number = 0): Uint8Array | null {
+    const htmlPtr = this.stringToPtr(value);
     const pdfPtr = this.mod._html_to_pdf(
       this.instancePtr,
       htmlPtr,
@@ -460,12 +460,12 @@ export class Satoru {
     return result;
   }
 
-  getRequiredResources(html: string, width: number): RequiredResource[] {
-    return this.getPendingResources(html, width);
+  getRequiredResources(value: string, width: number): RequiredResource[] {
+    return this.getPendingResources(value, width);
   }
 
-  getPendingResources(html: string, width: number): RequiredResource[] {
-    const htmlPtr = this.stringToPtr(html);
+  getPendingResources(value: string, width: number): RequiredResource[] {
+    const htmlPtr = this.stringToPtr(value);
     const resources: RequiredResource[] = [];
     this.onResourceRequested = (url: string, typeInt: number, name: string) => {
       let type: "font" | "css" | "image" = "font";
@@ -503,8 +503,8 @@ export class Satoru {
   }
 
   /** @deprecated use getRequiredResources */
-  getRequiredFonts(html: string, width: number): RequiredResource[] {
-    return this.getRequiredResources(html, width);
+  getRequiredFonts(value: string, width: number): RequiredResource[] {
+    return this.getRequiredResources(value, width);
   }
 
   private stringToPtr(str: string): number {

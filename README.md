@@ -158,7 +158,7 @@ const html = `
 
 // Render to PDF with automatic resource resolution
 const pdf = await satoru.render({
-  html,
+  value: html,
   width: 600,
   format: "pdf",
   baseUrl: "https://example.com/assets/", // Optional: resolve relative URLs
@@ -169,6 +169,24 @@ const pdf = await satoru.render({
   },
 });
 ```
+
+#### Render Options
+
+| Option | Type | Description |
+|---|---|---|
+| `value` | `string \| string[]` | **Required.** HTML string or array of HTML strings (for multi-page PDF). |
+| `width` | `number` | **Required.** Width of the output in pixels. |
+| `height` | `number` | Height of the output in pixels. Default is `0` (automatic height). |
+| `format` | `"svg" \| "png" \| "pdf"` | Output format. Default is `"svg"`. |
+| `resolveResource` | `ResourceResolver` | Async callback to fetch missing fonts, images, or CSS. |
+| `fonts` | `Object[]` | Array of `{ name, data }` to pre-load fonts into the engine. |
+| `images` | `Object[]` | Array of `{ name, url, width?, height? }` to pre-load images. |
+| `css` | `string` | Extra CSS to inject into the rendering process. |
+| `clear` | `boolean` | If `true`, clears all cached fonts, images, and CSS before rendering. |
+| `baseUrl` | `string` | Base URL used to resolve relative URLs in fonts, images, and links. |
+| `userAgent` | `string` | User-Agent header for fetching resources (Node.js environment). |
+| `logLevel` | `LogLevel` | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`). |
+| `onLog` | `Function` | Custom callback for receiving log messages. |
 
 ### ☁️ Cloudflare Workers (Edge)
 
@@ -182,7 +200,7 @@ export default {
     const satoru = await Satoru.init();
 
     const pdf = await satoru.render({
-      html: "<h1>Edge Rendered</h1>",
+      value: "<h1>Edge Rendered</h1>",
       width: 800,
       format: "pdf",
       baseUrl: "https://example.com/",
@@ -204,7 +222,7 @@ import { Satoru } from "satoru/single";
 
 const satoru = await Satoru.init();
 const png = await satoru.render({
-  html: "<div>Embedded WASM!</div>",
+  value: "<div>Embedded WASM!</div>",
   width: 600,
   format: "png",
 });
@@ -222,7 +240,7 @@ const satoru = createSatoruWorker({ maxParallel: 4 });
 
 // Render with full configuration in one go
 const png = await satoru.render({
-  html: "<h1>Parallel Rendering</h1><img src='icon.png'>",
+  value: "<h1>Parallel Rendering</h1><img src='icon.png'>",
   width: 800,
   format: "png",
   baseUrl: "https://example.com/assets/",
@@ -249,16 +267,16 @@ const html = toHtml(
   </div>
 );
 
-const png = await satoru.render({ html, width: 600, format: "png" });
+const png = await satoru.render({ value: html, width: 600, format: "png" });
 ```
 
 ### 📄 Multi-page PDF Generation
 
-You can generate a multi-page PDF by passing an array of HTML strings to the `html` property. Each string in the array will be rendered as a new page.
+You can generate a multi-page PDF by passing an array of HTML strings to the `value` property. Each string in the array will be rendered as a new page.
 
 ```typescript
 const pdf = await satoru.render({
-  html: [
+  value: [
     "<h1>Page 1</h1><p>First page content.</p>",
     "<h1>Page 2</h1><p>Second page content.</p>",
     "<h1>Page 3</h1><p>Third page content.</p>",
@@ -301,6 +319,14 @@ This suite compares Satoru's outputs against Chromium's rendering.
 
 ```bash
 pnpm --filter visual-test test
+```
+
+#### Update Snapshots
+
+If you have made intentional changes to the rendering engine, you can update the reference images and baseline metrics.
+
+```bash
+pnpm --filter visual-test test:update
 ```
 
 #### Generate Reference Images
@@ -349,7 +375,6 @@ pnpm build
 - [x] **Cloudflare Workers (workerd) compatibility.**
 - [x] **Text Shadow (Multiple shadows, Blur, Offset).**
 - [x] **Improved Font Fallback & Generic Family Mapping.**
-- [ ] SVG Path Shorthand Optimization.
 - [ ] Support for CSS Masks & Filters.
 - [ ] Optional SVG `<text>` element output (currently paths).
 

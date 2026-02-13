@@ -221,7 +221,7 @@ export default {
 
       // 動的リソース（フォント、画像等）の解決
       const result = await satoru.render({
-        html,
+        value: html,
         width,
         format,
         resolveResource: async (resource: RequiredResource) => {

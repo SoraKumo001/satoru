@@ -31,7 +31,7 @@ class container_skia : public litehtml::document_container {
     std::vector<conic_gradient_info> m_usedConicGradients;
     std::vector<radial_gradient_info> m_usedRadialGradients;
     std::vector<linear_gradient_info> m_usedLinearGradients;
-    
+
     std::set<char32_t> m_usedCodepoints;
     std::set<font_request> m_requestedFontAttributes;
 

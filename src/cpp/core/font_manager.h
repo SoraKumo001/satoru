@@ -51,6 +51,7 @@ class SatoruFontManager {
     struct font_face_source {
         std::string url;
         std::string unicode_range;
+        std::vector<std::pair<uint32_t, uint32_t>> ranges;
     };
     std::map<font_request, std::vector<font_face_source>> m_fontFaces;
 
@@ -58,7 +59,10 @@ class SatoruFontManager {
     std::vector<sk_sp<SkTypeface>> m_fallbackTypefaces;
 
     std::string cleanName(const char* name) const;
-    bool checkUnicodeRange(char32_t codepoint, const std::string& range) const;
+    void parseUnicodeRange(const std::string& rangeStr,
+                           std::vector<std::pair<uint32_t, uint32_t>>& outRanges) const;
+    bool checkUnicodeRange(char32_t codepoint,
+                           const std::vector<std::pair<uint32_t, uint32_t>>& ranges) const;
 };
 
 #endif  // SATORU_FONT_MANAGER_H

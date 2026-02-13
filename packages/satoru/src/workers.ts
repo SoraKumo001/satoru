@@ -1,5 +1,4 @@
-import { createWorker as createWorkerWeb } from "worker-lib";
-import { createWorker as createWorkerNode } from "worker-lib/node";
+import { createWorker, Worker } from "worker-lib";
 import type { SatoruWorker } from "./child-workers.js";
 export type { SatoruWorker } from "./child-workers.js";
 
@@ -12,19 +11,6 @@ export type {
   ResourceResolver,
   RenderOptions,
 } from "./index.js";
-
-// Top-level await for worker_threads in Node.js
-let NodeWorker: any;
-const isNode = typeof process !== "undefined" && process.versions && process.versions.node;
-
-if (isNode) {
-  try {
-    const mod = await import("node:worker_threads");
-    NodeWorker = mod.Worker;
-  } catch (e) {
-    // Ignore error
-  }
-}
 
 /**
  * Create a Satoru worker proxy using worker-lib.
@@ -51,15 +37,6 @@ export const createSatoruWorker = (params: {
 
       if (typeof Worker !== "undefined") {
         w = new Worker(workerUrl, { type: "module" });
-      } else if (isNode) {
-        if (!NodeWorker) {
-          throw new Error(
-            "worker_threads.Worker is not available. Ensure you are running in a supported Node.js version.",
-          );
-        }
-        w = new NodeWorker(workerUrl, {
-          execArgv: ["--import", "tsx"],
-        });
       }
     }
 
@@ -68,7 +45,7 @@ export const createSatoruWorker = (params: {
     return w;
   };
 
-  const workerInstance = (isNode ? createWorkerNode : createWorkerWeb)<SatoruWorker>(
+  const workerInstance = createWorker<SatoruWorker>(
     factory as any,
     maxParallel,
   );
@@ -81,7 +58,7 @@ export const createSatoruWorker = (params: {
           return await target.execute("render", workerOptions as any, onLog);
         };
       }
-      
+
       if (prop in target) {
         return Reflect.get(target, prop, receiver);
       }

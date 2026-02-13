@@ -311,11 +311,14 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         ss << "<image x=\"" << border_box.x << "\" y=\"" << border_box.y
                            << "\" width=\"" << border_box.width << "\" height=\""
                            << border_box.height << "\" href=\"" << bitmapToDataUrl(bitmap) << "\"";
-                        
+
                         float opacity = 1.0f;
-                        if (g == 1) opacity = conics[b - 1].opacity;
-                        else if (g == 2) opacity = radials[b - 1].opacity;
-                        else if (g == 3) opacity = linears[b - 1].opacity;
+                        if (g == 1)
+                            opacity = conics[b - 1].opacity;
+                        else if (g == 2)
+                            opacity = radials[b - 1].opacity;
+                        else if (g == 3)
+                            opacity = linears[b - 1].opacity;
 
                         if (opacity < 1.0f) {
                             ss << " opacity=\"" << opacity << "\"";

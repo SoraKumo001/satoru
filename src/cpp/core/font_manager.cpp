@@ -111,6 +111,7 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
             src.url = trim(m[1].str());
             if (std::regex_search(body, m, unicodeRangeRegex)) {
                 src.unicode_range = trim(m[1].str());
+                parseUnicodeRange(src.unicode_range, src.ranges);
             }
 
             for (int w : weights) {
@@ -124,9 +125,9 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
     }
 }
 
-std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &family, int weight,
-                                                        SkFontStyle::Slant slant,
-                                                        const std::set<char32_t> *usedCodepoints) const {
+std::vector<std::string> SatoruFontManager::getFontUrls(
+    const std::string &family, int weight, SkFontStyle::Slant slant,
+    const std::set<char32_t> *usedCodepoints) const {
     font_request req;
     req.family = cleanName(family.c_str());
     req.weight = weight;
@@ -140,7 +141,7 @@ std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &famil
             if (usedCodepoints && !src.unicode_range.empty()) {
                 needed = false;
                 for (char32_t cp : *usedCodepoints) {
-                    if (checkUnicodeRange(cp, src.unicode_range)) {
+                    if (checkUnicodeRange(cp, src.ranges)) {
                         needed = true;
                         break;
                     }
@@ -161,7 +162,7 @@ std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &famil
                         if (usedCodepoints && !src.unicode_range.empty()) {
                             needed = false;
                             for (char32_t cp : *usedCodepoints) {
-                                if (checkUnicodeRange(cp, src.unicode_range)) {
+                                if (checkUnicodeRange(cp, src.ranges)) {
                                     needed = true;
                                     break;
                                 }
@@ -188,7 +189,7 @@ std::vector<std::string> SatoruFontManager::getFontUrls(const std::string &famil
                             if (usedCodepoints && !src.unicode_range.empty()) {
                                 needed = false;
                                 for (char32_t cp : *usedCodepoints) {
-                                    if (checkUnicodeRange(cp, src.unicode_range)) {
+                                    if (checkUnicodeRange(cp, src.ranges)) {
                                         needed = true;
                                         break;
                                     }
@@ -272,17 +273,16 @@ std::string SatoruFontManager::cleanName(const char *name) const {
     return res;
 }
 
-bool SatoruFontManager::checkUnicodeRange(char32_t codepoint, const std::string &range) const {
-    if (range.empty()) return true;
+void SatoruFontManager::parseUnicodeRange(
+    const std::string &rangeStr, std::vector<std::pair<uint32_t, uint32_t>> &outRanges) const {
+    if (rangeStr.empty()) return;
 
-    // range format: "U+0-10FFFF, U+1234"
-    std::stringstream ss(range);
+    std::stringstream ss(rangeStr);
     std::string segment;
     while (std::getline(ss, segment, ',')) {
         segment = trim(segment);
         if (segment.empty()) continue;
 
-        // remove "U+" prefix if exists
         size_t uPos = segment.find("U+");
         if (uPos == std::string::npos) uPos = segment.find("u+");
         if (uPos != std::string::npos) {
@@ -296,18 +296,22 @@ bool SatoruFontManager::checkUnicodeRange(char32_t codepoint, const std::string 
             if (dashPos != std::string::npos) {
                 std::string startStr = segment.substr(0, dashPos);
                 std::string endStr = segment.substr(dashPos + 1);
-                // remove '?' wildcards if any (not supported yet fully, but handle basic)
-                // Google Fonts usually sends hex ranges.
                 start = std::stoul(startStr, nullptr, 16);
                 end = std::stoul(endStr, nullptr, 16);
             } else {
                 start = std::stoul(segment, nullptr, 16);
                 end = start;
             }
-            if (codepoint >= start && codepoint <= end) return true;
+            outRanges.push_back({start, end});
         } catch (...) {
-            // parsing error
         }
+    }
+}
+
+bool SatoruFontManager::checkUnicodeRange(
+    char32_t codepoint, const std::vector<std::pair<uint32_t, uint32_t>> &ranges) const {
+    for (const auto &range : ranges) {
+        if (codepoint >= range.first && codepoint <= range.second) return true;
     }
     return false;
 }

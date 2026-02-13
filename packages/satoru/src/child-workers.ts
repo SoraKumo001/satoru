@@ -1,4 +1,4 @@
-import { initWorker } from "worker-lib/node";
+import { initWorker } from "worker-lib";
 import { Satoru, type RenderOptions, LogLevel } from "./single.js";
 
 let satoru: Satoru | undefined;
@@ -21,7 +21,6 @@ const actions = {
   ) {
     const s = await getSatoru();
     if (onLog) {
-      onLog(LogLevel.Debug, "test");
       options.onLog = onLog;
     }
     return await s.render(options);

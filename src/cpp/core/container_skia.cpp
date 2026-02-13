@@ -498,8 +498,8 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
         if (s.inset != inset) continue;
         SkRRect box_rrect = make_rrect(pos, radius);
         float current_opacity = get_current_opacity();
-        SkColor shadow_color =
-            SkColorSetARGB((uint8_t)(s.color.alpha * current_opacity), s.color.red, s.color.green, s.color.blue);
+        SkColor shadow_color = SkColorSetARGB((uint8_t)(s.color.alpha * current_opacity),
+                                              s.color.red, s.color.green, s.color.blue);
         float blur_std_dev = (float)s.blur.val() * 0.5f;
         m_canvas->save();
         if (inset) {

@@ -43,15 +43,7 @@ static bool has_radius(const litehtml::border_radiuses &r) {
 
 static std::string path_from_rrect(const litehtml::position &pos,
                                    const litehtml::border_radiuses &r) {
-    SkRect rect = SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height);
-    SkVector radii[4] = {
-        {(float)r.top_left_x, (float)r.top_left_y},
-        {(float)r.top_right_x, (float)r.top_right_y},
-        {(float)r.bottom_right_x, (float)r.bottom_right_y},
-        {(float)r.bottom_left_x, (float)r.bottom_left_y}};
-
-    SkRRect rrect;
-    rrect.setRectRadii(rect, radii);
+    SkRRect rrect = make_rrect(pos, r);
 
     SkPathBuilder pathBuilder;
     pathBuilder.addRRect(rrect);

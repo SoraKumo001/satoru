@@ -1,11 +1,11 @@
 {
   "01-layout.html": {
     "direct": {
-      "fill": 1.509625,
-      "outline": 4.6085
+      "fill": 1.510125,
+      "outline": 4.608625
     },
     "svg": {
-      "fill": 1.29425,
+      "fill": 1.294125,
       "outline": 4.5657499999999995
     }
   },
@@ -22,11 +22,11 @@
   "03-graphics.html": {
     "direct": {
       "fill": 5.6998750000000005,
-      "outline": 3.5770000000000004
+      "outline": 3.5765
     },
     "svg": {
-      "fill": 5.148125,
-      "outline": 3.33025
+      "fill": 5.1495,
+      "outline": 3.32925
     }
   },
   "04-box-effects.html": {

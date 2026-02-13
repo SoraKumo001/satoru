@@ -39,16 +39,7 @@ static SkColor lighten(litehtml::web_color c, float fraction) {
         (uint8_t)std::min(255.0f, (float)c.blue + ((255.0f - (float)c.blue) * fraction)));
 }
 
-SkRRect make_rrect(const litehtml::position &pos, const litehtml::border_radiuses &radius) {
-    SkRect rect = SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height);
-    SkVector rad[4] = {{(float)radius.top_left_x, (float)radius.top_left_y},
-                       {(float)radius.top_right_x, (float)radius.top_right_y},
-                       {(float)radius.bottom_right_x, (float)radius.bottom_right_y},
-                       {(float)radius.bottom_left_x, (float)radius.bottom_left_y}};
-    SkRRect rrect;
-    rrect.setRectRadii(rect, rad);
-    return rrect;
-}
+
 
 std::string trim(const std::string &s) {
     auto start = s.find_first_not_of(" \t\r\n'\"");
@@ -1001,13 +992,10 @@ void container_skia::import_css(litehtml::string &text, const litehtml::string &
 
 void container_skia::set_clip(const litehtml::position &pos,
                               const litehtml::border_radiuses &bdr_radius) {
-    if (m_canvas)
-        m_canvas->save(), m_canvas->clipPath(SkPathBuilder()
-                                                 .addRRect(make_rrect(pos, bdr_radius))
-                                                 .moveTo(0, 0)
-                                                 .lineTo(0, 0)
-                                                 .detach(),
-                                             true);
+    if (m_canvas) {
+        m_canvas->save();
+        m_canvas->clipRRect(make_rrect(pos, bdr_radius), true);
+    }
     m_clips.push_back({pos, bdr_radius});
 }
 void container_skia::del_clip() {

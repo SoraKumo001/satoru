@@ -7,7 +7,7 @@ std::string clean_font_name(const char *name) {
     std::string s = name;
     std::string result;
     for (char c : s) {
-        if (c != '\'' && c != '\"' && c != ' ' && c != '\\\\') {
+        if (c != '\'' && c != '\"' && c != ' ' && c != '\\') {
             result += c;
         }
     }
@@ -49,4 +49,15 @@ std::vector<uint8_t> base64_decode(const std::string &in) {
         }
     }
     return out;
+}
+
+SkRRect make_rrect(const litehtml::position &pos, const litehtml::border_radiuses &radius) {
+    SkRect rect = SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height);
+    SkVector rad[4] = {{(float)radius.top_left_x, (float)radius.top_left_y},
+                       {(float)radius.top_right_x, (float)radius.top_right_y},
+                       {(float)radius.bottom_right_x, (float)radius.bottom_right_y},
+                       {(float)radius.bottom_left_x, (float)radius.bottom_left_y}};
+    SkRRect rrect;
+    rrect.setRectRadii(rect, rad);
+    return rrect;
 }

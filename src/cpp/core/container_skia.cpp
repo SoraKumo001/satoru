@@ -18,6 +18,9 @@
 #include "include/core/SkTileMode.h"
 #include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkGradient.h"
+#include "litehtml/el_table.h"
+#include "litehtml/el_td.h"
+#include "litehtml/el_tr.h"
 #include "utils/skia_utils.h"
 
 namespace {
@@ -27,6 +30,7 @@ static SkColor darken(litehtml::web_color c, float fraction) {
                           (uint8_t)std::max(0.0f, (float)c.green - ((float)c.green * fraction)),
                           (uint8_t)std::max(0.0f, (float)c.blue - ((float)c.blue * fraction)));
 }
+
 
 static SkColor lighten(litehtml::web_color c, float fraction) {
     return SkColorSetARGB(
@@ -1046,4 +1050,20 @@ void container_skia::pop_layer(litehtml::uint_ptr hdc) {
     if (m_canvas) {
         m_canvas->restore();
     }
+}
+
+litehtml::element::ptr container_skia::create_element(
+    const char *tag_name, const litehtml::string_map &attributes,
+    const std::shared_ptr<litehtml::document> &doc) {
+    std::string tag = tag_name;
+    if (tag == "table") {
+        return std::make_shared<litehtml::el_table>(doc);
+    }
+    if (tag == "tr") {
+        return std::make_shared<litehtml::el_tr>(doc);
+    }
+    if (tag == "td" || tag == "th") {
+        return std::make_shared<litehtml::el_td>(doc);
+    }
+    return nullptr;
 }

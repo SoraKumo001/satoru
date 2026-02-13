@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satoru Table Test</title>
+    <style>
+        @font-face {
+            font-family: 'Noto Sans JP';
+            src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFBEj75vY0rw-oME.ttf');
+            font-weight: 400;
+        }
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f0f2f5;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #1a1a1a;
+            border-bottom: 2px solid #e1e4e8;
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            background-color: white;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e1e4e8;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Bordered Table */
+        .table-bordered {
+            border: 1px solid #e1e4e8;
+        }
+        .table-bordered th, .table-bordered td {
+            border: 1px solid #e1e4e8;
+        }
+
+        /* Striped Table */
+        .table-striped tbody tr:nth-child(odd) {
+            background-color: #f8f9fa;
+        }
+
+        /* Compact Table */
+        .table-compact th, .table-compact td {
+            padding: 8px 10px;
+            font-size: 0.9em;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .status-active {
+            background-color: #e6fcf5;
+            color: #0ca678;
+        }
+        .status-pending {
+            background-color: #fff9db;
+            color: #f59f00;
+        }
+        .status-inactive {
+            background-color: #f1f3f5;
+            color: #868e96;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Basic Table</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>Alice Johnson</td>
+                    <td>alice@example.com</td>
+                    <td>Admin</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Bob Smith</td>
+                    <td>bob@example.com</td>
+                    <td>User</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Charlie Brown</td>
+                    <td>charlie@example.com</td>
+                    <td>Editor</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Bordered & Striped Table</h2>
+        <table class="table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>#1001</td>
+                    <td>Mechanical Keyboard</td>
+                    <td>$129.99</td>
+                    <td><span class="status-badge status-active">Shipped</span></td>
+                </tr>
+                <tr>
+                    <td>#1002</td>
+                    <td>Wireless Mouse</td>
+                    <td>$49.99</td>
+                    <td><span class="status-badge status-pending">Processing</span></td>
+                </tr>
+                <tr>
+                    <td>#1003</td>
+                    <td>USB-C Monitor</td>
+                    <td>$349.99</td>
+                    <td><span class="status-badge status-active">Delivered</span></td>
+                </tr>
+                <tr>
+                    <td>#1004</td>
+                    <td>Desk Pad</td>
+                    <td>$19.99</td>
+                    <td><span class="status-badge status-inactive">Cancelled</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Complex Layout (Colspan & Rowspan)</h2>
+        <table class="table-bordered">
+            <thead>
+                <tr>
+                    <th rowspan="2">Name</th>
+                    <th colspan="2">Contact Info</th>
+                    <th rowspan="2">Department</th>
+                </tr>
+                <tr>
+                    <th>Email</th>
+                    <th>Phone</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>John Doe</td>
+                    <td>john@company.com</td>
+                    <td>555-0123</td>
+                    <td>Sales</td>
+                </tr>
+                <tr>
+                    <td>Jane Smith</td>
+                    <td colspan="2" style="text-align: center; color: #868e96;">Contact details private</td>
+                    <td>Marketing</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

@@ -136,9 +136,7 @@ class container_skia : public litehtml::document_container {
 
     virtual litehtml::element::ptr create_element(
         const char *tag_name, const litehtml::string_map &attributes,
-        const std::shared_ptr<litehtml::document> &doc) override {
-        return nullptr;
-    }
+        const std::shared_ptr<litehtml::document> &doc) override;
 };
 
 #endif

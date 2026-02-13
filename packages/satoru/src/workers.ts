@@ -5,7 +5,6 @@ export type { SatoruWorker } from "./child-workers.js";
 import { LogLevel, type RenderOptions } from "./index.js";
 export { LogLevel } from "./index.js";
 export type {
-  SatoruOptions,
   SatoruModule,
   RequiredResource,
   ResourceResolver,

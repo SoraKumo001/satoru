@@ -131,7 +131,7 @@ graph TD
 
 ### Standard Environment (Node.js / Browser)
 
-The `Satoru` class provides a high-level API for rendering HTML. It is initialized via the static `init` method.
+The `Satoru` class provides a high-level API for rendering HTML. It is initialized via the static `init` method without any arguments.
 
 #### Basic Rendering (Automatic Resource Resolution)
 

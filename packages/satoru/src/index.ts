@@ -84,13 +84,6 @@ export type ResourceResolver = (
   resource: RequiredResource,
 ) => Promise<Uint8Array | null>;
 
-export interface SatoruOptions {
-  locateFile?: (path: string) => string;
-  instantiateWasm?: (imports: any, successCallback: any) => any;
-  onLog?: (level: LogLevel, message: string) => void;
-  logLevel?: LogLevel;
-}
-
 export interface RenderOptions {
   html: string | string[];
   width: number;
@@ -140,53 +133,37 @@ export class Satoru {
     name: string,
   ) => void;
 
+  private static defaultOnLog(level: LogLevel, message: string) {
+    const prefix = "[Satoru WASM]";
+    switch (level) {
+      case LogLevel.Debug:
+        console.debug(`${prefix} DEBUG: ${message}`);
+        break;
+      case LogLevel.Info:
+        console.info(`${prefix} INFO: ${message}`);
+        break;
+      case LogLevel.Warning:
+        console.warn(`${prefix} WARNING: ${message}`);
+        break;
+      case LogLevel.Error:
+        console.error(`${prefix} ERROR: ${message}`);
+        break;
+    }
+  }
+
   /**
    * Initialize Satoru.
    * @param createSatoruModuleFunc Factory function from satoru.js
-   * @param options Initialization options
    */
-  static async init(
-    createSatoruModuleFunc: any,
-    options: SatoruOptions = {},
-  ): Promise<Satoru> {
-    const logLevel = options.logLevel ?? LogLevel.None;
-    const defaultOnLog = (level: LogLevel, message: string) => {
-      const prefix = "[Satoru WASM]";
-      switch (level) {
-        case LogLevel.Debug:
-          console.debug(`${prefix} DEBUG: ${message}`);
-          break;
-        case LogLevel.Info:
-          console.info(`${prefix} INFO: ${message}`);
-          break;
-        case LogLevel.Warning:
-          console.warn(`${prefix} WARNING: ${message}`);
-          break;
-        case LogLevel.Error:
-          console.error(`${prefix} ERROR: ${message}`);
-          break;
-      }
-    };
-
+  static async init(createSatoruModuleFunc: any): Promise<Satoru> {
     let mod: SatoruModule;
     const onLog = (level: LogLevel, message: string) => {
-      const currentLevel = mod ? mod.logLevel : logLevel;
-      if (level > currentLevel) return;
+      if (mod && level > mod.logLevel) return;
 
-      let handled = false;
       for (const inst of Satoru.instances.values()) {
         if (inst.activeOnLog) {
           inst.activeOnLog(level, message);
-          handled = true;
-          break;
-        }
-      }
-
-      if (!handled) {
-        if (options.onLog) {
-          options.onLog(level, message);
-        } else {
-          defaultOnLog(level, message);
+          return;
         }
       }
     };
@@ -199,11 +176,10 @@ export class Satoru {
       printErr: (text: string) => {
         onLog(LogLevel.Error, text);
       },
-      ...options,
     })) as SatoruModule;
 
     mod.onLog = onLog;
-    mod.logLevel = logLevel;
+    mod.logLevel = LogLevel.None;
 
     const instancePtr = mod._create_instance();
     return new Satoru(mod, instancePtr);
@@ -276,7 +252,7 @@ export class Satoru {
     }
 
     const prevOnLog = this.activeOnLog;
-    this.activeOnLog = onLog;
+    this.activeOnLog = onLog || Satoru.defaultOnLog;
 
     try {
       if (clear) {
@@ -431,7 +407,12 @@ export class Satoru {
     width: number,
     height: number = 0,
   ): Uint8Array | null {
-    const result = this.mod.htmls_to_pdf(this.instancePtr, htmls, width, height);
+    const result = this.mod.htmls_to_pdf(
+      this.instancePtr,
+      htmls,
+      width,
+      height,
+    );
 
     return result ? new Uint8Array(result) : null;
   }

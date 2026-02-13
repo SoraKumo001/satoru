@@ -84,6 +84,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
   - Unified logging function `satoru_log(LogLevel level, const char *message)` is used in C++.
   - Bridges to JS via `EM_JS` calling `Module.onLog`.
   - Standard Emscripten `print` and `printErr` are also redirected to the `onLog` interface in the TS wrapper.
+  - Logging is configured per-render via `RenderOptions`. If no logger is provided, it defaults to console output.
 
 - **Global State:**
   - Global instances like `SatoruContext` and `ResourceManager` are maintained in `satoru_api.cpp`.

@@ -1,13 +1,7 @@
-import {
-  Satoru as BaseSatoru,
-  LogLevel,
-  SatoruOptions,
-  SatoruModule,
-} from "./index.js";
+import { Satoru as BaseSatoru, LogLevel, SatoruModule } from "./index.js";
 
 export { LogLevel } from "./index.js";
 export type {
-  SatoruOptions,
   SatoruModule,
   RequiredResource,
   ResourceResolver,
@@ -28,12 +22,11 @@ export class Satoru extends BaseSatoru {
 
   /**
    * Initialize Satoru with embedded WASM.
-   * @param options Additional Satoru options
    */
-  static async init(options: SatoruOptions = {}): Promise<Satoru> {
+  static async init(): Promise<Satoru> {
     const { default: createSatoruModuleSingle } =
       // @ts-ignore
       await import("../dist/satoru-single.js");
-    return BaseSatoru.init(createSatoruModuleSingle, options) as Promise<Satoru>;
+    return BaseSatoru.init(createSatoruModuleSingle) as Promise<Satoru>;
   }
 }

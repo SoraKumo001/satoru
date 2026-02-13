@@ -10,6 +10,7 @@
 #include "core/satoru_context.h"
 #include "renderers/pdf_renderer.h"
 #include "renderers/png_renderer.h"
+#include "renderers/webp_renderer.h"
 #include "renderers/svg_renderer.h"
 
 EM_JS(void, satoru_log_js, (int level, const char *message), {
@@ -53,6 +54,19 @@ const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width
     return inst->context.get_last_png()->bytes();
 }
 
+const uint8_t *api_html_to_webp(SatoruInstance *inst, const char *html, int width, int height,
+                                int &out_size) {
+    auto data =
+        renderHtmlToWebp(html, width, height, inst->context, get_full_master_css(inst).c_str());
+    if (!data) {
+        out_size = 0;
+        return nullptr;
+    }
+    out_size = (int)data->size();
+    inst->context.set_last_webp(std::move(data));
+    return inst->context.get_last_webp()->bytes();
+}
+
 const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width, int height,
                                int &out_size) {
     std::vector<std::string> htmls;
@@ -83,6 +97,10 @@ const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::str
 
 int api_get_last_png_size(SatoruInstance *inst) {
     return (int)inst->context.get_last_png()->size();
+}
+
+int api_get_last_webp_size(SatoruInstance *inst) {
+    return (int)inst->context.get_last_webp()->size();
 }
 
 int api_get_last_pdf_size(SatoruInstance *inst) {

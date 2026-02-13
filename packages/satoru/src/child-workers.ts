@@ -36,6 +36,11 @@ const actions = {
     return s.toPng(value, width, height);
   },
 
+  async toWebp(value: string, width: number, height: number = 0) {
+    const s = await getSatoru();
+    return s.toWebp(value, width, height);
+  },
+
   async toPdf(value: string, width: number, height: number = 0) {
     const s = await getSatoru();
     return s.toPdf(value, width, height);

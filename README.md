@@ -12,7 +12,7 @@ https://sorakumo001.github.io/satoru/
 | ------------------ | ---------------------------------- | ---------------------------------------------- |
 | **Engine**         | Yoga (Flexbox only)                | **litehtml (Full CSS Layout)**                 |
 | **Renderer**       | Custom SVG Generator               | **Skia Graphics Engine**                       |
-| **Output Formats** | SVG                                | **SVG, PNG, PDF**                              |
+| **Output Formats** | SVG                                | **SVG, PNG, WEBP, PDF**                        |
 | **CSS Support**    | Limited subset (Flexbox)           | **Extensive (Floats, Box-shadow, etc.)**       |
 | **Images**         | External URLs, Base64, ArrayBuffer | **Embedded/Local/Url (PNG, JPEG, WebP, AVIF, GIF)** |
 | **Font Formats**   | TTF, OTF, WOFF                     | **TTF, OTF, WOFF2, TTC**                       |
@@ -31,6 +31,7 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 - **Triple Output Modes**:
   - **SVG**: Generates lean, vector-based Pure SVG strings with post-processed effects (Filters, Gradients).
   - **PNG**: Generates high-quality raster images via Skia, transferred as binary data for maximum performance.
+  - **WEBP**: Generates high-efficiency raster images via Skia, supporting both lossy and lossless compression.
   - **PDF**: Generates high-fidelity vector documents via Skia's PDF backend, including native support for text, gradients, images, and **multi-page output**.
 - **High-Level TS Wrapper**: Includes a `Satoru` class that abstracts Wasm memory management and provides a clean async API.
 - **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime with automatic weight/style inference.
@@ -110,8 +111,8 @@ graph TD
         end
 
         subgraph WASM_Raster_Path [Binary Pipeline]
-            E -- PNG/PDF --> H[SkDocument/SkSurface:<br/>Measure & Draw]
-            H -- PNG --> I[SkImage: Encode]
+            E -- PNG/WEBP/PDF --> H[SkDocument/SkSurface:<br/>Measure & Draw]
+            H -- PNG/WEBP --> I[SkImage: Encode]
             H -- PDF --> J[SkPDF: Generate]
             I --> K[Shared Binary Buffer]
             J --> K
@@ -177,7 +178,7 @@ const pdf = await satoru.render({
 | `value` | `string \| string[]` | **Required.** HTML string or array of HTML strings (for multi-page PDF). |
 | `width` | `number` | **Required.** Width of the output in pixels. |
 | `height` | `number` | Height of the output in pixels. Default is `0` (automatic height). |
-| `format` | `"svg" \| "png" \| "pdf"` | Output format. Default is `"svg"`. |
+| `format` | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default is `"svg"`. |
 | `resolveResource` | `ResourceResolver` | Async callback to fetch missing fonts, images, or CSS. |
 | `fonts` | `Object[]` | Array of `{ name, data }` to pre-load fonts into the engine. |
 | `images` | `Object[]` | Array of `{ name, url, width?, height? }` to pre-load images. |

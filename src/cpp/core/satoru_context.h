@@ -12,6 +12,7 @@
 
 class SatoruContext {
     sk_sp<SkData> m_lastPng;
+    sk_sp<SkData> m_lastWebp;
     sk_sp<SkData> m_lastPdf;
     std::string m_extraCss;
 
@@ -58,6 +59,9 @@ class SatoruContext {
 
     void set_last_png(sk_sp<SkData> png) { m_lastPng = std::move(png); }
     const sk_sp<SkData> &get_last_png() const { return m_lastPng; }
+
+    void set_last_webp(sk_sp<SkData> webp) { m_lastWebp = std::move(webp); }
+    const sk_sp<SkData> &get_last_webp() const { return m_lastWebp; }
 
     void set_last_pdf(sk_sp<SkData> pdf) { m_lastPdf = std::move(pdf); }
     const sk_sp<SkData> &get_last_pdf() const { return m_lastPdf; }

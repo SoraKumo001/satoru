@@ -157,6 +157,7 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/src/encode/SkPngEncoderBase.cpp"
     "${skia_SOURCE_DIR}/src/encode/SkJpegEncoderImpl.cpp"
     "${skia_SOURCE_DIR}/src/encode/SkJPEGWriteUtility.cpp"
+    "${skia_SOURCE_DIR}/src/encode/SkWebpEncoderImpl.cpp"
     "${skia_SOURCE_DIR}/src/encode/SkICC.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkCodec.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkCodecColorProfile.cpp"
@@ -225,6 +226,7 @@ target_sources(satoru_core PRIVATE
     src/cpp/core/font_manager.cpp
     src/cpp/renderers/svg_renderer.cpp
     src/cpp/renderers/png_renderer.cpp
+    src/cpp/renderers/webp_renderer.cpp
     src/cpp/renderers/pdf_renderer.cpp
     src/cpp/utils/skia_utils.cpp
     src/cpp/utils/skia_stubs.cpp

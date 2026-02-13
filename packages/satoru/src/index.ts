@@ -22,6 +22,13 @@ export interface SatoruModule {
     height: number,
   ) => number;
   _get_png_size: (inst: number) => number;
+  _html_to_webp: (
+    inst: number,
+    html: number,
+    width: number,
+    height: number,
+  ) => number;
+  _get_webp_size: (inst: number) => number;
   _html_to_pdf: (
     inst: number,
     html: number,
@@ -88,7 +95,7 @@ export interface RenderOptions {
   value: string | string[];
   width: number;
   height?: number;
-  format?: "svg" | "png" | "pdf";
+  format?: "svg" | "png" | "webp" | "pdf";
   resolveResource?: ResourceResolver;
   fonts?: { name: string; data: Uint8Array }[];
   images?: { name: string; url: string; width?: number; height?: number }[];
@@ -225,7 +232,7 @@ export class Satoru {
   }
 
   render(
-    options: RenderOptions & { format: "png" | "pdf" },
+    options: RenderOptions & { format: "png" | "webp" | "pdf" },
   ): Promise<Uint8Array>;
   render(options: RenderOptions & { format?: "svg" }): Promise<string>;
   render(options: RenderOptions): Promise<string | Uint8Array>;
@@ -386,6 +393,8 @@ export class Satoru {
       switch (format) {
         case "png":
           return this.toPng(finalHtml, width, height) || new Uint8Array();
+        case "webp":
+          return this.toWebp(finalHtml, width, height) || new Uint8Array();
         case "pdf":
           return this.toPdf(finalHtml, width, height) || new Uint8Array();
         default:
@@ -438,6 +447,23 @@ export class Satoru {
     let result: Uint8Array | null = null;
     if (pngPtr && size > 0) {
       result = new Uint8Array(this.mod.HEAPU8.buffer, pngPtr, size).slice();
+    }
+    this.mod._free(htmlPtr);
+    return result;
+  }
+
+  toWebp(value: string, width: number, height: number = 0): Uint8Array | null {
+    const htmlPtr = this.stringToPtr(value);
+    const webpPtr = this.mod._html_to_webp(
+      this.instancePtr,
+      htmlPtr,
+      width,
+      height,
+    );
+    const size = this.mod._get_webp_size(this.instancePtr);
+    let result: Uint8Array | null = null;
+    if (webpPtr && size > 0) {
+      result = new Uint8Array(this.mod.HEAPU8.buffer, webpPtr, size).slice();
     }
     this.mod._free(htmlPtr);
     return result;

@@ -66,7 +66,7 @@ async function main() {
       if (!fs.existsSync(filePath)) return;
 
       const html = fs.readFileSync(filePath, "utf-8");
-      const formats: ("svg" | "png" | "pdf")[] = ["svg", "png", "pdf"];
+      const formats: ("svg" | "png" | "webp" | "pdf")[] = ["svg", "png", "webp", "pdf"];
 
       for (const format of formats) {
         const result = await satoru.render({

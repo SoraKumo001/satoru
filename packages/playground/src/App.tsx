@@ -28,6 +28,10 @@ const App: React.FC = () => {
       import: "default",
     });
     setAssetList(Object.keys(assetFiles).map((path) => path.split("/").pop()!));
+    const initialWidth = new URLSearchParams(window.location.search).get(
+      "width",
+    );
+    setWidth(initialWidth ? parseInt(initialWidth) : 588);
 
     return () => {
       satoru.close();
@@ -64,7 +68,7 @@ const App: React.FC = () => {
         loadAsset(assetList[0]);
       }
     }
-  }, [assetList]);
+  }, [assetList, format]);
 
   const loadAsset = async (name: string) => {
     try {
@@ -199,7 +203,14 @@ const App: React.FC = () => {
               <input
                 type="number"
                 value={width}
-                onChange={(e) => setWidth(parseInt(e.target.value) || 0)}
+                onChange={(e) => {
+                  const width = parseInt(e.target.value) || 0;
+                  setWidth(width);
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("width", width.toString());
+                  window.history.replaceState({}, "", url.toString());
+                  handleConvert(html);
+                }}
                 style={{ width: "80px" }}
               />
             </label>
@@ -317,14 +328,19 @@ const App: React.FC = () => {
               borderRadius: "4px",
               height: "800px",
               background: "white",
-              overflow: "hidden",
+              overflowY: "hidden",
+              overflowX: "auto",
               boxSizing: "border-box",
             }}
           >
             <iframe
               ref={iframeRef}
               title="preview"
-              style={{ width: "100%", height: "100%", border: "none" }}
+              style={{
+                width: `${width}px`,
+                height: "100%",
+                border: "none",
+              }}
             />
           </div>
         </div>
@@ -397,13 +413,15 @@ const App: React.FC = () => {
               />
             )}
             {objectUrl && format === "png" && (
-              <img
-                src={objectUrl}
-                alt="render result"
-                style={{
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-                }}
-              />
+              <div>
+                <img
+                  src={objectUrl}
+                  alt="render result"
+                  style={{
+                    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+                  }}
+                />
+              </div>
             )}
             {objectUrl && format === "pdf" && (
               <embed

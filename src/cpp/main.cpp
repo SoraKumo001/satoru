@@ -37,7 +37,16 @@ const uint8_t *html_to_png(SatoruInstance *inst, const char *html, int width, in
 }
 
 EMSCRIPTEN_KEEPALIVE
+const uint8_t *html_to_webp(SatoruInstance *inst, const char *html, int width, int height) {
+    int size = 0;
+    return api_html_to_webp(inst, html, width, height, size);
+}
+
+EMSCRIPTEN_KEEPALIVE
 int get_png_size(SatoruInstance *inst) { return api_get_last_png_size(inst); }
+
+EMSCRIPTEN_KEEPALIVE
+int get_webp_size(SatoruInstance *inst) { return api_get_last_webp_size(inst); }
 
 EMSCRIPTEN_KEEPALIVE
 const uint8_t *html_to_pdf(SatoruInstance *inst, const char *html, int width, int height) {
@@ -111,6 +120,8 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("html_to_svg", &html_to_svg, allow_raw_pointers());
     function("html_to_png", &html_to_png, allow_raw_pointers());
     function("get_png_size", &get_png_size, allow_raw_pointers());
+    function("html_to_webp", &html_to_webp, allow_raw_pointers());
+    function("get_webp_size", &get_webp_size, allow_raw_pointers());
     function("html_to_pdf", &html_to_pdf, allow_raw_pointers());
     function("htmls_to_pdf", &htmls_to_pdf_val);
     function("get_pdf_size", &get_pdf_size, allow_raw_pointers());

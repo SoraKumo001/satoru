@@ -27,11 +27,14 @@ void api_destroy_instance(SatoruInstance *inst);
 std::string api_html_to_svg(SatoruInstance *inst, const char *html, int width, int height);
 const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width, int height,
                                int &out_size);
+const uint8_t *api_html_to_webp(SatoruInstance *inst, const char *html, int width, int height,
+                                int &out_size);
 const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width, int height,
                                int &out_size);
 const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::string> &htmls,
                                 int width, int height, int &out_size);
 int api_get_last_png_size(SatoruInstance *inst);
+int api_get_last_webp_size(SatoruInstance *inst);
 int api_get_last_pdf_size(SatoruInstance *inst);
 void api_collect_resources(SatoruInstance *inst, const char *html, int width);
 void api_add_resource(SatoruInstance *inst, const char *url, int type, const uint8_t *data,

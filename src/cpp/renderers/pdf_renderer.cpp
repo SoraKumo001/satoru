@@ -26,9 +26,9 @@ bool PdfJpegEncoder(SkWStream *dst, const SkPixmap &src, int quality) {
 }
 }  // namespace
 
-std::vector<uint8_t> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width, int height,
+sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width, int height,
                                       SatoruContext &context, const char *master_css) {
-    if (htmls.empty()) return {};
+    if (htmls.empty()) return nullptr;
 
     SkDynamicMemoryWStream stream;
     SkPDF::Metadata metadata;
@@ -38,7 +38,7 @@ std::vector<uint8_t> renderHtmlsToPdf(const std::vector<std::string>& htmls, int
     metadata.jpegEncoder = PdfJpegEncoder;
 
     auto pdf_doc = SkPDF::MakeDocument(&stream, metadata);
-    if (!pdf_doc) return {};
+    if (!pdf_doc) return nullptr;
 
     std::string css = master_css ? master_css : litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";
@@ -71,10 +71,5 @@ std::vector<uint8_t> renderHtmlsToPdf(const std::vector<std::string>& htmls, int
 
     pdf_doc->close();
 
-    sk_sp<SkData> data = stream.detachAsData();
-    if (!data) return {};
-
-    std::vector<uint8_t> result((const uint8_t *)data->data(),
-                                (const uint8_t *)data->data() + data->size());
-    return result;
+    return stream.detachAsData();
 }

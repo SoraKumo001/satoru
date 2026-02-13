@@ -7,12 +7,12 @@
 
 #include "font_manager.h"
 #include "include/core/SkFontStyle.h"
-#include "include/core/SkTypeface.h"
+#include "include/core/SkData.h"
 #include "utils/skia_utils.h"
 
 class SatoruContext {
-    std::vector<uint8_t> m_lastPng;
-    std::vector<uint8_t> m_lastPdf;
+    sk_sp<SkData> m_lastPng;
+    sk_sp<SkData> m_lastPdf;
     std::string m_extraCss;
 
    public:
@@ -56,11 +56,11 @@ class SatoruContext {
                                                  SkFontStyle::Slant slant, bool &out_fake_bold);
     bool get_image_size(const std::string &url, int &w, int &h);
 
-    void set_last_png(std::vector<uint8_t> &&png) { m_lastPng = std::move(png); }
-    const std::vector<uint8_t> &get_last_png() const { return m_lastPng; }
+    void set_last_png(sk_sp<SkData> png) { m_lastPng = std::move(png); }
+    const sk_sp<SkData> &get_last_png() const { return m_lastPng; }
 
-    void set_last_pdf(std::vector<uint8_t> &&pdf) { m_lastPdf = std::move(pdf); }
-    const std::vector<uint8_t> &get_last_pdf() const { return m_lastPdf; }
+    void set_last_pdf(sk_sp<SkData> pdf) { m_lastPdf = std::move(pdf); }
+    const sk_sp<SkData> &get_last_pdf() const { return m_lastPdf; }
 };
 
 #endif

@@ -48,11 +48,9 @@ const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width
         out_size = 0;
         return nullptr;
     }
-    std::vector<uint8_t> bytes(data->size());
-    memcpy(bytes.data(), data->data(), data->size());
-    out_size = (int)bytes.size();
-    inst->context.set_last_png(std::move(bytes));
-    return inst->context.get_last_png().data();
+    out_size = (int)data->size();
+    inst->context.set_last_png(std::move(data));
+    return inst->context.get_last_png()->bytes();
 }
 
 const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width, int height,
@@ -61,31 +59,31 @@ const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width
     htmls.push_back(std::string(html));
     auto data =
         renderHtmlsToPdf(htmls, width, height, inst->context, get_full_master_css(inst).c_str());
-    if (data.empty()) {
+    if (!data) {
         out_size = 0;
         return nullptr;
     }
-    out_size = (int)data.size();
+    out_size = (int)data->size();
     inst->context.set_last_pdf(std::move(data));
-    return inst->context.get_last_pdf().data();
+    return inst->context.get_last_pdf()->bytes();
 }
 
 const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::string> &htmls, int width, int height,
                                 int &out_size) {
      auto data =
         renderHtmlsToPdf(htmls, width, height, inst->context, get_full_master_css(inst).c_str());
-    if (data.empty()) {
+    if (!data) {
         out_size = 0;
         return nullptr;
     }
-    out_size = (int)data.size();
+    out_size = (int)data->size();
     inst->context.set_last_pdf(std::move(data));
-    return inst->context.get_last_pdf().data();
+    return inst->context.get_last_pdf()->bytes();
 }
 
-int api_get_last_png_size(SatoruInstance *inst) { return (int)inst->context.get_last_png().size(); }
+int api_get_last_png_size(SatoruInstance *inst) { return (int)inst->context.get_last_png()->size(); }
 
-int api_get_last_pdf_size(SatoruInstance *inst) { return (int)inst->context.get_last_pdf().size(); }
+int api_get_last_pdf_size(SatoruInstance *inst) { return (int)inst->context.get_last_pdf()->size(); }
 
 void api_collect_resources(SatoruInstance *inst, const char *html, int width) {
     if (inst->discovery_container) delete inst->discovery_container;

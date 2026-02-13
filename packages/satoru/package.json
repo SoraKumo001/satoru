@@ -87,14 +87,14 @@
     "cloudflare-workers"
   ],
   "devDependencies": {
-    "@types/react": "^19.0.10",
-    "@types/react-dom": "^19.0.4",
-    "rolldown": "1.0.0-rc.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "rolldown": "1.0.0-rc.4",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.18"
   },
   "dependencies": {
-    "worker-lib": "2.0.8"
+    "worker-lib": "2.1.0"
   },
   "peerDependencies": {
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",

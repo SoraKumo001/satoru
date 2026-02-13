@@ -64,7 +64,7 @@ async function main() {
       const startFileTime = Date.now();
       const filePath = path.join(ASSETS_DIR, file);
       if (!fs.existsSync(filePath)) return;
-      
+
       const html = fs.readFileSync(filePath, "utf-8");
       const formats: ("svg" | "png" | "pdf")[] = ["svg", "png", "pdf"];
 
@@ -76,6 +76,7 @@ async function main() {
           baseUrl: ASSETS_DIR,
           clear: true,
           onLog: verbose ? onLog : undefined,
+          logLevel: verbose ? LogLevel.Debug : LogLevel.None,
         });
 
         if (result) {

@@ -14,8 +14,8 @@
     "satoru": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260210.0",
+    "@cloudflare/workers-types": "^4.20260213.0",
     "typescript": "^5.9.3",
-    "wrangler": "^4.64.0"
+    "wrangler": "^4.65.0"
   }
 }

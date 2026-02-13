@@ -95,6 +95,7 @@ export interface RenderOptions {
   css?: string;
   clear?: boolean;
   baseUrl?: string;
+  userAgent?: string;
   logLevel?: LogLevel;
   removeDefaultMargin?: boolean;
   onLog?: (level: LogLevel, message: string) => void;
@@ -334,7 +335,18 @@ export class Satoru {
               finalUrl = new URL(r.url, baseUrl).href;
             }
 
-            const resp = await fetch(finalUrl);
+            const headers: Record<string, string> = {};
+            if (
+              typeof process !== "undefined" &&
+              process.versions?.node &&
+              !options.resolveResource
+            ) {
+              headers["User-Agent"] =
+                options.userAgent ||
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+            }
+
+            const resp = await fetch(finalUrl, { headers });
             if (!resp.ok) return null;
             const buf = await resp.arrayBuffer();
             return new Uint8Array(buf);

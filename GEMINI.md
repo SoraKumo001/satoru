@@ -55,10 +55,10 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 
 ### 2. Build System
 
+- `pnpm build:all`: Standard build command (Builds everything including WASM + TS wrappers).
 - `pnpm wasm:configure`: Configure CMake for WASM build via `tsx ./scripts/build-wasm.ts`.
 - `pnpm wasm:build`: Compile C++ to WASM. Produces `satoru.js`/`.wasm` and `satoru-single.js` in `packages/satoru/dist`.
 - `pnpm wasm:docker:build`: Build WASM inside Docker.
-- `pnpm build:all`: Build everything (WASM + TS wrappers).
 
 ### 3. Implementation Details
 

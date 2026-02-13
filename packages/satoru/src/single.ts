@@ -34,8 +34,6 @@ export class Satoru extends BaseSatoru {
     const { default: createSatoruModuleSingle } =
       // @ts-ignore
       await import("../dist/satoru-single.js");
-    const mod = (await createSatoruModuleSingle(options)) as SatoruModule;
-    const instancePtr = mod._create_instance();
-    return new Satoru(mod, instancePtr);
+    return BaseSatoru.init(createSatoruModuleSingle, options) as Promise<Satoru>;
   }
 }

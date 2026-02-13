@@ -1,23 +1,8 @@
-import { initWorker } from "worker-lib";
+import { initWorker } from "worker-lib/node";
 import { Satoru, type RenderOptions, LogLevel } from "./single.js";
 
 let satoru: Satoru | undefined;
 
-const sendLog = (level: LogLevel, message: string) => {
-  const payload = { __satoru_log: true, level, message };
-  if (typeof self !== "undefined" && typeof self.postMessage === "function") {
-    self.postMessage(payload);
-  } else {
-    try {
-      import("worker_threads").then((mod) => {
-        mod.parentPort?.postMessage(payload);
-      });
-    } catch (e) {
-      // ignore
-    }
-  }
-};
-//
 const getSatoru = async () => {
   if (!satoru) {
     satoru = await Satoru.init();
@@ -30,16 +15,16 @@ const getSatoru = async () => {
  * Exposes Satoru methods via worker-lib.
  */
 const actions = {
-  async render(options: RenderOptions) {
+  async render(
+    options: RenderOptions,
+    onLog?: (level: LogLevel, message: string) => void,
+  ) {
     const s = await getSatoru();
-
-    // Override onLog to ensure it's captured by the parent's render callback.
-    // In workers, we always forward logs via postMessage.
-    options.onLog = (level: LogLevel, message: string) => {
-      sendLog(level, message);
-    };
-
-    return s.render(options);
+    if (onLog) {
+      onLog(LogLevel.Debug, "test");
+      options.onLog = onLog;
+    }
+    return await s.render(options);
   },
 
   async toSvg(html: string, width: number, height: number = 0) {

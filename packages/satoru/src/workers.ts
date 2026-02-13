@@ -1,4 +1,5 @@
-import { createWorker } from "worker-lib";
+import { createWorker as createWorkerWeb } from "worker-lib";
+import { createWorker as createWorkerNode } from "worker-lib/node";
 import type { SatoruWorker } from "./child-workers.js";
 export type { SatoruWorker } from "./child-workers.js";
 
@@ -18,7 +19,7 @@ const isNode = typeof process !== "undefined" && process.versions && process.ver
 
 if (isNode) {
   try {
-    const mod = await import("worker_threads");
+    const mod = await import("node:worker_threads");
     NodeWorker = mod.Worker;
   } catch (e) {
     // Ignore error
@@ -37,8 +38,6 @@ export const createSatoruWorker = (params: {
   maxParallel?: number;
 }) => {
   const { worker, maxParallel = 4 } = params;
-
-  const activeRenderLogs = new Set<(level: LogLevel, message: string) => void>();
 
   const factory = () => {
     let w: any;
@@ -66,22 +65,10 @@ export const createSatoruWorker = (params: {
 
     if (!w) throw new Error("Worker is not supported in this environment.");
 
-    const logHandler = (msg: any) => {
-      if (msg && msg.__satoru_log) {
-        activeRenderLogs.forEach(cb => cb(msg.level, msg.message));
-      }
-    };
-
-    if (w.on) {
-      w.on("message", logHandler);
-    } else if ("addEventListener" in w) {
-      w.addEventListener("message", (e: MessageEvent) => logHandler(e.data));
-    }
-
     return w;
   };
 
-  const workerInstance = createWorker<SatoruWorker>(
+  const workerInstance = (isNode ? createWorkerNode : createWorkerWeb)<SatoruWorker>(
     factory as any,
     maxParallel,
   );
@@ -90,20 +77,8 @@ export const createSatoruWorker = (params: {
     get(target, prop, receiver) {
       if (prop === "render") {
         return async (options: RenderOptions) => {
-          const onLog = options.onLog;
-          
-          // Remove onLog from options as functions cannot be cloned/sent to workers
-          const { onLog: _, ...workerOptions } = options;
-          
-          if (onLog) {
-            activeRenderLogs.add(onLog);
-            try {
-              return await target.execute("render", workerOptions as any);
-            } finally {
-              activeRenderLogs.delete(onLog);
-            }
-          }
-          return target.execute("render", workerOptions as any);
+          const { onLog, ...workerOptions } = options;
+          return await target.execute("render", workerOptions as any, onLog);
         };
       }
       

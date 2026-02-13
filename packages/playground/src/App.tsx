@@ -103,7 +103,7 @@ const App: React.FC = () => {
         html: currentHtml,
         width,
         format,
-        removeDefaultMargin: false,
+        css: "body { margin: 8px; }",
         baseUrl: `${window.location.origin}${window.location.pathname}assets/`,
       });
 

@@ -75,6 +75,7 @@ async function main() {
           format,
           baseUrl: ASSETS_DIR,
           clear: true,
+          css: "body { margin: 8px; }",
           onLog: verbose ? onLog : undefined,
           logLevel: verbose ? LogLevel.Debug : LogLevel.None,
         });

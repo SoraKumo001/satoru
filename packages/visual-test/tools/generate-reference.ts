@@ -22,7 +22,8 @@ async function processFile(browser: Browser, file: string) {
   const page = await context.newPage();
 
   try {
-    const html = fs.readFileSync(inputPath, "utf8");
+    const htmlSource = fs.readFileSync(inputPath, "utf8");
+    const html = `<style>body { margin: 8px; }</style>${htmlSource}`;
     await page.setContent(html);
     await page.waitForLoadState("networkidle");
 

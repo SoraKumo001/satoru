@@ -77,7 +77,8 @@ describe("Visual Regression Tests", () => {
     describe(`${file}`, () => {
       const inputPath = path.join(ASSETS_DIR, file);
       const refPath = path.join(REFERENCE_DIR, file.replace(".html", ".png"));
-      const html = fs.readFileSync(inputPath, "utf8");
+      const htmlSource = fs.readFileSync(inputPath, "utf8");
+      const html = `${htmlSource}`;
 
       it(`Rendering and Comparison`, async () => {
         if (!fs.existsSync(refPath)) {
@@ -104,7 +105,7 @@ describe("Visual Regression Tests", () => {
           html,
           width: 800,
           format: "png",
-          removeDefaultMargin: false,
+          css: "body { margin: 8px; }",
           resolveResource,
         })) as Uint8Array;
         const directResult = compareImages(
@@ -118,7 +119,6 @@ describe("Visual Regression Tests", () => {
           html,
           width: 800,
           format: "svg",
-          removeDefaultMargin: false,
           resolveResource,
         })) as string;
         const widthMatch = svg.match(/width="(\d+)"/);

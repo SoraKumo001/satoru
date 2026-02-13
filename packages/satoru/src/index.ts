@@ -97,7 +97,6 @@ export interface RenderOptions {
   baseUrl?: string;
   userAgent?: string;
   logLevel?: LogLevel;
-  removeDefaultMargin?: boolean;
   onLog?: (level: LogLevel, message: string) => void;
 }
 
@@ -242,7 +241,6 @@ export class Satoru {
       clear = false,
       baseUrl,
       logLevel,
-      removeDefaultMargin = true,
       onLog,
     } = options;
 
@@ -267,9 +265,6 @@ export class Satoru {
         for (const img of images) {
           this.loadImage(img.name, img.url, img.width ?? 0, img.height ?? 0);
         }
-      }
-      if (removeDefaultMargin) {
-        this.scanCss("body { margin: 0; }");
       }
       if (css) {
         this.scanCss(css);

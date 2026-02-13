@@ -1,5 +1,5 @@
 import { Satoru, LogLevel } from "satoru";
-import { Xslt, xmlParse } from "xslt-processor";
+import { Xslt, XmlParser } from "xslt-processor";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,10 +9,31 @@ import JSZip from "jszip";
  * Extract the stylesheet path from an XML string.
  */
 function getStylesheetPath(xmlContent: string): string | null {
-  const match = xmlContent.match(
-    /<\?xml-stylesheet[^>]+href=["']([^"']+)["'][^>]*\?>/,
-  );
-  return match ? match[1] : null;
+  // Strip BOM if present
+  const content =
+    xmlContent.charCodeAt(0) === 0xfeff ? xmlContent.slice(1) : xmlContent;
+
+  // Find all xml-stylesheet processing instructions
+  const pis = content.match(/<\?xml-stylesheet\s+([^?>]+)\?>/g);
+  if (!pis) return null;
+
+  for (const pi of pis) {
+    // Extract href and type attributes
+    const hrefMatch = pi.match(/\bhref\s*=\s*["']([^"']+)["']/);
+    const typeMatch = pi.match(/\btype\s*=\s*["']([^"']+)["']/);
+
+    // If it's an XSL stylesheet (or no type specified, which usually defaults to it)
+    if (
+      hrefMatch &&
+      (!typeMatch ||
+        typeMatch[1] === "text/xsl" ||
+        typeMatch[1] === "text/xml" ||
+        typeMatch[1] === "application/xml")
+    ) {
+      return hrefMatch[1];
+    }
+  }
+  return null;
 }
 
 /**
@@ -78,11 +99,15 @@ export async function convertToPdf(
     throw new Error("No XML files found in the input.");
   }
 
-  const xslt = new Xslt();
+  const xmlParser = new XmlParser();
   const htmlPages: string[] = [];
-
   for (const xmlName of xmlFiles) {
-    const xmlContent = fileMap.get(xmlName)!;
+    const xslt = new Xslt();
+    let xmlContent = fileMap.get(xmlName)!;
+
+    // Remove BOM
+    if (xmlContent.charCodeAt(0) === 0xfeff) xmlContent = xmlContent.slice(1);
+
     const xslHref = getStylesheetPath(xmlContent);
 
     if (!xslHref) {
@@ -92,13 +117,36 @@ export async function convertToPdf(
       continue;
     }
 
-    // Resolve XSL path relative to XML if it's in a ZIP (simple filename match)
-    const xslName = xslHref.split("/").pop()!;
-    let xslContent = fileMap.get(xslName);
+    // Resolve XSL path relative to XML
+    const xmlDir = xmlName.includes("/")
+      ? xmlName.substring(0, xmlName.lastIndexOf("/") + 1)
+      : "";
 
-    // Try exact match if not found by filename
+    // 1. Try relative to XML
+    let xslFullPath = xmlDir + xslHref;
+    // Basic normalization for "./"
+    if (xslFullPath.startsWith("./")) xslFullPath = xslFullPath.slice(2);
+    // Handle "../" (very basic)
+    while (xslFullPath.includes("/../")) {
+      xslFullPath = xslFullPath.replace(/[^\/]+\/\.\.\//, "");
+    }
+
+    if (logLevel >= LogLevel.Debug) {
+      console.log(`[XSLT] Processing ${xmlName} with stylesheet ${xslHref}`);
+      console.log(`[XSLT] Resolved XSL path: ${xslFullPath}`);
+    }
+
+    let xslContent = fileMap.get(xslFullPath);
+
+    // 2. Try exact match (for absolute-looking paths or paths already in fileMap)
     if (!xslContent) {
       xslContent = fileMap.get(xslHref);
+    }
+
+    // 3. Try filename match as fallback
+    if (!xslContent) {
+      const xslName = xslHref.split("/").pop()!;
+      xslContent = fileMap.get(xslName);
     }
 
     if (!xslContent) {
@@ -108,10 +156,46 @@ export async function convertToPdf(
       continue;
     }
 
+    // Remove BOM from XSL
+    if (xslContent.charCodeAt(0) === 0xfeff) xslContent = xslContent.slice(1);
+
     try {
-      const xmlDoc = xmlParse(xmlContent);
-      const xslDoc = xmlParse(xslContent);
-      let html = xslt.xsltProcess(xmlDoc, xslDoc);
+      if (logLevel >= LogLevel.Debug) {
+        console.log(`[XSLT] XML Content length: ${xmlContent.length}`);
+        console.log(`[XSLT] XSL Content length: ${xslContent.length}`);
+      }
+
+      const xmlDoc = xmlParser.xmlParse(xmlContent);
+      const xslDoc = xmlParser.xmlParse(xslContent);
+
+      let html = await xslt.xsltProcess(xmlDoc, xslDoc);
+
+      // Heuristic: If result is empty and there's no match="/", try matching from the root element.
+      // xslt-processor seems to lack built-in template rules for the root node.
+      if (html.trim().length === 0) {
+        const docElement =
+          (xmlDoc as any).documentElement ||
+          xmlDoc.childNodes.find((c: any) => c.nodeType === 1);
+        if (docElement) {
+          if (logLevel >= LogLevel.Debug) {
+            console.log(
+              `[XSLT] First pass empty, retrying with root element: ${docElement.nodeName}`,
+            );
+          }
+          html = await xslt.xsltProcess(docElement, xslDoc);
+        }
+      }
+
+      if (html.length === 0) {
+        throw new Error(
+          `XSLT transformation produced empty result for ${xmlName}`,
+        );
+      }
+
+      if (logLevel >= LogLevel.Debug) {
+        console.log(`[XSLT] Transformed HTML length: ${html.length}`);
+        // console.log(html); // Optional: log full HTML only in extreme debug
+      }
 
       // Add default styles from xsl-viewer-html
       const extraStyle = `
@@ -133,8 +217,11 @@ export async function convertToPdf(
       } else {
         html = extraStyle + html;
       }
-      console.log(html);
-
+      if (logLevel >= LogLevel.Debug) {
+        console.log(
+          `[XSLT] HTML (first 500 chars): ${html.substring(0, 500)}...`,
+        );
+      }
       htmlPages.push(html);
     } catch (err: any) {
       if (logLevel >= LogLevel.Error) {
@@ -153,6 +240,7 @@ export async function convertToPdf(
         console.log(`[Satoru] ${message}`);
       }
     },
+    logLevel,
   });
 
   try {
@@ -170,28 +258,19 @@ export async function convertToPdf(
   }
 }
 
-// CLI implementation
-const isMain =
-  process.argv[1] &&
-  path.resolve(process.argv[1]) ===
-    path.resolve(fileURLToPath(import.meta.url));
-if (isMain) {
-  const inputFile = process.argv[2];
-  const outFile =
-    process.argv[3] ||
-    (inputFile ? inputFile.replace(/\.(xml|zip)$/i, ".pdf") : "output.pdf");
+const inputFile = process.argv[2];
+const outFile =
+  process.argv[3] ||
+  (inputFile ? inputFile.replace(/\.(xml|zip)$/i, ".pdf") : "output.pdf");
 
-  if (!inputFile) {
-    console.log("Usage: node dist/index.js <input.xml|input.zip> [output.pdf]");
-    process.exit(1);
-  }
-
-  convertToPdf(inputFile, outFile, { logLevel: LogLevel.Debug })
-    .then(() =>
-      console.log(`Successfully converted ${inputFile} to ${outFile}`),
-    )
-    .catch((err) => {
-      console.error("Conversion failed:", err.message);
-      process.exit(1);
-    });
+if (!inputFile) {
+  console.log("Usage: node dist/index.js <input.xml|input.zip> [output.pdf]");
+  process.exit(1);
 }
+
+convertToPdf(inputFile, outFile)
+  .then(() => console.log(`Successfully converted ${inputFile} to ${outFile}`))
+  .catch((err) => {
+    console.error("Conversion failed:", err.message);
+    process.exit(1);
+  });

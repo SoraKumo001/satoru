@@ -13,11 +13,12 @@
     "jszip": "3.10.1",
     "satoru": "workspace:*",
     "xmldom": "^0.6.0",
-    "xslt-processor": "^1.0.10"
+    "xslt-processor": "3.4.0"
   },
   "devDependencies": {
     "@types/jszip": "3.4.1",
     "@types/node": "25.2.3",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }

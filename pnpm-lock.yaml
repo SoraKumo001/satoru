@@ -169,8 +169,8 @@ importers:
         specifier: ^0.6.0
         version: 0.6.0
       xslt-processor:
-        specifier: ^1.0.10
-        version: 1.2.8
+        specifier: 3.4.0
+        version: 3.4.0
     devDependencies:
       '@types/jszip':
         specifier: 3.4.1
@@ -178,6 +178,9 @@ importers:
       '@types/node':
         specifier: 25.2.3
         version: 25.2.3
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -1087,8 +1090,8 @@ packages:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
 
-  get-tsconfig@4.13.4:
-    resolution: {integrity: sha512-gKvvu/fh0hxWmR/Ty0Goc3u/GADL9IgyhNAPD8hElRVO9dTOawCuyGNURCjaSTB4ZNP/OAUaSXmR2LhitzkLug==}
+  get-tsconfig@4.13.6:
+    resolution: {integrity: sha512-shZT/QMiSHc/YBLxxOkMtgSid5HFoauqCE3/exfsEcwg1WkeqjG+V40yBbBrsD+jW2HDXcs28xOfcbm2jI8Ddw==}
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
@@ -1488,8 +1491,8 @@ packages:
     resolution: {integrity: sha512-iAcin401y58LckRZ0TkI4k0VSM1Qg0KGSc3i8rU+xrxe19A/BN1zHyVSJY7uoutVlaTSzYyk/v5AmkewAP7jtg==}
     engines: {node: '>=10.0.0'}
 
-  xslt-processor@1.2.8:
-    resolution: {integrity: sha512-DtIZdGwfL07PZXBD17q5UMyHPntzTadIZpITCKvLwIn/tfsRlHYHcBSonrubXry/1SSs7+UeeX4VlMALYQw3mA==}
+  xslt-processor@3.4.0:
+    resolution: {integrity: sha512-hvsduzQNZSQD+ttrUSEg2wGOmmDekdo46IUis2s01l/4pNabNWAREEPoVEmzR3ZXbdcB5sR2q1AOTOyTtounAg==}
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
@@ -2239,7 +2242,7 @@ snapshots:
 
   gensync@1.0.0-beta.2: {}
 
-  get-tsconfig@4.13.4:
+  get-tsconfig@4.13.6:
     dependencies:
       resolve-pkg-maps: 1.0.0
 
@@ -2527,7 +2530,7 @@ snapshots:
   tsx@4.21.0:
     dependencies:
       esbuild: 0.27.3
-      get-tsconfig: 4.13.4
+      get-tsconfig: 4.13.6
     optionalDependencies:
       fsevents: 2.3.3
 
@@ -2641,7 +2644,7 @@ snapshots:
 
   xmldom@0.6.0: {}
 
-  xslt-processor@1.2.8:
+  xslt-processor@3.4.0:
     dependencies:
       he: 1.2.0
 

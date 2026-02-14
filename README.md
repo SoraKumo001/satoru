@@ -39,6 +39,8 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 - **Japanese Support**: Full support for Japanese rendering with multi-font fallback logic.
 - **Image Format Support**: Native support for **PNG**, **JPEG**, **WebP**, **AVIF**, **GIF**, **BMP**, and **ICO** image formats.
 - **Advanced CSS Support**:
+  - **Modern Color Spaces**: Support for `oklch()` color space and `color-mix()` function (sRGB/OKLab).
+  - **Layout**: Support for `aspect-ratio` property (including `auto <ratio>` for replaced elements).
   - **Box Model**: Margin, padding, border, and accurate **Border Radius**.
   - **Box Shadow**: High-quality **Outer** and **Inset** shadows using advanced SVG filters (SVG) or Skia blurs (PNG/PDF).
   - **Gradients**: Linear, **Elliptical Radial**, and **Conic** (Sweep) gradient support.
@@ -52,14 +54,14 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 
 ### Box Model & Layout
 
-- `display`, `position`, `float`, `clear`, `visibility`, `z-index`, `overflow`, `box-sizing`
+- `display`, `position`, `float`, `clear`, `visibility`, `z-index`, `overflow`, `box-sizing`, `aspect-ratio`
 - `width`, `height`, `min-width`, `min-height`, `max-width`, `max-height`
 - `margin` (top, right, bottom, left)
 - `padding` (top, right, bottom, left)
 
 ### Typography & Text
 
-- `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`
+- `color` (Supports `oklch()`, `color-mix()`), `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`
 - `text-align`, `vertical-align`, `text-decoration` (line, color, style, thickness)
 - `text-transform`, `text-indent`, `text-overflow`, `white-space`
 - `text-shadow`
@@ -461,8 +463,8 @@ pnpm build:all
 - [x] Border Radius & **Advanced Box Shadow (Outer/Inset)**.
 - [x] **Text Shadow (Multiple shadows, Blur, Offset).**
 - [x] **Optional SVG `<text>` element output.**
-- [ ] Support for `oklch()` color space.
-- [ ] Support for `color-mix()` CSS function.
+- [x] Support for `oklch()` color space.
+- [x] Support for `color-mix()` CSS function.
 - [ ] **Advanced CSS Filter support (`drop-shadow`, `blur`, `backdrop-filter`).**
 
 ### Platform & Integration
@@ -473,7 +475,7 @@ pnpm build:all
 - [x] **Command-line Interface (CLI) for batch conversion.**
 - [ ] Support for CSS Grid Layout.
 - [ ] Support for CSS Transforms (translate, rotate, scale).
-- [ ] Support for `aspect-ratio` property.
+- [x] Support for `aspect-ratio` property.
 - [ ] Support for CSS Logical Properties (margin-inline, etc.).
 
 ## 📜 License

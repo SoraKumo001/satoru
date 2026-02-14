@@ -44,6 +44,14 @@ namespace litehtml
 	class html_tag;
 	class render_item;
 
+	struct custom_property_definition
+	{
+		string_id name;
+		string syntax;
+		bool inherits;
+		css_token_vector initial_value;
+	};
+
 	class document : public std::enable_shared_from_this<document>
 	{
 	public:
@@ -70,6 +78,7 @@ namespace litehtml
 		string								m_culture;
 		string								m_text;
 		document_mode						m_mode = no_quirks_mode;
+		std::map<string_id, custom_property_definition> m_custom_properties;
 	public:
 		document(document_container* objContainer);
 		virtual ~document();
@@ -108,6 +117,14 @@ namespace litehtml
 
 		void							append_children_from_string(element& parent, const char* str, bool replace_existing);
 		void							dump(dumper& cout);
+
+		void							add_custom_property(const custom_property_definition& def) { m_custom_properties[def.name] = def; }
+		const custom_property_definition* get_custom_property_def(string_id name) const
+		{
+			auto it = m_custom_properties.find(name);
+			if (it != m_custom_properties.end()) return &it->second;
+			return nullptr;
+		}
 
 		// see doc/document_createFromString.txt
 		static document::ptr  createFromString(

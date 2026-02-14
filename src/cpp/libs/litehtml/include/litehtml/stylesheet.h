@@ -65,6 +65,7 @@ private:
 	void	parse_import_rule(raw_rule::ptr rule, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media, int layer, string layer_prefix);
 	void	add_selector(const css_selector::ptr& selector, int layer);
 	int		get_layer_id(const string& name);
+	void	parse_property_rule(raw_rule::ptr rule, shared_ptr<document> doc);
 	bool	evaluate_supports(const css_token_vector& tokens, shared_ptr<document> doc);
 	bool	evaluate_supports_condition(const css_token_vector& tokens, int& index, shared_ptr<document> doc);
 	bool	evaluate_supports_feature(const css_token& token, shared_ptr<document> doc);

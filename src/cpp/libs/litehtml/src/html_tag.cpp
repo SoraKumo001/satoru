@@ -333,10 +333,30 @@ bool html_tag::get_custom_property(string_id name, css_token_vector& result) con
                 result = value.get<css_token_vector>();
                 return true;
         }
-        else if (auto _parent = dynamic_cast<html_tag*>(parent().get()))
+
+        const custom_property_definition* def = get_document()->get_custom_property_def(name);
+        if (def && !def->inherits)
         {
-                return _parent->get_custom_property(name, result);
+                if (!def->initial_value.empty())
+                {
+                        result = def->initial_value;
+                        return true;
+                }
+                return false;
         }
+
+        if (auto _parent = dynamic_cast<html_tag*>(parent().get()))
+        {
+                if (_parent->get_custom_property(name, result))
+                        return true;
+        }
+
+        if (def && !def->initial_value.empty())
+        {
+                result = def->initial_value;
+                return true;
+        }
+
         return false;
 }
 

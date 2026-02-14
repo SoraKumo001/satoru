@@ -117,6 +117,13 @@ void css::parse_css_stylesheet(const Input& input, string baseurl, document::ptr
 			break;
 		}
 
+		case _property_:
+		{
+			if (doc) parse_property_rule(rule, doc);
+			import_allowed = false;
+			break;
+		}
+
 		default:
 			css_parse_error("unrecognized rule @" + rule->name);
 		}
@@ -277,6 +284,48 @@ int css::get_layer_id(const string& name)
 
 	m_resolved_ranks[name] = (int)rank;
 	return (int)rank;
+}
+
+void css::parse_property_rule(raw_rule::ptr rule, shared_ptr<document> doc)
+{
+	if (rule->block.type != CURLY_BLOCK) return;
+
+	string name_str = get_repr(rule->prelude);
+	trim(name_str);
+	if (name_str.size() < 2 || name_str.substr(0, 2) != "--") return;
+
+	string_id name = _id(name_str);
+
+	raw_declaration::vector decls;
+	raw_rule::vector rules;
+	css_parser(rule->block.value).consume_style_block_contents(decls, rules);
+
+	custom_property_definition def;
+	def.name = name;
+	def.inherits = false;
+	def.syntax = "*";
+
+	for (const auto& decl : decls)
+	{
+		string prop_name = lowcase(decl.name);
+		if (prop_name == "syntax")
+		{
+			def.syntax = get_repr(decl.value);
+			if (def.syntax.size() >= 2 && def.syntax.front() == '"' && def.syntax.back() == '"')
+				def.syntax = def.syntax.substr(1, def.syntax.size() - 2);
+		}
+		else if (prop_name == "inherits")
+		{
+			string val = lowcase(get_repr(decl.value));
+			def.inherits = (val == "true");
+		}
+		else if (prop_name == "initial-value")
+		{
+			def.initial_value = decl.value;
+		}
+	}
+
+	doc->add_custom_property(def);
 }
 
 bool css::evaluate_supports(const css_token_vector& tokens, shared_ptr<document> doc)

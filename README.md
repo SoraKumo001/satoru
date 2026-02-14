@@ -175,7 +175,8 @@ const png = await render({
   format: "png",
 });
 ```
-```
+
+````
 
 #### Render Options
 
@@ -220,7 +221,7 @@ export default {
     });
   },
 };
-```
+````
 
 ### 📦 Single-file (Embedded WASM)
 
@@ -444,15 +445,16 @@ pnpm build:all
 ## 🗺️ Roadmap
 
 ### Core Engine
+
 - [x] High-level TypeScript Wrapper API with automatic resource resolution.
 - [x] **Engine State Persistence (Serialize/Deserialize Layout).**
 - [x] Improved Font Fallback & Generic Family Mapping.
 - [x] **Advanced Table layout with `border-collapse` support.**
 - [x] Multi-threaded rendering via Worker Proxy.
 - [ ] Support for modern Media Query range syntax (e.g., `width >= 40rem`).
-- [ ] Direct C++ parsing of Data URL resources for performance.
 
 ### Rendering Features
+
 - [x] Binary PNG & **WebP** export support.
 - [x] **High-fidelity PDF export via Skia's PDF backend (Single & Multi-page).**
 - [x] Linear, Elliptical Radial & Conic Gradient support.
@@ -464,6 +466,7 @@ pnpm build:all
 - [ ] **Advanced CSS Filter support (`drop-shadow`, `blur`, `backdrop-filter`).**
 
 ### Platform & Integration
+
 - [x] **Cloudflare Workers (workerd) compatibility.**
 - [x] React Integration (JSX to HTML conversion).
 - [x] Japanese Language Rendering & Standard HTML Tag Support.

@@ -24,13 +24,17 @@ void ResourceManager::request(const std::string& url, const std::string& name, R
         size_t commaPos = url.find(',');
         if (commaPos != std::string::npos) {
             std::string metadata = url.substr(0, commaPos);
+            std::string rawData = url.substr(commaPos + 1);
             if (metadata.find(";base64") != std::string::npos) {
-                std::string base64Data = url.substr(commaPos + 1);
-                std::vector<uint8_t> decoded = base64_decode(base64Data);
+                std::vector<uint8_t> decoded = base64_decode(rawData);
                 if (!decoded.empty()) {
                     this->add(url, decoded.data(), decoded.size(), type);
                     return;
                 }
+            } else {
+                std::string decodedData = url_decode(rawData);
+                this->add(url, (const uint8_t*)decodedData.data(), decodedData.size(), type);
+                return;
             }
         }
     }
@@ -107,7 +111,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
         m_context.fontManager.scanFontFaces(fontFace);
 
     } else if (type == ResourceType::Image) {
-        m_context.loadImageFromData(url.c_str(), data, size);
+        m_context.loadImageFromData(url.c_str(), data, size, url.c_str());
     } else if (type == ResourceType::Css) {
         std::string lowerUrl = url;
         std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::tolower);
@@ -115,7 +119,11 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
             lowerUrl.find(".woff") != std::string::npos ||
             lowerUrl.find(".ttf") != std::string::npos ||
             lowerUrl.find(".otf") != std::string::npos ||
-            lowerUrl.find(".ttc") != std::string::npos) {
+            lowerUrl.find(".ttc") != std::string::npos ||
+            lowerUrl.find("font-woff") != std::string::npos ||
+            lowerUrl.find("font-ttf") != std::string::npos ||
+            lowerUrl.find("font-otf") != std::string::npos ||
+            lowerUrl.find("application/font") != std::string::npos) {
             // This is actually a font file that was requested as CSS (likely due to <link
             // rel="stylesheet">)
             this->add(url, data, size, ResourceType::Font);

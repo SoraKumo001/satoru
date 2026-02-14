@@ -363,6 +363,9 @@ export class Satoru {
           await Promise.all(
             pending.map(async (r) => {
               try {
+                if (r.url.startsWith("data:")) {
+                  return;
+                }
                 resolvedUrls.add(r.url);
                 let data: Uint8Array | null = null;
                 if (resolveResource) {

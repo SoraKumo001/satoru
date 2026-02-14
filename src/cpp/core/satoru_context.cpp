@@ -35,7 +35,8 @@ void SatoruContext::loadImage(const char *name, const char *data_url, int width,
     imageCache[name] = info;
 }
 
-void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, size_t size) {
+void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, size_t size,
+                                       const char *original_url) {
     auto data_ptr = SkData::MakeWithCopy(data, size);
     auto codec = SkCodec::MakeFromData(data_ptr, SkSpan<const SkCodecs::Decoder>({
                                                      SkPngDecoder::Decoder(),
@@ -50,7 +51,7 @@ void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, siz
         auto image = SkCodecs::DeferredImage(std::move(codec));
         if (image) {
             image_info info;
-            info.data_url = "";
+            info.data_url = original_url ? original_url : "";
             info.width = image->width();
             info.height = image->height();
             info.skImage = image;

@@ -200,19 +200,26 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                     const auto &draw = images[b - 1];
                     auto it = context.imageCache.find(draw.url);
                     if (it != context.imageCache.end() && it->second.skImage) {
-                        SkBitmap bitmap;
-                        bitmap.allocN32Pixels(it->second.skImage->width(),
-                                              it->second.skImage->height());
-                        SkCanvas bitmapCanvas(bitmap);
-                        bitmapCanvas.drawImage(it->second.skImage, 0, 0);
-                        std::string dataUrl = bitmapToDataUrl(bitmap);
+                        std::string dataUrl;
+                        if (!it->second.data_url.empty() &&
+                            it->second.data_url.substr(0, 5) == "data:") {
+                            dataUrl = it->second.data_url;
+                        } else {
+                            SkBitmap bitmap;
+                            bitmap.allocN32Pixels(it->second.skImage->width(),
+                                                  it->second.skImage->height());
+                            SkCanvas bitmapCanvas(bitmap);
+                            bitmapCanvas.drawImage(it->second.skImage, 0, 0);
+                            dataUrl = bitmapToDataUrl(bitmap);
+                        }
 
                         std::stringstream ss;
                         if (draw.layer.repeat == litehtml::background_repeat_no_repeat) {
                             ss << "<image x=\"" << draw.layer.origin_box.x << "\" y=\""
                                << draw.layer.origin_box.y << "\" width=\""
                                << draw.layer.origin_box.width << "\" height=\""
-                               << draw.layer.origin_box.height << "\" href=\"" << dataUrl << "\"";
+                               << draw.layer.origin_box.height
+                               << "\" preserveAspectRatio=\"none\" href=\"" << dataUrl << "\"";
                             if (draw.opacity < 1.0f) {
                                 ss << " opacity=\"" << draw.opacity << "\"";
                             }
@@ -374,7 +381,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         std::stringstream ss;
                         ss << "<image x=\"" << border_box.x << "\" y=\"" << border_box.y
                            << "\" width=\"" << border_box.width << "\" height=\""
-                           << border_box.height << "\" href=\"" << bitmapToDataUrl(bitmap) << "\"";
+                           << border_box.height << "\" preserveAspectRatio=\"none\" href=\""
+                           << bitmapToDataUrl(bitmap) << "\"";
 
                         float opacity = 1.0f;
                         if (g == 1)
@@ -506,11 +514,17 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
         if (draw.layer.repeat != litehtml::background_repeat_no_repeat) {
             auto it = context.imageCache.find(draw.url);
             if (it != context.imageCache.end() && it->second.skImage) {
-                SkBitmap bitmap;
-                bitmap.allocN32Pixels(it->second.skImage->width(), it->second.skImage->height());
-                SkCanvas bitmapCanvas(bitmap);
-                bitmapCanvas.drawImage(it->second.skImage, 0, 0);
-                std::string dataUrl = bitmapToDataUrl(bitmap);
+                std::string dataUrl;
+                if (!it->second.data_url.empty() && it->second.data_url.substr(0, 5) == "data:") {
+                    dataUrl = it->second.data_url;
+                } else {
+                    SkBitmap bitmap;
+                    bitmap.allocN32Pixels(it->second.skImage->width(),
+                                          it->second.skImage->height());
+                    SkCanvas bitmapCanvas(bitmap);
+                    bitmapCanvas.drawImage(it->second.skImage, 0, 0);
+                    dataUrl = bitmapToDataUrl(bitmap);
+                }
 
                 float pW = (float)draw.layer.origin_box.width;
                 float pH = (float)draw.layer.origin_box.height;
@@ -526,8 +540,8 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
                      << "\" y=\"" << draw.layer.origin_box.y << "\" width=\"" << pW
                      << "\" height=\"" << pH << "\">";
                 defs << "<image x=\"0\" y=\"0\" width=\"" << draw.layer.origin_box.width
-                     << "\" height=\"" << draw.layer.origin_box.height << "\" href=\"" << dataUrl
-                     << "\" />";
+                     << "\" height=\"" << draw.layer.origin_box.height
+                     << "\" preserveAspectRatio=\"none\" href=\"" << dataUrl << "\" />";
                 defs << "</pattern>";
             }
         }
@@ -608,6 +622,20 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height,
     std::string svg((const char *)data->data(), data->size());
 
     processTags(svg, inst->context, *inst->render_container);
+
+    // Ensure all <image> elements have preserveAspectRatio="none"
+    size_t imgPos = 0;
+    while ((imgPos = svg.find("<image", imgPos)) != std::string::npos) {
+        size_t endPos = svg.find(">", imgPos);
+        if (endPos != std::string::npos) {
+            std::string tag = svg.substr(imgPos, endPos - imgPos);
+            if (tag.find("preserveAspectRatio") == std::string::npos) {
+                svg.insert(endPos, " preserveAspectRatio=\"none\"");
+            }
+        }
+        imgPos = endPos;
+    }
+
     appendDefs(svg, *inst->render_container, inst->context, options);
 
     return svg;
@@ -649,6 +677,20 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     std::string svg((const char *)data->data(), data->size());
 
     processTags(svg, context, render_container);
+
+    // Ensure all <image> elements have preserveAspectRatio="none"
+    size_t imgPos = 0;
+    while ((imgPos = svg.find("<image", imgPos)) != std::string::npos) {
+        size_t endPos = svg.find(">", imgPos);
+        if (endPos != std::string::npos) {
+            std::string tag = svg.substr(imgPos, endPos - imgPos);
+            if (tag.find("preserveAspectRatio") == std::string::npos) {
+                svg.insert(endPos, " preserveAspectRatio=\"none\"");
+            }
+        }
+        imgPos = endPos;
+    }
+
     appendDefs(svg, render_container, context, options);
 
     return svg;

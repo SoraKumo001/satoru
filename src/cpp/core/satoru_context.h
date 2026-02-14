@@ -38,7 +38,8 @@ class SatoruContext {
         loadImage(name, data_url, width, height);
     }
     void loadImage(const char *name, const char *data_url, int width, int height);
-    void loadImageFromData(const char *name, const uint8_t *data, size_t size);
+    void loadImageFromData(const char *name, const uint8_t *data, size_t size,
+                           const char *original_url = nullptr);
 
     void clear_images() { imageCache.clear(); }
     void clearImages() { imageCache.clear(); }

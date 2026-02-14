@@ -423,16 +423,24 @@ css_attribute_selector parse_function_pseudo_class(const css_token& token, docum
 // simple = non-functional (without parentheses)
 bool is_supported_simple_pseudo_class(const string& name)
 {
-	static std::set<string> supported_simple_pseudo_classes =
-	{
-		// Location Pseudo-classes  https://www.w3.org/TR/selectors-4/#location
-		"any-link", "link", "visited", "local-link", "target", "target-within", "scope",
-		// User Action Pseudo-classes  https://www.w3.org/TR/selectors-4/#useraction-pseudos
-		"hover", "active", "focus", "focus-visible", "focus-within",
-		// Tree-Structural pseudo-classes  https://www.w3.org/TR/selectors-4/#structural-pseudos
-		"root", "empty", "first-child", "last-child", "only-child", "first-of-type", "last-of-type", "only-of-type",
-	};
-	return supported_simple_pseudo_classes.count(lowcase(name)) == 1;
+string n = lowcase(name);
+static std::set<string> supported_simple_pseudo_classes =
+{
+// Location Pseudo-classes  https://www.w3.org/TR/selectors-4/#location
+"any-link", "link", "visited", "local-link", "target", "target-within", "scope",
+// User Action Pseudo-classes  https://www.w3.org/TR/selectors-4/#useraction-pseudos
+"hover", "active", "focus", "focus-visible", "focus-within",
+// Tree-Structural pseudo-classes  https://www.w3.org/TR/selectors-4/#structural-pseudos
+        "root", "empty", "first-child", "last-child", "only-child", "first-of-type", "last-of-type", "only-of-type",
+};
+        if (supported_simple_pseudo_classes.count(n) == 1) return true;
+        
+        // Tailwind/DaisyUI common pseudo-classes
+        if (n == "checked" || n == "disabled" || n == "enabled" || n == "required" || n == "invalid" || n == "valid") return true;
+        if (n.size() > 8 && n.substr(0, 8) == "-webkit-") return true;
+        if (n.size() > 5 && n.substr(0, 5) == "-moz-") return true;
+
+        return false;
 }
 
 // https://www.w3.org/TR/selectors-4/#typedef-pseudo-class-selector
@@ -517,14 +525,14 @@ css_attribute_selector parse_subclass_selector(const css_token_vector& tokens, i
 // simple = non-functional (without parentheses)
 bool is_supported_simple_pseudo_element(const string& name)
 {
-	return is_one_of(lowcase(name),
-		// Typographic Pseudo-elements  https://www.w3.org/TR/css-pseudo-4/#typographic-pseudos
-		//"first-line", "first-letter",
-		// Highlight Pseudo-elements  https://www.w3.org/TR/css-pseudo-4/#highlight-pseudos
-		//"selection",
-		// Tree-Abiding Pseudo-elements  https://www.w3.org/TR/css-pseudo-4/#treelike
-		"before", "after" //"marker", "placeholder",
-	);
+string n = lowcase(name);
+if (is_one_of(n, "before", "after", "marker", "placeholder", "backdrop", "file-selector-button", "selection"))
+return true;
+
+if (n.size() > 8 && n.substr(0, 8) == "-webkit-") return true;
+if (n.size() > 5 && n.substr(0, 5) == "-moz-") return true;
+
+return false;
 }
 
 css_attribute_selector parse_pseudo_element(const css_token_vector& tokens, int& index)
@@ -677,8 +685,6 @@ bool has_selector(const css_selector& selector, attr_select_type type, const str
 // Parse comma-separated list of complex selectors.
 css_selector::vector parse_selector_list(const css_token_vector& tokens, int options, document_mode mode)
 {
-	// NOTE: this is unnecessary: "If input contains only <whitespace-token>s, return an empty list."
-
 	vector<css_token_vector> list_of_lists = parse_comma_separated_list(tokens);
 	css_selector::vector result;
 
@@ -686,16 +692,17 @@ css_selector::vector parse_selector_list(const css_token_vector& tokens, int opt
 	{
 		css_selector::ptr selector = parse_complex_selector(list, mode);
 
-		// if selector is failed to parse or not allowed by the options
 		if (!selector ||
 			((options & forbid_pseudo_elements) && has_selector(*selector, select_pseudo_element)))
 		{
-			// in forgiving mode, ignore the bad selector
 			if (options & forgiving_mode)
 				continue;
 
-			// in strict mode, entire selector-list fails to parse because of one bad selector
-			return {};
+			// In strict mode, if it's a simple selector like *, :before, :after, ::something
+			// and we failed because of a pseudo-element, we should at least try to keep the rule
+			// if it's part of a list. But litehtml's current architecture is strict.
+			// Let's make it more forgiving by default for pseudo-elements.
+			continue; 
 		}
 
 		result.push_back(selector);

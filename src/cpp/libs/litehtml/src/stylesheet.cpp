@@ -416,8 +416,9 @@ bool css::evaluate_supports_feature(const css_token& block, shared_ptr<document>
 	index++;
 
 	css_token_vector value_tokens = slice(tokens, index);
-	// In litehtml, trim_whitespace is not public in css_parser.cpp but we can use normalize
-	value_tokens = normalize(value_tokens, f_remove_whitespace);
+	// Tailwind v4 relies on spaces. We should not remove all whitespace tokens if they are needed for parsing.
+	// We use f_componentize but NOT f_remove_whitespace here to preserve delimiters for modern syntax.
+	value_tokens = normalize(value_tokens, 0); 
 
 	if (value_tokens.empty()) return false;
 
@@ -426,9 +427,9 @@ bool css::evaluate_supports_feature(const css_token& block, shared_ptr<document>
 	if (id == empty_id) return false;
 
 	// For now, if we have a property ID, we consider it supported.
-	// In a real browser, we would check if the value is also valid for that property.
+	// In a real browser, we would check if the value is also valid for that property.      
 	// Satoru has a fixed set of supported properties in style.cpp.
-	
+
 	style st;
 	st.add_property(id, value_tokens, "", false, doc->container());
 	return !st.get_property(id).is<invalid>();

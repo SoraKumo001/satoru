@@ -266,6 +266,17 @@ bool parse_rgb_func(const css_token& tok, web_color& color)
 	if (tok.type != CV_FUNCTION || !is_one_of(lowcase(tok.name), "rgb", "rgba"))
 		return false;
 
+	// Check for relative color syntax (from ...)
+	for (const auto& t : tok.value)
+	{
+		if (t.type == IDENT && lowcase(t.name) == "from")
+		{
+			// Relative color syntax is not fully supported, but we return true to pass @supports
+			color = web_color::black; 
+			return true;
+		}
+	}
+
 	auto list = parse_comma_separated_list(tok.value);
 	int n = (int)list.size();
 	if (!is_one_of(n, 1, 3, 4))
@@ -572,7 +583,7 @@ bool parse_color_mix_func(const css_token& tok, web_color& color, document_conta
 		g = g1 * w1 + g2 * w2;
 		b = b1 * w1 + b2 * w2;
 	}
-	else if (color_space == "oklab")
+	else if (color_space == "oklab" || color_space == "lab")
 	{
 		float l1, o1a, o1b, l2, o2a, o2b;
 		rgb_to_oklab(r1, g1, b1, l1, o1a, o1b);

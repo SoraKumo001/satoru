@@ -511,6 +511,14 @@ namespace litehtml
       parse_aspect_ratio(value, important);
       break;
 
+    case _margin_trim_:
+    case __webkit_hyphens_:
+    case __moz_orient_:
+    case __webkit_appearance_:
+    case _contain_intrinsic_size_:
+      add_parsed_property(name, property_value(get_repr(value), important, false, m_layer));
+      break;
+
     default:
       if (_s(name).substr(0, 2) == "--" && _s(name).size() >= 3 &&
           (value.empty() || is_declaration_value(value)))

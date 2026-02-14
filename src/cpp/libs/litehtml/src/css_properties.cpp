@@ -33,6 +33,8 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   m_text_shadow = el->get_property<shadow_vector>(_text_shadow_, true, shadow_vector(), offset(m_text_shadow));
   m_opacity = el->get_property<float>(_opacity_, false, 1.0f, offset(m_opacity));
   m_aspect_ratio = el->get_property<aspect_ratio>(_aspect_ratio_, false, aspect_ratio(), offset(m_aspect_ratio));
+  m_transform = el->get_property<css_token_vector>(_transform_, false, css_token_vector(), offset(m_transform));
+  m_transform_origin = el->get_property<css_token_vector>(_transform_origin_, false, css_token_vector(), offset(m_transform_origin));
 
   // https://www.w3.org/TR/CSS22/visuren.html#dis-pos-flo
   if (m_display == display_none)
@@ -56,6 +58,8 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
         m_display = display_table;
       }
       else if (m_display == display_inline ||
+               m_display == display_grid ||
+               m_display == display_inline_grid ||
                m_display == display_table_row_group ||
                m_display == display_table_column ||
                m_display == display_table_column_group ||

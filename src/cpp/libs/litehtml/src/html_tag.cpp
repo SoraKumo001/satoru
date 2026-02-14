@@ -295,6 +295,19 @@ void litehtml::html_tag::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position
         pos.x   += x;
         pos.y   += y;
 
+        document_container* container = get_document()->container();
+
+        if (m_css.get_opacity() < 1.0f)
+        {
+                container->push_layer(hdc, m_css.get_opacity());
+        }
+
+        bool has_transform = !m_css.get_transform().empty();
+        if (has_transform)
+        {
+                container->push_transform(hdc, m_css.get_transform(), m_css.get_transform_origin(), pos);
+        }
+
         draw_background(hdc, x, y, clip, ri);
         draw_borders(hdc, x, y, clip, ri);
 
@@ -322,6 +335,16 @@ void litehtml::html_tag::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position
                         get_document()->container()->del_clip();
                 }
         }
+
+        if (has_transform)
+        {
+                container->pop_transform(hdc);
+        }
+
+        if (m_css.get_opacity() < 1.0f)
+        {
+                container->pop_layer(hdc);
+        }
 }
 
 bool html_tag::get_custom_property(string_id name, css_token_vector& result) const
@@ -345,7 +368,7 @@ bool html_tag::get_custom_property(string_id name, css_token_vector& result) con
                 return false;
         }
 
-        if (auto _parent = dynamic_cast<html_tag*>(parent().get()))
+        if (auto _parent = parent_tag())
         {
                 if (_parent->get_custom_property(name, result))
                         return true;

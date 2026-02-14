@@ -401,7 +401,7 @@ namespace litehtml
                 }
         };
 
-#define  style_display_strings          "none;block;inline;inline-block;inline-table;list-item;table;table-caption;table-cell;table-column;table-column-group;table-footer-group;table-header-group;table-row;table-row-group;inline-text;flex;inline-flex;-webkit-box;-webkit-inline-box"
+#define  style_display_strings          "none;block;inline;inline-block;inline-table;list-item;table;table-caption;table-cell;table-column;table-column-group;table-footer-group;table-header-group;table-row;table-row-group;inline-text;flex;inline-flex;-webkit-box;-webkit-inline-box;grid;inline-grid"
 
         enum style_display
         {
@@ -425,6 +425,8 @@ namespace litehtml
                 display_inline_flex,
                 display_webkit_box,
                 display_webkit_inline_box,
+                display_grid,
+                display_inline_grid,
         };
 
 #define  font_size_strings              "xx-small;x-small;small;medium;large;x-large;xx-large;smaller;larger"
@@ -997,17 +999,24 @@ namespace litehtml
                 media_type_first_deprecated
         };
 
+        enum color_scheme
+        {
+                color_scheme_light,
+                color_scheme_dark
+        };
+
         struct media_features
         {
                 media_type      type;
-                pixel_t         width;                  // (pixels) For continuous media, this is the width of the viewport including the size of a rendered scroll bar (if any). For paged media, this is the width of the page box.
-                pixel_t         height;                 // (pixels) The height of the targeted display area of the output device. For continuous media, this is the height of the viewport including the size of a rendered scroll bar (if any). For paged media, this is the height of the page box.
-                pixel_t         device_width;   // (pixels) The width of the rendering surface of the output device. For continuous media, this is the width of the screen. For paged media, this is the width of the page sheet size.
-                pixel_t         device_height;  // (pixels) The height of the rendering surface of the output device. For continuous media, this is the height of the screen. For paged media, this is the height of the page sheet size.
-                int                     color;                  // The number of bits per color component of the output device. If the device is not a color device, the value is zero.
-                int                     color_index;    // The number of entries in the color lookup table of the output device. If the device does not use a color lookup table, the value is zero.      
-                int                     monochrome;             // The number of bits per pixel in a monochrome frame buffer. If the device is not a monochrome device, the output device value will be 0.
-                pixel_t         resolution;             // The resolution of the output device (in DPI)
+                pixel_t         width;
+                pixel_t         height;
+                pixel_t         device_width;
+                pixel_t         device_height;
+                int                     color;
+                int                     color_index;
+                int                     monochrome;
+                pixel_t         resolution;
+                color_scheme    scheme;
 
                 media_features()
                 {
@@ -1020,6 +1029,7 @@ namespace litehtml
                         color_index = 0;
                         monochrome = 0;
                         resolution = 0;
+                        scheme = color_scheme_light;
                 }
         };
 

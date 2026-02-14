@@ -68,6 +68,8 @@ bool media_feature::check(const media_features& feat) const
 		return compare(feat.monochrome);
 	case _resolution_:
 		return compare(feat.resolution);
+	case _prefers_color_scheme_:
+		return compare(feat.scheme == color_scheme_dark ? _dark_ : _light_);
 	default:
 		assert(0); // must never happen, unknown media features are handled in parse_media_feature
 		return false;
@@ -397,6 +399,9 @@ std::map<string, mf_info> supported_media_features =
 
 	// https://drafts.csswg.org/mediaqueries/#device-aspect-ratio
 	{"device-aspect-ratio", {_range_, _ratio_}},
+
+	// https://drafts.csswg.org/mediaqueries-5/#prefers-color-scheme
+	{"prefers-color-scheme", {_discrete_, _keyword_, {_light_, _dark_}}},
 };
 
 bool convert_units(mf_info mfi, css_token val[2], document::ptr doc)

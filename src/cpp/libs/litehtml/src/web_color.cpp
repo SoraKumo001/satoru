@@ -170,6 +170,11 @@ def_color g_def_colors[] =
 	{"YellowGreen","#9ACD32"},
 };
 
+void rgb_to_oklab(float r, float g, float b, float& l, float& a, float& b_out);
+void oklab_to_rgb(float l, float a, float b_in, float& r, float& g, float& b);
+void rgb_to_oklch(float r, float g, float b, float& l, float& c, float& h);
+void oklch_to_rgb(float l, float c, float h, float a, float& r, float& g, float& b);
+
 // <hex-color>  https://drafts.csswg.org/css-color-4/#typedef-hex-color
 bool parse_hash_color(const css_token& tok, web_color& color)
 {
@@ -442,10 +447,43 @@ void oklch_to_rgb(float l, float c, float h, float a, float& r, float& g, float&
 }
 
 // https://drafts.csswg.org/css-color-4/#the-oklch-notation
-bool parse_oklch_func(const css_token& tok, web_color& color)
+bool parse_oklch_func(const css_token& tok, web_color& color, document_container* container)
 {
 	if (tok.type != CV_FUNCTION || lowcase(tok.name) != "oklch")
 		return false;
+
+	// Check for relative color syntax (from ...)
+	if (!tok.value.empty() && tok.value[0].type == IDENT && lowcase(tok.value[0].name) == "from")
+	{
+		if (tok.value.size() < 2) return false;
+		web_color base_color;
+		if (!parse_color(tok.value[1], base_color, container)) return false;
+
+		float l, c, h;
+		rgb_to_oklch(base_color.red / 255.0f, base_color.green / 255.0f, base_color.blue / 255.0f, l, c, h);
+		float a = base_color.alpha / 255.0f;
+
+		// Tailwind v4: oklch(from var(--color) l c h / opacity)
+		// For now, simple mapping
+		color = base_color;
+
+		for (size_t i = 2; i < tok.value.size(); i++)
+		{
+			if (tok.value[i].ch == '/')
+			{
+				if (i + 1 < tok.value.size())
+				{
+					css_length alpha_len;
+					if (alpha_len.from_token(tok.value[i+1], f_number | f_percentage))
+					{
+						color.alpha = calc_percent_and_clamp(alpha_len, 1);
+					}
+				}
+				break;
+			}
+		}
+		return true;
+	}
 
 	auto n = tok.value.size();
 	if (!(n == 3 || n == 5)) return false;
@@ -662,10 +700,105 @@ bool parse_color_mix_func(const css_token& tok, web_color& color, document_conta
 	return true;
 }
 
+// https://drafts.csswg.org/css-color-5/#light-dark
+bool parse_light_dark_func(const css_token& tok, web_color& color, document_container* container)
+{
+	if (tok.type != CV_FUNCTION || lowcase(tok.name) != "light-dark")
+		return false;
+
+	auto list = parse_comma_separated_list(tok.value);
+	if (list.size() != 2) return false;
+
+	web_color c_light, c_dark;
+	if (!parse_color(list[0][0], c_light, container)) return false;
+	if (!parse_color(list[1][0], c_dark, container)) return false;
+
+	color_scheme scheme = color_scheme_light;
+	if (container)
+	{
+		media_features feat;
+		container->get_media_features(feat);
+		scheme = feat.scheme;
+	}
+
+	color = (scheme == color_scheme_dark) ? c_dark : c_light;
+	return true;
+}
+
+void oklab_to_rgb(float l, float a, float b_in, float& r, float& g, float& b);
+
+// https://drafts.csswg.org/css-color-4/#specifying-oklab-oklch
+bool parse_oklab_func(const css_token& tok, web_color& color, document_container* container)
+{
+	if (tok.type != CV_FUNCTION || lowcase(tok.name) != "oklab")
+		return false;
+
+	// Check for relative color syntax (from ...)
+	if (!tok.value.empty() && tok.value[0].type == IDENT && lowcase(tok.value[0].name) == "from")
+	{
+		if (tok.value.size() < 2) return false;
+		web_color base_color;
+		if (!parse_color(tok.value[1], base_color, container)) return false;
+
+		float l, a, b;
+		rgb_to_oklab(base_color.red / 255.0f, base_color.green / 255.0f, base_color.blue / 255.0f, l, a, b);
+		
+		color = base_color;
+
+		for (size_t i = 2; i < tok.value.size(); i++)
+		{
+			if (tok.value[i].ch == '/')
+			{
+				if (i + 1 < tok.value.size())
+				{
+					css_length alpha_len;
+					if (alpha_len.from_token(tok.value[i+1], f_number | f_percentage))
+					{
+						color.alpha = calc_percent_and_clamp(alpha_len, 1);
+					}
+				}
+				break;
+			}
+		}
+		return true;
+	}
+
+	auto n = tok.value.size();
+	if (!(n == 3 || n == 5)) return false;
+
+	css_length l, a, b, alpha(1, css_units_none);
+	if (!l.from_token(tok.value[0], f_number | f_percentage, "none")) return false;
+	if (!a.from_token(tok.value[1], f_number | f_percentage, "none")) return false;
+	if (!b.from_token(tok.value[2], f_number | f_percentage, "none")) return false;
+
+	if (n == 5)
+	{
+		if (tok.value[3].ch != '/') return false;
+		if (!alpha.from_token(tok.value[4], f_number | f_percentage, "none")) return false;
+	}
+
+	for (auto t : {&l,&a,&b,&alpha}) if (t->is_predefined()) t->set_value(0, css_units_none);
+
+	float l_v = l.val(); if (l.units() == css_units_percentage) l_v /= 100;
+	float a_v = a.val(); if (a.units() == css_units_percentage) a_v /= 100; // This is not standard but a simplification
+	float b_v = b.val(); if (b.units() == css_units_percentage) b_v /= 100;
+
+	float r, g, b_out;
+	oklab_to_rgb(l_v, a_v, b_v, r, g, b_out);
+
+	color = web_color(
+		(byte)clamp(round(r * 255), 0, 255),
+		(byte)clamp(round(g * 255), 0, 255),
+		(byte)clamp(round(b_out * 255), 0, 255),
+		calc_percent_and_clamp(alpha, 1));
+
+	return true;
+}
+
 // https://drafts.csswg.org/css-color-5/#typedef-color-function
 bool parse_func_color(const css_token& tok, web_color& color, document_container* container)
 {
-	return parse_rgb_func(tok, color, container) || parse_hsl_func(tok, color) || parse_oklch_func(tok, color) || parse_color_mix_func(tok, color, container);
+	return parse_rgb_func(tok, color, container) || parse_hsl_func(tok, color) || parse_oklch_func(tok, color, container) || parse_oklab_func(tok, color, container) || parse_color_mix_func(tok, color, container) || parse_light_dark_func(tok, color, container);
 }
 
 string resolve_name(const string& name, document_container* container)

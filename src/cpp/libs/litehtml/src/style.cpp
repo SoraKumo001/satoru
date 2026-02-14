@@ -176,6 +176,14 @@ namespace litehtml
 
     switch (name)
     {
+    case _transform_:
+    case _transform_origin_:
+    case _translate_:
+    case _rotate_:
+    case _scale_:
+      add_parsed_property(name, property_value(value, important, false, m_layer));
+      break;
+
     case _display_:
     case _visibility_:
     case _position_:
@@ -247,6 +255,107 @@ namespace litehtml
 
     case _font_size_:
       return add_length_property(name, val, font_size_strings, f_length_percentage | f_positive, important);
+
+    case _margin_inline_:
+      add_property(_margin_left_, value, baseurl, important, container, layer);
+      add_property(_margin_right_, value, baseurl, important, container, layer);
+      return;
+    case _margin_inline_start_:
+      add_property(_margin_left_, value, baseurl, important, container, layer);
+      return;
+    case _margin_inline_end_:
+      add_property(_margin_right_, value, baseurl, important, container, layer);
+      return;
+    case _margin_block_:
+      add_property(_margin_top_, value, baseurl, important, container, layer);
+      add_property(_margin_bottom_, value, baseurl, important, container, layer);
+      return;
+    case _margin_block_start_:
+      add_property(_margin_top_, value, baseurl, important, container, layer);
+      return;
+    case _margin_block_end_:
+      add_property(_margin_bottom_, value, baseurl, important, container, layer);
+      return;
+
+    case _padding_inline_:
+      add_property(_padding_left_, value, baseurl, important, container, layer);
+      add_property(_padding_right_, value, baseurl, important, container, layer);
+      return;
+    case _padding_inline_start_:
+      add_property(_padding_left_, value, baseurl, important, container, layer);
+      return;
+    case _padding_inline_end_:
+      add_property(_padding_right_, value, baseurl, important, container, layer);
+      return;
+    case _padding_block_:
+      add_property(_padding_top_, value, baseurl, important, container, layer);
+      add_property(_padding_bottom_, value, baseurl, important, container, layer);
+      return;
+    case _padding_block_start_:
+      add_property(_padding_top_, value, baseurl, important, container, layer);
+      return;
+    case _padding_block_end_:
+      add_property(_padding_bottom_, value, baseurl, important, container, layer);
+      return;
+
+    case _inset_inline_:
+      add_property(_left_, value, baseurl, important, container, layer);
+      add_property(_right_, value, baseurl, important, container, layer);
+      return;
+    case _inset_inline_start_:
+      add_property(_left_, value, baseurl, important, container, layer);
+      return;
+    case _inset_inline_end_:
+      add_property(_right_, value, baseurl, important, container, layer);
+      return;
+    case _inset_block_:
+      add_property(_top_, value, baseurl, important, container, layer);
+      add_property(_bottom_, value, baseurl, important, container, layer);
+      return;
+    case _inset_block_start_:
+      add_property(_top_, value, baseurl, important, container, layer);
+      return;
+    case _inset_block_end_:
+      add_property(_bottom_, value, baseurl, important, container, layer);
+      return;
+
+    case _border_inline_:
+      add_property(_border_left_, value, baseurl, important, container, layer);
+      add_property(_border_right_, value, baseurl, important, container, layer);
+      return;
+    case _border_inline_width_:
+      add_property(_border_left_width_, value, baseurl, important, container, layer);
+      add_property(_border_right_width_, value, baseurl, important, container, layer);
+      return;
+    case _border_inline_style_:
+      add_property(_border_left_style_, value, baseurl, important, container, layer);
+      add_property(_border_right_style_, value, baseurl, important, container, layer);
+      return;
+    case _border_inline_color_:
+      add_property(_border_left_color_, value, baseurl, important, container, layer);
+      add_property(_border_right_color_, value, baseurl, important, container, layer);
+      return;
+    case _border_block_:
+      add_property(_border_top_, value, baseurl, important, container, layer);
+      add_property(_border_bottom_, value, baseurl, important, container, layer);
+      return;
+    case _border_block_width_:
+      add_property(_border_top_width_, value, baseurl, important, container, layer);
+      add_property(_border_bottom_width_, value, baseurl, important, container, layer);
+      return;
+    case _border_block_style_:
+      add_property(_border_top_style_, value, baseurl, important, container, layer);
+      add_property(_border_bottom_style_, value, baseurl, important, container, layer);
+      return;
+    case _border_block_color_:
+      add_property(_border_top_color_, value, baseurl, important, container, layer);
+      add_property(_border_bottom_color_, value, baseurl, important, container, layer);
+      return;
+
+    case _inset_:
+      if (int n = parse_1234_lengths(value, len, f_length_percentage, "auto"))
+        add_four_properties(_top_, len, n, important);
+      return;
 
     case _margin_:
       if (int n = parse_1234_lengths(value, len, f_length_percentage, "auto"))
@@ -1558,77 +1667,141 @@ namespace litehtml
     for (int i = 0; i < (int)tokens.size(); i++)
     {
       auto &tok = tokens[i];
-      if (tok.type == CV_FUNCTION && lowcase(tok.name) == "calc")
+      if (tok.type == CV_FUNCTION && (lowcase(tok.name) == "calc" || lowcase(tok.name) == "min" || lowcase(tok.name) == "max" || lowcase(tok.name) == "clamp"))
       {
         evaluate_calc(tok.value, el);
+
+        string func_name = lowcase(tok.name);
 
         // Remove whitespace for evaluation
         css_token_vector val;
         for (const auto& t : tok.value) if (t.type != WHITESPACE) val.push_back(t);
 
-        if (val.size() == 1 && (val[0].type == DIMENSION || val[0].type == NUMBER || val[0].type == PERCENTAGE))
+        if (func_name == "calc")
         {
-          css_token inner = val[0];
-          remove(tokens, i);
-          insert(tokens, i, {inner});
-          changed = true;
-          continue;
+          if (val.size() == 1 && (val[0].type == DIMENSION || val[0].type == NUMBER || val[0].type == PERCENTAGE))
+          {
+            css_token inner = val[0];
+            remove(tokens, i);
+            insert(tokens, i, {inner});
+            changed = true;
+            continue;
+          }
+
+          if (val.size() == 3)
+          {
+            const auto& left = val[0];
+            const auto& op = val[1];
+            const auto& right = val[2];
+
+            if (left.type == DIMENSION && right.type == NUMBER && op.ch == '*')
+            {
+              css_token result = left;
+              result.n.number *= right.n.number;
+              remove(tokens, i);
+              insert(tokens, i, {result});
+              changed = true;
+              continue;
+            }
+            if (left.type == NUMBER && right.type == DIMENSION && op.ch == '*')
+            {
+              css_token result = right;
+              result.n.number *= left.n.number;
+              remove(tokens, i);
+              insert(tokens, i, {result});
+              changed = true;
+              continue;
+            }
+            if (left.type == DIMENSION && right.type == NUMBER && op.ch == '/' && right.n.number != 0)
+            {
+              css_token result = left;
+              result.n.number /= right.n.number;
+              remove(tokens, i);
+              insert(tokens, i, {result});
+              changed = true;
+              continue;
+            }
+            if (left.type == DIMENSION && right.type == DIMENSION && left.unit == right.unit && (op.ch == '+' || op.ch == '-'))
+            {
+              css_token result = left;
+              if (op.ch == '+') result.n.number += right.n.number;
+              else result.n.number -= right.n.number;
+              remove(tokens, i);
+              insert(tokens, i, {result});
+              changed = true;
+              continue;
+            }
+            if (left.type == NUMBER && right.type == NUMBER && (op.ch == '+' || op.ch == '-' || op.ch == '*' || op.ch == '/'))
+            {
+              css_token result = left;
+              if (op.ch == '+') result.n.number += right.n.number;
+              else if (op.ch == '-') result.n.number -= right.n.number;
+              else if (op.ch == '*') result.n.number *= right.n.number;
+              else if (op.ch == '/' && right.n.number != 0) result.n.number /= right.n.number;
+              remove(tokens, i);
+              insert(tokens, i, {result});
+              changed = true;
+              continue;
+            }
+          }
         }
-
-        if (val.size() == 3)
+        else if (func_name == "min" || func_name == "max")
         {
-          const auto& left = val[0];
-          const auto& op = val[1];
-          const auto& right = val[2];
-
-          if (left.type == DIMENSION && right.type == NUMBER && op.ch == '*')
+          auto args = parse_comma_separated_list(val);
+          bool all_same = true;
+          if (!args.empty())
           {
-            css_token result = left;
-            result.n.number *= right.n.number;
-            remove(tokens, i);
-            insert(tokens, i, {result});
-            changed = true;
-            continue;
+            css_token first = args[0][0];
+            for (const auto& arg : args)
+            {
+              if (arg.size() != 1 || arg[0].type != first.type || (arg[0].type == DIMENSION && lowcase(arg[0].unit) != lowcase(first.unit)))
+              {
+                all_same = false;
+                break;
+              }
+            }
+            if (all_same)
+            {
+              css_token result = first;
+              for (const auto& arg : args)
+              {
+                if (func_name == "min") result.n.number = min(result.n.number, arg[0].n.number);
+                else result.n.number = max(result.n.number, arg[0].n.number);
+              }
+              remove(tokens, i);
+              insert(tokens, i, {result});
+              changed = true;
+              continue;
+            }
           }
-          if (left.type == NUMBER && right.type == DIMENSION && op.ch == '*')
+        }
+        else if (func_name == "clamp" && val.size() >= 5)
+        {
+          auto args = parse_comma_separated_list(val);
+          if (args.size() == 3)
           {
-            css_token result = right;
-            result.n.number *= left.n.number;
-            remove(tokens, i);
-            insert(tokens, i, {result});
-            changed = true;
-            continue;
-          }
-          if (left.type == DIMENSION && right.type == NUMBER && op.ch == '/' && right.n.number != 0)
-          {
-            css_token result = left;
-            result.n.number /= right.n.number;
-            remove(tokens, i);
-            insert(tokens, i, {result});
-            changed = true;
-            continue;
-          }
-          if (left.type == DIMENSION && right.type == DIMENSION && left.unit == right.unit && (op.ch == '+' || op.ch == '-'))
-          {
-            css_token result = left;
-            if (op.ch == '+') result.n.number += right.n.number;
-            else result.n.number -= right.n.number;
-            remove(tokens, i);
-            insert(tokens, i, {result});
-            changed = true;
-            continue;
-          }
-          if (left.type == NUMBER && right.type == NUMBER && (op.ch == '+' || op.ch == '-' || op.ch == '*' || op.ch == '/'))
-          {
-            css_token result = left;
-            if (op.ch == '+') result.n.number += right.n.number;
-            else if (op.ch == '-') result.n.number -= right.n.number;
-            else if (op.ch == '*') result.n.number *= right.n.number;
-            else if (op.ch == '/' && right.n.number != 0) result.n.number /= right.n.number;
-            remove(tokens, i);
-            insert(tokens, i, {result});
-            changed = true;
-            continue;
+            bool all_same = true;
+            css_token first = args[0][0];
+            for (const auto& arg : args)
+            {
+              if (arg.size() != 1 || arg[0].type != first.type || (arg[0].type == DIMENSION && lowcase(arg[0].unit) != lowcase(first.unit)))
+              {
+                all_same = false;
+                break;
+              }
+            }
+            if (all_same)
+            {
+              css_token result = first;
+              float min_v = args[0][0].n.number;
+              float val_v = args[1][0].n.number;
+              float max_v = args[2][0].n.number;
+              result.n.number = max(min_v, min(val_v, max_v));
+              remove(tokens, i);
+              insert(tokens, i, {result});
+              changed = true;
+              continue;
+            }
           }
         }
       }
@@ -1708,4 +1881,4 @@ namespace litehtml
     if (!shadows.empty())
       add_parsed_property(name, property_value(shadows, important, false, m_layer));
   }
-}
+} // namespace litehtml

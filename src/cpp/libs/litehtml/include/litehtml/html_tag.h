@@ -99,6 +99,8 @@ namespace litehtml
 		void				get_content_size(size& sz, pixel_t max_width) override;
 		void				add_style(const style& style) override;
 
+		shared_ptr<html_tag> parent_tag() const;
+
 		bool				is_nth_child(const element::ptr& el, int num, int off, bool of_type, const css_selector::vector& selector_list) const override;
 		bool				is_nth_last_child(const element::ptr& el, int num, int off, bool of_type, const css_selector::vector& selector_list) const override;
 		bool				is_only_child(const element::ptr& el, bool of_type) const override;
@@ -131,6 +133,11 @@ namespace litehtml
 		return m_children;
 	}
 
+	inline shared_ptr<html_tag> html_tag::parent_tag() const
+	{
+		return std::static_pointer_cast<html_tag>(parent());
+	}
+
 	template<class Type>
 	const Type& html_tag::get_property(string_id name, bool inherited, const Type& default_value, uint_ptr css_properties_member_offset) const
 	{
@@ -142,7 +149,7 @@ namespace litehtml
 		}
 		else if (inherited || value.is<inherit>())
 		{
-			if (auto _parent = parent())
+			if (auto _parent = parent_tag())
 			{
 				return *(Type*)((byte*)&_parent->css() + css_properties_member_offset);
 			}

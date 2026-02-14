@@ -739,7 +739,13 @@ element::ptr html_tag::find_ancestor(const css_selector& selector, bool apply_ps
 
 void litehtml::html_tag::parse_attributes()
 {
-        for(auto& el : m_children)
+	if (m_tag == _col_ || m_tag == _colgroup_)
+	{
+		const char* str = get_attr("width");
+		if (str) map_to_dimension_property_ignoring_zero(_width_, str);
+	}
+
+	for(auto& el : m_children)
         {
                 el->parse_attributes();
         }

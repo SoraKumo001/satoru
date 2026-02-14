@@ -39,11 +39,7 @@ litehtml::pixel_t litehtml::render_item_table::_render(pixel_t x, pixel_t y, con
     }
 
 
-    // Calculate the minimum content width (MCW) of each cell: the formatted content may span any number of lines but may not overflow the cell box.
-    // If the specified 'width' (W) of the cell is greater than MCW, W is the minimum cell width. A value of 'auto' means that MCW is the minimum
-    // cell width.
-    //
-    // Also, calculate the "maximum" cell width of each cell: formatting the content without breaking lines other than where explicit line breaks occur.
+    bool is_fixed_layout = src_el()->css().get_table_layout() == table_layout_fixed;
 
     if (m_grid->cols_count() == 1 && self_size.width.type != containing_block_context::cbc_value_type_auto)
     {
@@ -67,6 +63,15 @@ litehtml::pixel_t litehtml::render_item_table::_render(pixel_t x, pixel_t y, con
                 table_cell* cell = m_grid->cell(col, row);
                 if (cell && cell->el)
                 {
+					if (is_fixed_layout && row > 0)
+					{
+						// In fixed layout, contents of cells after the first row do not affect column widths.
+						// But we still need to render them to get their height later.
+						// We'll render them with a dummy width for now, they will be re-rendered later with correct width.
+						cell->min_width = cell->max_width = 0;
+						continue;
+					}
+
                     if (!m_grid->column(col).css_width.is_predefined() && m_grid->column(col).css_width.units() != css_units_percentage)
                     {
                         pixel_t css_w = m_grid->column(col).css_width.calc_percent(self_size.width);
@@ -95,8 +100,27 @@ litehtml::pixel_t litehtml::render_item_table::_render(pixel_t x, pixel_t y, con
     {
         m_grid->column(col).max_width = 0;
         m_grid->column(col).min_width = 0;
+
+		if (!m_grid->column(col).css_width.is_predefined())
+		{
+			if (m_grid->column(col).css_width.units() != css_units_percentage)
+			{
+				m_grid->column(col).min_width = m_grid->column(col).max_width = m_grid->column(col).css_width.calc_percent(self_size.width);
+			}
+		}
+
+		if (is_fixed_layout && !m_grid->column(col).css_width.is_predefined())
+		{
+			if (m_grid->column(col).css_width.units() != css_units_percentage)
+			{
+				m_grid->column(col).min_width = m_grid->column(col).max_width = m_grid->column(col).css_width.calc_percent(self_size.width);
+			}
+		}
+
         for (int row = 0; row < m_grid->rows_count(); row++)
         {
+			if (is_fixed_layout && row > 0) break;
+
             if (m_grid->cell(col, row)->colspan <= 1)
             {
                 m_grid->column(col).max_width = std::max(m_grid->column(col).max_width, m_grid->cell(col, row)->max_width);
@@ -308,9 +332,36 @@ litehtml::pixel_t litehtml::render_item_table::_render(pixel_t x, pixel_t y, con
 
     if (src_el()->css().get_border_collapse() == border_collapse_collapse)
     {
-        if (m_grid->rows_count())
+        for (int row = 0; row < m_grid->rows_count(); row++)
         {
-            table_height -= std::min(border_bottom(), m_grid->row(m_grid->rows_count() - 1).border_bottom);
+            for (int col = 0; col < m_grid->cols_count(); col++)
+            {
+                table_cell* cell = m_grid->cell(col, row);
+                if (cell->el)
+                {
+                    // Resolve top border
+                    if (row > 0)
+                    {
+                        table_cell* top_cell = m_grid->cell(col, row - 1);
+                        if (top_cell && top_cell->borders.bottom >= cell->borders.top && cell->borders.top > 0)
+                        {
+                            cell->borders.top = 0;
+                            cell->el->src_el()->css_w().get_borders_w().top.width = 0;
+                        }
+                    }
+                    // Resolve left border
+                    if (col > 0)
+                    {
+                        table_cell* left_cell = m_grid->cell(col - 1, row);
+                        if (left_cell && left_cell->borders.right >= cell->borders.left && cell->borders.left > 0)
+                        {
+                            cell->borders.left = 0;
+                            cell->el->src_el()->css_w().get_borders_w().left.width = 0;
+                        }
+                    }
+                    cell->el->set_paddings(cell->borders);
+                }
+            }
         }
     }
     else
@@ -380,6 +431,27 @@ std::shared_ptr<litehtml::render_item> litehtml::render_item_table::init()
 {
     // Initialize Grid
     m_grid = std::make_unique<table_grid>();
+
+	for (auto& el : m_children)
+	{
+		if (el->src_el()->css().get_display() == display_table_column_group)
+		{
+			el = el->init();
+			for (auto& col : el->children())
+			{
+				if (col->src_el()->css().get_display() == display_table_column)
+				{
+					col = col->init();
+					m_grid->add_column(col);
+				}
+			}
+		}
+		else if (el->src_el()->css().get_display() == display_table_column)
+		{
+			el = el->init();
+			m_grid->add_column(el);
+		}
+	}
 
     go_inside_table 		table_selector;
     table_rows_selector		row_selector;

@@ -1327,7 +1327,7 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 	}
 
 	// Calculate width if css property is not auto
-	// We have to use aut value for display_table_cell also.
+	// We have to use auto value for display_table_cell also.
 	if (src_el()->css().get_display() != display_table_cell)
 	{
 		auto par = parent();
@@ -1355,6 +1355,15 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 				calc_cb_length(*width, cb_context.width, ret.width);
 			}
 		}
+		if (ret.width.type != containing_block_context::cbc_value_type_auto && (src_el()->css().get_display() == display_table || src_el()->is_root()))
+		{
+			ret.width.value -= m_padding.width() + m_borders.width();
+		}
+	}
+
+	// Calculate height if css property is not auto
+	{
+		auto par = parent();
 		if(cb_context.size_mode & containing_block_context::size_mode_exact_height)
 		{
 			ret.height.value = cb_context.height;
@@ -1379,13 +1388,9 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 				calc_cb_length(*height, cb_context.height, ret.height);
 			}
 		}
-		if (ret.width.type != containing_block_context::cbc_value_type_auto && (src_el()->css().get_display() == display_table || src_el()->is_root()))
-		{
-			ret.width.value -= content_offset_width();
-		}
 		if (ret.height.type != containing_block_context::cbc_value_type_auto && (src_el()->css().get_display() == display_table || src_el()->is_root()))
 		{
-			ret.height.value -= content_offset_height();
+			ret.height.value -= m_padding.height() + m_borders.height();
 		}
 	}
 	ret.render_width = ret.width;

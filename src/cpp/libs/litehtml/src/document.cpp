@@ -975,7 +975,10 @@ void document::fix_table_children(const std::shared_ptr<render_item>& el_ptr, st
 		{
 			if (!(*cur_iter)->src_el()->is_table_skip() || ((*cur_iter)->src_el()->is_table_skip() && !tmp.empty()))
 			{
-				if (disp != display_table_row_group || (*cur_iter)->src_el()->css().get_display() != display_table_caption)
+				if (disp != display_table_row_group || 
+					((*cur_iter)->src_el()->css().get_display() != display_table_caption &&
+					 (*cur_iter)->src_el()->css().get_display() != display_table_column &&
+					 (*cur_iter)->src_el()->css().get_display() != display_table_column_group))
 				{
 					if (tmp.empty())
 					{

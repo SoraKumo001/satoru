@@ -12,7 +12,7 @@ namespace litehtml
 	bool el_table::appendChild(const element::ptr& el)
 	{
 		if(!el) return false;
-		if(el->tag() == _tbody_ || el->tag() == _thead_ || el->tag() == _tfoot_ || el->tag() == _caption_)
+		if(el->tag() == _tbody_ || el->tag() == _thead_ || el->tag() == _tfoot_ || el->tag() == _caption_ || el->tag() == _colgroup_ || el->tag() == _col_)
 		{
 			return html_tag::appendChild(el);
 		}

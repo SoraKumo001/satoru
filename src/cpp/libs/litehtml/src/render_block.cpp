@@ -265,7 +265,8 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
 
 	// Set block height
 	if (self_size.render_height.type != containing_block_context::cbc_value_type_auto &&
-	    !(containing_block_size.size_mode & containing_block_context::size_mode_content))
+	    (!(containing_block_size.size_mode & containing_block_context::size_mode_content) ||
+         src_el()->css().get_display() == display_table_cell))
 	{
 		m_pos.height = self_size.render_height;
 	} else if (src_el()->is_block_formatting_context())

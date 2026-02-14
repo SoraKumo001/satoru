@@ -25,6 +25,18 @@ void litehtml::table_grid::add_cell(const std::shared_ptr<render_item>& el)
 	}
 }
 
+void litehtml::table_grid::add_column(const std::shared_ptr<render_item>& el)
+{
+	int span = atoi(el->src_el()->get_attr("span", "1"));
+	for (int i = 0; i < span; i++)
+	{
+		table_column col;
+		col.el_column = el;
+		col.css_width = el->src_el()->css().get_width();
+		m_columns.push_back(col);
+	}
+}
+
 
 void litehtml::table_grid::begin_row(const std::shared_ptr<render_item>& row)
 {
@@ -61,6 +73,8 @@ void litehtml::table_grid::finish()
 	{
 		m_cols_count = std::max(m_cols_count, (int) cell.size());
 	}
+	m_cols_count = std::max(m_cols_count, (int) m_columns.size());
+
 	for(auto& cell : m_cells)
 	{
 		for(int j = (int) cell.size(); j < m_cols_count; j++)
@@ -70,8 +84,7 @@ void litehtml::table_grid::finish()
 		}
 	}
 
-	m_columns.clear();
-	for(int i = 0; i < m_cols_count; i++)
+	for(int i = (int) m_columns.size(); i < m_cols_count; i++)
 	{
 		m_columns.emplace_back((pixel_t) 0, (pixel_t) 0);
 	}

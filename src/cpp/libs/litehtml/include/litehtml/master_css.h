@@ -240,6 +240,14 @@ caption {
 	display: table-caption;
 }
 
+colgroup {
+	display: table-column-group;
+}
+
+col {
+	display: table-column;
+}
+
 td[nowrap], th[nowrap] {
 	white-space:nowrap;
 }

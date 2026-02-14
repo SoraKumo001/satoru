@@ -79,6 +79,7 @@ namespace litehtml
     string m_cursor;
     string m_content;
     border_collapse m_border_collapse;
+    table_layout m_table_layout;
     css_length m_css_border_spacing_x;
     css_length m_css_border_spacing_y;
 
@@ -144,6 +145,7 @@ namespace litehtml
                        m_font_metrics(),
                        m_text_transform(text_transform_none),
                        m_border_collapse(border_collapse_separate),
+                       m_table_layout(table_layout_auto),
                        m_css_border_spacing_x(),
                        m_css_border_spacing_y(),
                        m_flex_grow(0),
@@ -212,6 +214,7 @@ namespace litehtml
     void set_padding(const css_margins &mCssPadding);
 
     const css_borders &get_borders() const;
+    css_borders &get_borders_w();
     void set_borders(const css_borders &mCssBorders);
 
     const css_length &get_width() const;
@@ -279,6 +282,9 @@ namespace litehtml
 
     border_collapse get_border_collapse() const;
     void set_border_collapse(border_collapse mBorderCollapse);
+
+    table_layout get_table_layout() const;
+    void set_table_layout(table_layout mTableLayout);
 
     const css_length &get_border_spacing_x() const;
     void set_border_spacing_x(const css_length &mBorderSpacingX);
@@ -480,6 +486,11 @@ namespace litehtml
     return m_css_borders;
   }
 
+  inline css_borders &css_properties::get_borders_w()
+  {
+    return m_css_borders;
+  }
+
   inline void css_properties::set_borders(const css_borders &mCssBorders)
   {
     m_css_borders = mCssBorders;
@@ -666,6 +677,16 @@ namespace litehtml
   inline void css_properties::set_border_collapse(border_collapse mBorderCollapse)
   {
     m_border_collapse = mBorderCollapse;
+  }
+
+  inline table_layout css_properties::get_table_layout() const
+  {
+    return m_table_layout;
+  }
+
+  inline void css_properties::set_table_layout(table_layout mTableLayout)
+  {
+    m_table_layout = mTableLayout;
   }
 
   inline const css_length &css_properties::get_border_spacing_x() const

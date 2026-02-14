@@ -13,6 +13,8 @@ const TEMP_DIR = path.resolve(__dirname, "../temp");
 async function main() {
   const args = process.argv.slice(2);
   const verbose = args.includes("--verbose");
+  const widthArg = args.find((a) => a.startsWith("--width="));
+  const width = widthArg ? parseInt(widthArg.split("=")[1]) : 800;
   const files = args
     .filter((a) => a.endsWith(".html"))
     .concat(
@@ -76,7 +78,7 @@ async function main() {
       for (const format of formats) {
         const result = await satoru.render({
           value: html,
-          width: 800,
+          width,
           format,
           baseUrl: ASSETS_DIR,
           css: "body { margin: 8px; }",

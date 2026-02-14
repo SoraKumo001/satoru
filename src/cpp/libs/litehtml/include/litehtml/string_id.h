@@ -298,6 +298,7 @@ namespace litehtml
       _cursor_,
       _content_,
       _border_collapse_,
+      _table_layout_,
       _text_transform_,
 
       _flex_,

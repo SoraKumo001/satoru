@@ -732,6 +732,14 @@ namespace litehtml
                 border_collapse_separate,
         };
 
+#define table_layout_strings "auto;fixed"
+
+        enum table_layout
+        {
+                table_layout_auto,
+                table_layout_fixed
+        };
+
 #define content_property_string         "none;normal;open-quote;close-quote;no-open-quote;no-close-quote"
 
         enum content_property

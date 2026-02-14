@@ -27,6 +27,7 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   m_text_transform = (text_transform)el->get_property<int>(_text_transform_, true, text_transform_none, offset(m_text_transform));
   m_white_space = (white_space)el->get_property<int>(_white_space_, true, white_space_normal, offset(m_white_space));
   m_caption_side = (caption_side)el->get_property<int>(_caption_side_, true, caption_side_top, offset(m_caption_side));
+  m_table_layout = (table_layout)el->get_property<int>(_table_layout_, true, table_layout_auto, offset(m_table_layout));
 
   m_box_shadow = el->get_property<shadow_vector>(_box_shadow_, false, shadow_vector(), offset(m_box_shadow));
   m_text_shadow = el->get_property<shadow_vector>(_text_shadow_, true, shadow_vector(), offset(m_text_shadow));

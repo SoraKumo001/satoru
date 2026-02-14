@@ -74,6 +74,7 @@ namespace litehtml
 		pixel_t		border_right;
 		pixel_t		left;
 		pixel_t		right;
+		std::shared_ptr<render_item>	el_column;
 
 		table_column()
 		{
@@ -84,6 +85,7 @@ namespace litehtml
 			min_width		= 0;
 			max_width		= 0;
 			width			= 0;
+			el_column		= nullptr;
 			css_width.predef(0);
 		}
 
@@ -96,6 +98,7 @@ namespace litehtml
 			max_width		= max_w;
 			min_width		= min_w;
 			width			= 0;
+			el_column		= nullptr;
 			css_width.predef(0);
 		}
 
@@ -109,6 +112,7 @@ namespace litehtml
 			min_width		= val.min_width;
 			width			= val.width;
 			css_width		= val.css_width;
+			el_column		= val.el_column;
 		}
 	};
 
@@ -220,6 +224,7 @@ namespace litehtml
 		void			clear();
 		void			begin_row(const std::shared_ptr<render_item>& row);
 		void			add_cell(const std::shared_ptr<render_item>& el);
+		void			add_column(const std::shared_ptr<render_item>& el);
 		bool			is_rowspanned(int r, int c);
 		void			finish();
 		table_cell*		cell(int t_col, int t_row);

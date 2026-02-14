@@ -18,9 +18,7 @@ export interface SatoruModule {
     data: Uint8Array,
   ) => void;
   scan_css: (inst: number, css: string) => void;
-  clear_css: (inst: number) => void;
   load_font: (inst: number, name: string, data: Uint8Array) => void;
-  clear_fonts: (inst: number) => void;
   load_image: (
     inst: number,
     name: string,
@@ -28,7 +26,6 @@ export interface SatoruModule {
     width: number,
     height: number,
   ) => void;
-  clear_images: (inst: number) => void;
   render: (
     inst: number,
     htmls: string | string[],
@@ -68,8 +65,6 @@ export interface RenderOptions {
 export class Satoru {
   private factory: any;
   private modPromise?: Promise<SatoruModule>;
-  private static instances = new Map<number, Satoru>();
-  private activeOnLog?: (level: LogLevel, message: string) => void;
 
   protected constructor(factory: any) {
     this.factory = factory;
@@ -78,30 +73,25 @@ export class Satoru {
   private async getModule(): Promise<SatoruModule> {
     if (!this.modPromise) {
       this.modPromise = (async () => {
-        const onLog = (level: LogLevel, message: string) => {
-          if (mod && level > mod.logLevel) return;
-
-          for (const inst of Satoru.instances.values()) {
-            if (inst.activeOnLog) {
-              inst.activeOnLog(level, message);
-              return;
-            }
-          }
-        };
-
         const mod = (await this.factory({
-          onLog,
+          onLog: (level: LogLevel, message: string) => {
+            if (mod && level <= mod.logLevel && mod.onLog) {
+              mod.onLog(level, message);
+            }
+          },
           print: (text: string) => {
-            onLog(LogLevel.Info, text);
+            if (mod && LogLevel.Info <= mod.logLevel && mod.onLog) {
+              mod.onLog(LogLevel.Info, text);
+            }
           },
           printErr: (text: string) => {
-            onLog(LogLevel.Error, text);
+            if (mod && LogLevel.Error <= mod.logLevel && mod.onLog) {
+              mod.onLog(LogLevel.Error, text);
+            }
           },
         })) as SatoruModule;
 
-        mod.onLog = onLog;
         mod.logLevel = LogLevel.None;
-
         return mod;
       })();
     }
@@ -155,15 +145,12 @@ export class Satoru {
     } = options;
 
     const prevLogLevel = mod.logLevel;
-    if (logLevel !== undefined) {
-      mod.logLevel = logLevel;
-    }
+    const prevOnLog = mod.onLog;
 
-    const prevOnLog = this.activeOnLog;
-    this.activeOnLog = onLog || Satoru.defaultOnLog;
+    mod.logLevel = logLevel ?? LogLevel.None;
+    mod.onLog = onLog || Satoru.defaultOnLog;
 
     const instancePtr = mod._create_instance();
-    Satoru.instances.set(instancePtr, this);
 
     try {
       if (fonts) {
@@ -325,10 +312,9 @@ export class Satoru {
 
       return new Uint8Array(result);
     } finally {
-      Satoru.instances.delete(instancePtr);
       mod._destroy_instance(instancePtr);
       mod.logLevel = prevLogLevel;
-      this.activeOnLog = prevOnLog;
+      mod.onLog = prevOnLog;
     }
   }
 }

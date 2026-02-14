@@ -43,12 +43,9 @@ void api_collect_resources(SatoruInstance *inst, const std::string &html, int wi
 void api_add_resource(SatoruInstance *inst, const std::string &url, int type,
                       const std::vector<uint8_t> &data);
 void api_scan_css(SatoruInstance *inst, const std::string &css);
-void api_clear_css(SatoruInstance *inst);
 void api_load_font(SatoruInstance *inst, const std::string &name, const std::vector<uint8_t> &data);
-void api_clear_fonts(SatoruInstance *inst);
 void api_load_image(SatoruInstance *inst, const std::string &name, const std::string &data_url,
                     int width, int height);
-void api_clear_images(SatoruInstance *inst);
 
 std::string api_get_pending_resources(SatoruInstance *inst);
 

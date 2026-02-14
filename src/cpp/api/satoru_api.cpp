@@ -173,28 +173,13 @@ void api_scan_css(SatoruInstance *inst, const std::string &css) {
     inst->context.fontManager.scanFontFaces(css.c_str());
 }
 
-void api_clear_css(SatoruInstance *inst) {
-    inst->context.clearCss();
-    inst->resourceManager.clear(ResourceType::Css);
-}
-
 void api_load_font(SatoruInstance *inst, const std::string &name, const std::vector<uint8_t> &data) {
     inst->context.load_font(name.c_str(), data.data(), (int)data.size());
-}
-
-void api_clear_fonts(SatoruInstance *inst) {
-    inst->context.clearFonts();
-    inst->resourceManager.clear(ResourceType::Font);
 }
 
 void api_load_image(SatoruInstance *inst, const std::string &name, const std::string &data_url,
                     int width, int height) {
     inst->context.load_image(name.c_str(), data_url.c_str(), width, height);
-}
-
-void api_clear_images(SatoruInstance *inst) {
-    inst->context.clearImages();
-    inst->resourceManager.clear(ResourceType::Image);
 }
 
 std::string api_get_pending_resources(SatoruInstance *inst) {

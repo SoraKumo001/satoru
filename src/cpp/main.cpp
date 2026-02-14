@@ -81,9 +81,6 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("get_pending_resources", &get_pending_resources_val);
     function("add_resource", &add_resource_val);
     function("scan_css", &scan_css_val);
-    function("clear_css", &api_clear_css, allow_raw_pointers());
     function("load_font", &load_font_val);
-    function("clear_fonts", &api_clear_fonts, allow_raw_pointers());
     function("load_image", &load_image_val);
-    function("clear_images", &api_clear_images, allow_raw_pointers());
 }

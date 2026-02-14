@@ -9,34 +9,6 @@ export enum LogLevel {
 export interface SatoruModule {
   _create_instance: () => number;
   _destroy_instance: (ptr: number) => void;
-  _html_to_svg: (
-    inst: number,
-    html: number,
-    width: number,
-    height: number,
-  ) => number;
-  _html_to_png: (
-    inst: number,
-    html: number,
-    width: number,
-    height: number,
-  ) => number;
-  _get_png_size: (inst: number) => number;
-  _html_to_webp: (
-    inst: number,
-    html: number,
-    width: number,
-    height: number,
-  ) => number;
-  _get_webp_size: (inst: number) => number;
-  _html_to_pdf: (
-    inst: number,
-    html: number,
-    width: number,
-    height: number,
-  ) => number;
-  _get_pdf_size: (inst: number) => number;
-  _get_svg_size: (inst: number) => number;
   _collect_resources: (inst: number, html: number, width: number) => void;
   _get_pending_resources: (inst: number) => number;
   _add_resource: (
@@ -58,11 +30,12 @@ export interface SatoruModule {
     height: number,
   ) => void;
   _clear_images: (inst: number) => void;
-  htmls_to_pdf: (
+  render: (
     inst: number,
-    htmls: string[],
+    htmls: string | string[],
     width: number,
     height: number,
+    format: number,
   ) => Uint8Array | null;
   _malloc: (size: number) => number;
   _free: (ptr: number) => void;
@@ -345,40 +318,31 @@ export class Satoru {
         processedHtmls.push(processedHtml);
       }
 
-      if (format === "pdf" && Array.isArray(value)) {
-        return (
-          this.toPdfPagesInternal(
-            mod,
-            instancePtr,
-            processedHtmls,
-            width,
-            height,
-          ) || new Uint8Array()
-        );
+      const formatMap = {
+        svg: 0,
+        png: 1,
+        webp: 2,
+        pdf: 3,
+      };
+
+      const result = mod.render(
+        instancePtr,
+        processedHtmls,
+        width,
+        height,
+        formatMap[format as keyof typeof formatMap] ?? 0,
+      );
+
+      if (!result) {
+        if (format === "svg") return "";
+        return new Uint8Array();
       }
 
-      // Fallback for single page or other formats
-      const finalHtml = processedHtmls[0];
-
-      switch (format) {
-        case "png":
-          return (
-            this.toPngInternal(mod, instancePtr, finalHtml, width, height) ||
-            new Uint8Array()
-          );
-        case "webp":
-          return (
-            this.toWebpInternal(mod, instancePtr, finalHtml, width, height) ||
-            new Uint8Array()
-          );
-        case "pdf":
-          return (
-            this.toPdfInternal(mod, instancePtr, finalHtml, width, height) ||
-            new Uint8Array()
-          );
-        default:
-          return this.toSvgInternal(mod, instancePtr, finalHtml, width, height);
+      if (format === "svg") {
+        return new TextDecoder().decode(result);
       }
+
+      return new Uint8Array(result);
     } finally {
       Satoru.instances.delete(instancePtr);
       mod._destroy_instance(instancePtr);
@@ -420,86 +384,6 @@ export class Satoru {
     const cssPtr = this.stringToPtr(mod, css);
     mod._scan_css(instPtr, cssPtr);
     mod._free(cssPtr);
-  }
-
-  private toPdfPagesInternal(
-    mod: SatoruModule,
-    instPtr: number,
-    htmls: string[],
-    width: number,
-    height: number = 0,
-  ): Uint8Array | null {
-    const result = mod.htmls_to_pdf(instPtr, htmls, width, height);
-    return result ? new Uint8Array(result) : null;
-  }
-
-  private toSvgInternal(
-    mod: SatoruModule,
-    instPtr: number,
-    value: string,
-    width: number,
-    height: number = 0,
-  ): string {
-    const htmlPtr = this.stringToPtr(mod, value);
-    const svgPtr = mod._html_to_svg(instPtr, htmlPtr, width, height);
-    const svg = mod.UTF8ToString(svgPtr);
-    mod._free(htmlPtr);
-    mod._free(svgPtr);
-    return svg;
-  }
-
-  private toPngInternal(
-    mod: SatoruModule,
-    instPtr: number,
-    value: string,
-    width: number,
-    height: number = 0,
-  ): Uint8Array | null {
-    const htmlPtr = this.stringToPtr(mod, value);
-    const pngPtr = mod._html_to_png(instPtr, htmlPtr, width, height);
-    const size = mod._get_png_size(instPtr);
-    let result: Uint8Array | null = null;
-    if (pngPtr && size > 0) {
-      result = new Uint8Array(mod.HEAPU8.buffer, pngPtr, size).slice();
-    }
-    mod._free(htmlPtr);
-    return result;
-  }
-
-  private toWebpInternal(
-    mod: SatoruModule,
-    instPtr: number,
-    value: string,
-    width: number,
-    height: number = 0,
-  ): Uint8Array | null {
-    const htmlPtr = this.stringToPtr(mod, value);
-    const webpPtr = mod._html_to_webp(instPtr, htmlPtr, width, height);
-    const size = mod._get_webp_size(instPtr);
-    let result: Uint8Array | null = null;
-    if (webpPtr && size > 0) {
-      result = new Uint8Array(mod.HEAPU8.buffer, webpPtr, size).slice();
-    }
-    mod._free(htmlPtr);
-    return result;
-  }
-
-  private toPdfInternal(
-    mod: SatoruModule,
-    instPtr: number,
-    value: string,
-    width: number,
-    height: number = 0,
-  ): Uint8Array | null {
-    const htmlPtr = this.stringToPtr(mod, value);
-    const pdfPtr = mod._html_to_pdf(instPtr, htmlPtr, width, height);
-    const size = mod._get_pdf_size(instPtr);
-    let result: Uint8Array | null = null;
-    if (pdfPtr && size > 0) {
-      result = new Uint8Array(mod.HEAPU8.buffer, pdfPtr, size).slice();
-    }
-    mod._free(htmlPtr);
-    return result;
   }
 
   private addResourceInternal(

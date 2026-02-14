@@ -89,6 +89,32 @@ const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::str
     return inst->context.get_last_pdf()->bytes();
 }
 
+const uint8_t *api_render(SatoruInstance *inst, const std::vector<std::string> &htmls, int width,
+                          int height, RenderFormat format, int &out_size) {
+    if (htmls.empty()) {
+        out_size = 0;
+        return nullptr;
+    }
+
+    switch (format) {
+        case RenderFormat::SVG: {
+            std::string svg = api_html_to_svg(inst, htmls[0].c_str(), width, height);
+            auto data = SkData::MakeWithCopy(svg.c_str(), svg.length());
+            inst->context.set_last_svg(std::move(data));
+            out_size = (int)inst->context.get_last_svg()->size();
+            return inst->context.get_last_svg()->bytes();
+        }
+        case RenderFormat::PNG:
+            return api_html_to_png(inst, htmls[0].c_str(), width, height, out_size);
+        case RenderFormat::WebP:
+            return api_html_to_webp(inst, htmls[0].c_str(), width, height, out_size);
+        case RenderFormat::PDF:
+            return api_htmls_to_pdf(inst, htmls, width, height, out_size);
+    }
+    out_size = 0;
+    return nullptr;
+}
+
 int api_get_last_png_size(SatoruInstance *inst) {
     auto data = inst->context.get_last_png();
     return data ? (int)data->size() : 0;

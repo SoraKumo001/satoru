@@ -19,47 +19,6 @@ SatoruInstance *create_instance() { return api_create_instance(); }
 EMSCRIPTEN_KEEPALIVE
 void destroy_instance(SatoruInstance *inst) { api_destroy_instance(inst); }
 
-static const char *string_to_heap(const std::string &str) {
-    char *res = (char *)malloc(str.length() + 1);
-    std::strcpy(res, str.c_str());
-    return res;
-}
-
-EMSCRIPTEN_KEEPALIVE
-const char *html_to_svg(SatoruInstance *inst, const char *html, int width, int height) {
-    return string_to_heap(api_html_to_svg(inst, html, width, height));
-}
-
-EMSCRIPTEN_KEEPALIVE
-const uint8_t *html_to_png(SatoruInstance *inst, const char *html, int width, int height) {
-    int size = 0;
-    return api_html_to_png(inst, html, width, height, size);
-}
-
-EMSCRIPTEN_KEEPALIVE
-const uint8_t *html_to_webp(SatoruInstance *inst, const char *html, int width, int height) {
-    int size = 0;
-    return api_html_to_webp(inst, html, width, height, size);
-}
-
-EMSCRIPTEN_KEEPALIVE
-int get_png_size(SatoruInstance *inst) { return api_get_last_png_size(inst); }
-
-EMSCRIPTEN_KEEPALIVE
-int get_webp_size(SatoruInstance *inst) { return api_get_last_webp_size(inst); }
-
-EMSCRIPTEN_KEEPALIVE
-const uint8_t *html_to_pdf(SatoruInstance *inst, const char *html, int width, int height) {
-    int size = 0;
-    return api_html_to_pdf(inst, html, width, height, size);
-}
-
-EMSCRIPTEN_KEEPALIVE
-int get_pdf_size(SatoruInstance *inst) { return api_get_last_pdf_size(inst); }
-
-EMSCRIPTEN_KEEPALIVE
-int get_svg_size(SatoruInstance *inst) { return api_get_last_svg_size(inst); }
-
 EMSCRIPTEN_KEEPALIVE
 const char *collect_resources(SatoruInstance *inst, const char *html, int width) {
     api_collect_resources(inst, html, width);
@@ -68,7 +27,10 @@ const char *collect_resources(SatoruInstance *inst, const char *html, int width)
 
 EMSCRIPTEN_KEEPALIVE
 const char *get_pending_resources(SatoruInstance *inst) {
-    return string_to_heap(api_get_pending_resources(inst));
+    auto json = api_get_pending_resources(inst);
+    char *res = (char *)malloc(json.length() + 1);
+    std::strcpy(res, json.c_str());
+    return res;
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -101,16 +63,21 @@ void clear_images(SatoruInstance *inst) { api_clear_images(inst); }
 }
 
 // EMSCRIPTEN_BINDINGS helper
-val htmls_to_pdf_val(size_t inst_ptr, val htmls, int width, int height) {
+val render_val(size_t inst_ptr, val htmls, int width, int height, int format) {
     SatoruInstance *inst = (SatoruInstance *)inst_ptr;
     std::vector<std::string> html_vector;
-    auto l = htmls["length"].as<unsigned>();
-    for (unsigned i = 0; i < l; ++i) {
-        html_vector.push_back(htmls[i].as<std::string>());
+    if (htmls.isArray()) {
+        auto l = htmls["length"].as<unsigned>();
+        for (unsigned i = 0; i < l; ++i) {
+            html_vector.push_back(htmls[i].as<std::string>());
+        }
+    } else {
+        html_vector.push_back(htmls.as<std::string>());
     }
 
     int size = 0;
-    const uint8_t *data = api_htmls_to_pdf(inst, html_vector, width, height, size);
+    const uint8_t *data =
+        api_render(inst, html_vector, width, height, (RenderFormat)format, size);
     if (!data || size == 0) return val::null();
 
     return val(typed_memory_view(size, data));
@@ -119,15 +86,7 @@ val htmls_to_pdf_val(size_t inst_ptr, val htmls, int width, int height) {
 EMSCRIPTEN_BINDINGS(satoru) {
     function("create_instance", &create_instance, allow_raw_pointers());
     function("destroy_instance", &destroy_instance, allow_raw_pointers());
-    function("html_to_svg", &html_to_svg, allow_raw_pointers());
-    function("html_to_png", &html_to_png, allow_raw_pointers());
-    function("get_png_size", &get_png_size, allow_raw_pointers());
-    function("html_to_webp", &html_to_webp, allow_raw_pointers());
-    function("get_webp_size", &get_webp_size, allow_raw_pointers());
-    function("html_to_pdf", &html_to_pdf, allow_raw_pointers());
-    function("htmls_to_pdf", &htmls_to_pdf_val);
-    function("get_pdf_size", &get_pdf_size, allow_raw_pointers());
-    function("get_svg_size", &get_svg_size, allow_raw_pointers());
+    function("render", &render_val);
     function("collect_resources", &collect_resources, allow_raw_pointers());
     function("get_pending_resources", &get_pending_resources, allow_raw_pointers());
     function("add_resource", &add_resource, allow_raw_pointers());

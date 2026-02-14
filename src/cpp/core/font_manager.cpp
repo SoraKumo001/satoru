@@ -308,3 +308,30 @@ bool SatoruFontManager::checkUnicodeRange(
     }
     return false;
 }
+
+std::string SatoruFontManager::generateFontFaceCSS() const {
+    std::stringstream ss;
+    std::set<std::string> seen_urls;
+
+    for (const auto &entry : m_fontFaces) {
+        const auto &req = entry.first;
+        for (const auto &src : entry.second) {
+            std::string key = req.family + std::to_string(req.weight) +
+                              std::to_string((int)req.slant) + src.url;
+            if (seen_urls.count(key)) continue;
+            seen_urls.insert(key);
+
+            ss << "@font-face {\n"
+               << "  font-family: '" << req.family << "';\n"
+               << "  font-weight: " << req.weight << ";\n"
+               << "  font-style: " << (req.slant == SkFontStyle::kUpright_Slant ? "normal" : "italic")
+               << ";\n"
+               << "  src: url('" << src.url << "');\n";
+            if (!src.unicode_range.empty()) {
+                ss << "  unicode-range: " << src.unicode_range << ";\n";
+            }
+            ss << "}\n";
+        }
+    }
+    return ss.str();
+}

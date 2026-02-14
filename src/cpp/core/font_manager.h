@@ -44,6 +44,9 @@ class SatoruFontManager {
 
     sk_sp<SkTypeface> getDefaultTypeface() const { return m_defaultTypeface; }
 
+    // 全ての @font-face 定義を CSS 形式で取得
+    std::string generateFontFaceCSS() const;
+
    private:
     sk_sp<SkFontMgr> m_fontMgr;
     std::map<std::string, std::vector<sk_sp<SkTypeface>>> m_typefaceCache;

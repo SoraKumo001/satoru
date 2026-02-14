@@ -88,4 +88,10 @@ struct text_shadow_info {
     litehtml::web_color text_color;
 };
 
+struct text_draw_info {
+    int weight;
+    bool italic;
+    litehtml::web_color color;
+};
+
 #endif  // BRIDGE_TYPES_H

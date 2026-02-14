@@ -333,11 +333,16 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         m_usedTextShadows.push_back(info);
         int index = (int)m_usedTextShadows.size();
         paint.setColor(SkColorSetARGB(255, 0, 2, (index & 0xFF)));
+    } else if (m_tagging) {
+        text_draw_info info;
+        info.weight = fi->desc.weight;
+        info.italic = (fi->desc.style == litehtml::font_style_italic);
+        info.color = color;
+        m_usedTextDraws.push_back(info);
+        int index = (int)m_usedTextDraws.size();
+        paint.setColor(SkColorSetARGB(255, 0, 3, (index & 0xFF)));
     } else {
         paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
-        if (m_tagging) {
-            paint.setAlphaf(paint.getAlphaf() * get_current_opacity());
-        }
     }
 
     auto draw_text_internal = [&](const char *str, size_t len, double x, double y,
@@ -1131,6 +1136,7 @@ void container_skia::reset() {
     m_usedConicGradients.clear();
     m_usedRadialGradients.clear();
     m_usedLinearGradients.clear();
+    m_usedTextDraws.clear();
     m_usedInlineSvgs.clear();
     m_inlineSvgPositions.clear();
     m_clips.clear();

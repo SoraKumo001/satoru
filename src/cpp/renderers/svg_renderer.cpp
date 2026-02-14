@@ -64,6 +64,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
     const auto &conics = container.get_used_conic_gradients();
     const auto &radials = container.get_used_radial_gradients();
     const auto &linears = container.get_used_linear_gradients();
+    const auto &textDraws = container.get_used_text_draws();
 
     size_t lastPos = 0;
     while (lastPos < svg.size()) {
@@ -133,6 +134,62 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                 }
                 lastPos = valEnd + (isAttr ? 1 : 0);
                 replaced = true;
+            } else if (r == 0 && g == 3 && b > 0 && b <= (int)textDraws.size()) {
+                const auto &info = textDraws[b - 1];
+                std::string weightStr = std::to_string(info.weight);
+                std::string styleStr = info.italic ? "italic" : "normal";
+                std::string textColor = "rgb(" + std::to_string((int)info.color.red) + "," +
+                                        std::to_string((int)info.color.green) + "," +
+                                        std::to_string((int)info.color.blue) + ")";
+                float opacity = (float)info.color.alpha / 255.0f;
+
+                size_t elementStart = svg.rfind('<', pos);
+                size_t elementEnd = svg.find('>', valEnd);
+
+                if (elementStart != std::string::npos && elementEnd != std::string::npos) {
+                    // すでに result に追加されたタグの開始部分を一旦削除して再構築する
+                    if (elementStart >= lastPos) {
+                        result.erase(result.size() - (pos - elementStart));
+                    }
+
+                    // タグの中身を取得 (例: <text transform="..." fill="..." font-weight="...">)
+                    std::string tag = svg.substr(elementStart, elementEnd - elementStart + 1);
+
+                    // タグから重複する可能性のある属性を削除する簡単な置換
+                    auto stripAttr = [](std::string &s, const std::string &attr) {
+                        size_t p;
+                        while ((p = s.find(" " + attr + "=\"")) != std::string::npos) {
+                            size_t end = s.find('"', p + attr.length() + 3);
+                            if (end != std::string::npos) s.erase(p, end - p + 1);
+                            else break;
+                        }
+                        while ((p = s.find(" " + attr + ":")) != std::string::npos) {
+                            size_t end = s.find_first_of(";\"", p + attr.length() + 2);
+                            if (end != std::string::npos) s.erase(p, end - p + 1);
+                            else break;
+                        }
+                    };
+
+                    stripAttr(tag, "font-weight");
+                    stripAttr(tag, "font-style");
+                    stripAttr(tag, "fill-opacity");
+
+                    // タグ内の tagged fill を置換する
+                    std::string oldFill = isAttr ? "fill=\"" + colorVal + "\"" : "fill:" + colorVal;
+                    std::string newFill =
+                        "font-weight=\"" + weightStr + "\" font-style=\"" + styleStr +
+                        "\" fill=\"" + textColor + "\" fill-opacity=\"" + std::to_string(opacity) +
+                        "\"";
+
+                    size_t fillPos = tag.find(oldFill);
+                    if (fillPos != std::string::npos) {
+                        tag.replace(fillPos, oldFill.length(), newFill);
+                    }
+
+                    result.append(tag);
+                    lastPos = elementEnd + 1;
+                    replaced = true;
+                }
             } else if (r == 1 && g == 0 && b > 0 && b <= (int)images.size()) {
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
@@ -351,8 +408,16 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
 }
 
 static void appendDefs(std::string &svg, const container_skia &render_container,
-                       const SatoruContext &context) {
+                       const SatoruContext &context, const RenderOptions& options) {
     std::stringstream defs;
+
+    if (!options.svgTextToPaths) {
+        std::string fontFaceCss = context.fontManager.generateFontFaceCSS();
+        if (!fontFaceCss.empty()) {
+            defs << "<style type=\"text/css\"><![CDATA[\n" << fontFaceCss << "]]></style>\n";
+        }
+    }
+
     const auto &shadows = render_container.get_used_shadows();
     for (size_t i = 0; i < shadows.size(); ++i) {
         const auto &s = shadows[i];
@@ -538,7 +603,7 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height, con
     std::string svg((const char *)data->data(), data->size());
 
     processTags(svg, inst->context, *inst->render_container);
-    appendDefs(svg, *inst->render_container, inst->context);
+    appendDefs(svg, *inst->render_container, inst->context, options);
 
     return svg;
 }
@@ -579,7 +644,7 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     std::string svg((const char *)data->data(), data->size());
 
     processTags(svg, context, render_container);
-    appendDefs(svg, render_container, context);
+    appendDefs(svg, render_container, context, options);
 
     return svg;
 }

@@ -3,15 +3,14 @@
   "name": "satoru-test-worker",
   "main": "src/index.ts",
   "compatibility_date": "2025-01-24",
-  "compatibility_flags": ["nodejs_compat"],
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   "rules": [
     {
       "type": "CompiledWasm",
       "globs": ["**/*.wasm"],
-      "fallthrough": true
-    }
-  ]
+      "fallthrough": true,
+    },
+  ],
 }

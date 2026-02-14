@@ -110,6 +110,7 @@ set(COMMON_LINK_OPTIONS
     "-sMODULARIZE=1"
     "-sEXPORT_ES6=1"
     "-sEXPORT_NAME='createSatoruModule'"
+    "-sENVIRONMENT=web,worker"
     "-sERROR_ON_UNDEFINED_SYMBOLS=0"
     "-sWARN_ON_UNDEFINED_SYMBOLS=0"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','getValue','setValue','HEAPU8','stringToUTF8','lengthBytesUTF8']"

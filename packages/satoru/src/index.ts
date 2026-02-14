@@ -75,17 +75,32 @@ export class Satoru {
       this.modPromise = (async () => {
         const mod = (await this.factory({
           onLog: (level: LogLevel, message: string) => {
-            if (mod && level <= mod.logLevel && mod.onLog) {
+            if (
+              mod &&
+              mod.logLevel !== LogLevel.None &&
+              level <= mod.logLevel &&
+              mod.onLog
+            ) {
               mod.onLog(level, message);
             }
           },
           print: (text: string) => {
-            if (mod && LogLevel.Info <= mod.logLevel && mod.onLog) {
+            if (
+              mod &&
+              mod.logLevel !== LogLevel.None &&
+              LogLevel.Info <= mod.logLevel &&
+              mod.onLog
+            ) {
               mod.onLog(LogLevel.Info, text);
             }
           },
           printErr: (text: string) => {
-            if (mod && LogLevel.Error <= mod.logLevel && mod.onLog) {
+            if (
+              mod &&
+              mod.logLevel !== LogLevel.None &&
+              LogLevel.Error <= mod.logLevel &&
+              mod.onLog
+            ) {
               mod.onLog(LogLevel.Error, text);
             }
           },
@@ -96,24 +111,6 @@ export class Satoru {
       })();
     }
     return this.modPromise;
-  }
-
-  private static defaultOnLog(level: LogLevel, message: string) {
-    const prefix = "[Satoru WASM]";
-    switch (level) {
-      case LogLevel.Debug:
-        console.debug(`${prefix} DEBUG: ${message}`);
-        break;
-      case LogLevel.Info:
-        console.info(`${prefix} INFO: ${message}`);
-        break;
-      case LogLevel.Warning:
-        console.warn(`${prefix} WARNING: ${message}`);
-        break;
-      case LogLevel.Error:
-        console.error(`${prefix} ERROR: ${message}`);
-        break;
-    }
   }
 
   /**
@@ -148,7 +145,7 @@ export class Satoru {
     const prevOnLog = mod.onLog;
 
     mod.logLevel = logLevel ?? LogLevel.None;
-    mod.onLog = onLog || Satoru.defaultOnLog;
+    mod.onLog = onLog;
 
     const instancePtr = mod._create_instance();
 

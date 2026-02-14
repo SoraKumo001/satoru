@@ -43,9 +43,12 @@ public:
 class css
 {
 	css_selector::vector	m_selectors;
-	std::vector<string>	m_layers;
+	std::map<string, int>	m_resolved_ranks;
+	std::map<string, int>	m_segment_orders;
+	std::map<string, int>	m_next_order;
+	int						m_anon_count = 0;
 public:
-	static const int unlayered_id = 1000000;
+	static const int unlayered_id = 2000000000;
 
 	const css_selector::vector& selectors() const
 	{

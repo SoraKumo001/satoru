@@ -211,25 +211,61 @@ int css::get_layer_id(const string& name)
 {
 	if (name.empty())
 	{
-		m_layers.push_back("");
-		return (int)m_layers.size() - 1;
+		return get_layer_id("__anon_" + std::to_string(m_anon_count++));
 	}
 
-	// Handle dot-separated names to ensure ancestors exist
-	size_t dot_pos = name.find('.');
-	if (dot_pos != string::npos)
+	if (m_resolved_ranks.count(name)) return m_resolved_ranks[name];
+
+	// Split name by '.'
+	std::vector<string> segments;
+	size_t start = 0;
+	size_t end = name.find('.');
+	while (end != string::npos)
 	{
-		get_layer_id(name.substr(0, dot_pos));
+		segments.push_back(name.substr(start, end - start));
+		start = end + 1;
+		end = name.find('.', start);
 	}
+	segments.push_back(name.substr(start));
 
-	auto it = std::find(m_layers.begin(), m_layers.end(), name);
-	if (it != m_layers.end())
+	string path = "";
+	long long rank = 0;
+	long long multiplier = 1000000;
+	for (int i = 0; i < 3; ++i)
 	{
-		return (int)std::distance(m_layers.begin(), it);
-	}
+	        string segment = (i < (int)segments.size()) ? segments[i] : "";
+	        if (segment.empty())
+	        {
+	                // SPEC: sub-layers follow parent order.
+	                // To make A.B > A, we treat missing sub-segments as having "highest" priority (999)
+	                // wait, no. Specification says: "Unlayered styles have the highest priority"
+	                // For layers: "later layers have higher priority".
+	                // A { ... } is same as A { @layer { ... } } ? No.
+	                // Actually, @layer A { .box { ... } } is "unlayered" styles INSIDE layer A.
+	                // Styles inside @layer A but not in any sub-layer of A should have HIGHER priority
+	                // than any styles in sub-layers of A (like @layer A.B).
+	                // Reference: https://developer.mozilla.org/en-US/docs/Web/CSS/@layer#nesting_layers
+	                // "styles not in a nested layer are collected together and placed after the nested layers"
+	                // So: A.B < A (styles in A but not in sub-layer)
+	                // My current code: rank = (A_order+1)*1M + (B_order+1)*1K + (0)
+	                // If we want A.B < A, then A should be (A_order+1)*1M + (999)*1K + (999)
+	                rank += 999 * multiplier;
+                }
+                else
+                {
+                        string full_segment_path = path.empty() ? segment : path + "." + segment;
+                        if (m_segment_orders.find(full_segment_path) == m_segment_orders.end())
+                        {
+                                m_segment_orders[full_segment_path] = m_next_order[path]++;
+                        }
+                        rank += (long long)(m_segment_orders[full_segment_path]) * multiplier;
+                        path = full_segment_path;
+                }
+                multiplier /= 1000;
+        }
 
-	m_layers.push_back(name);
-	return (int)m_layers.size() - 1;
+	m_resolved_ranks[name] = (int)rank;
+	return (int)rank;
 }
 
 } // namespace litehtml

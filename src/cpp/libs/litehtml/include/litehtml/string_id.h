@@ -348,6 +348,7 @@ namespace litehtml
       // at-rules and their components
       _charset_,
       _layer_,
+      _supports_,
       _import_,
       _media_,
       _and_,

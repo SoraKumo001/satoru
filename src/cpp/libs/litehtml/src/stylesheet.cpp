@@ -106,6 +106,17 @@ void css::parse_css_stylesheet(const Input& input, string baseurl, document::ptr
 			break;
 		}
 
+		case _supports_:
+		{
+			if (rule->block.type != CURLY_BLOCK) break;
+			if (evaluate_supports(rule->prelude, doc))
+			{
+				parse_css_stylesheet(rule->block.value, baseurl, doc, media, false, layer, layer_prefix);
+			}
+			import_allowed = false;
+			break;
+		}
+
 		default:
 			css_parse_error("unrecognized rule @" + rule->name);
 		}
@@ -266,6 +277,112 @@ int css::get_layer_id(const string& name)
 
 	m_resolved_ranks[name] = (int)rank;
 	return (int)rank;
+}
+
+bool css::evaluate_supports(const css_token_vector& tokens, shared_ptr<document> doc)
+{
+	int index = 0;
+	return evaluate_supports_condition(tokens, index, doc);
+}
+
+bool css::evaluate_supports_condition(const css_token_vector& tokens, int& index, shared_ptr<document> doc)
+{
+	skip_whitespace(tokens, index);
+	if (index >= (int)tokens.size()) return false;
+
+	const auto& tok = at(tokens, index);
+	bool result = false;
+
+	if (tok.type == IDENT && lowcase(tok.name) == "not")
+	{
+		index++;
+		result = !evaluate_supports_condition(tokens, index, doc);
+	}
+	else if (tok.type == ROUND_BLOCK)
+	{
+		result = evaluate_supports_feature(tok, doc);
+		index++;
+	}
+	else
+	{
+		return false;
+	}
+
+	while (true)
+	{
+		skip_whitespace(tokens, index);
+		if (index >= (int)tokens.size()) break;
+
+		const auto& next_tok = at(tokens, index);
+		if (next_tok.type == IDENT)
+		{
+			string op = lowcase(next_tok.name);
+			if (op == "and")
+			{
+				index++;
+				result = evaluate_supports_condition(tokens, index, doc) && result;
+			}
+			else if (op == "or")
+			{
+				index++;
+				result = evaluate_supports_condition(tokens, index, doc) || result;
+			}
+			else break;
+		}
+		else break;
+	}
+
+	return result;
+}
+
+bool css::evaluate_supports_feature(const css_token& block, shared_ptr<document> doc)
+{
+	if (block.type != ROUND_BLOCK) return false;
+
+	// Check if it's a nested condition
+	if (!block.value.empty() && (block.value[0].type == ROUND_BLOCK || (block.value[0].type == IDENT && (lowcase(block.value[0].name) == "not" || lowcase(block.value[0].name) == "and" || lowcase(block.value[0].name) == "or"))))
+	{
+		int index = 0;
+		return evaluate_supports_condition(block.value, index, doc);
+	}
+
+	// selector(...) function
+	if (!block.value.empty() && block.value[0].type == CV_FUNCTION && lowcase(block.value[0].name) == "selector")
+	{
+		// We assume all selectors are supported if they parse
+		auto list = parse_selector_list(block.value[0].value, strict_mode, doc->mode());
+		return !list.empty();
+	}
+
+	// (property: value)
+	css_token_vector tokens = block.value;
+	int index = 0;
+	skip_whitespace(tokens, index);
+	if (index >= (int)tokens.size() || at(tokens, index).type != IDENT) return false;
+
+	string prop_name = lowcase(at(tokens, index).name);
+	index++;
+	skip_whitespace(tokens, index);
+	if (index >= (int)tokens.size() || at(tokens, index).ch != ':') return false;
+	index++;
+
+	css_token_vector value_tokens = slice(tokens, index);
+	// In litehtml, trim_whitespace is not public in css_parser.cpp but we can use normalize
+	value_tokens = normalize(value_tokens, f_remove_whitespace);
+
+	if (value_tokens.empty()) return false;
+
+	// Check if property is known
+	string_id id = _id(prop_name);
+	if (id == empty_id) return false;
+
+	// For now, if we have a property ID, we consider it supported.
+	// In a real browser, we would check if the value is also valid for that property.
+	// Satoru has a fixed set of supported properties in style.cpp.
+	
+	style st;
+	st.add_property(id, value_tokens, "", false, doc->container());
+	return !st.get_property(id).is<invalid>();
 }
 
 } // namespace litehtml

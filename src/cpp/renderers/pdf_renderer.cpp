@@ -27,7 +27,7 @@ bool PdfJpegEncoder(SkWStream *dst, const SkPixmap &src, int quality) {
 }
 }  // namespace
 
-sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height) {
+sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height, const RenderOptions& options) {
     if (!inst->doc || !inst->render_container) return nullptr;
     
     SkDynamicMemoryWStream stream;

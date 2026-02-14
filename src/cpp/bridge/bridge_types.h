@@ -11,6 +11,10 @@
 enum class LogLevel { None = 0, Error = 1, Warning = 2, Info = 3, Debug = 4 };
 enum class RenderFormat { SVG = 0, PNG = 1, WebP = 2, PDF = 3 };
 
+struct RenderOptions {
+    bool svgTextToPaths = true;
+};
+
 void satoru_log(LogLevel level, const char *message);
 
 struct font_info {

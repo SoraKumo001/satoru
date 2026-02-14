@@ -506,7 +506,7 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
 }
 }  // namespace
 
-std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height) {
+std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height, const RenderOptions& options) {
     if (!inst->doc || !inst->render_container) return "";
 
     // We rely on external layout (inst->doc->render(width) or deserialized layout).
@@ -516,7 +516,11 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height) {
 
     SkDynamicMemoryWStream stream;
     SkSVGCanvas::Options svg_options;
-    svg_options.flags = SkSVGCanvas::kConvertTextToPaths_Flag;
+    if (options.svgTextToPaths) {
+        svg_options.flags = SkSVGCanvas::kConvertTextToPaths_Flag;
+    } else {
+        svg_options.flags = (SkSVGCanvas::Flags)0;
+    }
     auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, (float)content_height), &stream,
                                     svg_options);
 
@@ -540,7 +544,7 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height) {
 }
 
 std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context,
-                            const char *master_css) {
+                            const char *master_css, const RenderOptions& options) {
     container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context, nullptr,
                                      false);
     std::string css = master_css ? master_css : litehtml::master_css;
@@ -555,7 +559,11 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
 
     SkDynamicMemoryWStream stream;
     SkSVGCanvas::Options svg_options;
-    svg_options.flags = SkSVGCanvas::kConvertTextToPaths_Flag;
+    if (options.svgTextToPaths) {
+        svg_options.flags = SkSVGCanvas::kConvertTextToPaths_Flag;
+    } else {
+        svg_options.flags = (SkSVGCanvas::Flags)0;
+    }
     auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, (float)content_height), &stream,
                                     svg_options);
 

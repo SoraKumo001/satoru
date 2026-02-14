@@ -35,6 +35,7 @@ export interface SatoruModule {
     width: number,
     height: number,
     format: number,
+    svgTextToPaths: boolean,
   ) => Uint8Array | null;
   render: (
     inst: number,
@@ -42,6 +43,7 @@ export interface SatoruModule {
     width: number,
     height: number,
     format: number,
+    svgTextToPaths: boolean,
   ) => Uint8Array | null;
   onLog?: (level: LogLevel, message: string) => void;
   logLevel: LogLevel;
@@ -62,6 +64,7 @@ export interface RenderOptions {
   width: number;
   height?: number;
   format?: "svg" | "png" | "webp" | "pdf";
+  textToPaths?: boolean;
   resolveResource?: ResourceResolver;
   fonts?: { name: string; data: Uint8Array }[];
   images?: { name: string; url: string; width?: number; height?: number }[];
@@ -83,7 +86,7 @@ export class Satoru {
   private async getModule(): Promise<SatoruModule> {
     if (!this.modPromise) {
       this.modPromise = (async () => {
-        const mod = (await this.factory({
+        var mod: SatoruModule = (await this.factory({
           onLog: (level: LogLevel, message: string) => {
             if (
               mod &&
@@ -161,7 +164,12 @@ export class Satoru {
 
   async renderFromState(
     inst: number,
-    options: { width: number; height?: number; format?: "svg" | "png" | "webp" | "pdf" },
+    options: {
+      width: number;
+      height?: number;
+      format?: "svg" | "png" | "webp" | "pdf";
+      textToPaths?: boolean;
+    },
   ): Promise<string | Uint8Array> {
     const mod = await this.getModule();
     const formatMap = {
@@ -171,7 +179,13 @@ export class Satoru {
       pdf: 3,
     };
     const format = formatMap[options.format ?? "svg"] ?? 0;
-    const result = mod.render_from_state(inst, options.width, options.height ?? 0, format);
+    const result = mod.render_from_state(
+      inst,
+      options.width,
+      options.height ?? 0,
+      format,
+      options.textToPaths ?? true,
+    );
     
     if (!result) {
         if (options.format === "svg") return "";
@@ -364,6 +378,7 @@ export class Satoru {
         width,
         height,
         formatMap[format as keyof typeof formatMap] ?? 0,
+        options.textToPaths ?? true,
       );
 
       if (!result) {

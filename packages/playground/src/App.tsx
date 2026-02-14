@@ -8,7 +8,8 @@ const satoru = createSatoruWorker({
 const App: React.FC = () => {
   const [html, setHtml] = useState<string>("");
   const [width, setWidth] = useState<number>(588);
-  const [format, setFormat] = useState<"svg" | "png" | "pdf">("svg");
+  const [format, setFormat] = useState<"svg" | "png" | "webp" | "pdf">("svg");
+  const [textToPaths, setTextToPaths] = useState<boolean>(true);
   const [assetList, setAssetList] = useState<string[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<string>("");
   const [isRendering, setIsRendering] = useState<boolean>(false);
@@ -104,6 +105,7 @@ const App: React.FC = () => {
         value: currentHtml,
         width,
         format,
+        textToPaths,
         css: "body { margin: 8px; }",
         baseUrl: `${window.location.origin}${window.location.pathname}assets/`,
       });
@@ -111,7 +113,12 @@ const App: React.FC = () => {
       setRenderResult(result);
 
       if (result instanceof Uint8Array) {
-        const mimeType = format === "png" ? "image/png" : "application/pdf";
+        const mimeType =
+          format === "png"
+            ? "image/png"
+            : format === "webp"
+              ? "image/webp"
+              : "application/pdf";
         const blob = new Blob([result.slice()], { type: mimeType });
         setObjectUrl(URL.createObjectURL(blob));
       }
@@ -143,7 +150,9 @@ const App: React.FC = () => {
         ? "image/svg+xml"
         : format === "png"
           ? "image/png"
-          : "application/pdf";
+          : format === "webp"
+            ? "image/webp"
+            : "application/pdf";
     const content =
       typeof renderResult === "string" ? renderResult : renderResult.slice();
     const blob = new Blob([content as BlobPart], { type: mimeType });
@@ -216,15 +225,26 @@ const App: React.FC = () => {
               <select
                 value={format}
                 onChange={(e) =>
-                  setFormat(e.target.value as "svg" | "png" | "pdf")
+                  setFormat(e.target.value as "svg" | "png" | "webp" | "pdf")
                 }
                 style={{ padding: "2px 5px", borderRadius: "4px" }}
               >
                 <option value="svg">SVG (Vector)</option>
                 <option value="png">PNG (Raster)</option>
+                <option value="webp">WebP (Raster)</option>
                 <option value="pdf">PDF (Document)</option>
               </select>
             </label>
+            {format === "svg" && (
+              <label>
+                <input
+                  type="checkbox"
+                  checked={textToPaths}
+                  onChange={(e) => setTextToPaths(e.target.checked)}
+                />{" "}
+                Convert text to paths
+              </label>
+            )}
           </div>
         </fieldset>
 
@@ -409,7 +429,7 @@ const App: React.FC = () => {
                 dangerouslySetInnerHTML={{ __html: renderResult as string }}
               />
             )}
-            {objectUrl && format === "png" && (
+            {objectUrl && (format === "png" || format === "webp") && (
               <div>
                 <img
                   src={objectUrl}

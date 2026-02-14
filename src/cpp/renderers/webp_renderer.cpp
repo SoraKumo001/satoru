@@ -11,7 +11,7 @@
 #include "litehtml.h"
 #include "utils/skia_utils.h"
 
-sk_sp<SkData> renderDocumentToWebp(SatoruInstance* inst, int width, int height) {
+sk_sp<SkData> renderDocumentToWebp(SatoruInstance* inst, int width, int height, const RenderOptions& renderOptions) {
     if (!inst->doc || !inst->render_container) return nullptr;
     
     int content_height = (height > 0) ? height : (int)inst->doc->height();

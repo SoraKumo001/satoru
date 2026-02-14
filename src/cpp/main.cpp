@@ -21,7 +21,7 @@ void destroy_instance(SatoruInstance *inst) { api_destroy_instance(inst); }
 }
 
 // EMSCRIPTEN_BINDINGS helper
-val render_val(size_t inst_ptr, val htmls, int width, int height, int format) {
+val render_val(size_t inst_ptr, val htmls, int width, int height, int format, bool svgTextToPaths) {
     SatoruInstance *inst = (SatoruInstance *)inst_ptr;
     std::vector<std::string> html_vector;
     if (htmls.isArray()) {
@@ -33,9 +33,12 @@ val render_val(size_t inst_ptr, val htmls, int width, int height, int format) {
         html_vector.push_back(htmls.as<std::string>());
     }
 
+    RenderOptions options;
+    options.svgTextToPaths = svgTextToPaths;
+
     int size = 0;
     const uint8_t *data =
-        api_render(inst, html_vector, width, height, (RenderFormat)format, size);
+        api_render(inst, html_vector, width, height, (RenderFormat)format, options, size);
     if (!data || size == 0) return val::null();
 
     return val(typed_memory_view(size, data));
@@ -97,10 +100,12 @@ void deserialize_layout_val(size_t inst_ptr, val data) {
     api_deserialize_layout(inst, vec.data(), (int)vec.size());
 }
 
-val render_from_state_val(size_t inst_ptr, int width, int height, int format) {
+val render_from_state_val(size_t inst_ptr, int width, int height, int format, bool svgTextToPaths) {
     SatoruInstance *inst = (SatoruInstance *)inst_ptr;
+    RenderOptions options;
+    options.svgTextToPaths = svgTextToPaths;
     int size = 0;
-    const uint8_t *data = api_render_from_state(inst, width, height, (RenderFormat)format, size);
+    const uint8_t *data = api_render_from_state(inst, width, height, (RenderFormat)format, options, size);
     if (!data || size == 0) return val::null();
     return val(typed_memory_view(size, data));
 }

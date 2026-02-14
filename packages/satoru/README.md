@@ -159,6 +159,7 @@ const pdf = await render({
 | `width`           | `number`                  | **Required.** Width of the output in pixels.                             |
 | `height`          | `number`                  | Height of the output in pixels. Default is `0` (automatic height).       |
 | `format`          | `"svg" \| "png" \| "pdf"` | Output format. Default is `"svg"`.                                       |
+| `textToPaths`     | `boolean`                 | Whether to convert SVG text to paths. Default is `true`.                 |
 | `resolveResource` | `ResourceResolver`        | Async callback to fetch missing fonts, images, or CSS.                   |
 | `fonts`           | `Object[]`                | Array of `{ name, data }` to pre-load fonts into the engine.             |
 | `images`          | `Object[]`                | Array of `{ name, url, width?, height? }` to pre-load images.            |
@@ -308,9 +309,8 @@ pnpm build
 - [x] **Cloudflare Workers (workerd) compatibility.**
 - [x] **Text Shadow (Multiple shadows, Blur, Offset).**
 - [x] **Improved Font Fallback & Generic Family Mapping.**
+- [x] **Optional SVG `<text>` element output.**
 - [ ] SVG Path Shorthand Optimization.
-- [ ] Support for CSS Masks & Filters.
-- [ ] Optional SVG `<text>` element output (currently paths).
 
 ## \ud83d\udcdc License
 

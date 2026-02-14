@@ -132,7 +132,7 @@ graph TD
 
 ### Standard Environment (Node.js / Browser)
 
-The `Satoru` class provides a high-level API for rendering HTML. It is initialized via the static `init` method without any arguments.
+The `Satoru` class provides a high-level API for rendering HTML. It is initialized via the static `create` method without any arguments.
 
 #### Basic Rendering (Automatic Resource Resolution)
 
@@ -142,7 +142,7 @@ The `render` method supports automated multi-pass resource resolution. It identi
 import { Satoru, LogLevel } from "satoru";
 
 // Initialize the engine
-const satoru = await Satoru.init();
+const satoru = await Satoru.create();
 
 const html = `
   <style>
@@ -198,7 +198,7 @@ import { Satoru } from "satoru/workerd";
 
 export default {
   async fetch(request) {
-    const satoru = await Satoru.init();
+    const satoru = await Satoru.create();
 
     const pdf = await satoru.render({
       value: "<h1>Edge Rendered</h1>",
@@ -221,7 +221,7 @@ For environments where deploying a separate `.wasm` file is difficult, use the `
 ```typescript
 import { Satoru } from "satoru/single";
 
-const satoru = await Satoru.init();
+const satoru = await Satoru.create();
 const png = await satoru.render({
   value: "<div>Embedded WASM!</div>",
   width: 600,
@@ -261,7 +261,7 @@ import { Satoru } from "satoru";
 import { toHtml } from "satoru/react";
 import React from "react";
 
-const satoru = await Satoru.init();
+const satoru = await Satoru.create();
 const html = toHtml(
   <div style={{ color: "#2196F3", fontSize: "40px" }}>
     Hello from React!

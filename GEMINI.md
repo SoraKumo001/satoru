@@ -74,6 +74,11 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
   - All functionality exported to WASM is defined in `src/cpp/api/satoru_api.h` and implemented in `satoru_api.cpp`.
   - `main.cpp` serves as the Emscripten entry point and binding definition.
 
+- **Initialization:**
+  - Satoru instances are created using the static `create` method.
+  - The base `Satoru` class requires a factory function (Emscripten module factory).
+  - Specialized wrappers like `satoru/single` and `satoru/workerd` provide `create` methods that handle environment-specific instantiation automatically.
+
 - **Resource Management:**
   - **Callback-Based Resolution:** WASM notifies JS of resource requests (Fonts, Images, CSS) via the `satoru_request_resource_js` bridge.
   - **JS Integration:** The `SatoruModule` interface includes an optional `onRequestResource` callback.

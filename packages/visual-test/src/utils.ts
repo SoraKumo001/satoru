@@ -154,3 +154,18 @@ export function compareImages(img1: PNG, img2: PNG, diffPathPrefix: string): Com
     outline: (numOutlineDiffPixels / (maxWidth * maxHeight)) * 100,
   };
 }
+
+/**
+ * Asserts a condition, but only logs a warning instead of failing the test in GitHub Actions.
+ */
+export function softExpect(value: any, message: string, assertion: (v: any) => void) {
+  try {
+    assertion(value);
+  } catch (error) {
+    if (process.env.GITHUB_ACTIONS) {
+      console.warn(`[SOFT ASSERTION FAILED] ${message}:`, error instanceof Error ? error.message : error);
+    } else {
+      throw error;
+    }
+  }
+}

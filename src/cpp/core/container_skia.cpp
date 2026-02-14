@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <regex>
 #include <sstream>
 
 #include "include/core/SkBlurTypes.h"

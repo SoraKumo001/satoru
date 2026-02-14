@@ -72,6 +72,7 @@ find_package(expat CONFIG REQUIRED)
 find_package(unofficial-gumbo CONFIG REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
 find_package(BZip2 REQUIRED)
+find_package(ctre CONFIG REQUIRED)
 
 set(SATORU_LIBS
     Freetype::Freetype
@@ -90,6 +91,7 @@ set(SATORU_LIBS
     unofficial::brotli::brotlienc
     unofficial::brotli::brotlicommon
     BZip2::BZip2
+    ctre::ctre
 )
 
 set(COMMON_COMPILE_OPTIONS

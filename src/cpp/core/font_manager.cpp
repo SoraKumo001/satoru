@@ -1,7 +1,7 @@
 #include "font_manager.h"
 
 #include <algorithm>
-#include <regex>
+#include <ctre.hpp>
 #include <sstream>
 
 #include "../api/satoru_api.h"
@@ -58,36 +58,27 @@ void SatoruFontManager::clear() {
 }
 
 void SatoruFontManager::scanFontFaces(const std::string &css) {
-    std::regex fontFaceRegex(R"(@font-face\s*\{([^{}]*)\})", std::regex::icase);
-    std::regex familyRegex(R"(font-family:\s*([^;\}]+);?)", std::regex::icase);
-    std::regex weightRegex(R"(font-weight:\s*([^;\}]+);?)", std::regex::icase);
-    std::regex styleRegex(R"(font-style:\s*([^;\}]+);?)", std::regex::icase);
-    std::regex urlRegex(R"(url\s*\(\s*['"]?([^'\"\)]+)['"]?\s*\))", std::regex::icase);
-    std::regex unicodeRangeRegex(R"(unicode-range:\s*([^;\}]+);?)", std::regex::icase);
-
-    auto words_begin = std::sregex_iterator(css.begin(), css.end(), fontFaceRegex);
-    for (std::sregex_iterator i = words_begin; i != std::sregex_iterator(); ++i) {
-        std::string body = (*i)[1].str();
-        std::smatch m;
+    for (auto [whole, body] : ctre::search_all<R"((?i)@font-face\s*\{([^{}]*)\})">(css)) {
+        std::string body_str = body.to_string();
         std::string family = "";
         std::vector<int> weights;
         SkFontStyle::Slant slant = SkFontStyle::kUpright_Slant;
 
-        if (std::regex_search(body, m, familyRegex)) family = cleanName(m[1].str().c_str());
+        if (auto m = ctre::search<R"((?i)font-family:\s*([^;\}]+);?)">(body_str)) {
+            family = cleanName(m.get<1>().to_string().c_str());
+        }
 
-        if (std::regex_search(body, m, weightRegex)) {
-            std::string w = trim(m[1].str());
+        if (auto m = ctre::search<R"((?i)font-weight:\s*([^;\}]+);?)">(body_str)) {
+            std::string w = trim(m.get<1>().to_string());
             if (w == "bold")
                 weights.push_back(700);
             else if (w == "normal")
                 weights.push_back(400);
             else {
                 try {
-                    std::regex rangeRegex(R"((\d+)\s+(\d+))");
-                    std::smatch rm;
-                    if (std::regex_search(w, rm, rangeRegex)) {
-                        int start = std::stoi(rm[1].str());
-                        int end = std::stoi(rm[2].str());
+                    if (auto rm = ctre::search<R"((\d+)\s+(\d+))">(w)) {
+                        int start = std::stoi(rm.get<1>().to_string());
+                        int end = std::stoi(rm.get<2>().to_string());
                         for (int v = 100; v <= 900; v += 100) {
                             if (v >= start && v <= end) weights.push_back(v);
                         }
@@ -101,25 +92,27 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
 
         if (weights.empty()) weights.push_back(400);
 
-        if (std::regex_search(body, m, styleRegex)) {
-            std::string s = trim(m[1].str());
+        if (auto m = ctre::search<R"((?i)font-style:\s*([^;\}]+);?)">(body_str)) {
+            std::string s = trim(m.get<1>().to_string());
             if (s == "italic" || s == "oblique") slant = SkFontStyle::kItalic_Slant;
         }
 
-        if (!family.empty() && std::regex_search(body, m, urlRegex)) {
-            font_face_source src;
-            src.url = trim(m[1].str());
-            if (std::regex_search(body, m, unicodeRangeRegex)) {
-                src.unicode_range = trim(m[1].str());
-                parseUnicodeRange(src.unicode_range, src.ranges);
-            }
+        if (!family.empty()) {
+            if (auto m = ctre::search<R"((?i)url\s*\(\s*['"]?([^'\"\)]+)['"]?\s*\))">(body_str)) {
+                font_face_source src;
+                src.url = trim(m.get<1>().to_string());
+                if (auto m2 = ctre::search<R"((?i)unicode-range:\s*([^;\}]+);?)">(body_str)) {
+                    src.unicode_range = trim(m2.get<1>().to_string());
+                    parseUnicodeRange(src.unicode_range, src.ranges);
+                }
 
-            for (int w : weights) {
-                font_request req;
-                req.family = family;
-                req.weight = w;
-                req.slant = slant;
-                m_fontFaces[req].push_back(src);
+                for (int w : weights) {
+                    font_request req;
+                    req.family = family;
+                    req.weight = w;
+                    req.slant = slant;
+                    m_fontFaces[req].push_back(src);
+                }
             }
         }
     }

@@ -1,7 +1,7 @@
 #include "resource_manager.h"
 
+#include <ctre.hpp>
 #include <iostream>
-#include <regex>
 
 #include "../utils/skia_utils.h"
 #include "container_skia.h"
@@ -86,19 +86,19 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
 
         // Generate @font-face and add it to extra CSS so litehtml knows about it
         std::string weight = "400";
-        if (std::regex_search(url, std::regex("[-._]700\\\\b|bold", std::regex::icase)))
+        if (ctre::search<"(?i)700|bold">(url))
             weight = "700";
-        else if (std::regex_search(url, std::regex("[-._]300\\\\b|light", std::regex::icase)))
+        else if (ctre::search<"(?i)300|light">(url))
             weight = "300";
-        else if (std::regex_search(url, std::regex("[-._]500\\\\b|medium", std::regex::icase)))
+        else if (ctre::search<"(?i)500|medium">(url))
             weight = "500";
-        else if (std::regex_search(url, std::regex("[-._]900\\\\b|black", std::regex::icase)))
+        else if (ctre::search<"(?i)900|black">(url))
             weight = "900";
-        else if (std::regex_search(url, std::regex("[-._]100\\\\b|thin", std::regex::icase)))
+        else if (ctre::search<"(?i)100|thin">(url))
             weight = "100";
 
         std::string style = "normal";
-        if (std::regex_search(url, std::regex("italic|oblique", std::regex::icase)))
+        if (ctre::search<"(?i)italic|oblique">(url))
             style = "italic";
 
         std::string fontFace = "@font-face { font-family: '" + primaryName +

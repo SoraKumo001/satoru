@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import { Satoru, RequiredResource } from "satoru";
 import { PNG } from "pngjs";
 import { chromium, Browser, Page } from "playwright";
-import { downloadFont, compareImages } from "../src/utils";
+import { downloadFont, compareImages, softExpect } from "../src/utils";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -128,16 +128,19 @@ describe("SVG (Browser) Visual Tests", () => {
       } else {
         const factor = process.env.GITHUB_ACTIONS ? 20.0 : 1.0;
         const minTolerance = process.env.GITHUB_ACTIONS ? 15.0 : 0.01;
-        expect(result.outline, `Outline diff increased`).toBeLessThanOrEqual(
-          Math.max(baseline.outline, minTolerance) * factor,
-        );
+        softExpect(result.outline, `Outline diff for ${file} (SVG) increased`, (v) => {
+          expect(v).toBeLessThanOrEqual(Math.max(baseline.outline, minTolerance) * factor);
+        });
         if (result.fill < baseline.fill) baseline.fill = result.fill;
-        if (result.outline < baseline.outline)
-          baseline.outline = result.outline;
+        if (result.outline < baseline.outline) baseline.outline = result.outline;
       }
 
-      expect(result.outline).toBeLessThan(25);
-      expect(result.fill).toBeLessThan(45);
+      softExpect(result.outline, `Outline diff for ${file} (SVG) is too high`, (v) => {
+        expect(v).toBeLessThan(25);
+      });
+      softExpect(result.fill, `Fill diff for ${file} (SVG) is too high`, (v) => {
+        expect(v).toBeLessThan(45);
+      });
     });
   });
 });

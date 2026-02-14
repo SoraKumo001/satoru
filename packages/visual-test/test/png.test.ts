@@ -76,7 +76,6 @@ describe("PNG (Skia) Visual Tests", () => {
         width: 800,
         format: "png",
         css: "body { margin: 8px; }",
-        clear: true,
         resolveResource,
       })) as Uint8Array;
 

@@ -190,12 +190,14 @@ std::string api_get_pending_resources(SatoruInstance *inst) {
     ss << "[";
     for (size_t i = 0; i < requests.size(); ++i) {
         const auto &req = requests[i];
-        int typeInt = 1;
-        if (req.type == ResourceType::Image) typeInt = 2;
-        if (req.type == ResourceType::Css) typeInt = 3;
+        std::string typeStr = "font";
+        if (req.type == ResourceType::Image)
+            typeStr = "image";
+        else if (req.type == ResourceType::Css)
+            typeStr = "css";
 
-        ss << "{\"url\":\"" << req.url << "\",\"name\":\"" << req.name << "\",\"type\":" << typeInt
-           << "}";
+        ss << "{\"url\":\"" << req.url << "\",\"name\":\"" << req.name << "\",\"type\":\"" << typeStr
+           << "\"}";
         if (i < requests.size() - 1) ss << ",";
     }
     ss << "]";

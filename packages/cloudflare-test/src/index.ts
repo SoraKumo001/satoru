@@ -1,4 +1,4 @@
-import { Satoru, RequiredResource } from "satoru";
+import { render, RequiredResource } from "satoru/workerd";
 
 export interface Env {}
 
@@ -217,10 +217,8 @@ export default {
     }
 
     try {
-      const satoru = await Satoru.create();
-
       // 動的リソース（フォント、画像等）の解決
-      const result = await satoru.render({
+      const result = await render({
         value: html,
         width,
         format,

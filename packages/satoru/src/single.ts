@@ -1,4 +1,4 @@
-import { Satoru as BaseSatoru, LogLevel } from "./index.js";
+import { Satoru as BaseSatoru, RenderOptions } from "./index.js";
 
 export { LogLevel } from "./index.js";
 export type {
@@ -29,4 +29,28 @@ export class Satoru extends BaseSatoru {
       await import("../dist/satoru-single.js");
     return BaseSatoru.create(createSatoruModuleSingle) as Promise<Satoru>;
   }
+}
+
+let instance: Satoru | null = null;
+
+/**
+ * High-level render function.
+ * Automatically creates and reuses a Satoru instance with embedded WASM.
+ */
+export async function render(
+  options: RenderOptions & { format: "png" | "webp" | "pdf" },
+): Promise<Uint8Array>;
+export async function render(
+  options: RenderOptions & { format?: "svg" },
+): Promise<string>;
+export async function render(
+  options: RenderOptions,
+): Promise<string | Uint8Array>;
+export async function render(
+  options: RenderOptions,
+): Promise<string | Uint8Array> {
+  if (!instance) {
+    instance = await Satoru.create();
+  }
+  return instance.render(options);
 }

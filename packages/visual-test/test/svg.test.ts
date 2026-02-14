@@ -81,7 +81,6 @@ describe("SVG (Browser) Visual Tests", () => {
         value: html,
         width: 800,
         format: "svg",
-        clear: true,
         css: "body { margin: 8px; }",
         resolveResource,
       })) as string;

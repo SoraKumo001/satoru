@@ -1,6 +1,6 @@
 // @ts-ignore
 import createSatoruModule from "../dist/satoru.js";
-import { Satoru as BaseSatoru } from "./index.js";
+import { Satoru as BaseSatoru, type RenderOptions } from "./index.js";
 // @ts-ignore
 import satoruWasm from "../dist/satoru.wasm";
 
@@ -44,4 +44,28 @@ export class Satoru extends BaseSatoru {
 
     return BaseSatoru.create(factory) as Promise<Satoru>;
   }
+}
+
+let instance: Satoru | null = null;
+
+/**
+ * High-level render function for Cloudflare Workers.
+ * Automatically creates and reuses a Satoru instance.
+ */
+export async function render(
+  options: RenderOptions & { format: "png" | "webp" | "pdf" },
+): Promise<Uint8Array>;
+export async function render(
+  options: RenderOptions & { format?: "svg" },
+): Promise<string>;
+export async function render(
+  options: RenderOptions,
+): Promise<string | Uint8Array>;
+export async function render(
+  options: RenderOptions,
+): Promise<string | Uint8Array> {
+  if (!instance) {
+    instance = await Satoru.create();
+  }
+  return instance.render(options);
 }

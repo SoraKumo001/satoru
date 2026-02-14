@@ -1,21 +1,13 @@
 import { Hono } from "hono";
-import { Satoru } from "satoru/workerd";
 import { toHtml } from "satoru/react";
-import React from "react";
+import { render } from "satoru";
 
 const app = new Hono();
-
-// Cache for Satoru instance
-let satoru: Awaited<ReturnType<typeof Satoru.create>> | null = null;
 
 app.get("/", async (c) => {
   const title = c.req.query("title") || "こんにちは Satoru";
   const subtitle =
     c.req.query("subtitle") || "Cloudflare Workersで爆速画像生成";
-
-  if (!satoru) {
-    satoru = await Satoru.create();
-  }
 
   // Define OGP layout using JSX
   // We include @font-face in a style tag inside the HTML
@@ -101,7 +93,7 @@ app.get("/", async (c) => {
   `;
 
   // Render to PNG with automatic font resolution
-  const png = await satoru.render({
+  const png = await render({
     value: html,
     width: 1200,
     height: 630,

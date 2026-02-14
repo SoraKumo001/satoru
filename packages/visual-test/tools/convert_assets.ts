@@ -66,7 +66,12 @@ async function main() {
       if (!fs.existsSync(filePath)) return;
 
       const html = fs.readFileSync(filePath, "utf-8");
-      const formats: ("svg" | "png" | "webp" | "pdf")[] = ["svg", "png", "webp", "pdf"];
+      const formats: ("svg" | "png" | "webp" | "pdf")[] = [
+        "svg",
+        "png",
+        "webp",
+        "pdf",
+      ];
 
       for (const format of formats) {
         const result = await satoru.render({
@@ -74,7 +79,6 @@ async function main() {
           width: 800,
           format,
           baseUrl: ASSETS_DIR,
-          clear: true,
           css: "body { margin: 8px; }",
           onLog: verbose ? onLog : undefined,
           logLevel: verbose ? LogLevel.Debug : LogLevel.None,

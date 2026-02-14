@@ -8,17 +8,17 @@ https://sorakumo001.github.io/satoru/
 
 ## 📊 Satoru vs Satori
 
-| Feature            | Satori (Vercel)                    | **Satoru**                                     |
-| ------------------ | ---------------------------------- | ---------------------------------------------- |
-| **Engine**         | Yoga (Flexbox only)                | **litehtml (Full CSS Layout)**                 |
-| **Renderer**       | Custom SVG Generator               | **Skia Graphics Engine**                       |
-| **Output Formats** | SVG                                | **SVG, PNG, WEBP, PDF**                        |
-| **CSS Support**    | Limited subset (Flexbox)           | **Extensive (Floats, Box-shadow, etc.)**       |
+| Feature            | Satori (Vercel)                    | **Satoru**                                          |
+| ------------------ | ---------------------------------- | --------------------------------------------------- |
+| **Engine**         | Yoga (Flexbox only)                | **litehtml (Full CSS Layout)**                      |
+| **Renderer**       | Custom SVG Generator               | **Skia Graphics Engine**                            |
+| **Output Formats** | SVG                                | **SVG, PNG, WEBP, PDF**                             |
+| **CSS Support**    | Limited subset (Flexbox)           | **Extensive (Floats, Box-shadow, etc.)**            |
 | **Images**         | External URLs, Base64, ArrayBuffer | **Embedded/Local/Url (PNG, JPEG, WebP, AVIF, GIF)** |
-| **Font Formats**   | TTF, OTF, WOFF                     | **TTF, OTF, WOFF2, TTC**                       |
-| **Typography**     | SVG Paths / Fonts                  | **Full Skia Typeface support**                 |
-| **Performance**    | High (Lightweight)                 | **High (Wasm-accelerated Skia)**               |
-| **Edge Ready**     | Yes (Node/Edge/Cloudflare)         | **Yes (Wasm/Edge/Cloudflare)**                 |
+| **Font Formats**   | TTF, OTF, WOFF                     | **TTF, OTF, WOFF2, TTC**                            |
+| **Typography**     | SVG Paths / Fonts                  | **Full Skia Typeface support**                      |
+| **Performance**    | High (Lightweight)                 | **High (Wasm-accelerated Skia)**                    |
+| **Edge Ready**     | Yes (Node/Edge/Cloudflare)         | **Yes (Wasm/Edge/Cloudflare)**                      |
 
 ## 🚀 Project Status: High-Fidelity Rendering & Edge Ready
 
@@ -132,17 +132,14 @@ graph TD
 
 ### Standard Environment (Node.js / Browser)
 
-The `Satoru` class provides a high-level API for rendering HTML. It is initialized via the static `create` method without any arguments.
+Satoru provides a high-level `render` function for converting HTML to various formats. It automatically handles WASM instantiation and resource resolution.
 
 #### Basic Rendering (Automatic Resource Resolution)
 
-The `render` method supports automated multi-pass resource resolution. It identifies missing fonts, images, and external CSS and requests them via the `resolveResource` callback.
+The `render` function supports automated multi-pass resource resolution. It identifies missing fonts, images, and external CSS and requests them via the `resolveResource` callback.
 
 ```typescript
-import { Satoru, LogLevel } from "satoru";
-
-// Initialize the engine
-const satoru = await Satoru.create();
+import { render, LogLevel } from "satoru";
 
 const html = `
   <style>
@@ -158,7 +155,7 @@ const html = `
 `;
 
 // Render to PDF with automatic resource resolution
-const pdf = await satoru.render({
+const pdf = await render({
   value: html,
   width: 600,
   format: "pdf",
@@ -173,34 +170,32 @@ const pdf = await satoru.render({
 
 #### Render Options
 
-| Option | Type | Description |
-|---|---|---|
-| `value` | `string \| string[]` | **Required.** HTML string or array of HTML strings (for multi-page PDF). |
-| `width` | `number` | **Required.** Width of the output in pixels. |
-| `height` | `number` | Height of the output in pixels. Default is `0` (automatic height). |
-| `format` | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default is `"svg"`. |
-| `resolveResource` | `ResourceResolver` | Async callback to fetch missing fonts, images, or CSS. |
-| `fonts` | `Object[]` | Array of `{ name, data }` to pre-load fonts into the engine. |
-| `images` | `Object[]` | Array of `{ name, url, width?, height? }` to pre-load images. |
-| `css` | `string` | Extra CSS to inject into the rendering process. |
-| `clear` | `boolean` | If `true`, clears all cached fonts, images, and CSS before rendering. |
-| `baseUrl` | `string` | Base URL used to resolve relative URLs in fonts, images, and links. |
-| `userAgent` | `string` | User-Agent header for fetching resources (Node.js environment). |
-| `logLevel` | `LogLevel` | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`). |
-| `onLog` | `Function` | Custom callback for receiving log messages. |
+| Option            | Type                                | Description                                                              |
+| ----------------- | ----------------------------------- | ------------------------------------------------------------------------ |
+| `value`           | `string \| string[]`                | **Required.** HTML string or array of HTML strings (for multi-page PDF). |
+| `width`           | `number`                            | **Required.** Width of the output in pixels.                             |
+| `height`          | `number`                            | Height of the output in pixels. Default is `0` (automatic height).       |
+| `format`          | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default is `"svg"`.                                       |
+| `resolveResource` | `ResourceResolver`                  | Async callback to fetch missing fonts, images, or CSS.                   |
+| `fonts`           | `Object[]`                          | Array of `{ name, data }` to pre-load fonts into the engine.             |
+| `images`          | `Object[]`                          | Array of `{ name, url, width?, height? }` to pre-load images.            |
+| `css`             | `string`                            | Extra CSS to inject into the rendering process.                          |
+| `clear`           | `boolean`                           | If `true`, clears all cached fonts, images, and CSS before rendering.    |
+| `baseUrl`         | `string`                            | Base URL used to resolve relative URLs in fonts, images, and links.      |
+| `userAgent`       | `string`                            | User-Agent header for fetching resources (Node.js environment).          |
+| `logLevel`        | `LogLevel`                          | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`).         |
+| `onLog`           | `Function`                          | Custom callback for receiving log messages.                              |
 
 ### ☁️ Cloudflare Workers (Edge)
 
-Satoru is optimized for Cloudflare Workers. Use the `workerd` specific export for proper WASM instantiation.
+Satoru is optimized for Cloudflare Workers. Use the `workerd` specific export which handles the specific WASM instantiation requirements of the environment.
 
 ```typescript
-import { Satoru } from "satoru/workerd";
+import { render } from "satoru/workerd";
 
 export default {
   async fetch(request) {
-    const satoru = await Satoru.create();
-
-    const pdf = await satoru.render({
+    const pdf = await render({
       value: "<h1>Edge Rendered</h1>",
       width: 800,
       format: "pdf",
@@ -219,10 +214,9 @@ export default {
 For environments where deploying a separate `.wasm` file is difficult, use the `single` export which includes the WASM binary embedded.
 
 ```typescript
-import { Satoru } from "satoru/single";
+import { render } from "satoru/single";
 
-const satoru = await Satoru.create();
-const png = await satoru.render({
+const png = await render({
   value: "<div>Embedded WASM!</div>",
   width: 600,
   format: "png",
@@ -245,7 +239,6 @@ const png = await satoru.render({
   width: 800,
   format: "png",
   baseUrl: "https://example.com/assets/",
-  clear: true, // Start with a fresh state for this task
   logLevel: LogLevel.Debug, // Enable debug logs for this task
   fonts: [{ name: "CustomFont", data: fontData }], // Pre-load fonts
   css: "h1 { color: red; }", // Inject extra CSS
@@ -257,18 +250,17 @@ const png = await satoru.render({
 Satoru provides a utility to easily convert React elements to HTML strings for rendering.
 
 ```typescript
-import { Satoru } from "satoru";
+import { render } from "satoru";
 import { toHtml } from "satoru/react";
 import React from "react";
 
-const satoru = await Satoru.create();
 const html = toHtml(
   <div style={{ color: "#2196F3", fontSize: "40px" }}>
     Hello from React!
   </div>
 );
 
-const png = await satoru.render({ value: html, width: 600, format: "png" });
+const png = await render({ value: html, width: 600, format: "png" });
 ```
 
 ### 📄 Multi-page PDF Generation
@@ -276,7 +268,9 @@ const png = await satoru.render({ value: html, width: 600, format: "png" });
 You can generate a multi-page PDF by passing an array of HTML strings to the `value` property. Each string in the array will be rendered as a new page.
 
 ```typescript
-const pdf = await satoru.render({
+import { render } from "satoru";
+
+const pdf = await render({
   value: [
     "<h1>Page 1</h1><p>First page content.</p>",
     "<h1>Page 2</h1><p>Second page content.</p>",

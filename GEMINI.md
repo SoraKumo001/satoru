@@ -78,6 +78,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
   - Satoru instances are created using the static `create` method.
   - The base `Satoru` class requires a factory function (Emscripten module factory).
   - Specialized wrappers like `satoru/single` and `satoru/workerd` provide `create` methods that handle environment-specific instantiation automatically.
+  - For high-level use, the `render` function (exported from `.`, `./single`, `./workerd`) provides a simplified API that handles instance management internally.
 
 - **Resource Management:**
   - **Callback-Based Resolution:** WASM notifies JS of resource requests (Fonts, Images, CSS) via the `satoru_request_resource_js` bridge.

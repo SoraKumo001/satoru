@@ -33,12 +33,14 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 Satoru supports a wide range of CSS properties for high-fidelity layout and styling.
 
 ### Box Model & Layout
+
 - `display`, `position`, `float`, `clear`, `visibility`, `z-index`, `overflow`, `box-sizing`
 - `width`, `height`, `min-width`, `min-height`, `max-width`, `max-height`
 - `margin` (top, right, bottom, left)
 - `padding` (top, right, bottom, left)
 
 ### Typography & Text
+
 - `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`
 - `text-align`, `vertical-align`, `text-decoration` (line, color, style, thickness)
 - `text-transform`, `text-indent`, `text-overflow`, `white-space`
@@ -46,17 +48,20 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `line-clamp` / `-webkit-line-clamp`, `-webkit-box-orient`
 
 ### Backgrounds
+
 - `background-color`
 - `background-image` (Supports `url()`, `linear-gradient`, `radial-gradient`, `conic-gradient`)
 - `background-position`, `background-size`, `background-repeat`, `background-attachment`
 
 ### Borders & Shadows
+
 - `border`, `border-width`, `border-style`, `border-color` (top, right, bottom, left)
 - `border-radius` (Full support for all corners)
 - `border-collapse`, `border-spacing`
 - `box-shadow` (High-quality **Outer** and **Inset** shadows)
 
 ### Flexbox
+
 - `display: flex`, `display: inline-flex`
 - `flex-direction`, `flex-wrap`, `flex-flow`
 - `justify-content`, `align-items`, `align-content`, `align-self`
@@ -64,6 +69,7 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `row-gap`, `column-gap`, `gap`, `order`
 
 ### Others
+
 - `caption-side`, `content`, `appearance`
 
 ## \ud83d\udd04 Conversion Flow
@@ -109,17 +115,14 @@ graph TD
 
 ### Standard Environment (Node.js / Browser)
 
-The `Satoru` class provides a high-level API for rendering HTML. It is initialized via the static `create` method.
+Satoru provides a high-level `render` function for converting HTML to various formats. It automatically handles WASM instantiation and resource resolution.
 
 #### Basic Rendering (Automatic Resource Resolution)
 
-The `render` method supports automated multi-pass resource resolution. It identifies missing fonts, images, and external CSS and requests them via the `resolveResource` callback.
+The `render` function supports automated multi-pass resource resolution. It identifies missing fonts, images, and external CSS and requests them via the `resolveResource` callback.
 
 ```typescript
-import { Satoru, LogLevel } from "satoru";
-
-// Create the engine instance
-const satoru = await Satoru.create();
+import { render, LogLevel } from "satoru";
 
 const html = `
   <style>
@@ -135,7 +138,7 @@ const html = `
 `;
 
 // Render to PDF with automatic resource resolution
-const pdf = await satoru.render({
+const pdf = await render({
   value: html,
   width: 600,
   format: "pdf",
@@ -150,21 +153,21 @@ const pdf = await satoru.render({
 
 #### Render Options
 
-| Option | Type | Description |
-|---|---|---|
-| `value` | `string \| string[]` | **Required.** HTML string or array of HTML strings (for multi-page PDF). |
-| `width` | `number` | **Required.** Width of the output in pixels. |
-| `height` | `number` | Height of the output in pixels. Default is `0` (automatic height). |
-| `format` | `"svg" \| "png" \| "pdf"` | Output format. Default is `"svg"`. |
-| `resolveResource` | `ResourceResolver` | Async callback to fetch missing fonts, images, or CSS. |
-| `fonts` | `Object[]` | Array of `{ name, data }` to pre-load fonts into the engine. |
-| `images` | `Object[]` | Array of `{ name, url, width?, height? }` to pre-load images. |
-| `css` | `string` | Extra CSS to inject into the rendering process. |
-| `clear` | `boolean` | If `true`, clears all cached fonts, images, and CSS before rendering. |
-| `baseUrl` | `string` | Base URL used to resolve relative URLs in fonts, images, and links. |
-| `userAgent` | `string` | User-Agent header for fetching resources (Node.js environment). |
-| `logLevel` | `LogLevel` | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`). |
-| `onLog` | `Function` | Custom callback for receiving log messages. |
+| Option            | Type                      | Description                                                              |
+| ----------------- | ------------------------- | ------------------------------------------------------------------------ |
+| `value`           | `string \| string[]`      | **Required.** HTML string or array of HTML strings (for multi-page PDF). |
+| `width`           | `number`                  | **Required.** Width of the output in pixels.                             |
+| `height`          | `number`                  | Height of the output in pixels. Default is `0` (automatic height).       |
+| `format`          | `"svg" \| "png" \| "pdf"` | Output format. Default is `"svg"`.                                       |
+| `resolveResource` | `ResourceResolver`        | Async callback to fetch missing fonts, images, or CSS.                   |
+| `fonts`           | `Object[]`                | Array of `{ name, data }` to pre-load fonts into the engine.             |
+| `images`          | `Object[]`                | Array of `{ name, url, width?, height? }` to pre-load images.            |
+| `css`             | `string`                  | Extra CSS to inject into the rendering process.                          |
+| `clear`           | `boolean`                 | If `true`, clears all cached fonts, images, and CSS before rendering.    |
+| `baseUrl`         | `string`                  | Base URL used to resolve relative URLs in fonts, images, and links.      |
+| `userAgent`       | `string`                  | User-Agent header for fetching resources (Node.js environment).          |
+| `logLevel`        | `LogLevel`                | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`).         |
+| `onLog`           | `Function`                | Custom callback for receiving log messages.                              |
 
 ### 📄 Multi-page PDF Generation
 
@@ -184,20 +187,18 @@ const pdf = await satoru.render({
 
 ### \u2601\ufe0f Cloudflare Workers (Edge)
 
-Satoru is optimized for Cloudflare Workers. Use the `workerd` specific export for proper WASM instantiation.
+Satoru is optimized for Cloudflare Workers. Use the `workerd` specific export which handles the specific WASM instantiation requirements of the environment.
 
 ```typescript
-import { Satoru } from "satoru/workerd";
+import { render } from "satoru/workerd";
 
 export default {
   async fetch(request) {
-    const satoru = await Satoru.create();
-
-    const pdf = await satoru.render({
+    const pdf = await render({
       value: "<h1>Edge Rendered</h1>",
       width: 800,
       format: "pdf",
-      baseUrl: "https://example.com/"
+      baseUrl: "https://example.com/",
     });
 
     return new Response(pdf, {
@@ -212,13 +213,12 @@ export default {
 For environments where deploying a separate `.wasm` file is difficult, use the `single` export which includes the WASM binary embedded.
 
 ```typescript
-import { Satoru } from "satoru/single";
+import { render } from "satoru/single";
 
-const satoru = await Satoru.create();
-const png = await satoru.render({ 
-  value: "<div>Embedded WASM!</div>", 
-  width: 600, 
-  format: "png" 
+const png = await render({
+  value: "<div>Embedded WASM!</div>",
+  width: 600,
+  format: "png",
 });
 ```
 
@@ -233,15 +233,14 @@ import { createSatoruWorker, LogLevel } from "satoru";
 const satoru = createSatoruWorker({ maxParallel: 4 });
 
 // Render with full configuration in one go
-const png = await satoru.render({ 
-  value: "<h1>Parallel Rendering</h1><img src='icon.png'>", 
-  width: 800, 
+const png = await satoru.render({
+  value: "<h1>Parallel Rendering</h1><img src='icon.png'>",
+  width: 800,
   format: "png",
   baseUrl: "https://example.com/assets/",
-  clear: true, // Start with a fresh state for this task
   logLevel: LogLevel.Debug, // Enable debug logs for this task
   fonts: [{ name: "CustomFont", data: fontData }], // Pre-load fonts
-  css: "h1 { color: red; }" // Inject extra CSS
+  css: "h1 { color: red; }", // Inject extra CSS
 });
 ```
 
@@ -258,16 +257,19 @@ This suite compares Satoru's outputs against Chromium's rendering.
 - **Fast Execution**: Multi-threaded reference generation and batch conversion.
 
 #### Run Tests
+
 ```bash
 pnpm --filter visual-test test
 ```
 
 #### Generate Reference Images
+
 ```bash
 pnpm --filter visual-test gen-ref
 ```
 
 #### Batch Convert Assets (Multithreaded)
+
 ```bash
 pnpm --filter visual-test convert-assets
 ```
@@ -275,6 +277,7 @@ pnpm --filter visual-test convert-assets
 ## \ud83c\udfd7\ufe0f Build & Run
 
 ### Local Environment
+
 Requires Emscripten SDK and vcpkg.
 
 ```bash
@@ -286,6 +289,7 @@ pnpm dev
 ```
 
 ### Docker Environment (Recommended)
+
 Build Wasm artifacts inside a Docker container without local toolchains.
 
 ```bash

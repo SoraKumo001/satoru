@@ -35,6 +35,7 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
   - **PDF**: Generates high-fidelity vector documents via Skia's PDF backend, including native support for text, gradients, images, and **multi-page output**.
 - **High-Level TS Wrapper**: Includes a `Satoru` class that abstracts Wasm memory management and provides a clean async API.
 - **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime with automatic weight/style inference.
+- **No Default Fonts**: Satoru does not contain any built-in fonts. You must explicitly load fonts via `@font-face` or the `loadFont` API to render text.
 - **Japanese Support**: Full support for Japanese rendering with multi-font fallback logic.
 - **Image Format Support**: Native support for **PNG**, **JPEG**, **WebP**, **AVIF**, **GIF**, **BMP**, and **ICO** image formats.
 - **Advanced CSS Support**:
@@ -177,14 +178,13 @@ const pdf = await render({
 | `height`          | `number`                            | Height of the output in pixels. Default is `0` (automatic height).       |
 | `format`          | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default is `"svg"`.                                       |
 | `resolveResource` | `ResourceResolver`                  | Async callback to fetch missing fonts, images, or CSS.                   |
-| `fonts`           | `Object[]`                          | Array of `{ name, data }` to pre-load fonts into the engine.             |
+| `fonts`           | `Object[]`                          | Array of `{ name, data: Uint8Array }` to pre-load fonts.                 |
 | `images`          | `Object[]`                          | Array of `{ name, url, width?, height? }` to pre-load images.            |
 | `css`             | `string`                            | Extra CSS to inject into the rendering process.                          |
-| `clear`           | `boolean`                           | If `true`, clears all cached fonts, images, and CSS before rendering.    |
 | `baseUrl`         | `string`                            | Base URL used to resolve relative URLs in fonts, images, and links.      |
 | `userAgent`       | `string`                            | User-Agent header for fetching resources (Node.js environment).          |
 | `logLevel`        | `LogLevel`                          | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`).         |
-| `onLog`           | `Function`                          | Custom callback for receiving log messages.                              |
+| `onLog`           | `(level, msg) => void`              | Custom callback for receiving log messages.                              |
 
 ### ☁️ Cloudflare Workers (Edge)
 
@@ -196,7 +196,10 @@ import { render } from "satoru/workerd";
 export default {
   async fetch(request) {
     const pdf = await render({
-      value: "<h1>Edge Rendered</h1>",
+      value: `
+        <style>@font-face { font-family: 'Roboto'; src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2'); }</style>
+        <h1 style="font-family: Roboto">Edge Rendered</h1>
+      `,
       width: 800,
       format: "pdf",
       baseUrl: "https://example.com/",
@@ -217,7 +220,10 @@ For environments where deploying a separate `.wasm` file is difficult, use the `
 import { render } from "satoru/single";
 
 const png = await render({
-  value: "<div>Embedded WASM!</div>",
+  value: `
+    <style>@font-face { font-family: 'Roboto'; src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2'); }</style>
+    <div style="font-family: Roboto">Embedded WASM!</div>
+  `,
   width: 600,
   format: "png",
 });
@@ -235,7 +241,10 @@ const satoru = createSatoruWorker({ maxParallel: 4 });
 
 // Render with full configuration in one go
 const png = await satoru.render({
-  value: "<h1>Parallel Rendering</h1><img src='icon.png'>",
+  value: `
+    <style>@font-face { font-family: 'Roboto'; src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2'); }</style>
+    <div style="font-family: Roboto"><h1>Parallel Rendering</h1><img src='icon.png'></div>
+  `,
   width: 800,
   format: "png",
   baseUrl: "https://example.com/assets/",
@@ -255,7 +264,8 @@ import { toHtml } from "satoru/react";
 import React from "react";
 
 const html = toHtml(
-  <div style={{ color: "#2196F3", fontSize: "40px" }}>
+  <div style={{ fontFamily: 'Roboto', color: "#2196F3", fontSize: "40px" }}>
+    <style>{`@font-face { font-family: 'Roboto'; src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2'); }`}</style>
     Hello from React!
   </div>
 );
@@ -272,30 +282,13 @@ import { render } from "satoru";
 
 const pdf = await render({
   value: [
-    "<h1>Page 1</h1><p>First page content.</p>",
-    "<h1>Page 2</h1><p>Second page content.</p>",
-    "<h1>Page 3</h1><p>Third page content.</p>",
+    `<style>@font-face { font-family: 'Roboto'; src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2'); }</style><div style="font-family: Roboto"><h1>Page 1</h1><p>First page content.</p></div>`,
+    `<style>@font-face { font-family: 'Roboto'; src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2'); }</style><div style="font-family: Roboto"><h1>Page 2</h1><p>Second page content.</p></div>`,
+    `<style>@font-face { font-family: 'Roboto'; src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2'); }</style><div style="font-family: Roboto"><h1>Page 3</h1><p>Third page content.</p></div>`,
   ],
   width: 600,
   format: "pdf",
 });
-```
-
-### 🎨 Manual Resource Management
-
-For scenarios where you want to manage resources manually:
-
-```typescript
-// Load a font globally
-satoru.loadFont("MyFont", fontUint8Array);
-
-// Load an image into the engine's cache
-satoru.loadImage("logo-id", "https://example.com/logo.png", width, height);
-
-// Clear caches
-satoru.clearFonts();
-satoru.clearImages();
-satoru.clearCss();
 ```
 
 ### 🔄 State Persistence (Advanced)
@@ -309,9 +302,17 @@ import satoruFactory from "satoru/wasm"; // Import the factory directly
 const satoru = await Satoru.create(satoruFactory);
 
 // 1. Initialize and Layout (Expensive Step)
-const inst = await satoru.initDocument({ 
-  html: "<div style='color: red'>Hello State!</div>", 
-  width: 800 
+const inst = await satoru.initDocument({
+  html: `
+    <style>
+      @font-face {
+        font-family: 'Roboto';
+        src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2');
+      }
+    </style>
+    <div style='font-family: Roboto; color: red'>Hello State!</div>
+  `,
+  width: 800,
 });
 await satoru.layoutDocument(inst, 800);
 
@@ -323,15 +324,23 @@ await satoru.destroyInstance(inst);
 
 // 3. Restore and Render (Fast Step)
 // No layout calculation needed here!
-const inst2 = await satoru.initDocument({ 
-  html: "<div style='color: red'>Hello State!</div>", // Must match original structure
-  width: 800 
+const inst2 = await satoru.initDocument({
+  html: `
+    <style>
+      @font-face {
+        font-family: 'Roboto';
+        src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2');
+      }
+    </style>
+    <div style='font-family: Roboto; color: red'>Hello State!</div>
+  `, // Must match original structure
+  width: 800,
 });
 await satoru.deserializeLayout(inst2, layoutState!);
 
-const png = await satoru.renderFromState(inst2, { 
-  width: 800, 
-  format: "png" 
+const png = await satoru.renderFromState(inst2, {
+  width: 800,
+  format: "png",
 });
 
 await satoru.destroyInstance(inst2);
@@ -384,34 +393,42 @@ Requires Emscripten SDK and vcpkg.
 ```bash
 pnpm install
 pnpm wasm:configure
-pnpm wasm:build
-pnpm build
-pnpm dev
+pnpm build:all
+pnpm dev:playground
 ```
 
-### Docker Environment (Recommended)
+### Docker Environment (Recommended for WASM)
 
-Build Wasm artifacts inside a Docker container without local toolchains.
+Build WASM artifacts inside a Docker container without local toolchains.
 
 ```bash
 pnpm wasm:docker:build
-pnpm build
+pnpm build:all
 ```
 
 ## 🗺️ Roadmap
 
+### Core Engine
 - [x] High-level TypeScript Wrapper API with automatic resource resolution.
-- [x] Binary PNG export support via shared memory.
-- [x] **High-fidelity PDF export support via Skia's PDF backend (Single & Multi-page).**
+- [x] **Engine State Persistence (Serialize/Deserialize Layout).**
+- [x] Improved Font Fallback & Generic Family Mapping.
+- [x] **Advanced Table layout with `border-collapse` support.**
+- [x] Multi-threaded rendering via Worker Proxy.
+
+### Rendering Features
+- [x] Binary PNG & **WebP** export support.
+- [x] **High-fidelity PDF export via Skia's PDF backend (Single & Multi-page).**
 - [x] Linear, Elliptical Radial & Conic Gradient support.
 - [x] Border Radius & **Advanced Box Shadow (Outer/Inset)**.
-- [x] Japanese Language Rendering & Standard HTML Tag Support.
-- [x] **Cloudflare Workers (workerd) compatibility.**
 - [x] **Text Shadow (Multiple shadows, Blur, Offset).**
-- [x] **Improved Font Fallback & Generic Family Mapping.**
-- [x] **Engine State Persistence (Serialize/Deserialize Layout).**
 - [ ] Support for CSS Masks & Filters.
 - [ ] Optional SVG `<text>` element output (currently paths).
+
+### Platform & Integration
+- [x] **Cloudflare Workers (workerd) compatibility.**
+- [x] React Integration (JSX to HTML conversion).
+- [x] Japanese Language Rendering & Standard HTML Tag Support.
+- [ ] Support for CSS Grid Layout.
 
 ## 📜 License
 

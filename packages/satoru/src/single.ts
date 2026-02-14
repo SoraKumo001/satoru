@@ -16,17 +16,22 @@ export type { SatoruWorker } from "./child-workers.js";
  */
 export class Satoru extends BaseSatoru {
   // Use protected constructor from base
-  private constructor(mod: SatoruModule, instancePtr: number) {
-    super(mod, instancePtr);
+  private constructor(mod: SatoruModule) {
+    super(mod);
   }
 
   /**
-   * Initialize Satoru with embedded WASM.
+   * Create Satoru instance with embedded WASM.
    */
-  static async init(): Promise<Satoru> {
+  static async create(): Promise<Satoru> {
     const { default: createSatoruModuleSingle } =
       // @ts-ignore
       await import("../dist/satoru-single.js");
-    return BaseSatoru.init(createSatoruModuleSingle) as Promise<Satoru>;
+    return BaseSatoru.create(createSatoruModuleSingle) as Promise<Satoru>;
+  }
+
+  /** @deprecated Use Satoru.create */
+  static async init(): Promise<Satoru> {
+    return this.create();
   }
 }

@@ -5,7 +5,7 @@ let satoru: Satoru | undefined;
 
 const getSatoru = async () => {
   if (!satoru) {
-    satoru = await Satoru.init();
+    satoru = await Satoru.create();
   }
   return satoru;
 };
@@ -28,57 +28,22 @@ const actions = {
 
   async toSvg(value: string, width: number, height: number = 0) {
     const s = await getSatoru();
-    return s.toSvg(value, width, height);
+    return s.render({ value, width, height, format: "svg" });
   },
 
   async toPng(value: string, width: number, height: number = 0) {
     const s = await getSatoru();
-    return s.toPng(value, width, height);
+    return s.render({ value, width, height, format: "png" });
   },
 
   async toWebp(value: string, width: number, height: number = 0) {
     const s = await getSatoru();
-    return s.toWebp(value, width, height);
+    return s.render({ value, width, height, format: "webp" });
   },
 
   async toPdf(value: string, width: number, height: number = 0) {
     const s = await getSatoru();
-    return s.toPdf(value, width, height);
-  },
-
-  async loadFont(name: string, data: Uint8Array) {
-    const s = await getSatoru();
-    return s.loadFont(name, data);
-  },
-
-  async clearFonts() {
-    const s = await getSatoru();
-    return s.clearFonts();
-  },
-
-  async loadImage(
-    name: string,
-    dataUrl: string,
-    width: number,
-    height: number,
-  ) {
-    const s = await getSatoru();
-    return s.loadImage(name, dataUrl, width, height);
-  },
-
-  async clearImages() {
-    const s = await getSatoru();
-    return s.clearImages();
-  },
-
-  async clearCss() {
-    const s = await getSatoru();
-    return s.clearCss();
-  },
-
-  async clearAll() {
-    const s = await getSatoru();
-    return s.clearAll();
+    return s.render({ value, width, height, format: "pdf" });
   },
 };
 

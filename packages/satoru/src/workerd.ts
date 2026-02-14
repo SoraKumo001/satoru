@@ -17,16 +17,16 @@ export type {
  */
 export class Satoru extends BaseSatoru {
   // Use protected constructor from base
-  private constructor(mod: SatoruModule, instancePtr: number) {
-    super(mod, instancePtr);
+  private constructor(mod: SatoruModule) {
+    super(mod);
   }
 
   /**
-   * Initialize Satoru for Cloudflare Workers.
+   * Create Satoru instance for Cloudflare Workers.
    * @param wasm The compiled WASM module (defaults to the bundled one)
    */
-  static async init(wasm: WebAssembly.Module = satoruWasm): Promise<Satoru> {
-    return BaseSatoru.init(async (o: any) =>
+  static async create(wasm: WebAssembly.Module = satoruWasm): Promise<Satoru> {
+    return BaseSatoru.create(async (o: any) =>
       createSatoruModule({
         ...o,
         instantiateWasm: (imports: any, successCallback: any) => {
@@ -42,5 +42,10 @@ export class Satoru extends BaseSatoru {
         },
       }),
     ) as Promise<Satoru>;
+  }
+
+  /** @deprecated Use Satoru.create */
+  static async init(wasm: WebAssembly.Module = satoruWasm): Promise<Satoru> {
+    return this.create(wasm);
   }
 }

@@ -109,7 +109,7 @@ graph TD
 
 ### Standard Environment (Node.js / Browser)
 
-The `Satoru` class provides a high-level API for rendering HTML. It is initialized via the static `init` method.
+The `Satoru` class provides a high-level API for rendering HTML. It is initialized via the static `create` method.
 
 #### Basic Rendering (Automatic Resource Resolution)
 
@@ -118,8 +118,8 @@ The `render` method supports automated multi-pass resource resolution. It identi
 ```typescript
 import { Satoru, LogLevel } from "satoru";
 
-// Initialize the engine
-const satoru = await Satoru.init();
+// Create the engine instance
+const satoru = await Satoru.create();
 
 const html = `
   <style>
@@ -191,7 +191,7 @@ import { Satoru } from "satoru/workerd";
 
 export default {
   async fetch(request) {
-    const satoru = await Satoru.init();
+    const satoru = await Satoru.create();
 
     const pdf = await satoru.render({
       value: "<h1>Edge Rendered</h1>",
@@ -214,7 +214,7 @@ For environments where deploying a separate `.wasm` file is difficult, use the `
 ```typescript
 import { Satoru } from "satoru/single";
 
-const satoru = await Satoru.init();
+const satoru = await Satoru.create();
 const png = await satoru.render({ 
   value: "<div>Embedded WASM!</div>", 
   width: 600, 
@@ -243,23 +243,6 @@ const png = await satoru.render({
   fonts: [{ name: "CustomFont", data: fontData }], // Pre-load fonts
   css: "h1 { color: red; }" // Inject extra CSS
 });
-```
-
-### \ud83c\udfa8 Manual Resource Management
-
-For scenarios where you want to manage resources manually:
-
-```typescript
-// Load a font globally
-satoru.loadFont("MyFont", fontUint8Array);
-
-// Load an image into the engine's cache
-satoru.loadImage("logo-id", "https://example.com/logo.png", width, height);
-
-// Clear caches
-satoru.clearFonts();
-satoru.clearImages();
-satoru.clearCss();
 ```
 
 ## \ud83e\uddea Testing & Validation

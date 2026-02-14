@@ -30,15 +30,10 @@ describe("PNG (Skia) Visual Tests", () => {
     [DIFF_DIR, TEMP_DIR].forEach(
       (dir) => !fs.existsSync(dir) && fs.mkdirSync(dir, { recursive: true }),
     );
-    satoru = await Satoru.init();
+    satoru = await Satoru.create();
     if (fs.existsSync(BASELINE_PATH)) {
       baselines = JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"));
     }
-  });
-
-  beforeEach(() => {
-    satoru.clearFonts();
-    satoru.clearImages();
   });
 
   afterAll(() => {

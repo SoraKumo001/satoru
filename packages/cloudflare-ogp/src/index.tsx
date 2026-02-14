@@ -6,7 +6,7 @@ import React from "react";
 const app = new Hono();
 
 // Cache for Satoru instance
-let satoru: Awaited<ReturnType<typeof Satoru.init>> | null = null;
+let satoru: Awaited<ReturnType<typeof Satoru.create>> | null = null;
 
 app.get("/", async (c) => {
   const title = c.req.query("title") || "こんにちは Satoru";
@@ -14,7 +14,7 @@ app.get("/", async (c) => {
     c.req.query("subtitle") || "Cloudflare Workersで爆速画像生成";
 
   if (!satoru) {
-    satoru = await Satoru.init();
+    satoru = await Satoru.create();
   }
 
   // Define OGP layout using JSX

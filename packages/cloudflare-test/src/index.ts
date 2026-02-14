@@ -217,7 +217,7 @@ export default {
     }
 
     try {
-      const satoru = await Satoru.init();
+      const satoru = await Satoru.create();
 
       // 動的リソース（フォント、画像等）の解決
       const result = await satoru.render({

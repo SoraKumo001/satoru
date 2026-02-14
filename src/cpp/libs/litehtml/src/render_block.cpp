@@ -331,3 +331,34 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
 
     return ret_width + content_offset_width();
 }
+
+void litehtml::render_item_block::apply_vertical_align()
+{
+    pixel_t content_height = 0;
+    for (const auto& el : m_children)
+    {
+        if (el->src_el()->css().get_display() != display_none)
+        {
+            content_height = std::max(content_height, el->bottom());
+        }
+    }
+
+    pixel_t shift = 0;
+    vertical_align va = src_el()->css().get_vertical_align();
+    if (va == va_middle)
+    {
+        shift = (m_pos.height - content_height) / 2;
+    }
+    else if (va == va_bottom)
+    {
+        shift = m_pos.height - content_height;
+    }
+
+    if (shift > 0)
+    {
+        for (auto& el : m_children)
+        {
+            el->y_shift(shift);
+        }
+    }
+}

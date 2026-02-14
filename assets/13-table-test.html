@@ -1,206 +1,302 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Satoru Table Test</title>
-    <style>
-        @font-face {
-            font-family: 'Noto Sans JP';
-            src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFBEj75vY0rw-oME.ttf');
-            font-weight: 400;
-        }
-        body {
-            font-family: 'Noto Sans JP', sans-serif;
-            background-color: #f0f2f5;
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 8px;
-            padding: 24px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Satoru Complex Table Test</title>
+  <style>
+    @font-face {
+      font-family: 'Noto Sans JP';
+      src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFBEj75vY0rw-oME.ttf');
+      font-weight: 400;
+    }
 
-        h2 {
-            margin-top: 0;
-            color: #1a1a1a;
-            border-bottom: 2px solid #e1e4e8;
-            padding-bottom: 10px;
-        }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #f4f7f6;
+      padding: 30px;
+      color: #333;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1rem;
-            background-color: white;
-        }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    }
 
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e1e4e8;
-        }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 30px;
+      border-bottom: 3px solid #3498db;
+      padding-bottom: 10px;
+    }
 
-        th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #495057;
-        }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+      table-layout: auto;
+    }
 
-        tr:hover {
-            background-color: #f8f9fa;
-        }
+    th,
+    td {
+      border: 1px solid #bdc3c7;
+      padding: 12px;
+      text-align: left;
+    }
 
-        /* Bordered Table */
-        .table-bordered {
-            border: 1px solid #e1e4e8;
-        }
-        .table-bordered th, .table-bordered td {
-            border: 1px solid #e1e4e8;
-        }
+    th {
+      background-color: #34495e;
+      color: white;
+      text-transform: uppercase;
+      font-size: 0.85em;
+      letter-spacing: 1px;
+    }
 
-        /* Striped Table */
-        .table-striped tbody tr:nth-child(odd) {
-            background-color: #f8f9fa;
-        }
+    /* Complex Spans Table */
+    .complex-spans th {
+      background-color: #2980b9;
+    }
 
-        /* Compact Table */
-        .table-compact th, .table-compact td {
-            padding: 8px 10px;
-            font-size: 0.9em;
-        }
+    .row-group {
+      background-color: #ecf0f1;
+      font-weight: bold;
+    }
 
-        .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-        .status-active {
-            background-color: #e6fcf5;
-            color: #0ca678;
-        }
-        .status-pending {
-            background-color: #fff9db;
-            color: #f59f00;
-        }
-        .status-inactive {
-            background-color: #f1f3f5;
-            color: #868e96;
-        }
-    </style>
+    /* Nested Table */
+    .nested-container {
+      padding: 0;
+      background-color: #fff;
+    }
+
+    .nested-table {
+      margin: 0;
+      border: none;
+    }
+
+    .nested-table td {
+      border-left: none;
+      border-right: none;
+      background-color: #fdfdfe;
+    }
+
+    .nested-table tr:first-child td {
+      border-top: none;
+    }
+
+    .nested-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Styling variants */
+    .bg-gradient {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .bg-pattern {
+      background-color: #e5e5f7;
+      background-image: radial-gradient(#444cf7 0.5px, transparent 0.5px), radial-gradient(#444cf7 0.5px, #e5e5f7 0.5px);
+      background-size: 20px 20px;
+      background-position: 0 0, 10px 10px;
+    }
+
+    .valign-top {
+      vertical-align: top;
+    }
+
+    .valign-bottom {
+      vertical-align: bottom;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .price-tag {
+      font-family: monospace;
+      font-weight: bold;
+      color: #e74c3c;
+    }
+
+    .badge {
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 0.75em;
+      color: white;
+    }
+
+    .badge-pro {
+      background-color: #f1c40f;
+      color: #333;
+    }
+
+    .badge-dev {
+      background-color: #9b59b6;
+    }
+
+    .shadow-cell {
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Fixed Width column */
+    .col-fixed {
+      width: 150px;
+    }
+  </style>
 </head>
+
 <body>
 
-    <div class="card">
-        <h2>Basic Table</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>Alice Johnson</td>
-                    <td>alice@example.com</td>
-                    <td>Admin</td>
-                </tr>
-                <tr>
-                    <td>2</td>
-                    <td>Bob Smith</td>
-                    <td>bob@example.com</td>
-                    <td>User</td>
-                </tr>
-                <tr>
-                    <td>3</td>
-                    <td>Charlie Brown</td>
-                    <td>charlie@example.com</td>
-                    <td>Editor</td>
-                </tr>
-            </tbody>
-        </table>
+  <div class="container">
+    <h1>Complex Matrix & Nested Structure</h1>
+
+    <table class="complex-spans">
+      <thead>
+        <tr>
+          <th rowspan="3" class="col-fixed">Category</th>
+          <th colspan="4" class="text-center">Performance Metrics (Q1-Q4)</th>
+          <th rowspan="3">Global Score</th>
+        </tr>
+        <tr>
+          <th colspan="2" class="text-center">Direct Sales</th>
+          <th colspan="2" class="text-center">Online Channels</th>
+        </tr>
+        <tr>
+          <th>Region A</th>
+          <th>Region B</th>
+          <th>Global</th>
+          <th>Ads Yield</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td rowspan="2" class="row-group">Infrastructure</td>
+          <td>0.85</td>
+          <td class="bg-pattern">0.92</td>
+          <td>1.2k</td>
+          <td>High</td>
+          <td rowspan="4" class="bg-gradient text-center">
+            <div style="font-size: 2em; font-weight: bold;">A+</div>
+            <span class="badge badge-pro">Verified</span>
+          </td>
+        </tr>
+        <tr>
+          <td>0.77</td>
+          <td>0.81</td>
+          <td class="nested-container">
+            <table class="nested-table">
+              <tr>
+                <td>Mobile</td>
+                <td>45%</td>
+              </tr>
+              <tr>
+                <td>Desktop</td>
+                <td>55%</td>
+              </tr>
+            </table>
+          </td>
+          <td>Med</td>
+        </tr>
+        <tr>
+          <td rowspan="2" class="row-group">Services</td>
+          <td colspan="2" class="text-center shadow-cell">Aggregated Data: 1.56</td>
+          <td>0.9k</td>
+          <td class="valign-bottom">
+            <div style="height: 40px; border-left: 2px solid #3498db; padding-left: 5px;">
+              Critical<br>Path
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>0.99</td>
+          <td>1.05</td>
+          <td>2.1k</td>
+          <td class="bg-pattern">Top</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr style="background-color: #2c3e50; color: white; font-weight: bold;">
+          <td>Totals</td>
+          <td>2.61</td>
+          <td>2.78</td>
+          <td>4.2k</td>
+          <td>N/A</td>
+          <td class="text-center">94.5%</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div style="display: flex; gap: 20px;">
+      <table style="flex: 1;">
+        <tr>
+          <th colspan="2">System Health</th>
+        </tr>
+        <tr>
+          <td>CPU</td>
+          <td style="width: 50%;">
+            <div style="width: 80%; background: #2ecc71; height: 10px; border-radius: 5px;"></div>
+          </td>
+        </tr>
+        <tr>
+          <td>RAM</td>
+          <td>
+            <div style="width: 40%; background: #f1c40f; height: 10px; border-radius: 5px;"></div>
+          </td>
+        </tr>
+        <tr>
+          <td>IO</td>
+          <td>
+            <div style="width: 95%; background: #e74c3c; height: 10px; border-radius: 5px;"></div>
+          </td>
+        </tr>
+      </table>
+
+      <table style="flex: 1;">
+        <tr>
+          <th>Feature</th>
+          <th>Status</th>
+        </tr>
+        <tr>
+          <td>WASM Core</td>
+          <td><span class="badge badge-dev">Active</span></td>
+        </tr>
+        <tr>
+          <td>Skia Render</td>
+          <td><span class="badge badge-dev">Active</span></td>
+        </tr>
+        <tr>
+          <td>PDF Export</td>
+          <td><span class="badge badge-dev" style="opacity: 0.5;">Experimental</span></td>
+        </tr>
+      </table>
     </div>
 
-    <div class="card">
-        <h2>Bordered & Striped Table</h2>
-        <table class="table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>Order #</th>
-                    <th>Product</th>
-                    <th>Price</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>#1001</td>
-                    <td>Mechanical Keyboard</td>
-                    <td>$129.99</td>
-                    <td><span class="status-badge status-active">Shipped</span></td>
-                </tr>
-                <tr>
-                    <td>#1002</td>
-                    <td>Wireless Mouse</td>
-                    <td>$49.99</td>
-                    <td><span class="status-badge status-pending">Processing</span></td>
-                </tr>
-                <tr>
-                    <td>#1003</td>
-                    <td>USB-C Monitor</td>
-                    <td>$349.99</td>
-                    <td><span class="status-badge status-active">Delivered</span></td>
-                </tr>
-                <tr>
-                    <td>#1004</td>
-                    <td>Desk Pad</td>
-                    <td>$19.99</td>
-                    <td><span class="status-badge status-inactive">Cancelled</span></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <div class="card">
-        <h2>Complex Layout (Colspan & Rowspan)</h2>
-        <table class="table-bordered">
-            <thead>
-                <tr>
-                    <th rowspan="2">Name</th>
-                    <th colspan="2">Contact Info</th>
-                    <th rowspan="2">Department</th>
-                </tr>
-                <tr>
-                    <th>Email</th>
-                    <th>Phone</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>John Doe</td>
-                    <td>john@company.com</td>
-                    <td>555-0123</td>
-                    <td>Sales</td>
-                </tr>
-                <tr>
-                    <td>Jane Smith</td>
-                    <td colspan="2" style="text-align: center; color: #868e96;">Contact details private</td>
-                    <td>Marketing</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <table style="margin-top: 20px; border: 2px solid #333;">
+      <tr>
+        <td style="width: 30%; height: 100px;" class="valign-top">
+          <strong>Top Aligned</strong><br>
+          This cell uses vertical-align: top to test baseline alignment in complex rows.
+        </td>
+        <td style="width: 30%;" class="text-center">
+          <strong>Middle (Default)</strong><br>
+          Centered content.
+        </td>
+        <td style="width: 40%;" class="valign-bottom">
+          <div style="background: #f8f9fa; border: 1px dashed #ccc; padding: 10px;">
+            <strong>Bottom Aligned</strong><br>
+            Content pushed to the floor of the cell.
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
 
 </body>
+
 </html>

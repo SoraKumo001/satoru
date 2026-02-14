@@ -34,6 +34,7 @@ namespace litehtml
 			return std::make_shared<render_item_block>(src_el());
 		}
 		std::shared_ptr<render_item> init() override;
+		void apply_vertical_align() override;
 	};
 }
 

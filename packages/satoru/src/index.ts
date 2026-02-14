@@ -36,7 +36,9 @@ export interface SatoruModule {
     height: number,
   ) => number;
   _get_pdf_size: (inst: number) => number;
+  _get_svg_size: (inst: number) => number;
   _collect_resources: (inst: number, html: number, width: number) => void;
+  _get_pending_resources: (inst: number) => number;
   _add_resource: (
     inst: number,
     url: number,
@@ -72,12 +74,6 @@ export interface SatoruModule {
     set: (data: Uint8Array, ptr: number) => void;
   };
   onLog?: (level: LogLevel, message: string) => void;
-  onRequestResource?: (
-    handle: number,
-    url: string,
-    type: number,
-    name: string,
-  ) => void;
   logLevel: LogLevel;
 }
 
@@ -143,31 +139,11 @@ export class Satoru {
         mod.onLog = onLog;
         mod.logLevel = LogLevel.None;
 
-        if (!mod.onRequestResource) {
-          mod.onRequestResource = (
-            handle: number,
-            url: string,
-            typeInt: number,
-            name: string,
-          ) => {
-            const inst = Satoru.instances.get(handle);
-            if (inst && inst.onResourceRequested) {
-              inst.onResourceRequested(url, typeInt, name);
-            }
-          };
-        }
-
         return mod;
       })();
     }
     return this.modPromise;
   }
-
-  private onResourceRequested?: (
-    url: string,
-    type: number,
-    name: string,
-  ) => void;
 
   private static defaultOnLog(level: LogLevel, message: string) {
     const prefix = "[Satoru WASM]";
@@ -321,14 +297,19 @@ export class Satoru {
       for (const rawHtml of inputHtmls) {
         let processedHtml = rawHtml;
         for (let i = 0; i < 10; i++) {
-          const resources = this.getPendingResources(
-            mod,
-            instancePtr,
-            processedHtml,
-            width,
-          );
+          const htmlPtr = this.stringToPtr(mod, processedHtml);
+          mod._collect_resources(instancePtr, htmlPtr, width);
+          mod._free(htmlPtr);
+
+          const pendingPtr = mod._get_pending_resources(instancePtr);
+          const json = mod.UTF8ToString(pendingPtr);
+          mod._free(pendingPtr);
+
+          if (!json) break;
+          const resources = JSON.parse(json) as RequiredResource[];
           const pending = resources.filter((r) => !resolvedUrls.has(r.url));
           if (pending.length === 0) break;
+
           await Promise.all(
             pending.map(async (r) => {
               try {
@@ -519,26 +500,6 @@ export class Satoru {
     }
     mod._free(htmlPtr);
     return result;
-  }
-
-  private getPendingResources(
-    mod: SatoruModule,
-    instPtr: number,
-    value: string,
-    width: number,
-  ): RequiredResource[] {
-    const htmlPtr = this.stringToPtr(mod, value);
-    const resources: RequiredResource[] = [];
-    this.onResourceRequested = (url: string, typeInt: number, name: string) => {
-      let type: "font" | "css" | "image" = "font";
-      if (typeInt === 2) type = "image";
-      if (typeInt === 3) type = "css";
-      resources.push({ type, name, url });
-    };
-    mod._collect_resources(instPtr, htmlPtr, width);
-    mod._free(htmlPtr);
-    this.onResourceRequested = undefined;
-    return resources;
   }
 
   private addResourceInternal(

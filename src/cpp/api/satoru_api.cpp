@@ -3,6 +3,7 @@
 #include <emscripten.h>
 
 #include <cstring>
+#include <sstream>
 
 #include "core/container_skia.h"
 #include "core/master_css.h"
@@ -20,13 +21,6 @@ EM_JS(void, satoru_log_js, (int level, const char *message), {
 });
 
 void satoru_log(LogLevel level, const char *message) { satoru_log_js((int)level, message); }
-
-EM_JS(void, satoru_request_resource_js, (void *handle, const char *url, int type, const char *name),
-      {
-          if (Module.onRequestResource) {
-              Module.onRequestResource(handle, UTF8ToString(url), type, UTF8ToString(name));
-          }
-      });
 
 static std::string get_full_master_css(SatoruInstance *inst) {
     return std::string(litehtml::master_css) + "\n" + satoru_master_css + "\n" +
@@ -96,15 +90,23 @@ const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::str
 }
 
 int api_get_last_png_size(SatoruInstance *inst) {
-    return (int)inst->context.get_last_png()->size();
+    auto data = inst->context.get_last_png();
+    return data ? (int)data->size() : 0;
 }
 
 int api_get_last_webp_size(SatoruInstance *inst) {
-    return (int)inst->context.get_last_webp()->size();
+    auto data = inst->context.get_last_webp();
+    return data ? (int)data->size() : 0;
 }
 
 int api_get_last_pdf_size(SatoruInstance *inst) {
-    return (int)inst->context.get_last_pdf()->size();
+    auto data = inst->context.get_last_pdf();
+    return data ? (int)data->size() : 0;
+}
+
+int api_get_last_svg_size(SatoruInstance *inst) {
+    auto data = inst->context.get_last_svg();
+    return data ? (int)data->size() : 0;
 }
 
 void api_collect_resources(SatoruInstance *inst, const char *html, int width) {
@@ -132,14 +134,6 @@ void api_collect_resources(SatoruInstance *inst, const char *html, int width) {
         for (const auto &url : urls) {
             inst->resourceManager.request(url, req.family, ResourceType::Font);
         }
-    }
-
-    auto requests = inst->resourceManager.getPendingRequests();
-    for (const auto &req : requests) {
-        int typeInt = 1;
-        if (req.type == ResourceType::Image) typeInt = 2;
-        if (req.type == ResourceType::Css) typeInt = 3;
-        satoru_request_resource_js(inst, req.url.c_str(), typeInt, req.name.c_str());
     }
 }
 
@@ -175,4 +169,24 @@ void api_load_image(SatoruInstance *inst, const char *name, const char *data_url
 void api_clear_images(SatoruInstance *inst) {
     inst->context.clearImages();
     inst->resourceManager.clear(ResourceType::Image);
+}
+
+std::string api_get_pending_resources(SatoruInstance *inst) {
+    auto requests = inst->resourceManager.getPendingRequests();
+    if (requests.empty()) return "";
+
+    std::stringstream ss;
+    ss << "[";
+    for (size_t i = 0; i < requests.size(); ++i) {
+        const auto &req = requests[i];
+        int typeInt = 1;
+        if (req.type == ResourceType::Image) typeInt = 2;
+        if (req.type == ResourceType::Css) typeInt = 3;
+
+        ss << "{\"url\":\"" << req.url << "\",\"name\":\"" << req.name << "\",\"type\":" << typeInt
+           << "}";
+        if (i < requests.size() - 1) ss << ",";
+    }
+    ss << "]";
+    return ss.str();
 }

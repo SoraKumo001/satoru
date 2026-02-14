@@ -58,15 +58,17 @@ EMSCRIPTEN_KEEPALIVE
 int get_pdf_size(SatoruInstance *inst) { return api_get_last_pdf_size(inst); }
 
 EMSCRIPTEN_KEEPALIVE
+int get_svg_size(SatoruInstance *inst) { return api_get_last_svg_size(inst); }
+
+EMSCRIPTEN_KEEPALIVE
 const char *collect_resources(SatoruInstance *inst, const char *html, int width) {
     api_collect_resources(inst, html, width);
     return nullptr;
 }
 
 EMSCRIPTEN_KEEPALIVE
-const char *get_required_fonts(SatoruInstance *inst, const char *html, int width) {
-    collect_resources(inst, html, width);
-    return nullptr;
+const char *get_pending_resources(SatoruInstance *inst) {
+    return string_to_heap(api_get_pending_resources(inst));
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -125,8 +127,9 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("html_to_pdf", &html_to_pdf, allow_raw_pointers());
     function("htmls_to_pdf", &htmls_to_pdf_val);
     function("get_pdf_size", &get_pdf_size, allow_raw_pointers());
+    function("get_svg_size", &get_svg_size, allow_raw_pointers());
     function("collect_resources", &collect_resources, allow_raw_pointers());
-    function("get_required_fonts", &get_required_fonts, allow_raw_pointers());
+    function("get_pending_resources", &get_pending_resources, allow_raw_pointers());
     function("add_resource", &add_resource, allow_raw_pointers());
     function("scan_css", &scan_css, allow_raw_pointers());
     function("clear_css", &clear_css, allow_raw_pointers());

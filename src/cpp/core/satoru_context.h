@@ -14,6 +14,7 @@ class SatoruContext {
     sk_sp<SkData> m_lastPng;
     sk_sp<SkData> m_lastWebp;
     sk_sp<SkData> m_lastPdf;
+    sk_sp<SkData> m_lastSvg;
     std::string m_extraCss;
 
    public:
@@ -65,6 +66,9 @@ class SatoruContext {
 
     void set_last_pdf(sk_sp<SkData> pdf) { m_lastPdf = std::move(pdf); }
     const sk_sp<SkData> &get_last_pdf() const { return m_lastPdf; }
+
+    void set_last_svg(sk_sp<SkData> svg) { m_lastSvg = std::move(svg); }
+    const sk_sp<SkData> &get_last_svg() const { return m_lastSvg; }
 };
 
 #endif

@@ -449,6 +449,8 @@ pnpm build:all
 - [x] Improved Font Fallback & Generic Family Mapping.
 - [x] **Advanced Table layout with `border-collapse` support.**
 - [x] Multi-threaded rendering via Worker Proxy.
+- [ ] Support for modern Media Query range syntax (e.g., `width >= 40rem`).
+- [ ] Direct C++ parsing of Data URL resources for performance.
 
 ### Rendering Features
 - [x] Binary PNG & **WebP** export support.
@@ -457,7 +459,9 @@ pnpm build:all
 - [x] Border Radius & **Advanced Box Shadow (Outer/Inset)**.
 - [x] **Text Shadow (Multiple shadows, Blur, Offset).**
 - [x] **Optional SVG `<text>` element output.**
-- [ ] Support for CSS Masks & Filters.
+- [ ] Support for `oklch()` color space.
+- [ ] Support for `color-mix()` CSS function.
+- [ ] **Advanced CSS Filter support (`drop-shadow`, `blur`, `backdrop-filter`).**
 
 ### Platform & Integration
 - [x] **Cloudflare Workers (workerd) compatibility.**

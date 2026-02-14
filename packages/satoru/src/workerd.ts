@@ -44,9 +44,4 @@ export class Satoru extends BaseSatoru {
 
     return BaseSatoru.create(factory) as Promise<Satoru>;
   }
-
-  /** @deprecated Use Satoru.create */
-  static async init(wasm: WebAssembly.Module = satoruWasm): Promise<Satoru> {
-    return this.create(wasm);
-  }
 }

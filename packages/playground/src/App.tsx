@@ -93,9 +93,6 @@ const App: React.FC = () => {
     setIsRendering(true);
     setError(null);
 
-    // Clear resources via worker for a clean state
-    await satoru.clearAll();
-
     if (objectUrl) {
       URL.revokeObjectURL(objectUrl);
       setObjectUrl(null);

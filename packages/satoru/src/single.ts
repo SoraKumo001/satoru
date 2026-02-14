@@ -29,9 +29,4 @@ export class Satoru extends BaseSatoru {
       await import("../dist/satoru-single.js");
     return BaseSatoru.create(createSatoruModuleSingle) as Promise<Satoru>;
   }
-
-  /** @deprecated Use Satoru.create */
-  static async init(): Promise<Satoru> {
-    return this.create();
-  }
 }

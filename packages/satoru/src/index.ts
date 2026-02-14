@@ -559,67 +559,11 @@ export class Satoru {
     mod._free(dataPtr);
   }
 
-  async toSvg(
-    value: string,
-    width: number,
-    height: number = 0,
-  ): Promise<string> {
-    return this.render({ value, width, height, format: "svg" });
-  }
-
-  async toPng(
-    value: string,
-    width: number,
-    height: number = 0,
-  ): Promise<Uint8Array | null> {
-    return this.render({ value, width, height, format: "png" });
-  }
-
-  async toWebp(
-    value: string,
-    width: number,
-    height: number = 0,
-  ): Promise<Uint8Array | null> {
-    return this.render({ value, width, height, format: "webp" });
-  }
-
-  async toPdf(
-    value: string,
-    width: number,
-    height: number = 0,
-  ): Promise<Uint8Array | null> {
-    return this.render({ value, width, height, format: "pdf" });
-  }
-
   private stringToPtr(mod: SatoruModule, str: string): number {
     const len = mod.lengthBytesUTF8(str) + 1;
     const ptr = mod._malloc(len);
     mod.stringToUTF8(str, ptr, len);
     return ptr;
-  }
-
-  // Public wrapper for getPendingResources if needed (stateless)
-  async getRequiredResources(
-    value: string,
-    width: number,
-  ): Promise<RequiredResource[]> {
-    const mod = await this.getModule();
-    const instancePtr = mod._create_instance();
-    Satoru.instances.set(instancePtr, this);
-    try {
-      return this.getPendingResources(mod, instancePtr, value, width);
-    } finally {
-      Satoru.instances.delete(instancePtr);
-      mod._destroy_instance(instancePtr);
-    }
-  }
-
-  /** @deprecated use getRequiredResources */
-  async getRequiredFonts(
-    value: string,
-    width: number,
-  ): Promise<RequiredResource[]> {
-    return this.getRequiredResources(value, width);
   }
 }
 

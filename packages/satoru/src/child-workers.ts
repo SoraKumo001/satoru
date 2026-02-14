@@ -25,26 +25,6 @@ const actions = {
     }
     return await s.render(options);
   },
-
-  async toSvg(value: string, width: number, height: number = 0) {
-    const s = await getSatoru();
-    return s.render({ value, width, height, format: "svg" });
-  },
-
-  async toPng(value: string, width: number, height: number = 0) {
-    const s = await getSatoru();
-    return s.render({ value, width, height, format: "png" });
-  },
-
-  async toWebp(value: string, width: number, height: number = 0) {
-    const s = await getSatoru();
-    return s.render({ value, width, height, format: "webp" });
-  },
-
-  async toPdf(value: string, width: number, height: number = 0) {
-    const s = await getSatoru();
-    return s.render({ value, width, height, format: "pdf" });
-  },
 };
 
 const map = initWorker(actions);

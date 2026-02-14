@@ -446,14 +446,18 @@ pnpm build:all
 
 ## 🗺️ Roadmap
 
-### Core Engine
+### Core Engine & Layout
 
 - [x] High-level TypeScript Wrapper API with automatic resource resolution.
 - [x] **Engine State Persistence (Serialize/Deserialize Layout).**
 - [x] Improved Font Fallback & Generic Family Mapping.
 - [x] **Advanced Table layout with `border-collapse` support.**
 - [x] Multi-threaded rendering via Worker Proxy.
+- [x] Support for CSS Logical Properties (margin-inline, padding-block, etc.).
+- [ ] Support for CSS Grid Layout (Basic template columns/rows).
+- [ ] **Mixed-unit `calc()` support (e.g., `100% - 20px`).**
 - [ ] Support for modern Media Query range syntax (e.g., `width >= 40rem`).
+- [ ] **CSS Container Queries (`@container`).**
 
 ### Rendering Features
 
@@ -463,9 +467,14 @@ pnpm build:all
 - [x] Border Radius & **Advanced Box Shadow (Outer/Inset)**.
 - [x] **Text Shadow (Multiple shadows, Blur, Offset).**
 - [x] **Optional SVG `<text>` element output.**
-- [x] Support for `oklch()` color space.
-- [x] Support for `color-mix()` CSS function.
+- [x] Support for `oklch()` & `oklab()` color spaces.
+- [x] Support for Relative Color Syntax (`oklch(from ...)`).
+- [x] Support for `color-mix()` CSS function (OKLch/OKLab support).
+- [x] Support for `light-dark()` color function.
+- [x] Support for CSS Transforms (`translate`, `rotate`, `scale`, `skew`, `matrix`).
 - [ ] **Advanced CSS Filter support (`drop-shadow`, `blur`, `backdrop-filter`).**
+- [ ] Masking support (`mask-image`).
+- [ ] Wide Gamut Color support (`display-p3`) and Gamut Mapping.
 
 ### Platform & Integration
 
@@ -473,10 +482,8 @@ pnpm build:all
 - [x] React Integration (JSX to HTML conversion).
 - [x] Japanese Language Rendering & Standard HTML Tag Support.
 - [x] **Command-line Interface (CLI) for batch conversion.**
-- [ ] Support for CSS Grid Layout.
-- [ ] Support for CSS Transforms (translate, rotate, scale).
 - [x] Support for `aspect-ratio` property.
-- [ ] Support for CSS Logical Properties (margin-inline, etc.).
+- [x] Support for `prefers-color-scheme` media feature.
 - [ ] Partial support for modern feature detection stubs (`margin-trim`, `contain-intrinsic-size`, `hyphens`, etc.).
 
 ## 📜 License

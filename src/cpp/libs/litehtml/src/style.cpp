@@ -1514,6 +1514,8 @@ namespace litehtml
     return true;
   }
 
+  bool evaluate_calc(css_token_vector &tokens, const html_tag *el);
+
   bool subst_var(css_token_vector &tokens, const html_tag *el, std::set<string_id> &used_vars)
   {
     for (int i = 0; i < (int)tokens.size(); i++)
@@ -1550,11 +1552,100 @@ namespace litehtml
     return false;
   }
 
+  bool evaluate_calc(css_token_vector &tokens, const html_tag *el)
+  {
+    bool changed = false;
+    for (int i = 0; i < (int)tokens.size(); i++)
+    {
+      auto &tok = tokens[i];
+      if (tok.type == CV_FUNCTION && lowcase(tok.name) == "calc")
+      {
+        evaluate_calc(tok.value, el);
+
+        // Remove whitespace for evaluation
+        css_token_vector val;
+        for (const auto& t : tok.value) if (t.type != WHITESPACE) val.push_back(t);
+
+        if (val.size() == 1 && (val[0].type == DIMENSION || val[0].type == NUMBER || val[0].type == PERCENTAGE))
+        {
+          css_token inner = val[0];
+          remove(tokens, i);
+          insert(tokens, i, {inner});
+          changed = true;
+          continue;
+        }
+
+        if (val.size() == 3)
+        {
+          const auto& left = val[0];
+          const auto& op = val[1];
+          const auto& right = val[2];
+
+          if (left.type == DIMENSION && right.type == NUMBER && op.ch == '*')
+          {
+            css_token result = left;
+            result.n.number *= right.n.number;
+            remove(tokens, i);
+            insert(tokens, i, {result});
+            changed = true;
+            continue;
+          }
+          if (left.type == NUMBER && right.type == DIMENSION && op.ch == '*')
+          {
+            css_token result = right;
+            result.n.number *= left.n.number;
+            remove(tokens, i);
+            insert(tokens, i, {result});
+            changed = true;
+            continue;
+          }
+          if (left.type == DIMENSION && right.type == NUMBER && op.ch == '/' && right.n.number != 0)
+          {
+            css_token result = left;
+            result.n.number /= right.n.number;
+            remove(tokens, i);
+            insert(tokens, i, {result});
+            changed = true;
+            continue;
+          }
+          if (left.type == DIMENSION && right.type == DIMENSION && left.unit == right.unit && (op.ch == '+' || op.ch == '-'))
+          {
+            css_token result = left;
+            if (op.ch == '+') result.n.number += right.n.number;
+            else result.n.number -= right.n.number;
+            remove(tokens, i);
+            insert(tokens, i, {result});
+            changed = true;
+            continue;
+          }
+          if (left.type == NUMBER && right.type == NUMBER && (op.ch == '+' || op.ch == '-' || op.ch == '*' || op.ch == '/'))
+          {
+            css_token result = left;
+            if (op.ch == '+') result.n.number += right.n.number;
+            else if (op.ch == '-') result.n.number -= right.n.number;
+            else if (op.ch == '*') result.n.number *= right.n.number;
+            else if (op.ch == '/' && right.n.number != 0) result.n.number /= right.n.number;
+            remove(tokens, i);
+            insert(tokens, i, {result});
+            changed = true;
+            continue;
+          }
+        }
+      }
+      if (tok.is_component_value())
+      {
+        if (evaluate_calc(tok.value, el)) changed = true;
+      }
+    }
+    return changed;
+  }
+
   void subst_vars_(string_id name, css_token_vector &tokens, const html_tag *el)
   {
     std::set<string_id> used_vars = {name};
     while (subst_var(tokens, el, used_vars))
       ;
+    evaluate_calc(tokens, el);
   }
 
   void style::subst_vars(const html_tag *el)

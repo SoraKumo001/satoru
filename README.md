@@ -477,6 +477,7 @@ pnpm build:all
 - [ ] Support for CSS Transforms (translate, rotate, scale).
 - [x] Support for `aspect-ratio` property.
 - [ ] Support for CSS Logical Properties (margin-inline, etc.).
+- [ ] Partial support for modern feature detection stubs (`margin-trim`, `contain-intrinsic-size`, `hyphens`, etc.).
 
 ## 📜 License
 

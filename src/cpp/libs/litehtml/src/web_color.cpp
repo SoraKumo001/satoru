@@ -261,20 +261,45 @@ byte calc_percent_and_clamp(const css_length& val, float max = 255)
 }
 
 // https://drafts.csswg.org/css-color-4/#rgb-functions
-bool parse_rgb_func(const css_token& tok, web_color& color)
+bool parse_rgb_func(const css_token& tok, web_color& color, document_container* container)
 {
 	if (tok.type != CV_FUNCTION || !is_one_of(lowcase(tok.name), "rgb", "rgba"))
 		return false;
 
 	// Check for relative color syntax (from ...)
-	for (const auto& t : tok.value)
+	if (!tok.value.empty() && tok.value[0].type == IDENT && lowcase(tok.value[0].name) == "from")
 	{
-		if (t.type == IDENT && lowcase(t.name) == "from")
+		if (tok.value.size() < 2) return false;
+		web_color base_color;
+		if (!parse_color(tok.value[1], base_color, container)) return false;
+
+		// The rest are r, g, b components. Tailwind v4 uses "from var(--color) r g b / opacity"
+		// For now, we only support the standard components mapping.
+		float r = base_color.red / 255.0f;
+		float g = base_color.green / 255.0f;
+		float b = base_color.blue / 255.0f;
+		float a = base_color.alpha / 255.0f;
+
+		// Default to base color
+		color = base_color;
+
+		// Parse components (very simplified: just looking for / alpha)
+		for (size_t i = 2; i < tok.value.size(); i++)
 		{
-			// Relative color syntax is not fully supported, but we return true to pass @supports
-			color = web_color::black; 
-			return true;
+			if (tok.value[i].ch == '/')
+			{
+				if (i + 1 < tok.value.size())
+				{
+					css_length alpha_len;
+					if (alpha_len.from_token(tok.value[i+1], f_number | f_percentage))
+					{
+						color.alpha = calc_percent_and_clamp(alpha_len, 1);
+					}
+				}
+				break;
+			}
 		}
+		return true;
 	}
 
 	auto list = parse_comma_separated_list(tok.value);
@@ -540,6 +565,15 @@ bool parse_color_with_opt_percent(const css_token_vector& tokens, web_color& col
 	return color_idx != -1;
 }
 
+void rgb_to_oklch(float r, float g, float b, float& l, float& c, float& h)
+{
+	float a, b_out;
+	rgb_to_oklab(r, g, b, l, a, b_out);
+	c = sqrt(a * a + b_out * b_out);
+	h = atan2(b_out, a) * 180.0f / 3.14159265358979323846f;
+	if (h < 0) h += 360.0f;
+}
+
 // https://drafts.csswg.org/css-color-5/#color-mix
 bool parse_color_mix_func(const css_token& tok, web_color& color, document_container* container)
 {
@@ -593,6 +627,24 @@ bool parse_color_mix_func(const css_token& tok, web_color& color, document_conta
 		float ob = o1b * w1 + o2b * w2;
 		oklab_to_rgb(l, oa, ob, r, g, b);
 	}
+	else if (color_space == "oklch" || color_space == "lch")
+	{
+		float l1, c1_, h1, l2, c2_, h2;
+		rgb_to_oklch(r1, g1, b1, l1, c1_, h1);
+		rgb_to_oklch(r2, g2, b2, l2, c2_, h2);
+		
+		// Hue interpolation (shorter arc)
+		if (abs(h1 - h2) > 180)
+		{
+			if (h1 > h2) h2 += 360;
+			else h1 += 360;
+		}
+
+		float l = l1 * w1 + l2 * w2;
+		float c = c1_ * w1 + c2_ * w2;
+		float h = h1 * w1 + h2 * w2;
+		oklch_to_rgb(l, c, h, a, r, g, b);
+	}
 	else
 	{
 		// Fallback to sRGB
@@ -613,7 +665,7 @@ bool parse_color_mix_func(const css_token& tok, web_color& color, document_conta
 // https://drafts.csswg.org/css-color-5/#typedef-color-function
 bool parse_func_color(const css_token& tok, web_color& color, document_container* container)
 {
-	return parse_rgb_func(tok, color) || parse_hsl_func(tok, color) || parse_oklch_func(tok, color) || parse_color_mix_func(tok, color, container);
+	return parse_rgb_func(tok, color, container) || parse_hsl_func(tok, color) || parse_oklch_func(tok, color) || parse_color_mix_func(tok, color, container);
 }
 
 string resolve_name(const string& name, document_container* container)

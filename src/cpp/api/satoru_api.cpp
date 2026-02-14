@@ -135,7 +135,7 @@ int api_get_last_svg_size(SatoruInstance *inst) {
     return data ? (int)data->size() : 0;
 }
 
-void api_collect_resources(SatoruInstance *inst, const char *html, int width) {
+void api_collect_resources(SatoruInstance *inst, const std::string &html, int width) {
     if (inst->discovery_container) delete inst->discovery_container;
     inst->discovery_container =
         new container_skia(width, 1000, nullptr, inst->context, &inst->resourceManager, false);
@@ -145,9 +145,9 @@ void api_collect_resources(SatoruInstance *inst, const char *html, int width) {
     if (!inst->context.getExtraCss().empty()) {
         inst->context.fontManager.scanFontFaces(inst->context.getExtraCss());
     }
-    inst->context.fontManager.scanFontFaces(html);
+    inst->context.fontManager.scanFontFaces(html.c_str());
 
-    auto doc = litehtml::document::createFromString(html, inst->discovery_container,
+    auto doc = litehtml::document::createFromString(html.c_str(), inst->discovery_container,
                                                     master_css_full.c_str());
     if (doc) doc->render(width);
 

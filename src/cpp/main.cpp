@@ -18,20 +18,6 @@ SatoruInstance *create_instance() { return api_create_instance(); }
 
 EMSCRIPTEN_KEEPALIVE
 void destroy_instance(SatoruInstance *inst) { api_destroy_instance(inst); }
-
-EMSCRIPTEN_KEEPALIVE
-const char *collect_resources(SatoruInstance *inst, const char *html, int width) {
-    api_collect_resources(inst, html, width);
-    return nullptr;
-}
-
-EMSCRIPTEN_KEEPALIVE
-const char *get_pending_resources(SatoruInstance *inst) {
-    auto json = api_get_pending_resources(inst);
-    char *res = (char *)malloc(json.length() + 1);
-    std::strcpy(res, json.c_str());
-    return res;
-}
 }
 
 // EMSCRIPTEN_BINDINGS helper
@@ -77,12 +63,22 @@ void load_image_val(size_t inst_ptr, std::string name, std::string data_url, int
     api_load_image(inst, name, data_url, width, height);
 }
 
+void collect_resources_val(size_t inst_ptr, std::string html, int width) {
+    SatoruInstance *inst = (SatoruInstance *)inst_ptr;
+    api_collect_resources(inst, html, width);
+}
+
+std::string get_pending_resources_val(size_t inst_ptr) {
+    SatoruInstance *inst = (SatoruInstance *)inst_ptr;
+    return api_get_pending_resources(inst);
+}
+
 EMSCRIPTEN_BINDINGS(satoru) {
     function("create_instance", &create_instance, allow_raw_pointers());
     function("destroy_instance", &destroy_instance, allow_raw_pointers());
     function("render", &render_val);
-    function("collect_resources", &collect_resources, allow_raw_pointers());
-    function("get_pending_resources", &get_pending_resources, allow_raw_pointers());
+    function("collect_resources", &collect_resources_val);
+    function("get_pending_resources", &get_pending_resources_val);
     function("add_resource", &add_resource_val);
     function("scan_css", &scan_css_val);
     function("clear_css", &api_clear_css, allow_raw_pointers());

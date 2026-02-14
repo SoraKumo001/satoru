@@ -39,7 +39,7 @@ int api_get_last_png_size(SatoruInstance *inst);
 int api_get_last_webp_size(SatoruInstance *inst);
 int api_get_last_pdf_size(SatoruInstance *inst);
 int api_get_last_svg_size(SatoruInstance *inst);
-void api_collect_resources(SatoruInstance *inst, const char *html, int width);
+void api_collect_resources(SatoruInstance *inst, const std::string &html, int width);
 void api_add_resource(SatoruInstance *inst, const std::string &url, int type,
                       const std::vector<uint8_t> &data);
 void api_scan_css(SatoruInstance *inst, const std::string &css);

@@ -9,9 +9,14 @@ export enum LogLevel {
 export interface SatoruModule {
   _create_instance: () => number;
   _destroy_instance: (ptr: number) => void;
-  _collect_resources: (inst: number, html: number, width: number) => void;
-  _get_pending_resources: (inst: number) => number;
-  add_resource: (inst: number, url: string, type: number, data: Uint8Array) => void;
+  collect_resources: (inst: number, html: string, width: number) => void;
+  get_pending_resources: (inst: number) => string;
+  add_resource: (
+    inst: number,
+    url: string,
+    type: number,
+    data: Uint8Array,
+  ) => void;
   scan_css: (inst: number, css: string) => void;
   clear_css: (inst: number) => void;
   load_font: (inst: number, name: string, data: Uint8Array) => void;
@@ -31,15 +36,6 @@ export interface SatoruModule {
     height: number,
     format: number,
   ) => Uint8Array | null;
-  _malloc: (size: number) => number;
-  _free: (ptr: number) => void;
-  UTF8ToString: (ptr: number) => string;
-  stringToUTF8: (str: string, ptr: number, max: number) => void;
-  lengthBytesUTF8: (str: string) => number;
-  HEAPU8: {
-    buffer: ArrayBuffer;
-    set: (data: Uint8Array, ptr: number) => void;
-  };
   onLog?: (level: LogLevel, message: string) => void;
   logLevel: LogLevel;
 }
@@ -262,15 +258,11 @@ export class Satoru {
       for (const rawHtml of inputHtmls) {
         let processedHtml = rawHtml;
         for (let i = 0; i < 10; i++) {
-          const htmlPtr = this.stringToPtr(mod, processedHtml);
-          mod._collect_resources(instancePtr, htmlPtr, width);
-          mod._free(htmlPtr);
+          mod.collect_resources(instancePtr, processedHtml, width);
 
-          const pendingPtr = mod._get_pending_resources(instancePtr);
-          const json = mod.UTF8ToString(pendingPtr);
-          mod._free(pendingPtr);
-
+          const json = mod.get_pending_resources(instancePtr);
           if (!json) break;
+
           const resources = JSON.parse(json) as RequiredResource[];
           const pending = resources.filter((r) => !resolvedUrls.has(r.url));
           if (pending.length === 0) break;
@@ -338,13 +330,6 @@ export class Satoru {
       mod.logLevel = prevLogLevel;
       this.activeOnLog = prevOnLog;
     }
-  }
-
-  private stringToPtr(mod: SatoruModule, str: string): number {
-    const len = mod.lengthBytesUTF8(str) + 1;
-    const ptr = mod._malloc(len);
-    mod.stringToUTF8(str, ptr, len);
-    return ptr;
   }
 }
 

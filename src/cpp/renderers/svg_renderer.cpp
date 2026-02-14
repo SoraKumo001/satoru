@@ -1,3 +1,4 @@
+#include "api/satoru_api.h"
 #include "svg_renderer.h"
 
 #include <litehtml/master_css.h>
@@ -348,41 +349,9 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
     result.append(svg, lastPos, std::string::npos);
     svg = std::move(result);
 }
-}  // namespace
 
-std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context,
-                            const char *master_css) {
-    container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context, nullptr,
-                                     false);
-    std::string css = master_css ? master_css : litehtml::master_css;
-    css += "\nbr { display: -litehtml-br !important; }\n";
-
-    auto doc = litehtml::document::createFromString(html, &measure_container, css.c_str());
-    if (!doc) return "";
-    doc->render(width);
-
-    int content_height = (height > 0) ? height : (int)doc->height();
-    if (content_height < 1) content_height = 1;
-
-    SkDynamicMemoryWStream stream;
-    SkSVGCanvas::Options svg_options;
-    svg_options.flags = SkSVGCanvas::kConvertTextToPaths_Flag;
-    auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, (float)content_height), &stream,
-                                    svg_options);
-
-    container_skia render_container(width, content_height, canvas.get(), context, nullptr, true);
-    auto render_doc = litehtml::document::createFromString(html, &render_container, css.c_str());
-    render_doc->render(width);
-
-    litehtml::position clip(0, 0, width, content_height);
-    render_doc->draw(0, 0, 0, &clip);
-
-    canvas.reset();
-    sk_sp<SkData> data = stream.detachAsData();
-    std::string svg((const char *)data->data(), data->size());
-
-    processTags(svg, context, render_container);
-
+static void appendDefs(std::string &svg, const container_skia &render_container,
+                       const SatoruContext &context) {
     std::stringstream defs;
     const auto &shadows = render_container.get_used_shadows();
     for (size_t i = 0; i < shadows.size(); ++i) {
@@ -477,9 +446,6 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
                 float pW = (float)draw.layer.origin_box.width;
                 float pH = (float)draw.layer.origin_box.height;
 
-                // SVG patterns repeat by default based on width/height.
-                // To prevent repeating in one direction, we set the pattern size to be
-                // larger than the clip area in that direction.
                 if (draw.layer.repeat == litehtml::background_repeat_repeat_x) {
                     pH = (float)draw.layer.clip_box.height + 1.0f;
                 } else if (draw.layer.repeat == litehtml::background_repeat_repeat_y) {
@@ -537,6 +503,75 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
             if (tagEnd != std::string::npos) svg.insert(tagEnd + 1, "<defs>" + defsStr + "</defs>");
         }
     }
+}
+}  // namespace
+
+std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height) {
+    if (!inst->doc || !inst->render_container) return "";
+
+    // We rely on external layout (inst->doc->render(width) or deserialized layout).
+    // Height might be 0 if layout was skipped or not provided.
+    int content_height = (height > 0) ? height : (int)inst->doc->height();
+    if (content_height < 1) content_height = 1;
+
+    SkDynamicMemoryWStream stream;
+    SkSVGCanvas::Options svg_options;
+    svg_options.flags = SkSVGCanvas::kConvertTextToPaths_Flag;
+    auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, (float)content_height), &stream,
+                                    svg_options);
+
+    // Reuse container but update canvas and height
+    inst->render_container->reset();
+    inst->render_container->set_canvas(canvas.get());
+    inst->render_container->set_height(content_height);
+    inst->render_container->set_tagging(true);
+
+    litehtml::position clip(0, 0, width, content_height);
+    inst->doc->draw(0, 0, 0, &clip);
+
+    canvas.reset(); // Flush
+    sk_sp<SkData> data = stream.detachAsData();
+    std::string svg((const char *)data->data(), data->size());
+
+    processTags(svg, inst->context, *inst->render_container);
+    appendDefs(svg, *inst->render_container, inst->context);
+
+    return svg;
+}
+
+std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context,
+                            const char *master_css) {
+    container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context, nullptr,
+                                     false);
+    std::string css = master_css ? master_css : litehtml::master_css;
+    css += "\nbr { display: -litehtml-br !important; }\n";
+
+    auto doc = litehtml::document::createFromString(html, &measure_container, css.c_str());
+    if (!doc) return "";
+    doc->render(width);
+
+    int content_height = (height > 0) ? height : (int)doc->height();
+    if (content_height < 1) content_height = 1;
+
+    SkDynamicMemoryWStream stream;
+    SkSVGCanvas::Options svg_options;
+    svg_options.flags = SkSVGCanvas::kConvertTextToPaths_Flag;
+    auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, (float)content_height), &stream,
+                                    svg_options);
+
+    container_skia render_container(width, content_height, canvas.get(), context, nullptr, true);
+    auto render_doc = litehtml::document::createFromString(html, &render_container, css.c_str());
+    render_doc->render(width);
+
+    litehtml::position clip(0, 0, width, content_height);
+    render_doc->draw(0, 0, 0, &clip);
+
+    canvas.reset();
+    sk_sp<SkData> data = stream.detachAsData();
+    std::string svg((const char *)data->data(), data->size());
+
+    processTags(svg, context, render_container);
+    appendDefs(svg, render_container, context);
 
     return svg;
 }

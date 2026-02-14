@@ -1,3 +1,4 @@
+#include "serializer.h"
 #include "satoru_api.h"
 
 #include <emscripten.h>
@@ -202,4 +203,90 @@ std::string api_get_pending_resources(SatoruInstance *inst) {
     }
     ss << "]";
     return ss.str();
+}
+
+void api_init_document(SatoruInstance *inst, const char *html, int width) {
+    if (inst->render_container) delete inst->render_container;
+    inst->render_container = new container_skia(width, 1000, nullptr, inst->context, &inst->resourceManager, false);
+    
+    std::string master_css_full = get_full_master_css(inst);
+    std::string css = master_css_full + "\nbr { display: -litehtml-br !important; }\n";
+    
+    inst->doc = litehtml::document::createFromString(html, inst->render_container, css.c_str());
+}
+
+void api_layout_document(SatoruInstance *inst, int width) {
+    if (inst->doc) {
+        inst->doc->render(width);
+        if (inst->render_container) {
+            inst->render_container->set_height(inst->doc->height());
+        }
+    }
+}
+
+const float* api_serialize_layout(SatoruInstance *inst, int &out_size) {
+    if (!inst->doc || !inst->doc->root_render()) {
+        out_size = 0;
+        return nullptr;
+    }
+    inst->layout_state = Serializer::serialize_layout(inst->doc->root_render());
+    out_size = (int)inst->layout_state.size();
+    return inst->layout_state.data();
+}
+
+void api_deserialize_layout(SatoruInstance *inst, const float *data, int size) {
+    if (!inst->doc || !inst->doc->root_render()) return;
+    
+    std::vector<float> data_vec(data, data + size);
+    if (Serializer::deserialize_layout(inst->doc->root_render(), data_vec)) {
+        Serializer::rebuild_stacking_contexts(inst->doc->root_render());
+        
+        litehtml::size sz;
+        inst->doc->root_render()->calc_document_size(sz);
+        inst->doc->set_size(sz.width, sz.height);
+        
+        if (inst->render_container) {
+            inst->render_container->set_height(sz.height);
+        }
+    }
+}
+
+const uint8_t *api_render_from_state(SatoruInstance *inst, int width, int height, RenderFormat format, int &out_size) {
+    if (!inst->doc) {
+        out_size = 0;
+        return nullptr;
+    }
+
+    switch (format) {
+        case RenderFormat::SVG: {
+            std::string svg = renderDocumentToSvg(inst, width, height);
+            auto data = SkData::MakeWithCopy(svg.c_str(), svg.length());
+            inst->context.set_last_svg(std::move(data));
+            out_size = (int)inst->context.get_last_svg()->size();
+            return inst->context.get_last_svg()->bytes();
+        }
+        case RenderFormat::PNG: {
+            auto data = renderDocumentToPng(inst, width, height);
+            if (!data) { out_size = 0; return nullptr; }
+            inst->context.set_last_png(std::move(data));
+            out_size = (int)inst->context.get_last_png()->size();
+            return inst->context.get_last_png()->bytes();
+        }
+        case RenderFormat::WebP: {
+            auto data = renderDocumentToWebp(inst, width, height);
+            if (!data) { out_size = 0; return nullptr; }
+            inst->context.set_last_webp(std::move(data));
+            out_size = (int)inst->context.get_last_webp()->size();
+            return inst->context.get_last_webp()->bytes();
+        }
+        case RenderFormat::PDF: {
+            auto data = renderDocumentToPdf(inst, width, height);
+            if (!data) { out_size = 0; return nullptr; }
+            inst->context.set_last_pdf(std::move(data));
+            out_size = (int)inst->context.get_last_pdf()->size();
+            return inst->context.get_last_pdf()->bytes();
+        }
+    }
+    out_size = 0;
+    return nullptr;
 }

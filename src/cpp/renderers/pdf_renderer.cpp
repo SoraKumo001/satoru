@@ -1,3 +1,4 @@
+#include "api/satoru_api.h"
 #include "pdf_renderer.h"
 
 #include <litehtml/master_css.h>
@@ -25,6 +26,38 @@ bool PdfJpegEncoder(SkWStream *dst, const SkPixmap &src, int quality) {
     return SkJpegEncoder::Encode(dst, src, options);
 }
 }  // namespace
+
+sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height) {
+    if (!inst->doc || !inst->render_container) return nullptr;
+    
+    SkDynamicMemoryWStream stream;
+    SkPDF::Metadata metadata;
+    metadata.fTitle = "Satoru PDF Export";
+    metadata.fCreator = "Satoru Engine";
+    metadata.jpegDecoder = PdfJpegDecoder;
+    metadata.jpegEncoder = PdfJpegEncoder;
+    
+    auto pdf_doc = SkPDF::MakeDocument(&stream, metadata);
+    if (!pdf_doc) return nullptr;
+    
+    int content_height = (height > 0) ? height : (int)inst->doc->height();
+    if (content_height < 1) content_height = 1;
+    
+    SkCanvas *canvas = pdf_doc->beginPage((SkScalar)width, (SkScalar)content_height);
+    if (canvas) {
+        inst->render_container->reset();
+        inst->render_container->set_canvas(canvas);
+        inst->render_container->set_height(content_height);
+        inst->render_container->set_tagging(false);
+        
+        litehtml::position clip(0, 0, width, content_height);
+        inst->doc->draw(0, 0, 0, &clip);
+        
+        pdf_doc->endPage();
+    }
+    pdf_doc->close();
+    return stream.detachAsData();
+}
 
 sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string> &htmls, int width, int height,
                                SatoruContext &context, const char *master_css) {

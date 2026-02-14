@@ -240,6 +240,22 @@ bool litehtml::render_item::fetch_positioned()
     return ret;
 }
 
+void litehtml::render_item::sort_positioned()
+{
+    for(auto& el : m_positioned)
+    {
+        el->sort_positioned();
+    }
+
+    if(!m_positioned.empty())
+    {
+        std::stable_sort(m_positioned.begin(), m_positioned.end(), [](const std::shared_ptr<render_item>& Left, const std::shared_ptr<render_item>& Right)
+            {
+                return (Left->src_el()->css().get_z_index() < Right->src_el()->css().get_z_index());
+            });
+    }
+}
+
 void litehtml::render_item::render_positioned(render_type rt)
 {
     position view_port;

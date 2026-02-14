@@ -84,6 +84,7 @@ namespace litehtml
 		pixel_t							to_pixels(const css_length& val, const font_metrics& metrics, pixel_t size) const;
 		pixel_t							width() const;
 		pixel_t							height() const;
+        void                            set_size(pixel_t w, pixel_t h) { m_size.width = w; m_size.height = h; }
 		pixel_t							content_width() const;
 		pixel_t							content_height() const;
 		void							add_stylesheet(const char* str, const char* baseurl, const char* media);

@@ -446,6 +446,7 @@ namespace litehtml
                 std::shared_ptr<litehtml::render_item>
                 > split_inlines();
         bool fetch_positioned();
+        void sort_positioned();
         void render_positioned(render_type rt = render_all);
                 // returns element offset related to the containing block
                 std::tuple<pixel_t, pixel_t> element_static_offset(const std::shared_ptr<litehtml::render_item> &el);

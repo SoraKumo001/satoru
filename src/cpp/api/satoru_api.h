@@ -9,20 +9,34 @@
 #include "core/container_skia.h"
 #include "core/resource_manager.h"
 #include "core/satoru_context.h"
+#include <litehtml/document.h>
 
 struct SatoruInstance {
     SatoruContext context;
     ResourceManager resourceManager;
     container_skia *discovery_container = nullptr;
+    
+    // Persisted state
+    container_skia *render_container = nullptr;
+    std::shared_ptr<litehtml::document> doc;
+    std::vector<float> layout_state;
 
     SatoruInstance() : resourceManager(context) { context.init(); }
     ~SatoruInstance() {
         if (discovery_container) delete discovery_container;
+        if (render_container) delete render_container;
     }
 };
 
 SatoruInstance *api_create_instance();
 void api_destroy_instance(SatoruInstance *inst);
+
+// State Management API
+void api_init_document(SatoruInstance *inst, const char *html, int width);
+void api_layout_document(SatoruInstance *inst, int width);
+const float* api_serialize_layout(SatoruInstance *inst, int &out_size);
+void api_deserialize_layout(SatoruInstance *inst, const float *data, int size);
+const uint8_t *api_render_from_state(SatoruInstance *inst, int width, int height, RenderFormat format, int &out_size);
 
 std::string api_html_to_svg(SatoruInstance *inst, const char *html, int width, int height);
 const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width, int height,

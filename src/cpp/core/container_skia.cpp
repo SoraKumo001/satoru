@@ -1123,3 +1123,20 @@ litehtml::element::ptr container_skia::create_element(
     }
     return nullptr;
 }
+
+void container_skia::reset() {
+    m_usedShadows.clear();
+    m_usedTextShadows.clear();
+    m_usedImageDraws.clear();
+    m_usedConicGradients.clear();
+    m_usedRadialGradients.clear();
+    m_usedLinearGradients.clear();
+    m_usedInlineSvgs.clear();
+    m_inlineSvgPositions.clear();
+    m_clips.clear();
+    m_opacity_stack.clear();
+    m_usedCodepoints.clear();
+    m_requestedFontAttributes.clear();
+    m_missingFonts.clear();
+}
+

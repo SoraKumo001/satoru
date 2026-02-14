@@ -298,6 +298,45 @@ satoru.clearImages();
 satoru.clearCss();
 ```
 
+### 🔄 State Persistence (Advanced)
+
+For advanced use cases like serverless caching or reactive re-rendering, Satoru supports a **Layout-Once, Render-Anywhere** pattern inspired by JAX/Flax. You can serialize the calculated layout state into a lightweight binary format (`Float32Array`) and restore it later to skip the expensive layout calculation step.
+
+```typescript
+import { Satoru } from "satoru";
+import satoruFactory from "satoru/wasm"; // Import the factory directly
+
+const satoru = await Satoru.create(satoruFactory);
+
+// 1. Initialize and Layout (Expensive Step)
+const inst = await satoru.initDocument({ 
+  html: "<div style='color: red'>Hello State!</div>", 
+  width: 800 
+});
+await satoru.layoutDocument(inst, 800);
+
+// 2. Serialize State (Lightweight Float32Array)
+const layoutState = await satoru.serializeLayout(inst);
+await satoru.destroyInstance(inst);
+
+// ... Save `layoutState` to KV, Database, or File ...
+
+// 3. Restore and Render (Fast Step)
+// No layout calculation needed here!
+const inst2 = await satoru.initDocument({ 
+  html: "<div style='color: red'>Hello State!</div>", // Must match original structure
+  width: 800 
+});
+await satoru.deserializeLayout(inst2, layoutState!);
+
+const png = await satoru.renderFromState(inst2, { 
+  width: 800, 
+  format: "png" 
+});
+
+await satoru.destroyInstance(inst2);
+```
+
 ## 🧪 Testing & Validation
 
 The project includes a robust **Visual Regression Suite** to ensure rendering fidelity.
@@ -370,6 +409,7 @@ pnpm build
 - [x] **Cloudflare Workers (workerd) compatibility.**
 - [x] **Text Shadow (Multiple shadows, Blur, Offset).**
 - [x] **Improved Font Fallback & Generic Family Mapping.**
+- [x] **Engine State Persistence (Serialize/Deserialize Layout).**
 - [ ] Support for CSS Masks & Filters.
 - [ ] Optional SVG `<text>` element output (currently paths).
 

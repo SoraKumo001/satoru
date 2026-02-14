@@ -1,3 +1,4 @@
+#include "api/satoru_api.h"
 #include "webp_renderer.h"
 
 #include <litehtml/master_css.h>
@@ -9,6 +10,37 @@
 #include "include/encode/SkWebpEncoder.h"
 #include "litehtml.h"
 #include "utils/skia_utils.h"
+
+sk_sp<SkData> renderDocumentToWebp(SatoruInstance* inst, int width, int height) {
+    if (!inst->doc || !inst->render_container) return nullptr;
+    
+    int content_height = (height > 0) ? height : (int)inst->doc->height();
+    if (content_height < 1) content_height = 1;
+    
+    SkBitmap bitmap;
+    bitmap.allocN32Pixels(width, content_height);
+    bitmap.eraseColor(SkColorSetARGB(0, 0, 0, 0));
+    
+    SkCanvas canvas(bitmap);
+    
+    inst->render_container->reset();
+    inst->render_container->set_canvas(&canvas);
+    inst->render_container->set_height(content_height);
+    inst->render_container->set_tagging(false);
+    
+    litehtml::position clip(0, 0, width, content_height);
+    inst->doc->draw(0, 0, 0, &clip);
+    
+    SkDynamicMemoryWStream stream;
+    SkWebpEncoder::Options options;
+    options.fCompression = SkWebpEncoder::Compression::kLossless;
+    options.fQuality = 100.0f;
+    
+    if (SkWebpEncoder::Encode(&stream, bitmap.pixmap(), options)) {
+        return stream.detachAsData();
+    }
+    return nullptr;
+}
 
 sk_sp<SkData> renderHtmlToWebp(const char *html, int width, int height, SatoruContext &context,
                                const char *master_css) {

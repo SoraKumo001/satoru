@@ -5,6 +5,9 @@
 
 #include "core/satoru_context.h"
 
+struct SatoruInstance;
+std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height);
+
 std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context,
                             const char *master_css);
 

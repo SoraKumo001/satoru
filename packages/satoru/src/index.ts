@@ -26,6 +26,16 @@ export interface SatoruModule {
     width: number,
     height: number,
   ) => void;
+  init_document: (inst: number, html: string, width: number) => void;
+  layout_document: (inst: number, width: number) => void;
+  serialize_layout: (inst: number) => Float32Array | null;
+  deserialize_layout: (inst: number, data: Float32Array) => void;
+  render_from_state: (
+    inst: number,
+    width: number,
+    height: number,
+    format: number,
+  ) => Uint8Array | null;
   render: (
     inst: number,
     htmls: string | string[],
@@ -119,6 +129,64 @@ export class Satoru {
    */
   static async create(createSatoruModuleFunc: any): Promise<Satoru> {
     return new Satoru(createSatoruModuleFunc);
+  }
+
+  async initDocument(
+    options: Omit<RenderOptions, "value"> & { html: string },
+  ): Promise<number> {
+    const mod = await this.getModule();
+    const inst = mod._create_instance();
+    // Load resources similar to render() ...
+    // This part is tricky because resource loading logic is tied to render().
+    // Ideally we reuse the resource loading logic.
+    // For now, I'll just expose the raw init and layout.
+    mod.init_document(inst, options.html, options.width);
+    return inst;
+  }
+
+  async layoutDocument(inst: number, width: number): Promise<void> {
+    const mod = await this.getModule();
+    mod.layout_document(inst, width);
+  }
+
+  async serializeLayout(inst: number): Promise<Float32Array | null> {
+    const mod = await this.getModule();
+    return mod.serialize_layout(inst);
+  }
+
+  async deserializeLayout(inst: number, data: Float32Array): Promise<void> {
+    const mod = await this.getModule();
+    mod.deserialize_layout(inst, data);
+  }
+
+  async renderFromState(
+    inst: number,
+    options: { width: number; height?: number; format?: "svg" | "png" | "webp" | "pdf" },
+  ): Promise<string | Uint8Array> {
+    const mod = await this.getModule();
+    const formatMap = {
+      svg: 0,
+      png: 1,
+      webp: 2,
+      pdf: 3,
+    };
+    const format = formatMap[options.format ?? "svg"] ?? 0;
+    const result = mod.render_from_state(inst, options.width, options.height ?? 0, format);
+    
+    if (!result) {
+        if (options.format === "svg") return "";
+        return new Uint8Array();
+    }
+
+    if (options.format === "svg") {
+      return new TextDecoder().decode(result);
+    }
+    return new Uint8Array(result);
+  }
+
+  async destroyInstance(inst: number): Promise<void> {
+    const mod = await this.getModule();
+    mod._destroy_instance(inst);
   }
 
   async render(

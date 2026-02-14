@@ -60,6 +60,8 @@ class container_skia : public litehtml::document_container {
 
     void set_canvas(SkCanvas *canvas) { m_canvas = canvas; }
     void set_height(int h) { m_height = h; }
+    void set_tagging(bool t) { m_tagging = t; }
+    void reset();
 
     SkCanvas* get_canvas() const { return m_canvas; }
     bool is_tagging() const { return m_tagging; }

@@ -296,6 +296,7 @@ void litehtml::html_tag::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position
         pos.y   += y;
 
         draw_background(hdc, x, y, clip, ri);
+        draw_borders(hdc, x, y, clip, ri);
 
         if(m_css.get_display() == display_list_item &&
                 (m_css.get_list_style_type() != list_style_type_none || m_css.get_list_style_image() != ""))
@@ -918,13 +919,6 @@ void litehtml::html_tag::draw_background(uint_ptr hdc, pixel_t x, pixel_t y, con
                         {
                                 get_document()->container()->draw_box_shadow(hdc, m_css.get_box_shadow(), border_box, radius, true);
                         }
-
-                        borders bdr = m_css.get_borders();
-                        if(bdr.is_visible())
-                        {
-                                bdr.radius = radius;
-                                get_document()->container()->draw_borders(hdc, bdr, border_box, is_root());
-                        }
                 }
         } else
         {
@@ -1000,6 +994,83 @@ void litehtml::html_tag::draw_background(uint_ptr hdc, pixel_t x, pixel_t y, con
                                 {
                                         get_document()->container()->draw_box_shadow(hdc, m_css.get_box_shadow(), *box, bdr.radius.calc_percents(box->width, box->height), true);
                                 }
+                        }
+                }
+        }
+}
+
+void litehtml::html_tag::draw_borders(uint_ptr hdc, pixel_t x, pixel_t y, const position *clip, const std::shared_ptr<render_item> &ri)
+{
+        if(m_css.get_display() != display_inline && m_css.get_display() != display_table_row)        
+        {
+                position pos = ri->pos();
+                pos.x   += x;
+                pos.y   += y;
+
+                position border_box = pos;
+                border_box += ri->get_paddings();
+                border_box += ri->get_borders();
+
+                if(border_box.does_intersect(clip) || is_root())
+                {
+                        auto v_offset = ri->get_draw_vertical_offset();
+                        pos.y += v_offset;
+                        pos.height -= v_offset;
+
+                        border_box.round();
+                        border_radiuses radius = m_css.get_borders().radius.calc_percents(border_box.width, border_box.height);
+
+                        borders bdr = m_css.get_borders();
+                        if(bdr.is_visible())
+                        {
+                                bdr.radius = radius;
+                                get_document()->container()->draw_borders(hdc, bdr, border_box, is_root());
+                        }
+                }
+        } else
+        {
+                position::vector boxes;
+                ri->get_inline_boxes(boxes);
+
+                for(auto box = boxes.begin(); box != boxes.end(); box++)
+                {
+                        box->x  += x;
+                        box->y  += y;
+
+                        if(box->does_intersect(clip))
+                        {
+                                css_borders bdr;
+
+                                // set left borders radius for the first box
+                                if(box == boxes.begin())
+                                {
+                                        bdr.radius.bottom_left_x        = m_css.get_borders().radius.bottom_left_x;
+                                        bdr.radius.bottom_left_y        = m_css.get_borders().radius.bottom_left_y;
+                                        bdr.radius.top_left_x           = m_css.get_borders().radius.top_left_x;
+                                        bdr.radius.top_left_y           = m_css.get_borders().radius.top_left_y;
+                                }
+
+                                // set right borders radius for the last box
+                                if(box == boxes.end() - 1)
+                                {
+                                        bdr.radius.bottom_right_x       = m_css.get_borders().radius.bottom_right_x;
+                                        bdr.radius.bottom_right_y       = m_css.get_borders().radius.bottom_right_y;
+                                        bdr.radius.top_right_x          = m_css.get_borders().radius.top_right_x;
+                                        bdr.radius.top_right_y          = m_css.get_borders().radius.top_right_y;
+                                }
+
+
+                                bdr.top         = m_css.get_borders().top;
+                                bdr.bottom      = m_css.get_borders().bottom;
+                                if(box == boxes.begin())
+                                {
+                                        bdr.left        = m_css.get_borders().left;
+                                }
+                                if(box == boxes.end() - 1)
+                                {
+                                        bdr.right       = m_css.get_borders().right;
+                                }
+
                                 if(bdr.is_visible())
                                 {
                                         borders b = bdr;

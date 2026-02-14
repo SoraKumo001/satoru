@@ -68,6 +68,8 @@ namespace litehtml
 		void				draw(uint_ptr hdc, pixel_t x, pixel_t y, const position *clip, const std::shared_ptr<render_item> &ri) override;
 		void				draw_background(uint_ptr hdc, pixel_t x, pixel_t y, const position *clip,
 									const std::shared_ptr<render_item> &ri) override;
+		void				draw_borders(uint_ptr hdc, pixel_t x, pixel_t y, const position *clip,
+									const std::shared_ptr<render_item> &ri) override;
 
 		template<class Type>
 		const Type&			get_property(string_id name, bool inherited, const Type& default_value, uint_ptr css_properties_member_offset) const;

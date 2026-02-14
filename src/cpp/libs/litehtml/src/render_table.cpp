@@ -28,13 +28,13 @@ litehtml::pixel_t litehtml::render_item_table::_render(pixel_t x, pixel_t y, con
 
         if (m_grid->cols_count())
         {
-            table_width_spacing -= std::min(border_left(), m_grid->column(0).border_left);
-            table_width_spacing -= std::min(border_right(), m_grid->column(m_grid->cols_count() - 1).border_right);
+            table_width_spacing -= std::max(border_left(), m_grid->column(0).border_left);
+            table_width_spacing -= std::max(border_right(), m_grid->column(m_grid->cols_count() - 1).border_right);
         }
 
         for (int col = 1; col < m_grid->cols_count(); col++)
         {
-            table_width_spacing -= std::min(m_grid->column(col).border_left, m_grid->column(col - 1).border_right);
+            table_width_spacing -= std::max(m_grid->column(col).border_left, m_grid->column(col - 1).border_right);
         }
     }
 
@@ -271,13 +271,13 @@ litehtml::pixel_t litehtml::render_item_table::_render(pixel_t x, pixel_t y, con
 
         if (m_grid->rows_count())
         {
-            table_height_spacing -= std::min(border_top(), m_grid->row(0).border_top);
-            table_height_spacing -= std::min(border_bottom(), m_grid->row(m_grid->rows_count() - 1).border_bottom);
+            table_height_spacing -= std::max(border_top(), m_grid->row(0).border_top);
+            table_height_spacing -= std::max(border_bottom(), m_grid->row(m_grid->rows_count() - 1).border_bottom);
         }
 
         for (int row = 1; row < m_grid->rows_count(); row++)
         {
-            table_height_spacing -= std::min(m_grid->row(row).border_top, m_grid->row(row - 1).border_bottom);
+            table_height_spacing -= std::max(m_grid->row(row).border_top, m_grid->row(row - 1).border_bottom);
         }
     }
 
@@ -332,37 +332,6 @@ litehtml::pixel_t litehtml::render_item_table::_render(pixel_t x, pixel_t y, con
 
     if (src_el()->css().get_border_collapse() == border_collapse_collapse)
     {
-        for (int row = 0; row < m_grid->rows_count(); row++)
-        {
-            for (int col = 0; col < m_grid->cols_count(); col++)
-            {
-                table_cell* cell = m_grid->cell(col, row);
-                if (cell->el)
-                {
-                    // Resolve top border
-                    if (row > 0)
-                    {
-                        table_cell* top_cell = m_grid->cell(col, row - 1);
-                        if (top_cell && top_cell->borders.bottom >= cell->borders.top && cell->borders.top > 0)
-                        {
-                            cell->borders.top = 0;
-                            cell->el->src_el()->css_w().get_borders_w().top.width = 0;
-                        }
-                    }
-                    // Resolve left border
-                    if (col > 0)
-                    {
-                        table_cell* left_cell = m_grid->cell(col - 1, row);
-                        if (left_cell && left_cell->borders.right >= cell->borders.left && cell->borders.left > 0)
-                        {
-                            cell->borders.left = 0;
-                            cell->el->src_el()->css_w().get_borders_w().left.width = 0;
-                        }
-                    }
-                    cell->el->set_paddings(cell->borders);
-                }
-            }
-        }
     }
     else
     {
@@ -510,11 +479,34 @@ void litehtml::render_item_table::draw_children(uint_ptr hdc, pixel_t x, pixel_t
     position pos = m_pos;
     pos.x += x;
     pos.y += y;
+
+    // Table backgrounds
+    if (flag == draw_block)
+    {
+        for (auto& caption : m_grid->captions())
+        {
+            caption->src_el()->draw_background(hdc, pos.x, pos.y, clip, caption);
+        }
+        for (int row = 0; row < m_grid->rows_count(); row++)
+        {
+            m_grid->row(row).el_row->src_el()->draw_background(hdc, pos.x, pos.y, clip, m_grid->row(row).el_row);
+            for (int col = 0; col < m_grid->cols_count(); col++)
+            {
+                table_cell* cell = m_grid->cell(col, row);
+                if (cell->el && cell->el->src_el()->css().get_display() == display_table_cell)
+                {
+                    cell->el->src_el()->draw_background(hdc, pos.x, pos.y, clip, cell->el);
+                }
+            }
+        }
+    }
+
+    // Table borders and content
     for (auto& caption : m_grid->captions())
     {
         if (flag == draw_block)
         {
-            caption->src_el()->draw(hdc, pos.x, pos.y, clip, caption);
+            caption->src_el()->draw_borders(hdc, pos.x, pos.y, clip, caption);
         }
         caption->draw_children(hdc, pos.x, pos.y, clip, flag, zindex);
     }
@@ -522,7 +514,7 @@ void litehtml::render_item_table::draw_children(uint_ptr hdc, pixel_t x, pixel_t
     {
         if (flag == draw_block)
         {
-            m_grid->row(row).el_row->src_el()->draw_background(hdc, pos.x, pos.y, clip, m_grid->row(row).el_row);
+            m_grid->row(row).el_row->src_el()->draw_borders(hdc, pos.x, pos.y, clip, m_grid->row(row).el_row);
         }
         for (int col = 0; col < m_grid->cols_count(); col++)
         {
@@ -531,7 +523,7 @@ void litehtml::render_item_table::draw_children(uint_ptr hdc, pixel_t x, pixel_t
             {
                 if (flag == draw_block)
                 {
-                    cell->el->src_el()->draw(hdc, pos.x, pos.y, clip, cell->el);
+                    cell->el->src_el()->draw_borders(hdc, pos.x, pos.y, clip, cell->el);
                 }
                 cell->el->draw_children(hdc, pos.x, pos.y, clip, flag, zindex);
             }

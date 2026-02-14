@@ -376,10 +376,233 @@ bool parse_hsl_func(const css_token& tok, web_color& color)
 	return true;
 }
 
-// https://drafts.csswg.org/css-color-5/#typedef-color-function
-bool parse_func_color(const css_token& tok, web_color& color)
+// https://drafts.csswg.org/css-color-4/#oklch-to-srgb
+void oklch_to_rgb(float l, float c, float h, float a, float& r, float& g, float& b)
 {
-	return parse_rgb_func(tok, color) || parse_hsl_func(tok, color);
+	float hr = h * 3.14159265358979323846f / 180.0f;
+	float a_ = c * cos(hr);
+	float b_ = c * sin(hr);
+
+	float l_2 = l + 0.3963377774f * a_ + 0.2158037573f * b_;
+	float m_2 = l - 0.1055613458f * a_ - 0.0638541728f * b_;
+	float s_2 = l - 0.0894841775f * a_ - 1.2914855480f * b_;
+
+	float l3 = l_2 * l_2 * l_2;
+	float m3 = m_2 * m_2 * m_2;
+	float s3 = s_2 * s_2 * s_2;
+
+	float r_lin = +4.0767416621f * l3 - 3.3077115913f * m3 + 0.2309699292f * s3;
+	float g_lin = -1.2684380046f * l3 + 2.6097574011f * m3 - 0.3413193965f * s3;
+	float b_lin = -0.0041960863f * l3 - 0.7034186147f * m3 + 1.7076127010f * s3;
+
+	auto gamma = [](float x)
+	{
+		return x <= 0.0031308f ? 12.92f * x : 1.055f * pow(x, 1.0f / 2.4f) - 0.055f;
+	};
+
+	r = gamma(r_lin);
+	g = gamma(g_lin);
+	b = gamma(b_lin);
+}
+
+// https://drafts.csswg.org/css-color-4/#the-oklch-notation
+bool parse_oklch_func(const css_token& tok, web_color& color)
+{
+	if (tok.type != CV_FUNCTION || lowcase(tok.name) != "oklch")
+		return false;
+
+	auto n = tok.value.size();
+	if (!(n == 3 || n == 5)) return false;
+
+	css_length l, c, h, a(1, css_units_none);
+
+	if (!l.from_token(tok.value[0], f_number | f_percentage, "none")) return false;
+	if (!c.from_token(tok.value[1], f_number | f_percentage, "none")) return false;
+	
+	// Hue can be number or angle
+	if (!h.from_token(tok.value[2], f_number, "none"))
+	{
+		float hue;
+		if (!parse_angle(tok.value[2], hue)) return false;
+		h.set_value(hue, css_units_none);
+	}
+
+	if (n == 5)
+	{
+		if (tok.value[3].ch != '/') return false;
+		if (!a.from_token(tok.value[4], f_number | f_percentage, "none")) return false;
+	}
+
+	for (auto t : {&l,&c,&h,&a}) if (t->is_predefined()) t->set_value(0, css_units_none);
+
+	float l_val = l.val();
+	if (l.units() == css_units_percentage) l_val /= 100;
+	float c_val = c.val();
+	if (c.units() == css_units_percentage) c_val /= 100;
+	float h_val = h.val();
+
+	float r, g, b;
+	oklch_to_rgb(l_val, c_val, h_val, a.val(), r, g, b);
+
+	r = clamp(r, 0, 1);
+	g = clamp(g, 0, 1);
+	b = clamp(b, 0, 1);
+
+	color = web_color(
+		(byte)round(r * 255),
+		(byte)round(g * 255),
+		(byte)round(b * 255),
+		calc_percent_and_clamp(a, 1));
+	return true;
+}
+
+// https://drafts.csswg.org/css-color-4/#rgb-to-oklab
+void rgb_to_oklab(float r, float g, float b, float& l, float& a, float& b_out)
+{
+	auto degamma = [](float x)
+	{
+		return x <= 0.04045f ? x / 12.92f : pow((x + 0.055f) / 1.055f, 2.4f);
+	};
+	float r_lin = degamma(r);
+	float g_lin = degamma(g);
+	float b_lin = degamma(b);
+
+	float l_lin = 0.4122214708f * r_lin + 0.5363325363f * g_lin + 0.0514459929f * b_lin;
+	float m_lin = 0.2119034982f * r_lin + 0.6806995451f * g_lin + 0.1073969566f * b_lin;
+	float s_lin = 0.0883024619f * r_lin + 0.2817188376f * g_lin + 0.6299787005f * b_lin;
+
+	float l_ = cbrt(l_lin);
+	float m_ = cbrt(m_lin);
+	float s_ = cbrt(s_lin);
+
+	l = 0.2104542553f * l_ + 0.7936177850f * m_ - 0.0040720403f * s_;
+	a = 1.9779984951f * l_ - 2.4285922050f * m_ + 0.4505937099f * s_;
+	b_out = 0.0259040371f * l_ + 0.7827717662f * m_ - 0.8086757660f * s_;
+}
+
+void oklab_to_rgb(float l, float a, float b_in, float& r, float& g, float& b)
+{
+	float l_ = l + 0.3963377774f * a + 0.2158037573f * b_in;
+	float m_ = l - 0.1055613458f * a - 0.0638541728f * b_in;
+	float s_ = l - 0.0894841775f * a - 1.2914855480f * b_in;
+
+	float l3 = l_ * l_ * l_;
+	float m3 = m_ * m_ * m_;
+	float s3 = s_ * s_ * s_;
+
+	float r_lin = +4.0767416621f * l3 - 3.3077115913f * m3 + 0.2309699292f * s3;
+	float g_lin = -1.2684380046f * l3 + 2.6097574011f * m3 - 0.3413193965f * s3;
+	float b_lin = -0.0041960863f * l3 - 0.7034186147f * m3 + 1.7076127010f * s3;
+
+	auto gamma = [](float x)
+	{
+		return x <= 0.0031308f ? 12.92f * x : 1.055f * pow(x, 1.0f / 2.4f) - 0.055f;
+	};
+
+	r = gamma(r_lin);
+	g = gamma(g_lin);
+	b = gamma(b_lin);
+}
+
+bool parse_color_with_opt_percent(const css_token_vector& tokens, web_color& color, float& percent, document_container* container)
+{
+	if (tokens.empty()) return false;
+	
+	int color_idx = -1;
+	int percent_idx = -1;
+
+	for (int i = 0; i < (int)tokens.size(); i++)
+	{
+		web_color tmp_color;
+		if (color_idx == -1 && parse_color(tokens[i], tmp_color, container))
+		{
+			color = tmp_color;
+			color_idx = i;
+		}
+		else if (percent_idx == -1 && tokens[i].type == PERCENTAGE)
+		{
+			percent = tokens[i].n.number;
+			percent_idx = i;
+		}
+	}
+
+	return color_idx != -1;
+}
+
+// https://drafts.csswg.org/css-color-5/#color-mix
+bool parse_color_mix_func(const css_token& tok, web_color& color, document_container* container)
+{
+	if (tok.type != CV_FUNCTION || lowcase(tok.name) != "color-mix")
+		return false;
+
+	auto list = parse_comma_separated_list(tok.value);
+	if (list.size() != 3) return false;
+
+	// Argument 1: in <color-space>
+	if (list[0].size() < 2 || lowcase(list[0][0].name) != "in") return false;
+	string color_space = lowcase(list[0][1].name);
+
+	// Argument 2 & 3: <color> [<percentage>]
+	web_color c1, c2;
+	float p1 = -1, p2 = -1;
+
+	if (!parse_color_with_opt_percent(list[1], c1, p1, container)) return false;
+	if (!parse_color_with_opt_percent(list[2], c2, p2, container)) return false;
+
+	if (p1 == -1 && p2 == -1) { p1 = 50; p2 = 50; }
+	else if (p1 == -1) { p1 = 100 - p2; }
+	else if (p2 == -1) { p2 = 100 - p1; }
+
+	float sum = p1 + p2;
+	if (sum > 100) { p1 = p1 * 100 / sum; p2 = p2 * 100 / sum; sum = 100; }
+	
+	float w1 = p1 / sum;
+	float w2 = p2 / sum;
+	float alpha_scale = sum / 100.0f;
+
+	float r1 = c1.red / 255.0f, g1 = c1.green / 255.0f, b1 = c1.blue / 255.0f, a1 = c1.alpha / 255.0f;
+	float r2 = c2.red / 255.0f, g2 = c2.green / 255.0f, b2 = c2.blue / 255.0f, a2 = c2.alpha / 255.0f;
+
+	float r, g, b, a;
+	a = (a1 * w1 + a2 * w2) * alpha_scale;
+
+	if (color_space == "srgb")
+	{
+		r = r1 * w1 + r2 * w2;
+		g = g1 * w1 + g2 * w2;
+		b = b1 * w1 + b2 * w2;
+	}
+	else if (color_space == "oklab")
+	{
+		float l1, o1a, o1b, l2, o2a, o2b;
+		rgb_to_oklab(r1, g1, b1, l1, o1a, o1b);
+		rgb_to_oklab(r2, g2, b2, l2, o2a, o2b);
+		float l = l1 * w1 + l2 * w2;
+		float oa = o1a * w1 + o2a * w2;
+		float ob = o1b * w1 + o2b * w2;
+		oklab_to_rgb(l, oa, ob, r, g, b);
+	}
+	else
+	{
+		// Fallback to sRGB
+		r = r1 * w1 + r2 * w2;
+		g = g1 * w1 + g2 * w2;
+		b = b1 * w1 + b2 * w2;
+	}
+
+	color = web_color(
+		(byte)clamp(round(r * 255), 0, 255),
+		(byte)clamp(round(g * 255), 0, 255),
+		(byte)clamp(round(b * 255), 0, 255),
+		(byte)clamp(round(a * 255), 0, 255));
+
+	return true;
+}
+
+// https://drafts.csswg.org/css-color-5/#typedef-color-function
+bool parse_func_color(const css_token& tok, web_color& color, document_container* container)
+{
+	return parse_rgb_func(tok, color) || parse_hsl_func(tok, color) || parse_oklch_func(tok, color) || parse_color_mix_func(tok, color, container);
 }
 
 string resolve_name(const string& name, document_container* container)
@@ -415,7 +638,7 @@ bool parse_color(const css_token& tok, web_color& color, document_container* con
 {
 	return
 		parse_hash_color(tok, color) ||
-		parse_func_color(tok, color) ||
+		parse_func_color(tok, color, container) ||
 		parse_name_color(tok, color, container);
 }
 

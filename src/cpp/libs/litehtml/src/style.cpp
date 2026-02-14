@@ -507,6 +507,10 @@ namespace litehtml
       add_parsed_property(name, property_value(str, important, false, m_layer));
       break;
 
+    case _aspect_ratio_:
+      parse_aspect_ratio(value, important);
+      break;
+
     default:
       if (_s(name).substr(0, 2) == "--" && _s(name).size() >= 3 &&
           (value.empty() || is_declaration_value(value)))
@@ -1213,6 +1217,59 @@ namespace litehtml
       }
     }
     add_parsed_property(_text_decoration_line_, property_value(val, important, false, m_layer));
+  }
+
+  void style::parse_aspect_ratio(const css_token_vector &tokens, bool important)
+  {
+    if (tokens.size() == 1 && tokens[0].ident() == "auto")
+    {
+      add_parsed_property(_aspect_ratio_, property_value(aspect_ratio(), important, false, m_layer));
+      return;
+    }
+
+    float w = 1, h = 1;
+    bool w_found = false, h_found = false;
+    bool auto_found = false;
+
+    for (size_t i = 0; i < tokens.size(); i++)
+    {
+      if (tokens[i].ident() == "auto")
+      {
+        auto_found = true;
+      }
+      else if (tokens[i].type == NUMBER)
+      {
+        if (!w_found)
+        {
+          w = tokens[i].n.number;
+          w_found = true;
+        }
+        else if (!h_found)
+        {
+          if (i > 0 && tokens[i - 1].ch == '/')
+          {
+            h = tokens[i].n.number;
+            h_found = true;
+          }
+          else
+            return;
+        }
+        else
+          return;
+      }
+      else if (tokens[i].ch == '/')
+      {
+        if (!w_found || h_found)
+          return;
+      }
+      else
+        return;
+    }
+
+    if (w_found)
+    {
+      add_parsed_property(_aspect_ratio_, property_value(aspect_ratio(w, h, auto_found), important, false, m_layer));
+    }
   }
 
   void style::parse_text_emphasis(const css_token_vector &tokens, bool important, document_container *container)

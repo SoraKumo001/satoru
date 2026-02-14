@@ -36,7 +36,7 @@ void SatoruContext::loadImage(const char *name, const char *data_url, int width,
 }
 
 void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, size_t size,
-                                       const char *original_url) {
+                                      const char *original_url) {
     auto data_ptr = SkData::MakeWithCopy(data, size);
     auto codec = SkCodec::MakeFromData(data_ptr, SkSpan<const SkCodecs::Decoder>({
                                                      SkPngDecoder::Decoder(),

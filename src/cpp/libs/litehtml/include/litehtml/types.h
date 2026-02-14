@@ -752,6 +752,24 @@ namespace litehtml
                 content_property_no_close_quote,
         };
 
+        struct aspect_ratio
+        {
+                enum type_t
+                {
+                        type_auto,
+                        type_ratio
+                };
+                type_t type;
+                float width;
+                float height;
+                bool use_intrinsic;
+
+                aspect_ratio() : type(type_auto), width(1), height(1), use_intrinsic(true) {}
+                aspect_ratio(float w, float h, bool intrinsic = false) : type(type_ratio), width(w), height(h), use_intrinsic(intrinsic) {}
+
+                bool is_auto() const { return type == type_auto; }
+        };
+
         class render_item;
 
         struct floated_box

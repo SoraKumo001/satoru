@@ -103,6 +103,7 @@ namespace litehtml
     int m_line_clamp;
     box_orient m_webkit_box_orient;
     float m_opacity;
+    aspect_ratio m_aspect_ratio;
 
   private:
     void compute_font(const html_tag *el, const std::shared_ptr<document> &doc);
@@ -318,6 +319,8 @@ namespace litehtml
 
     float get_opacity() const;
     void set_opacity(float opacity);
+
+    aspect_ratio get_aspect_ratio() const;
 
     int get_text_decoration_line() const;
     text_decoration_style get_text_decoration_style() const;
@@ -811,6 +814,11 @@ namespace litehtml
   inline void css_properties::set_opacity(float opacity)
   {
     m_opacity = opacity;
+  }
+
+  inline aspect_ratio css_properties::get_aspect_ratio() const
+  {
+    return m_aspect_ratio;
   }
 
   inline int css_properties::get_text_decoration_line() const

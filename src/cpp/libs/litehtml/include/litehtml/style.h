@@ -27,6 +27,7 @@ namespace litehtml
                 string_vector,
                 size_vector,
                 shadow_vector,
+                aspect_ratio,
                 css_token_vector
         >
         {
@@ -93,6 +94,7 @@ namespace litehtml
                 void parse_text_decoration(const css_token_vector& tokens, bool important, document_container* container);
                 bool parse_text_decoration_color(const css_token& token, bool important, document_container* container);
                 void parse_text_decoration_line(const css_token_vector& tokens, bool important);     
+                void parse_aspect_ratio(const css_token_vector& tokens, bool important);
 
                 void parse_text_emphasis(const css_token_vector& tokens, bool important, document_container* container);
                 bool parse_text_emphasis_color(const css_token& token, bool important, document_container* container);

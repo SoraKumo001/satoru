@@ -269,6 +269,10 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
          src_el()->css().get_display() == display_table_cell))
 	{
 		m_pos.height = self_size.render_height;
+	} else if(!css().get_aspect_ratio().is_auto())
+	{
+		aspect_ratio ar = css().get_aspect_ratio();
+		m_pos.height = m_pos.width * ar.height / ar.width;
 	} else if (src_el()->is_block_formatting_context())
 	{
 		// add the floats' height to the block height

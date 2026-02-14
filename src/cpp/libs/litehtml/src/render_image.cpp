@@ -34,7 +34,11 @@ litehtml::pixel_t litehtml::render_item_image::_render(pixel_t x, pixel_t y, con
             {
                 m_pos.width = max_width;
             }
-            if(sz.width != 0)
+            if(!css().get_aspect_ratio().is_auto() && !css().get_aspect_ratio().use_intrinsic)
+            {
+                aspect_ratio ar = css().get_aspect_ratio();
+                m_pos.height = m_pos.width * ar.height / ar.width;
+            } else if(sz.width != 0)
             {
                 m_pos.height = m_pos.width * sz.height / sz.width;
             } else
@@ -51,7 +55,11 @@ litehtml::pixel_t litehtml::render_item_image::_render(pixel_t x, pixel_t y, con
             {
                 m_pos.height = max_height;
             }
-            if(sz.height != 0)
+            if(!css().get_aspect_ratio().is_auto() && !css().get_aspect_ratio().use_intrinsic)
+            {
+                aspect_ratio ar = css().get_aspect_ratio();
+                m_pos.width = m_pos.height * ar.width / ar.height;
+            } else if(sz.height != 0)
             {
                 m_pos.width = m_pos.height * sz.width / sz.height;
             } else
@@ -78,7 +86,14 @@ litehtml::pixel_t litehtml::render_item_image::_render(pixel_t x, pixel_t y, con
 
         if(sz.height != 0)
         {
-            m_pos.width = m_pos.height * sz.width / sz.height;
+            if(!css().get_aspect_ratio().is_auto() && !css().get_aspect_ratio().use_intrinsic)
+            {
+                aspect_ratio ar = css().get_aspect_ratio();
+                m_pos.width = m_pos.height * ar.width / ar.height;
+            } else
+            {
+                m_pos.width = m_pos.height * sz.width / sz.height;
+            }
         } else
         {
             m_pos.width = sz.width;
@@ -99,7 +114,14 @@ litehtml::pixel_t litehtml::render_item_image::_render(pixel_t x, pixel_t y, con
 
         if(sz.width != 0)
         {
-            m_pos.height = m_pos.width * sz.height / sz.width;
+            if(!css().get_aspect_ratio().is_auto() && !css().get_aspect_ratio().use_intrinsic)
+            {
+                aspect_ratio ar = css().get_aspect_ratio();
+                m_pos.height = m_pos.width * ar.height / ar.width;
+            } else
+            {
+                m_pos.height = m_pos.width * sz.height / sz.width;
+            }
         } else
         {
             m_pos.height = sz.height;

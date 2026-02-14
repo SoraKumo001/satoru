@@ -32,6 +32,7 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   m_box_shadow = el->get_property<shadow_vector>(_box_shadow_, false, shadow_vector(), offset(m_box_shadow));
   m_text_shadow = el->get_property<shadow_vector>(_text_shadow_, true, shadow_vector(), offset(m_text_shadow));
   m_opacity = el->get_property<float>(_opacity_, false, 1.0f, offset(m_opacity));
+  m_aspect_ratio = el->get_property<aspect_ratio>(_aspect_ratio_, false, aspect_ratio(), offset(m_aspect_ratio));
 
   // https://www.w3.org/TR/CSS22/visuren.html#dis-pos-flo
   if (m_display == display_none)

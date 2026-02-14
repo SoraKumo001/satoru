@@ -1409,6 +1409,22 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 			ret.height.value -= m_padding.height() + m_borders.height();
 		}
 	}
+
+	// Calculate aspect ratio
+	if(!css().get_aspect_ratio().is_auto())
+	{
+		aspect_ratio ar = css().get_aspect_ratio();
+		if(ret.width.type == containing_block_context::cbc_value_type_auto && ret.height.type == containing_block_context::cbc_value_type_absolute)
+		{
+			ret.width.value = ret.height.value * ar.width / ar.height;
+			ret.width.type = containing_block_context::cbc_value_type_absolute;
+		} else if(ret.height.type == containing_block_context::cbc_value_type_auto && ret.width.type == containing_block_context::cbc_value_type_absolute)
+		{
+			ret.height.value = ret.width.value * ar.height / ar.width;
+			ret.height.type = containing_block_context::cbc_value_type_absolute;
+		}
+	}
+
 	ret.render_width = ret.width;
 	ret.render_height = ret.height;
 

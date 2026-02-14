@@ -1,4 +1,4 @@
-import { Satoru as BaseSatoru, LogLevel, SatoruModule } from "./index.js";
+import { Satoru as BaseSatoru, LogLevel } from "./index.js";
 
 export { LogLevel } from "./index.js";
 export type {
@@ -16,8 +16,8 @@ export type { SatoruWorker } from "./child-workers.js";
  */
 export class Satoru extends BaseSatoru {
   // Use protected constructor from base
-  private constructor(mod: SatoruModule) {
-    super(mod);
+  private constructor(factory: any) {
+    super(factory);
   }
 
   /**

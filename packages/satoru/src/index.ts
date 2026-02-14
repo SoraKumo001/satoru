@@ -107,26 +107,60 @@ export interface RenderOptions {
 }
 
 export class Satoru {
-  protected mod: SatoruModule;
+  private factory: any;
+  private modPromise?: Promise<SatoruModule>;
   private static instances = new Map<number, Satoru>();
   private activeOnLog?: (level: LogLevel, message: string) => void;
 
-  protected constructor(mod: SatoruModule) {
-    this.mod = mod;
+  protected constructor(factory: any) {
+    this.factory = factory;
+  }
 
-    if (!mod.onRequestResource) {
-      mod.onRequestResource = (
-        handle: number,
-        url: string,
-        typeInt: number,
-        name: string,
-      ) => {
-        const inst = Satoru.instances.get(handle);
-        if (inst && inst.onResourceRequested) {
-          inst.onResourceRequested(url, typeInt, name);
+  private async getModule(): Promise<SatoruModule> {
+    if (!this.modPromise) {
+      this.modPromise = (async () => {
+        const onLog = (level: LogLevel, message: string) => {
+          if (mod && level > mod.logLevel) return;
+
+          for (const inst of Satoru.instances.values()) {
+            if (inst.activeOnLog) {
+              inst.activeOnLog(level, message);
+              return;
+            }
+          }
+        };
+
+        const mod = (await this.factory({
+          onLog,
+          print: (text: string) => {
+            onLog(LogLevel.Info, text);
+          },
+          printErr: (text: string) => {
+            onLog(LogLevel.Error, text);
+          },
+        })) as SatoruModule;
+
+        mod.onLog = onLog;
+        mod.logLevel = LogLevel.None;
+
+        if (!mod.onRequestResource) {
+          mod.onRequestResource = (
+            handle: number,
+            url: string,
+            typeInt: number,
+            name: string,
+          ) => {
+            const inst = Satoru.instances.get(handle);
+            if (inst && inst.onResourceRequested) {
+              inst.onResourceRequested(url, typeInt, name);
+            }
+          };
         }
-      };
+
+        return mod;
+      })();
     }
+    return this.modPromise;
   }
 
   private onResourceRequested?: (
@@ -158,41 +192,7 @@ export class Satoru {
    * @param createSatoruModuleFunc Factory function from satoru.js
    */
   static async create(createSatoruModuleFunc: any): Promise<Satoru> {
-    let mod: SatoruModule;
-    const onLog = (level: LogLevel, message: string) => {
-      if (mod && level > mod.logLevel) return;
-
-      for (const inst of Satoru.instances.values()) {
-        if (inst.activeOnLog) {
-          inst.activeOnLog(level, message);
-          return;
-        }
-      }
-    };
-
-    mod = (await createSatoruModuleFunc({
-      onLog,
-      print: (text: string) => {
-        onLog(LogLevel.Info, text);
-      },
-      printErr: (text: string) => {
-        onLog(LogLevel.Error, text);
-      },
-    })) as SatoruModule;
-
-    mod.onLog = onLog;
-    mod.logLevel = LogLevel.None;
-
-    return new Satoru(mod);
-  }
-
-  /** @deprecated Use Satoru.create */
-  static async init(createSatoruModuleFunc: any): Promise<Satoru> {
-    return this.create(createSatoruModuleFunc);
-  }
-
-  destroy() {
-    // No-op
+    return new Satoru(createSatoruModuleFunc);
   }
 
   async render(
@@ -201,6 +201,7 @@ export class Satoru {
   async render(options: RenderOptions & { format?: "svg" }): Promise<string>;
   async render(options: RenderOptions): Promise<string | Uint8Array>;
   async render(options: RenderOptions): Promise<string | Uint8Array> {
+    const mod = await this.getModule();
     const {
       value,
       width,
@@ -214,27 +215,28 @@ export class Satoru {
       onLog,
     } = options;
 
-    const prevLogLevel = this.mod.logLevel;
+    const prevLogLevel = mod.logLevel;
     if (logLevel !== undefined) {
-      this.mod.logLevel = logLevel;
+      mod.logLevel = logLevel;
     }
 
     const prevOnLog = this.activeOnLog;
     this.activeOnLog = onLog || Satoru.defaultOnLog;
 
-    const instancePtr = this.mod._create_instance();
+    const instancePtr = mod._create_instance();
     Satoru.instances.set(instancePtr, this);
 
     try {
       // Apply local settings
       if (fonts) {
         for (const f of fonts) {
-          this.applyFont(instancePtr, f.name, f.data);
+          this.applyFont(mod, instancePtr, f.name, f.data);
         }
       }
       if (images) {
         for (const img of images) {
           this.applyImage(
+            mod,
             instancePtr,
             img.name,
             img.url,
@@ -244,7 +246,7 @@ export class Satoru {
         }
       }
       if (css) {
-        this.applyCss(instancePtr, css);
+        this.applyCss(mod, instancePtr, css);
       }
 
       let { resolveResource } = options;
@@ -320,6 +322,7 @@ export class Satoru {
         let processedHtml = rawHtml;
         for (let i = 0; i < 10; i++) {
           const resources = this.getPendingResources(
+            mod,
             instancePtr,
             processedHtml,
             width,
@@ -335,7 +338,13 @@ export class Satoru {
                   data = await resolveResource({ ...r });
                 }
                 if (data instanceof Uint8Array) {
-                  this.addResourceInternal(instancePtr, r.url, r.type, data);
+                  this.addResourceInternal(
+                    mod,
+                    instancePtr,
+                    r.url,
+                    r.type,
+                    data,
+                  );
                 }
               } catch (e) {
                 console.warn(`Failed to resolve resource: ${r.url}`, e);
@@ -357,8 +366,13 @@ export class Satoru {
 
       if (format === "pdf" && Array.isArray(value)) {
         return (
-          this.toPdfPagesInternal(instancePtr, processedHtmls, width, height) ||
-          new Uint8Array()
+          this.toPdfPagesInternal(
+            mod,
+            instancePtr,
+            processedHtmls,
+            width,
+            height,
+          ) || new Uint8Array()
         );
       }
 
@@ -368,140 +382,152 @@ export class Satoru {
       switch (format) {
         case "png":
           return (
-            this.toPngInternal(instancePtr, finalHtml, width, height) ||
+            this.toPngInternal(mod, instancePtr, finalHtml, width, height) ||
             new Uint8Array()
           );
         case "webp":
           return (
-            this.toWebpInternal(instancePtr, finalHtml, width, height) ||
+            this.toWebpInternal(mod, instancePtr, finalHtml, width, height) ||
             new Uint8Array()
           );
         case "pdf":
           return (
-            this.toPdfInternal(instancePtr, finalHtml, width, height) ||
+            this.toPdfInternal(mod, instancePtr, finalHtml, width, height) ||
             new Uint8Array()
           );
         default:
-          return this.toSvgInternal(instancePtr, finalHtml, width, height);
+          return this.toSvgInternal(mod, instancePtr, finalHtml, width, height);
       }
     } finally {
       Satoru.instances.delete(instancePtr);
-      this.mod._destroy_instance(instancePtr);
-      this.mod.logLevel = prevLogLevel;
+      mod._destroy_instance(instancePtr);
+      mod.logLevel = prevLogLevel;
       this.activeOnLog = prevOnLog;
     }
   }
 
-  private applyFont(instPtr: number, name: string, data: Uint8Array) {
-    const namePtr = this.stringToPtr(name);
-    const dataPtr = this.mod._malloc(data.length);
-    this.mod.HEAPU8.set(data, dataPtr);
-    this.mod._load_font(instPtr, namePtr, dataPtr, data.length);
-    this.mod._free(namePtr);
-    this.mod._free(dataPtr);
+  private applyFont(
+    mod: SatoruModule,
+    instPtr: number,
+    name: string,
+    data: Uint8Array,
+  ) {
+    const namePtr = this.stringToPtr(mod, name);
+    const dataPtr = mod._malloc(data.length);
+    mod.HEAPU8.set(data, dataPtr);
+    mod._load_font(instPtr, namePtr, dataPtr, data.length);
+    mod._free(namePtr);
+    mod._free(dataPtr);
   }
 
   private applyImage(
+    mod: SatoruModule,
     instPtr: number,
     name: string,
     dataUrl: string,
     width: number = 0,
     height: number = 0,
   ) {
-    const namePtr = this.stringToPtr(name);
-    const urlPtr = this.stringToPtr(dataUrl);
-    this.mod._load_image(instPtr, namePtr, urlPtr, width, height);
-    this.mod._free(namePtr);
-    this.mod._free(urlPtr);
+    const namePtr = this.stringToPtr(mod, name);
+    const urlPtr = this.stringToPtr(mod, dataUrl);
+    mod._load_image(instPtr, namePtr, urlPtr, width, height);
+    mod._free(namePtr);
+    mod._free(urlPtr);
   }
 
-  private applyCss(instPtr: number, css: string) {
-    const cssPtr = this.stringToPtr(css);
-    this.mod._scan_css(instPtr, cssPtr);
-    this.mod._free(cssPtr);
+  private applyCss(mod: SatoruModule, instPtr: number, css: string) {
+    const cssPtr = this.stringToPtr(mod, css);
+    mod._scan_css(instPtr, cssPtr);
+    mod._free(cssPtr);
   }
 
   private toPdfPagesInternal(
+    mod: SatoruModule,
     instPtr: number,
     htmls: string[],
     width: number,
     height: number = 0,
   ): Uint8Array | null {
-    const result = this.mod.htmls_to_pdf(instPtr, htmls, width, height);
+    const result = mod.htmls_to_pdf(instPtr, htmls, width, height);
     return result ? new Uint8Array(result) : null;
   }
 
   private toSvgInternal(
+    mod: SatoruModule,
     instPtr: number,
     value: string,
     width: number,
     height: number = 0,
   ): string {
-    const htmlPtr = this.stringToPtr(value);
-    const svgPtr = this.mod._html_to_svg(instPtr, htmlPtr, width, height);
-    const svg = this.mod.UTF8ToString(svgPtr);
-    this.mod._free(htmlPtr);
-    this.mod._free(svgPtr);
+    const htmlPtr = this.stringToPtr(mod, value);
+    const svgPtr = mod._html_to_svg(instPtr, htmlPtr, width, height);
+    const svg = mod.UTF8ToString(svgPtr);
+    mod._free(htmlPtr);
+    mod._free(svgPtr);
     return svg;
   }
 
   private toPngInternal(
+    mod: SatoruModule,
     instPtr: number,
     value: string,
     width: number,
     height: number = 0,
   ): Uint8Array | null {
-    const htmlPtr = this.stringToPtr(value);
-    const pngPtr = this.mod._html_to_png(instPtr, htmlPtr, width, height);
-    const size = this.mod._get_png_size(instPtr);
+    const htmlPtr = this.stringToPtr(mod, value);
+    const pngPtr = mod._html_to_png(instPtr, htmlPtr, width, height);
+    const size = mod._get_png_size(instPtr);
     let result: Uint8Array | null = null;
     if (pngPtr && size > 0) {
-      result = new Uint8Array(this.mod.HEAPU8.buffer, pngPtr, size).slice();
+      result = new Uint8Array(mod.HEAPU8.buffer, pngPtr, size).slice();
     }
-    this.mod._free(htmlPtr);
+    mod._free(htmlPtr);
     return result;
   }
 
   private toWebpInternal(
+    mod: SatoruModule,
     instPtr: number,
     value: string,
     width: number,
     height: number = 0,
   ): Uint8Array | null {
-    const htmlPtr = this.stringToPtr(value);
-    const webpPtr = this.mod._html_to_webp(instPtr, htmlPtr, width, height);
-    const size = this.mod._get_webp_size(instPtr);
+    const htmlPtr = this.stringToPtr(mod, value);
+    const webpPtr = mod._html_to_webp(instPtr, htmlPtr, width, height);
+    const size = mod._get_webp_size(instPtr);
     let result: Uint8Array | null = null;
     if (webpPtr && size > 0) {
-      result = new Uint8Array(this.mod.HEAPU8.buffer, webpPtr, size).slice();
+      result = new Uint8Array(mod.HEAPU8.buffer, webpPtr, size).slice();
     }
-    this.mod._free(htmlPtr);
+    mod._free(htmlPtr);
     return result;
   }
 
   private toPdfInternal(
+    mod: SatoruModule,
     instPtr: number,
     value: string,
     width: number,
     height: number = 0,
   ): Uint8Array | null {
-    const htmlPtr = this.stringToPtr(value);
-    const pdfPtr = this.mod._html_to_pdf(instPtr, htmlPtr, width, height);
-    const size = this.mod._get_pdf_size(instPtr);
+    const htmlPtr = this.stringToPtr(mod, value);
+    const pdfPtr = mod._html_to_pdf(instPtr, htmlPtr, width, height);
+    const size = mod._get_pdf_size(instPtr);
     let result: Uint8Array | null = null;
     if (pdfPtr && size > 0) {
-      result = new Uint8Array(this.mod.HEAPU8.buffer, pdfPtr, size).slice();
+      result = new Uint8Array(mod.HEAPU8.buffer, pdfPtr, size).slice();
     }
-    this.mod._free(htmlPtr);
+    mod._free(htmlPtr);
     return result;
   }
 
   private getPendingResources(
+    mod: SatoruModule,
     instPtr: number,
     value: string,
     width: number,
   ): RequiredResource[] {
-    const htmlPtr = this.stringToPtr(value);
+    const htmlPtr = this.stringToPtr(mod, value);
     const resources: RequiredResource[] = [];
     this.onResourceRequested = (url: string, typeInt: number, name: string) => {
       let type: "font" | "css" | "image" = "font";
@@ -509,27 +535,28 @@ export class Satoru {
       if (typeInt === 3) type = "css";
       resources.push({ type, name, url });
     };
-    this.mod._collect_resources(instPtr, htmlPtr, width);
-    this.mod._free(htmlPtr);
+    mod._collect_resources(instPtr, htmlPtr, width);
+    mod._free(htmlPtr);
     this.onResourceRequested = undefined;
     return resources;
   }
 
   private addResourceInternal(
+    mod: SatoruModule,
     instPtr: number,
     url: string,
     type: "font" | "css" | "image",
     data: Uint8Array,
   ) {
-    const urlPtr = this.stringToPtr(url);
-    const dataPtr = this.mod._malloc(data.length);
-    this.mod.HEAPU8.set(data, dataPtr);
+    const urlPtr = this.stringToPtr(mod, url);
+    const dataPtr = mod._malloc(data.length);
+    mod.HEAPU8.set(data, dataPtr);
     let typeInt = 1;
     if (type === "image") typeInt = 2;
     if (type === "css") typeInt = 3;
-    this.mod._add_resource(instPtr, urlPtr, typeInt, dataPtr, data.length);
-    this.mod._free(urlPtr);
-    this.mod._free(dataPtr);
+    mod._add_resource(instPtr, urlPtr, typeInt, dataPtr, data.length);
+    mod._free(urlPtr);
+    mod._free(dataPtr);
   }
 
   async toSvg(
@@ -564,10 +591,10 @@ export class Satoru {
     return this.render({ value, width, height, format: "pdf" });
   }
 
-  private stringToPtr(str: string): number {
-    const len = this.mod.lengthBytesUTF8(str) + 1;
-    const ptr = this.mod._malloc(len);
-    this.mod.stringToUTF8(str, ptr, len);
+  private stringToPtr(mod: SatoruModule, str: string): number {
+    const len = mod.lengthBytesUTF8(str) + 1;
+    const ptr = mod._malloc(len);
+    mod.stringToUTF8(str, ptr, len);
     return ptr;
   }
 
@@ -576,13 +603,14 @@ export class Satoru {
     value: string,
     width: number,
   ): Promise<RequiredResource[]> {
-    const instancePtr = this.mod._create_instance();
+    const mod = await this.getModule();
+    const instancePtr = mod._create_instance();
     Satoru.instances.set(instancePtr, this);
     try {
-      return this.getPendingResources(instancePtr, value, width);
+      return this.getPendingResources(mod, instancePtr, value, width);
     } finally {
       Satoru.instances.delete(instancePtr);
-      this.mod._destroy_instance(instancePtr);
+      mod._destroy_instance(instancePtr);
     }
   }
 

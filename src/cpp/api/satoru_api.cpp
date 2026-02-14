@@ -163,14 +163,14 @@ void api_collect_resources(SatoruInstance *inst, const char *html, int width) {
     }
 }
 
-void api_add_resource(SatoruInstance *inst, const char *url, int type, const uint8_t *data,
-                      int size) {
-    inst->resourceManager.add(url, data, size, (ResourceType)type);
+void api_add_resource(SatoruInstance *inst, const std::string &url, int type,
+                      const std::vector<uint8_t> &data) {
+    inst->resourceManager.add(url.c_str(), data.data(), (int)data.size(), (ResourceType)type);
 }
 
-void api_scan_css(SatoruInstance *inst, const char *css) {
-    inst->context.addCss(css);
-    inst->context.fontManager.scanFontFaces(css);
+void api_scan_css(SatoruInstance *inst, const std::string &css) {
+    inst->context.addCss(css.c_str());
+    inst->context.fontManager.scanFontFaces(css.c_str());
 }
 
 void api_clear_css(SatoruInstance *inst) {
@@ -178,8 +178,8 @@ void api_clear_css(SatoruInstance *inst) {
     inst->resourceManager.clear(ResourceType::Css);
 }
 
-void api_load_font(SatoruInstance *inst, const char *name, const uint8_t *data, int size) {
-    inst->context.load_font(name, data, size);
+void api_load_font(SatoruInstance *inst, const std::string &name, const std::vector<uint8_t> &data) {
+    inst->context.load_font(name.c_str(), data.data(), (int)data.size());
 }
 
 void api_clear_fonts(SatoruInstance *inst) {
@@ -187,9 +187,9 @@ void api_clear_fonts(SatoruInstance *inst) {
     inst->resourceManager.clear(ResourceType::Font);
 }
 
-void api_load_image(SatoruInstance *inst, const char *name, const char *data_url, int width,
-                    int height) {
-    inst->context.load_image(name, data_url, width, height);
+void api_load_image(SatoruInstance *inst, const std::string &name, const std::string &data_url,
+                    int width, int height) {
+    inst->context.load_image(name.c_str(), data_url.c_str(), width, height);
 }
 
 void api_clear_images(SatoruInstance *inst) {

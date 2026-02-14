@@ -32,34 +32,6 @@ const char *get_pending_resources(SatoruInstance *inst) {
     std::strcpy(res, json.c_str());
     return res;
 }
-
-EMSCRIPTEN_KEEPALIVE
-void add_resource(SatoruInstance *inst, const char *url, int type, const uint8_t *data, int size) {
-    api_add_resource(inst, url, type, data, size);
-}
-
-EMSCRIPTEN_KEEPALIVE
-void scan_css(SatoruInstance *inst, const char *css) { api_scan_css(inst, css); }
-
-EMSCRIPTEN_KEEPALIVE
-void clear_css(SatoruInstance *inst) { api_clear_css(inst); }
-
-EMSCRIPTEN_KEEPALIVE
-void load_font(SatoruInstance *inst, const char *name, const uint8_t *data, int size) {
-    api_load_font(inst, name, data, size);
-}
-
-EMSCRIPTEN_KEEPALIVE
-void clear_fonts(SatoruInstance *inst) { api_clear_fonts(inst); }
-
-EMSCRIPTEN_KEEPALIVE
-void load_image(SatoruInstance *inst, const char *name, const char *data_url, int width,
-                int height) {
-    api_load_image(inst, name, data_url, width, height);
-}
-
-EMSCRIPTEN_KEEPALIVE
-void clear_images(SatoruInstance *inst) { api_clear_images(inst); }
 }
 
 // EMSCRIPTEN_BINDINGS helper
@@ -83,17 +55,39 @@ val render_val(size_t inst_ptr, val htmls, int width, int height, int format) {
     return val(typed_memory_view(size, data));
 }
 
+void add_resource_val(size_t inst_ptr, std::string url, int type, val data) {
+    SatoruInstance *inst = (SatoruInstance *)inst_ptr;
+    auto vec = convertJSArrayToNumberVector<uint8_t>(data);
+    api_add_resource(inst, url, type, vec);
+}
+
+void load_font_val(size_t inst_ptr, std::string name, val data) {
+    SatoruInstance *inst = (SatoruInstance *)inst_ptr;
+    auto vec = convertJSArrayToNumberVector<uint8_t>(data);
+    api_load_font(inst, name, vec);
+}
+
+void scan_css_val(size_t inst_ptr, std::string css) {
+    SatoruInstance *inst = (SatoruInstance *)inst_ptr;
+    api_scan_css(inst, css);
+}
+
+void load_image_val(size_t inst_ptr, std::string name, std::string data_url, int width, int height) {
+    SatoruInstance *inst = (SatoruInstance *)inst_ptr;
+    api_load_image(inst, name, data_url, width, height);
+}
+
 EMSCRIPTEN_BINDINGS(satoru) {
     function("create_instance", &create_instance, allow_raw_pointers());
     function("destroy_instance", &destroy_instance, allow_raw_pointers());
     function("render", &render_val);
     function("collect_resources", &collect_resources, allow_raw_pointers());
     function("get_pending_resources", &get_pending_resources, allow_raw_pointers());
-    function("add_resource", &add_resource, allow_raw_pointers());
-    function("scan_css", &scan_css, allow_raw_pointers());
-    function("clear_css", &clear_css, allow_raw_pointers());
-    function("load_font", &load_font, allow_raw_pointers());
-    function("clear_fonts", &clear_fonts, allow_raw_pointers());
-    function("load_image", &load_image, allow_raw_pointers());
-    function("clear_images", &clear_images, allow_raw_pointers());
+    function("add_resource", &add_resource_val);
+    function("scan_css", &scan_css_val);
+    function("clear_css", &api_clear_css, allow_raw_pointers());
+    function("load_font", &load_font_val);
+    function("clear_fonts", &api_clear_fonts, allow_raw_pointers());
+    function("load_image", &load_image_val);
+    function("clear_images", &api_clear_images, allow_raw_pointers());
 }

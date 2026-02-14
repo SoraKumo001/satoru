@@ -11,25 +11,19 @@ export interface SatoruModule {
   _destroy_instance: (ptr: number) => void;
   _collect_resources: (inst: number, html: number, width: number) => void;
   _get_pending_resources: (inst: number) => number;
-  _add_resource: (
+  add_resource: (inst: number, url: string, type: number, data: Uint8Array) => void;
+  scan_css: (inst: number, css: string) => void;
+  clear_css: (inst: number) => void;
+  load_font: (inst: number, name: string, data: Uint8Array) => void;
+  clear_fonts: (inst: number) => void;
+  load_image: (
     inst: number,
-    url: number,
-    type: number,
-    data: number,
-    size: number,
-  ) => void;
-  _scan_css: (inst: number, css: number) => void;
-  _clear_css: (inst: number) => void;
-  _load_font: (inst: number, name: number, data: number, size: number) => void;
-  _clear_fonts: (inst: number) => void;
-  _load_image: (
-    inst: number,
-    name: number,
-    url: number,
+    name: string,
+    url: string,
     width: number,
     height: number,
   ) => void;
-  _clear_images: (inst: number) => void;
+  clear_images: (inst: number) => void;
   render: (
     inst: number,
     htmls: string | string[],
@@ -176,16 +170,14 @@ export class Satoru {
     Satoru.instances.set(instancePtr, this);
 
     try {
-      // Apply local settings
       if (fonts) {
         for (const f of fonts) {
-          this.applyFont(mod, instancePtr, f.name, f.data);
+          mod.load_font(instancePtr, f.name, f.data);
         }
       }
       if (images) {
         for (const img of images) {
-          this.applyImage(
-            mod,
+          mod.load_image(
             instancePtr,
             img.name,
             img.url,
@@ -195,7 +187,7 @@ export class Satoru {
         }
       }
       if (css) {
-        this.applyCss(mod, instancePtr, css);
+        mod.scan_css(instancePtr, css);
       }
 
       let { resolveResource } = options;
@@ -292,13 +284,10 @@ export class Satoru {
                   data = await resolveResource({ ...r });
                 }
                 if (data instanceof Uint8Array) {
-                  this.addResourceInternal(
-                    mod,
-                    instancePtr,
-                    r.url,
-                    r.type,
-                    data,
-                  );
+                  let typeInt = 1;
+                  if (r.type === "image") typeInt = 2;
+                  if (r.type === "css") typeInt = 3;
+                  mod.add_resource(instancePtr, r.url, typeInt, data);
                 }
               } catch (e) {
                 console.warn(`Failed to resolve resource: ${r.url}`, e);
@@ -349,59 +338,6 @@ export class Satoru {
       mod.logLevel = prevLogLevel;
       this.activeOnLog = prevOnLog;
     }
-  }
-
-  private applyFont(
-    mod: SatoruModule,
-    instPtr: number,
-    name: string,
-    data: Uint8Array,
-  ) {
-    const namePtr = this.stringToPtr(mod, name);
-    const dataPtr = mod._malloc(data.length);
-    mod.HEAPU8.set(data, dataPtr);
-    mod._load_font(instPtr, namePtr, dataPtr, data.length);
-    mod._free(namePtr);
-    mod._free(dataPtr);
-  }
-
-  private applyImage(
-    mod: SatoruModule,
-    instPtr: number,
-    name: string,
-    dataUrl: string,
-    width: number = 0,
-    height: number = 0,
-  ) {
-    const namePtr = this.stringToPtr(mod, name);
-    const urlPtr = this.stringToPtr(mod, dataUrl);
-    mod._load_image(instPtr, namePtr, urlPtr, width, height);
-    mod._free(namePtr);
-    mod._free(urlPtr);
-  }
-
-  private applyCss(mod: SatoruModule, instPtr: number, css: string) {
-    const cssPtr = this.stringToPtr(mod, css);
-    mod._scan_css(instPtr, cssPtr);
-    mod._free(cssPtr);
-  }
-
-  private addResourceInternal(
-    mod: SatoruModule,
-    instPtr: number,
-    url: string,
-    type: "font" | "css" | "image",
-    data: Uint8Array,
-  ) {
-    const urlPtr = this.stringToPtr(mod, url);
-    const dataPtr = mod._malloc(data.length);
-    mod.HEAPU8.set(data, dataPtr);
-    let typeInt = 1;
-    if (type === "image") typeInt = 2;
-    if (type === "css") typeInt = 3;
-    mod._add_resource(instPtr, urlPtr, typeInt, dataPtr, data.length);
-    mod._free(urlPtr);
-    mod._free(dataPtr);
   }
 
   private stringToPtr(mod: SatoruModule, str: string): number {

@@ -43,7 +43,9 @@ public:
 class css
 {
 	css_selector::vector	m_selectors;
+	std::vector<string>	m_layers;
 public:
+	static const int unlayered_id = 1000000;
 
 	const css_selector::vector& selectors() const
 	{
@@ -51,19 +53,21 @@ public:
 	}
 
 	template<class Input>
-	void	parse_css_stylesheet(const Input& input, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media = nullptr, bool top_level = true);
+	void	parse_css_stylesheet(const Input& input, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media = nullptr, bool top_level = true, int layer = unlayered_id, string layer_prefix = "");
 
 	void	sort_selectors();
 
 private:
-	bool	parse_style_rule(raw_rule::ptr rule, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media);
-	void	parse_import_rule(raw_rule::ptr rule, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media);
-	void	add_selector(const css_selector::ptr& selector);
+	bool	parse_style_rule(raw_rule::ptr rule, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media, int layer);
+	void	parse_import_rule(raw_rule::ptr rule, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media, int layer, string layer_prefix);
+	void	add_selector(const css_selector::ptr& selector, int layer);
+	int		get_layer_id(const string& name);
 };
 
-inline void css::add_selector(const css_selector::ptr& selector)
+inline void css::add_selector(const css_selector::ptr& selector, int layer)
 {
 	selector->m_order = (int)m_selectors.size();
+	selector->m_layer = layer;
 	m_selectors.push_back(selector);
 }
 

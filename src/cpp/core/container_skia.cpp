@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "el_svg.h"
 #include "include/core/SkBlurTypes.h"
 #include "include/core/SkClipOp.h"
 #include "include/core/SkFontMetrics.h"
@@ -17,7 +18,6 @@
 #include "include/core/SkTileMode.h"
 #include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkGradient.h"
-#include "el_svg.h"
 #include "litehtml/el_table.h"
 #include "litehtml/el_td.h"
 #include "litehtml/el_tr.h"
@@ -1145,4 +1145,3 @@ void container_skia::reset() {
     m_requestedFontAttributes.clear();
     m_missingFonts.clear();
 }
-

@@ -1,8 +1,8 @@
-#include "api/satoru_api.h"
 #include "png_renderer.h"
 
 #include <litehtml/master_css.h>
 
+#include "api/satoru_api.h"
 #include "core/container_skia.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkCanvas.h"
@@ -11,26 +11,27 @@
 #include "litehtml.h"
 #include "utils/skia_utils.h"
 
-sk_sp<SkData> renderDocumentToPng(SatoruInstance* inst, int width, int height, const RenderOptions& options) {
+sk_sp<SkData> renderDocumentToPng(SatoruInstance *inst, int width, int height,
+                                  const RenderOptions &options) {
     if (!inst->doc || !inst->render_container) return nullptr;
-    
+
     int content_height = (height > 0) ? height : (int)inst->doc->height();
     if (content_height < 1) content_height = 1;
-    
+
     SkBitmap bitmap;
     bitmap.allocN32Pixels(width, content_height);
     bitmap.eraseColor(SkColorSetARGB(0, 0, 0, 0));  // Transparent background
-    
+
     SkCanvas canvas(bitmap);
-    
+
     inst->render_container->reset();
     inst->render_container->set_canvas(&canvas);
     inst->render_container->set_height(content_height);
     inst->render_container->set_tagging(false);
-    
+
     litehtml::position clip(0, 0, width, content_height);
     inst->doc->draw(0, 0, 0, &clip);
-    
+
     SkDynamicMemoryWStream stream;
     if (SkPngEncoder::Encode(&stream, bitmap.pixmap(), {})) {
         return stream.detachAsData();

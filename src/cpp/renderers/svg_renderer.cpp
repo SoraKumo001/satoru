@@ -1,4 +1,3 @@
-#include "api/satoru_api.h"
 #include "svg_renderer.h"
 
 #include <litehtml/master_css.h>
@@ -12,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "api/satoru_api.h"
 #include "core/container_skia.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkCanvas.h"
@@ -160,13 +160,17 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         size_t p;
                         while ((p = s.find(" " + attr + "=\"")) != std::string::npos) {
                             size_t end = s.find('"', p + attr.length() + 3);
-                            if (end != std::string::npos) s.erase(p, end - p + 1);
-                            else break;
+                            if (end != std::string::npos)
+                                s.erase(p, end - p + 1);
+                            else
+                                break;
                         }
                         while ((p = s.find(" " + attr + ":")) != std::string::npos) {
                             size_t end = s.find_first_of(";\"", p + attr.length() + 2);
-                            if (end != std::string::npos) s.erase(p, end - p + 1);
-                            else break;
+                            if (end != std::string::npos)
+                                s.erase(p, end - p + 1);
+                            else
+                                break;
                         }
                     };
 
@@ -176,10 +180,9 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
 
                     // タグ内の tagged fill を置換する
                     std::string oldFill = isAttr ? "fill=\"" + colorVal + "\"" : "fill:" + colorVal;
-                    std::string newFill =
-                        "font-weight=\"" + weightStr + "\" font-style=\"" + styleStr +
-                        "\" fill=\"" + textColor + "\" fill-opacity=\"" + std::to_string(opacity) +
-                        "\"";
+                    std::string newFill = "font-weight=\"" + weightStr + "\" font-style=\"" +
+                                          styleStr + "\" fill=\"" + textColor +
+                                          "\" fill-opacity=\"" + std::to_string(opacity) + "\"";
 
                     size_t fillPos = tag.find(oldFill);
                     if (fillPos != std::string::npos) {
@@ -238,7 +241,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         replaced = true;
                     }
                 }
-            } else if (r == 1 && g == 4 && b > 0 && b <= (int)container.get_used_inline_svgs().size()) {
+            } else if (r == 1 && g == 4 && b > 0 &&
+                       b <= (int)container.get_used_inline_svgs().size()) {
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
                 if (elementStart != std::string::npos && elementEnd != std::string::npos) {
@@ -408,7 +412,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
 }
 
 static void appendDefs(std::string &svg, const container_skia &render_container,
-                       const SatoruContext &context, const RenderOptions& options) {
+                       const SatoruContext &context, const RenderOptions &options) {
     std::stringstream defs;
 
     if (!options.svgTextToPaths) {
@@ -571,7 +575,8 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
 }
 }  // namespace
 
-std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height, const RenderOptions& options) {
+std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height,
+                                const RenderOptions &options) {
     if (!inst->doc || !inst->render_container) return "";
 
     // We rely on external layout (inst->doc->render(width) or deserialized layout).
@@ -598,7 +603,7 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height, con
     litehtml::position clip(0, 0, width, content_height);
     inst->doc->draw(0, 0, 0, &clip);
 
-    canvas.reset(); // Flush
+    canvas.reset();  // Flush
     sk_sp<SkData> data = stream.detachAsData();
     std::string svg((const char *)data->data(), data->size());
 
@@ -609,7 +614,7 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height, con
 }
 
 std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context,
-                            const char *master_css, const RenderOptions& options) {
+                            const char *master_css, const RenderOptions &options) {
     container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context, nullptr,
                                      false);
     std::string css = master_css ? master_css : litehtml::master_css;

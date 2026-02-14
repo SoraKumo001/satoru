@@ -1,4 +1,3 @@
-#include "serializer.h"
 #include "satoru_api.h"
 
 #include <emscripten.h>
@@ -12,8 +11,9 @@
 #include "core/satoru_context.h"
 #include "renderers/pdf_renderer.h"
 #include "renderers/png_renderer.h"
-#include "renderers/webp_renderer.h"
 #include "renderers/svg_renderer.h"
+#include "renderers/webp_renderer.h"
+#include "serializer.h"
 
 EM_JS(void, satoru_log_js, (int level, const char *message), {
     if (Module.onLog) {
@@ -32,12 +32,14 @@ SatoruInstance *api_create_instance() { return new SatoruInstance(); }
 
 void api_destroy_instance(SatoruInstance *inst) { delete inst; }
 
-std::string api_html_to_svg(SatoruInstance *inst, const char *html, int width, int height, const RenderOptions& options) {
-    return renderHtmlToSvg(html, width, height, inst->context, get_full_master_css(inst).c_str(), options);
+std::string api_html_to_svg(SatoruInstance *inst, const char *html, int width, int height,
+                            const RenderOptions &options) {
+    return renderHtmlToSvg(html, width, height, inst->context, get_full_master_css(inst).c_str(),
+                           options);
 }
 
-const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width, int height, const RenderOptions& options,
-                               int &out_size) {
+const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width, int height,
+                               const RenderOptions &options, int &out_size) {
     auto data =
         renderHtmlToPng(html, width, height, inst->context, get_full_master_css(inst).c_str());
     if (!data) {
@@ -49,8 +51,8 @@ const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width
     return inst->context.get_last_png()->bytes();
 }
 
-const uint8_t *api_html_to_webp(SatoruInstance *inst, const char *html, int width, int height, const RenderOptions& options,
-                                int &out_size) {
+const uint8_t *api_html_to_webp(SatoruInstance *inst, const char *html, int width, int height,
+                                const RenderOptions &options, int &out_size) {
     auto data =
         renderHtmlToWebp(html, width, height, inst->context, get_full_master_css(inst).c_str());
     if (!data) {
@@ -62,8 +64,8 @@ const uint8_t *api_html_to_webp(SatoruInstance *inst, const char *html, int widt
     return inst->context.get_last_webp()->bytes();
 }
 
-const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width, int height, const RenderOptions& options,
-                               int &out_size) {
+const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width, int height,
+                               const RenderOptions &options, int &out_size) {
     std::vector<std::string> htmls;
     htmls.push_back(std::string(html));
     auto data =
@@ -78,7 +80,8 @@ const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width
 }
 
 const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::string> &htmls,
-                                int width, int height, const RenderOptions& options, int &out_size) {
+                                int width, int height, const RenderOptions &options,
+                                int &out_size) {
     auto data =
         renderHtmlsToPdf(htmls, width, height, inst->context, get_full_master_css(inst).c_str());
     if (!data) {
@@ -91,7 +94,8 @@ const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::str
 }
 
 const uint8_t *api_render(SatoruInstance *inst, const std::vector<std::string> &htmls, int width,
-                          int height, RenderFormat format, const RenderOptions& options, int &out_size) {
+                          int height, RenderFormat format, const RenderOptions &options,
+                          int &out_size) {
     if (htmls.empty()) {
         out_size = 0;
         return nullptr;
@@ -174,7 +178,8 @@ void api_scan_css(SatoruInstance *inst, const std::string &css) {
     inst->context.fontManager.scanFontFaces(css.c_str());
 }
 
-void api_load_font(SatoruInstance *inst, const std::string &name, const std::vector<uint8_t> &data) {
+void api_load_font(SatoruInstance *inst, const std::string &name,
+                   const std::vector<uint8_t> &data) {
     inst->context.load_font(name.c_str(), data.data(), (int)data.size());
 }
 
@@ -197,8 +202,8 @@ std::string api_get_pending_resources(SatoruInstance *inst) {
         else if (req.type == ResourceType::Css)
             typeStr = "css";
 
-        ss << "{\"url\":\"" << req.url << "\",\"name\":\"" << req.name << "\",\"type\":\"" << typeStr
-           << "\"}";
+        ss << "{\"url\":\"" << req.url << "\",\"name\":\"" << req.name << "\",\"type\":\""
+           << typeStr << "\"}";
         if (i < requests.size() - 1) ss << ",";
     }
     ss << "]";
@@ -207,11 +212,12 @@ std::string api_get_pending_resources(SatoruInstance *inst) {
 
 void api_init_document(SatoruInstance *inst, const char *html, int width) {
     if (inst->render_container) delete inst->render_container;
-    inst->render_container = new container_skia(width, 1000, nullptr, inst->context, &inst->resourceManager, false);
-    
+    inst->render_container =
+        new container_skia(width, 1000, nullptr, inst->context, &inst->resourceManager, false);
+
     std::string master_css_full = get_full_master_css(inst);
     std::string css = master_css_full + "\nbr { display: -litehtml-br !important; }\n";
-    
+
     inst->doc = litehtml::document::createFromString(html, inst->render_container, css.c_str());
 }
 
@@ -224,7 +230,7 @@ void api_layout_document(SatoruInstance *inst, int width) {
     }
 }
 
-const float* api_serialize_layout(SatoruInstance *inst, int &out_size) {
+const float *api_serialize_layout(SatoruInstance *inst, int &out_size) {
     if (!inst->doc || !inst->doc->root_render()) {
         out_size = 0;
         return nullptr;
@@ -236,22 +242,24 @@ const float* api_serialize_layout(SatoruInstance *inst, int &out_size) {
 
 void api_deserialize_layout(SatoruInstance *inst, const float *data, int size) {
     if (!inst->doc || !inst->doc->root_render()) return;
-    
+
     std::vector<float> data_vec(data, data + size);
     if (Serializer::deserialize_layout(inst->doc->root_render(), data_vec)) {
         Serializer::rebuild_stacking_contexts(inst->doc->root_render());
-        
+
         litehtml::size sz;
         inst->doc->root_render()->calc_document_size(sz);
         inst->doc->set_size(sz.width, sz.height);
-        
+
         if (inst->render_container) {
             inst->render_container->set_height(sz.height);
         }
     }
 }
 
-const uint8_t *api_render_from_state(SatoruInstance *inst, int width, int height, RenderFormat format, const RenderOptions& options, int &out_size) {
+const uint8_t *api_render_from_state(SatoruInstance *inst, int width, int height,
+                                     RenderFormat format, const RenderOptions &options,
+                                     int &out_size) {
     if (!inst->doc) {
         out_size = 0;
         return nullptr;
@@ -267,21 +275,30 @@ const uint8_t *api_render_from_state(SatoruInstance *inst, int width, int height
         }
         case RenderFormat::PNG: {
             auto data = renderDocumentToPng(inst, width, height, options);
-            if (!data) { out_size = 0; return nullptr; }
+            if (!data) {
+                out_size = 0;
+                return nullptr;
+            }
             inst->context.set_last_png(std::move(data));
             out_size = (int)inst->context.get_last_png()->size();
             return inst->context.get_last_png()->bytes();
         }
         case RenderFormat::WebP: {
             auto data = renderDocumentToWebp(inst, width, height, options);
-            if (!data) { out_size = 0; return nullptr; }
+            if (!data) {
+                out_size = 0;
+                return nullptr;
+            }
             inst->context.set_last_webp(std::move(data));
             out_size = (int)inst->context.get_last_webp()->size();
             return inst->context.get_last_webp()->bytes();
         }
         case RenderFormat::PDF: {
             auto data = renderDocumentToPdf(inst, width, height, options);
-            if (!data) { out_size = 0; return nullptr; }
+            if (!data) {
+                out_size = 0;
+                return nullptr;
+            }
             inst->context.set_last_pdf(std::move(data));
             out_size = (int)inst->context.get_last_pdf()->size();
             return inst->context.get_last_pdf()->bytes();

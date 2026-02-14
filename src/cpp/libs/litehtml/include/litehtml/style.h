@@ -32,10 +32,11 @@ namespace litehtml
         {
                 bool m_important = false;
                 bool m_has_var   = false; // css_token_vector, parsing is delayed because of var()   
+                int  m_layer     = 0;
 
                 property_value() {}
-                template<class T> property_value(const T& val, bool important, bool has_var = false) 
-                        : base(val), m_important(important), m_has_var(has_var) {}
+                template<class T> property_value(const T& val, bool important, bool has_var = false, int layer = 0) 
+                        : base(val), m_important(important), m_has_var(has_var), m_layer(layer) {}
         };
 
         class html_tag;
@@ -50,12 +51,13 @@ namespace litehtml
         private:
                 props_map                                                       m_properties;        
                 static std::map<string_id, string>      m_valid_values;
+                int                                     m_layer = 0;
         public:
-                void add(const css_token_vector& tokens, const string& baseurl = "", document_container* container = nullptr);
-                void add(const string& txt,              const string& baseurl = "", document_container* container = nullptr);
+                void add(const css_token_vector& tokens, const string& baseurl = "", document_container* container = nullptr, int layer = 0);
+                void add(const string& txt,              const string& baseurl = "", document_container* container = nullptr, int layer = 0);
 
-                void add_property(string_id name, const css_token_vector& tokens, const string& baseurl = "", bool important = false, document_container* container = nullptr);
-                void add_property(string_id name, const string& val,              const string& baseurl = "", bool important = false, document_container* container = nullptr);
+                void add_property(string_id name, const css_token_vector& tokens, const string& baseurl = "", bool important = false, document_container* container = nullptr, int layer = 0);
+                void add_property(string_id name, const string& val,              const string& baseurl = "", bool important = false, document_container* container = nullptr, int layer = 0);
 
                 const property_value& get_property(string_id name) const;
 

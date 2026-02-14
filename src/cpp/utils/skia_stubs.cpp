@@ -1,4 +1,5 @@
 #include <stdint.h>
+
 #include <memory>
 
 #include "include/core/SkTypeface.h"

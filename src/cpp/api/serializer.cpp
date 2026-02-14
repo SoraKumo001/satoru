@@ -1,7 +1,9 @@
 #include "serializer.h"
+
 #include <litehtml/render_item.h>
 
-static void serialize_recursive(const std::shared_ptr<litehtml::render_item>& item, std::vector<float>& out) {
+static void serialize_recursive(const std::shared_ptr<litehtml::render_item>& item,
+                                std::vector<float>& out) {
     if (!item) return;
 
     out.push_back((float)item->pos().x);
@@ -31,17 +33,19 @@ static void serialize_recursive(const std::shared_ptr<litehtml::render_item>& it
     }
 }
 
-std::vector<float> Serializer::serialize_layout(const std::shared_ptr<litehtml::render_item>& root) {
+std::vector<float> Serializer::serialize_layout(
+    const std::shared_ptr<litehtml::render_item>& root) {
     std::vector<float> out;
     if (root) {
         // Reserve some space to avoid reallocations, assumption based on tree depth
-        out.reserve(1024); 
+        out.reserve(1024);
         serialize_recursive(root, out);
     }
     return out;
 }
 
-static bool deserialize_recursive(const std::shared_ptr<litehtml::render_item>& item, const std::vector<float>& data, size_t& offset) {
+static bool deserialize_recursive(const std::shared_ptr<litehtml::render_item>& item,
+                                  const std::vector<float>& data, size_t& offset) {
     if (!item) return true;
 
     // We expect 17 floats per item
@@ -75,7 +79,8 @@ static bool deserialize_recursive(const std::shared_ptr<litehtml::render_item>& 
     return true;
 }
 
-bool Serializer::deserialize_layout(const std::shared_ptr<litehtml::render_item>& root, const std::vector<float>& data) {
+bool Serializer::deserialize_layout(const std::shared_ptr<litehtml::render_item>& root,
+                                    const std::vector<float>& data) {
     size_t offset = 0;
     if (root) {
         return deserialize_recursive(root, data, offset);

@@ -61,7 +61,8 @@ void scan_css_val(size_t inst_ptr, std::string css) {
     api_scan_css(inst, css);
 }
 
-void load_image_val(size_t inst_ptr, std::string name, std::string data_url, int width, int height) {
+void load_image_val(size_t inst_ptr, std::string name, std::string data_url, int width,
+                    int height) {
     SatoruInstance *inst = (SatoruInstance *)inst_ptr;
     api_load_image(inst, name, data_url, width, height);
 }
@@ -89,7 +90,7 @@ void layout_document_val(size_t inst_ptr, int width) {
 val serialize_layout_val(size_t inst_ptr) {
     SatoruInstance *inst = (SatoruInstance *)inst_ptr;
     int size = 0;
-    const float* data = api_serialize_layout(inst, size);
+    const float *data = api_serialize_layout(inst, size);
     if (!data || size == 0) return val::null();
     return val(typed_memory_view(size, data));
 }
@@ -105,7 +106,8 @@ val render_from_state_val(size_t inst_ptr, int width, int height, int format, bo
     RenderOptions options;
     options.svgTextToPaths = svgTextToPaths;
     int size = 0;
-    const uint8_t *data = api_render_from_state(inst, width, height, (RenderFormat)format, options, size);
+    const uint8_t *data =
+        api_render_from_state(inst, width, height, (RenderFormat)format, options, size);
     if (!data || size == 0) return val::null();
     return val(typed_memory_view(size, data));
 }
@@ -120,7 +122,7 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("scan_css", &scan_css_val);
     function("load_font", &load_font_val);
     function("load_image", &load_image_val);
-    
+
     function("init_document", &init_document_val);
     function("layout_document", &layout_document_val);
     function("serialize_layout", &serialize_layout_val);

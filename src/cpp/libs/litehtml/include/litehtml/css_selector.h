@@ -201,6 +201,7 @@ namespace litehtml
 	public:
 		selector_specificity		m_specificity;
 		int							m_order = 0;
+		int							m_layer = 0;
 		css_selector::ptr			m_left;
 		css_element_selector		m_right;
 		css_combinator				m_combinator = combinator_descendant;
@@ -228,6 +229,10 @@ namespace litehtml
 
 	inline bool operator > (const css_selector& v1, const css_selector& v2)
 	{
+		if(v1.m_layer != v2.m_layer)
+		{
+			return (v1.m_layer > v2.m_layer);
+		}
 		if(v1.m_specificity == v2.m_specificity)
 		{
 			return (v1.m_order > v2.m_order);
@@ -237,6 +242,10 @@ namespace litehtml
 
 	inline bool operator < (const css_selector& v1, const css_selector& v2)
 	{
+		if(v1.m_layer != v2.m_layer)
+		{
+			return (v1.m_layer < v2.m_layer);
+		}
 		if(v1.m_specificity == v2.m_specificity)
 		{
 			return (v1.m_order < v2.m_order);

@@ -98,8 +98,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
             weight = "100";
 
         std::string style = "normal";
-        if (ctre::search<"(?i)italic|oblique">(url))
-            style = "italic";
+        if (ctre::search<"(?i)italic|oblique">(url)) style = "italic";
 
         std::string fontFace = "@font-face { font-family: '" + primaryName +
                                "'; font-weight: " + weight + "; font-style: " + style +

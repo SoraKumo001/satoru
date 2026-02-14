@@ -1,4 +1,4 @@
-﻿#include "html.h"
+#include "html.h"
 #include "style.h"
 #include "css_parser.h"
 #include "internal.h"
@@ -98,14 +98,15 @@ namespace litehtml
           {_text_emphasis_, {_text_emphasis_style_, _text_emphasis_color_}},
   };
 
-  void style::add(const string &txt, const string &baseurl, document_container *container)
+  void style::add(const string &txt, const string &baseurl, document_container *container, int layer)
   {
     auto tokens = normalize(txt, f_componentize);
-    add(tokens, baseurl, container);
+    add(tokens, baseurl, container, layer);
   }
 
-  void style::add(const css_token_vector &tokens, const string &baseurl, document_container *container)
+  void style::add(const css_token_vector &tokens, const string &baseurl, document_container *container, int layer)
   {
+    m_layer = layer;
     raw_declaration::vector decls;
     raw_rule::vector rules;
     css_parser(tokens).consume_style_block_contents(decls, rules);
@@ -118,7 +119,7 @@ namespace litehtml
     {
       remove_whitespace(decl.value);
       string name = decl.name.substr(0, 2) == "--" ? decl.name : lowcase(decl.name);
-      add_property(_id(name), decl.value, baseurl, decl.important, container);
+      add_property(_id(name), decl.value, baseurl, decl.important, container, m_layer);
     }
   }
 
@@ -140,26 +141,27 @@ namespace litehtml
     if (!atomic_properties.empty())
     {
       for (auto atomic : atomic_properties)
-        add_parsed_property(atomic, property_value(inherit(), important));
+        add_parsed_property(atomic, property_value(inherit(), important, false, m_layer));
     }
     else
-      add_parsed_property(name, property_value(inherit(), important));
+      add_parsed_property(name, property_value(inherit(), important, false, m_layer));
   }
 
   void style::add_length_property(string_id name, css_token val, string keywords, int options, bool important)
   {
     css_length length;
     if (length.from_token(val, options, keywords))
-      add_parsed_property(name, property_value(length, important));
+      add_parsed_property(name, property_value(length, important, false, m_layer));
   }
 
-  void style::add_property(string_id name, const css_token_vector &value, const string &baseurl, bool important, document_container *container)
+  void style::add_property(string_id name, const css_token_vector &value, const string &baseurl, bool important, document_container *container, int layer)
   {
+    m_layer = layer;
     if (value.empty() && _s(name).substr(0, 2) != "--")
       return;
 
     if (has_var(value))
-      return add_parsed_property(name, property_value(value, important, true));
+      return add_parsed_property(name, property_value(value, important, true, m_layer));
 
     css_token val = value.size() == 1 ? value[0] : css_token();
     string ident = val.ident();
@@ -205,7 +207,7 @@ namespace litehtml
     case _caption_side_:
     case __webkit_box_orient_:
       if (int index = value_index(ident, m_valid_values[name]); index >= 0)
-        add_parsed_property(name, property_value(index, important));
+        add_parsed_property(name, property_value(index, important, false, m_layer));
       break;
 
     case _z_index_:
@@ -265,7 +267,7 @@ namespace litehtml
     case _border_left_color_:
     case _border_right_color_:
       if (parse_color(val, *clr, container))
-        add_parsed_property(name, property_value(*clr, important));
+        add_parsed_property(name, property_value(*clr, important, false, m_layer));
       break;
 
     case _background_:
@@ -320,7 +322,7 @@ namespace litehtml
     case _border_left_width_:
     case _border_right_width_:
       if (parse_border_width(val, *len))
-        add_parsed_property(name, property_value(*len, important));
+        add_parsed_property(name, property_value(*len, important, false, m_layer));
       break;
 
     case _border_bottom_left_radius_:
@@ -329,8 +331,8 @@ namespace litehtml
     case _border_top_left_radius_:
       if (parse_two_lengths(value, len, f_length_percentage | f_positive))
       {
-        add_parsed_property(_id(_s(name) + "-x"), property_value(len[0], important));
-        add_parsed_property(_id(_s(name) + "-y"), property_value(len[1], important));
+        add_parsed_property(_id(_s(name) + "-x"), property_value(len[0], important, false, m_layer));
+        add_parsed_property(_id(_s(name) + "-y"), property_value(len[1], important, false, m_layer));
       }
       break;
 
@@ -351,16 +353,16 @@ namespace litehtml
     case _border_spacing_:
       if (parse_two_lengths(value, len, f_length | f_positive))
       {
-        add_parsed_property(__litehtml_border_spacing_x_, property_value(len[0], important));
-        add_parsed_property(__litehtml_border_spacing_y_, property_value(len[1], important));
+        add_parsed_property(__litehtml_border_spacing_x_, property_value(len[0], important, false, m_layer));
+        add_parsed_property(__litehtml_border_spacing_y_, property_value(len[1], important, false, m_layer));
       }
       break;
 
     case _list_style_image_:
       if (string url; parse_list_style_image(val, url))
       {
-        add_parsed_property(_list_style_image_, property_value(url, important));
-        add_parsed_property(_list_style_image_baseurl_, property_value(baseurl, important));
+        add_parsed_property(_list_style_image_, property_value(url, important, false, m_layer));
+        add_parsed_property(_list_style_image_baseurl_, property_value(baseurl, important, false, m_layer));
       }
       break;
 
@@ -374,12 +376,12 @@ namespace litehtml
 
     case _font_family_:
       if (parse_font_family(value, str))
-        add_parsed_property(name, property_value(str, important));
+        add_parsed_property(name, property_value(str, important, false, m_layer));
       break;
 
     case _font_weight_:
       if (parse_font_weight(val, *len))
-        add_parsed_property(name, property_value(*len, important));
+        add_parsed_property(name, property_value(*len, important, false, m_layer));
       break;
 
     case _text_decoration_:
@@ -408,7 +410,7 @@ namespace litehtml
 
     case _text_emphasis_style_:
       str = get_repr(value, 0, -1, true);
-      add_parsed_property(name, property_value(str, important));
+      add_parsed_property(name, property_value(str, important, false, m_layer));
       break;
 
     case _text_emphasis_color_:
@@ -437,7 +439,7 @@ namespace litehtml
           opacity = 0;
         if (opacity > 1)
           opacity = 1;
-        add_parsed_property(name, property_value(opacity, important));
+        add_parsed_property(name, property_value(opacity, important, false, m_layer));
       }
       break;
     }
@@ -445,7 +447,7 @@ namespace litehtml
     case _flex_grow_:
     case _flex_shrink_:
       if (val.type == NUMBER && val.n.number >= 0)
-        add_parsed_property(name, property_value(val.n.number, important));
+        add_parsed_property(name, property_value(val.n.number, important, false, m_layer));
       break;
 
     case _flex_basis_:
@@ -468,8 +470,8 @@ namespace litehtml
     case _gap_:
       if (parse_two_lengths(value, len, f_length_percentage | f_positive))
       {
-        add_parsed_property(_row_gap_, property_value(len[0], important));
-        add_parsed_property(_column_gap_, property_value(len[1], important));
+        add_parsed_property(_row_gap_, property_value(len[0], important, false, m_layer));
+        add_parsed_property(_column_gap_, property_value(len[1], important, false, m_layer));
       }
       break;
 
@@ -482,7 +484,7 @@ namespace litehtml
     case __webkit_line_clamp_:
     case _order_:
       if (val.type == NUMBER && val.n.number_type == css_number_integer)
-        add_parsed_property(name, property_value((int)val.n.number, important));
+        add_parsed_property(name, property_value((int)val.n.number, important, false, m_layer));
       break;
 
     case _counter_increment_:
@@ -491,31 +493,31 @@ namespace litehtml
       string_vector strings;
       for (const auto &tok : value)
         strings.push_back(tok.get_repr(true));
-      add_parsed_property(name, property_value(strings, important));
+      add_parsed_property(name, property_value(strings, important, false, m_layer));
       break;
     }
 
     case _content_:
       str = get_repr(value, 0, -1, true);
-      add_parsed_property(name, property_value(str, important));
+      add_parsed_property(name, property_value(str, important, false, m_layer));
       break;
 
     case _cursor_:
       str = get_repr(value, 0, -1, true);
-      add_parsed_property(name, property_value(str, important));
+      add_parsed_property(name, property_value(str, important, false, m_layer));
       break;
 
     default:
       if (_s(name).substr(0, 2) == "--" && _s(name).size() >= 3 &&
           (value.empty() || is_declaration_value(value)))
-        add_parsed_property(name, property_value(value, important));
+        add_parsed_property(name, property_value(value, important, false, m_layer));
     }
   }
 
-  void style::add_property(string_id name, const string &value, const string &baseurl, bool important, document_container *container)
+  void style::add_property(string_id name, const string &value, const string &baseurl, bool important, document_container *container, int layer)
   {
     auto tokens = normalize(value, f_componentize | f_remove_whitespace);
-    add_property(name, tokens, baseurl, important, container);
+    add_property(name, tokens, baseurl, important, container, layer);
   }
 
   bool style::parse_list_style_image(const css_token &tok, string &url)
@@ -575,10 +577,10 @@ namespace litehtml
       return;
     }
 
-    add_parsed_property(_list_style_type_, property_value(type, important));
-    add_parsed_property(_list_style_position_, property_value(position, important));
-    add_parsed_property(_list_style_image_, property_value(image, important));
-    add_parsed_property(_list_style_image_baseurl_, property_value(baseurl, important));
+    add_parsed_property(_list_style_type_, property_value(type, important, false, m_layer));
+    add_parsed_property(_list_style_position_, property_value(position, important, false, m_layer));
+    add_parsed_property(_list_style_image_, property_value(image, important, false, m_layer));
+    add_parsed_property(_list_style_image_baseurl_, property_value(baseurl, important, false, m_layer));
   }
 
   void style::parse_border_radius(const css_token_vector &tokens, bool important)
@@ -664,13 +666,13 @@ namespace litehtml
       return;
 
     for (auto name : {_border_left_width_, _border_right_width_, _border_top_width_, _border_bottom_width_})
-      add_parsed_property(name, property_value(width, important));
+      add_parsed_property(name, property_value(width, important, false, m_layer));
 
     for (auto name : {_border_left_style_, _border_right_style_, _border_top_style_, _border_bottom_style_})
-      add_parsed_property(name, property_value(style, important));
+      add_parsed_property(name, property_value(style, important, false, m_layer));
 
     for (auto name : {_border_left_color_, _border_right_color_, _border_top_color_, _border_bottom_color_})
-      add_parsed_property(name, property_value(color, important));
+      add_parsed_property(name, property_value(color, important, false, m_layer));
   }
 
   void style::parse_border_side(string_id name, const css_token_vector &tokens, bool important, document_container *container)
@@ -682,9 +684,9 @@ namespace litehtml
     if (!parse_border_helper(tokens, container, width, style, color))
       return;
 
-    add_parsed_property(_id(_s(name) + "-width"), property_value(width, important));
-    add_parsed_property(_id(_s(name) + "-style"), property_value(style, important));
-    add_parsed_property(_id(_s(name) + "-color"), property_value(color, important));
+    add_parsed_property(_id(_s(name) + "-width"), property_value(width, important, false, m_layer));
+    add_parsed_property(_id(_s(name) + "-style"), property_value(style, important, false, m_layer));
+    add_parsed_property(_id(_s(name) + "-color"), property_value(color, important, false, m_layer));
   }
 
   bool parse_length(const css_token &tok, css_length &length, int options, string keywords)
@@ -737,10 +739,10 @@ namespace litehtml
     string_id bottom = string_id(top_name + 2);
     string_id left = string_id(top_name + 3);
 
-    add_parsed_property(top, property_value(val[0], important));
-    add_parsed_property(right, property_value(val[n > 1], important));
-    add_parsed_property(bottom, property_value(val[n / 3 * 2], important));
-    add_parsed_property(left, property_value(val[n / 2 + n / 4], important));
+    add_parsed_property(top, property_value(val[0], important, false, m_layer));
+    add_parsed_property(right, property_value(val[n > 1], important, false, m_layer));
+    add_parsed_property(bottom, property_value(val[n / 3 * 2], important, false, m_layer));
+    add_parsed_property(left, property_value(val[n / 2 + n / 4], important, false, m_layer));
   }
 
   void style::parse_background(const css_token_vector &tokens, const string &baseurl, bool important, document_container *container)
@@ -772,16 +774,16 @@ namespace litehtml
       clips.push_back(bg.m_clip[0]);
     }
 
-    add_parsed_property(_background_color_, property_value(color, important));
-    add_parsed_property(_background_image_, property_value(images, important));
-    add_parsed_property(_background_image_baseurl_, property_value(baseurl, important));
-    add_parsed_property(_background_position_x_, property_value(x_positions, important));
-    add_parsed_property(_background_position_y_, property_value(y_positions, important));
-    add_parsed_property(_background_size_, property_value(sizes, important));
-    add_parsed_property(_background_repeat_, property_value(repeats, important));
-    add_parsed_property(_background_attachment_, property_value(attachments, important));
-    add_parsed_property(_background_origin_, property_value(origins, important));
-    add_parsed_property(_background_clip_, property_value(clips, important));
+    add_parsed_property(_background_color_, property_value(color, important, false, m_layer));
+    add_parsed_property(_background_image_, property_value(images, important, false, m_layer));
+    add_parsed_property(_background_image_baseurl_, property_value(baseurl, important, false, m_layer));
+    add_parsed_property(_background_position_x_, property_value(x_positions, important, false, m_layer));
+    add_parsed_property(_background_position_y_, property_value(y_positions, important, false, m_layer));
+    add_parsed_property(_background_size_, property_value(sizes, important, false, m_layer));
+    add_parsed_property(_background_repeat_, property_value(repeats, important, false, m_layer));
+    add_parsed_property(_background_attachment_, property_value(attachments, important, false, m_layer));
+    add_parsed_property(_background_origin_, property_value(origins, important, false, m_layer));
+    add_parsed_property(_background_clip_, property_value(clips, important, false, m_layer));
   }
 
   bool style::parse_bg_layer(const css_token_vector &tokens, document_container *container, background &bg, bool final_layer)
@@ -926,8 +928,8 @@ namespace litehtml
         return;
       images.push_back(image);
     }
-    add_parsed_property(_background_image_, property_value(images, important));
-    add_parsed_property(_background_image_baseurl_, property_value(baseurl, important));
+    add_parsed_property(_background_image_, property_value(images, important, false, m_layer));
+    add_parsed_property(_background_image_baseurl_, property_value(baseurl, important, false, m_layer));
   }
 
   bool parse_bg_image(const css_token &tok, image &bg_image, document_container *container)
@@ -983,7 +985,7 @@ namespace litehtml
         return;
       vec.push_back(idx);
     }
-    add_parsed_property(name, property_value(vec, important));
+    add_parsed_property(name, property_value(vec, important, false, m_layer));
   }
 
   void style::parse_background_position(const css_token_vector &tokens, bool important)
@@ -1001,8 +1003,8 @@ namespace litehtml
       x_positions.push_back(x);
       y_positions.push_back(y);
     }
-    add_parsed_property(_background_position_x_, property_value(x_positions, important));
-    add_parsed_property(_background_position_y_, property_value(y_positions, important));
+    add_parsed_property(_background_position_x_, property_value(x_positions, important, false, m_layer));
+    add_parsed_property(_background_position_y_, property_value(y_positions, important, false, m_layer));
   }
 
   void style::parse_background_size(const css_token_vector &tokens, bool important)
@@ -1019,7 +1021,7 @@ namespace litehtml
         return;
       sizes.push_back(size);
     }
-    add_parsed_property(_background_size_, property_value(sizes, important));
+    add_parsed_property(_background_size_, property_value(sizes, important, false, m_layer));
   }
 
   bool parse_font_weight(const css_token &tok, css_length &weight)
@@ -1142,12 +1144,12 @@ namespace litehtml
       if (!parse_font_family(tokens, font_family))
         return;
     }
-    add_parsed_property(_font_style_, property_value(style, important));
-    add_parsed_property(_font_variant_, property_value(variant, important));
-    add_parsed_property(_font_weight_, property_value(weight, important));
-    add_parsed_property(_font_size_, property_value(size, important));
-    add_parsed_property(_line_height_, property_value(line_height, important));
-    add_parsed_property(_font_family_, property_value(font_family, important));
+    add_parsed_property(_font_style_, property_value(style, important, false, m_layer));
+    add_parsed_property(_font_variant_, property_value(variant, important, false, m_layer));
+    add_parsed_property(_font_weight_, property_value(weight, important, false, m_layer));
+    add_parsed_property(_font_size_, property_value(size, important, false, m_layer));
+    add_parsed_property(_line_height_, property_value(line_height, important, false, m_layer));
+    add_parsed_property(_font_family_, property_value(font_family, important, false, m_layer));
   }
 
   void style::parse_text_decoration(const css_token_vector &tokens, bool important, document_container *container)
@@ -1160,7 +1162,7 @@ namespace litehtml
         continue;
       if (parse_length(token, len, f_length_percentage | f_positive, style_text_decoration_thickness_strings))
       {
-        add_parsed_property(_text_decoration_thickness_, property_value(len, important));
+        add_parsed_property(_text_decoration_thickness_, property_value(len, important, false, m_layer));
       }
       else
       {
@@ -1169,7 +1171,7 @@ namespace litehtml
           int style = value_index(token.ident(), style_text_decoration_style_strings);
           if (style >= 0)
           {
-            add_parsed_property(_text_decoration_style_, property_value(style, important));
+            add_parsed_property(_text_decoration_style_, property_value(style, important, false, m_layer));
           }
           else
             line_tokens.push_back(token);
@@ -1187,12 +1189,12 @@ namespace litehtml
     web_color _color;
     if (parse_color(token, _color, container))
     {
-      add_parsed_property(_text_decoration_color_, property_value(_color, important));
+      add_parsed_property(_text_decoration_color_, property_value(_color, important, false, m_layer));
       return true;
     }
     if (token.type == IDENT && value_in_list(token.ident(), "auto;currentcolor"))
     {
-      add_parsed_property(_text_decoration_color_, property_value(web_color::current_color, important));
+      add_parsed_property(_text_decoration_color_, property_value(web_color::current_color, important, false, m_layer));
       return true;
     }
     return false;
@@ -1210,7 +1212,7 @@ namespace litehtml
           val |= 1 << (idx - 1);
       }
     }
-    add_parsed_property(_text_decoration_line_, property_value(val, important));
+    add_parsed_property(_text_decoration_line_, property_value(val, important, false, m_layer));
   }
 
   void style::parse_text_emphasis(const css_token_vector &tokens, bool important, document_container *container)
@@ -1224,7 +1226,7 @@ namespace litehtml
     }
     style = trim(style);
     if (!style.empty())
-      add_parsed_property(_text_emphasis_style_, property_value(style, important));
+      add_parsed_property(_text_emphasis_style_, property_value(style, important, false, m_layer));
   }
 
   bool style::parse_text_emphasis_color(const css_token &token, bool important, document_container *container)
@@ -1232,12 +1234,12 @@ namespace litehtml
     web_color _color;
     if (parse_color(token, _color, container))
     {
-      add_parsed_property(_text_emphasis_color_, property_value(_color, important));
+      add_parsed_property(_text_emphasis_color_, property_value(_color, important, false, m_layer));
       return true;
     }
     if (token.type == IDENT && value_in_list(token.ident(), "auto;currentcolor"))
     {
-      add_parsed_property(_text_emphasis_color_, property_value(web_color::current_color, important));
+      add_parsed_property(_text_emphasis_color_, property_value(web_color::current_color, important, false, m_layer));
       return true;
     }
     return false;
@@ -1255,7 +1257,7 @@ namespace litehtml
           val |= 1 << (idx - 1);
       }
     }
-    add_parsed_property(_text_emphasis_position_, property_value(val, important));
+    add_parsed_property(_text_emphasis_position_, property_value(val, important, false, m_layer));
   }
 
   void style::parse_flex(const css_token_vector &tokens, bool important)
@@ -1331,9 +1333,9 @@ namespace litehtml
       if (!((flex.grow(a) && flex.shrink(b) && flex.basis(c, true)) || (flex.basis(a) && flex.grow(b) && flex.shrink(c))))
         return;
     }
-    add_parsed_property(_flex_grow_, property_value(flex.m_grow, important));
-    add_parsed_property(_flex_shrink_, property_value(flex.m_shrink, important));
-    add_parsed_property(_flex_basis_, property_value(flex.m_basis, important));
+    add_parsed_property(_flex_grow_, property_value(flex.m_grow, important, false, m_layer));
+    add_parsed_property(_flex_shrink_, property_value(flex.m_shrink, important, false, m_layer));
+    add_parsed_property(_flex_basis_, property_value(flex.m_basis, important, false, m_layer));
   }
 
   void style::parse_flex_flow(const css_token_vector &tokens, bool important)
@@ -1351,8 +1353,8 @@ namespace litehtml
       else
         return;
     }
-    add_parsed_property(_flex_direction_, property_value(flex_direction, important));
-    add_parsed_property(_flex_wrap_, property_value(flex_wrap, important));
+    add_parsed_property(_flex_direction_, property_value(flex_direction, important, false, m_layer));
+    add_parsed_property(_flex_wrap_, property_value(flex_wrap, important, false, m_layer));
   }
 
   void style::parse_align_self(string_id name, const css_token_vector &tokens, bool important)
@@ -1369,7 +1371,7 @@ namespace litehtml
     {
       int idx = value_index(a, flex_align_items_strings);
       if (idx >= 0)
-        add_parsed_property(name, property_value(idx, important));
+        add_parsed_property(name, property_value(idx, important, false, m_layer));
       return;
     }
     string b = tokens[1].ident();
@@ -1378,14 +1380,14 @@ namespace litehtml
     if (b == "baseline" && is_one_of(a, "first", "last"))
     {
       int idx = flex_align_items_baseline | (a == "first" ? flex_align_items_first : flex_align_items_last);
-      add_parsed_property(name, property_value(idx, important));
+      add_parsed_property(name, property_value(idx, important, false, m_layer));
       return;
     }
     int idx = value_index(b, self_position_strings);
     if (idx >= 0 && is_one_of(a, "safe", "unsafe"))
     {
       idx |= (a == "safe" ? flex_align_items_safe : flex_align_items_unsafe);
-      add_parsed_property(name, property_value(idx, important));
+      add_parsed_property(name, property_value(idx, important, false, m_layer));
     }
   }
 
@@ -1394,8 +1396,15 @@ namespace litehtml
     auto prop = m_properties.find(name);
     if (prop != m_properties.end())
     {
-      if (!prop->second.m_important || (propval.m_important && prop->second.m_important))
-        prop->second = propval;
+      if (!prop->second.m_important)
+      {
+          if (propval.m_important || propval.m_layer >= prop->second.m_layer)
+              prop->second = propval;
+      }
+      else if (propval.m_important && propval.m_layer <= prop->second.m_layer)
+      {
+          prop->second = propval;
+      }
     }
     else
       m_properties[name] = propval;
@@ -1491,7 +1500,7 @@ namespace litehtml
       {
         auto &value = prop.second.get<css_token_vector>();
         subst_vars_(prop.first, value, el);
-        add_property(prop.first, value, "", prop.second.m_important, el->get_document()->container());
+        add_property(prop.first, value, "", prop.second.m_important, el->get_document()->container(), prop.second.m_layer);
       }
     }
   }
@@ -1541,6 +1550,6 @@ namespace litehtml
         shadow_tokens.push_back(tokens[i]);
     }
     if (!shadows.empty())
-      add_parsed_property(name, property_value(shadows, important));
+      add_parsed_property(name, property_value(shadows, important, false, m_layer));
   }
 }

@@ -155,25 +155,34 @@ const html = `
   </div>
 `;
 
-// Render to PDF with automatic resource resolution
+// Render to PDF with automatic resource resolution from HTML string
 const pdf = await render({
   value: html,
   width: 600,
   format: "pdf",
   baseUrl: "https://example.com/assets/", // Optional: resolve relative URLs
-  logLevel: LogLevel.Info, // Enable logging for this call (default is LogLevel.None)
+  logLevel: LogLevel.Info,
   resolveResource: async (resource) => {
     const res = await fetch(resource.url);
     return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
   },
 });
+
+// Render from a URL directly
+const png = await render({
+  url: "https://example.com/page.html",
+  width: 1024,
+  format: "png",
+});
+```
 ```
 
 #### Render Options
 
 | Option            | Type                                | Description                                                              |
 | ----------------- | ----------------------------------- | ------------------------------------------------------------------------ |
-| `value`           | `string \| string[]`                | **Required.** HTML string or array of HTML strings (for multi-page PDF). |
+| `value`           | `string \| string[]`                | HTML string or array of HTML strings. (One of `value` or `url` is required) |
+| `url`             | `string`                            | URL to fetch HTML from. (One of `value` or `url` is required)            |
 | `width`           | `number`                            | **Required.** Width of the output in pixels.                             |
 | `height`          | `number`                            | Height of the output in pixels. Default is `0` (automatic height).       |
 | `format`          | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default is `"svg"`.                                       |
@@ -273,6 +282,31 @@ const html = toHtml(
 
 const png = await render({ value: html, width: 600, format: "png" });
 ```
+
+### 💻 CLI Usage
+
+Satoru includes a command-line interface for easy conversion.
+
+```bash
+# Convert a local HTML file to PNG
+npx satoru input.html -o output.png
+
+# Convert a URL to PDF
+npx satoru https://example.com -o example.pdf -w 1280
+
+# Convert with custom options
+npx satoru input.html -w 1024 -f webp --verbose
+```
+
+#### CLI Options
+
+- `<input>`: Input file path or URL (**Required**)
+- `-o, --output <path>`: Output file path
+- `-w, --width <number>`: Viewport width (default: 800)
+- `-h, --height <number>`: Viewport height (default: 0, auto-calculate)
+- `-f, --format <format>`: Output format: `svg`, `png`, `webp`, `pdf`
+- `--verbose`: Enable detailed logging
+- `--help`: Show help message
 
 ### 📄 Multi-page PDF Generation
 
@@ -429,7 +463,11 @@ pnpm build:all
 - [x] **Cloudflare Workers (workerd) compatibility.**
 - [x] React Integration (JSX to HTML conversion).
 - [x] Japanese Language Rendering & Standard HTML Tag Support.
+- [x] **Command-line Interface (CLI) for batch conversion.**
 - [ ] Support for CSS Grid Layout.
+- [ ] Support for CSS Transforms (translate, rotate, scale).
+- [ ] Support for `aspect-ratio` property.
+- [ ] Support for CSS Logical Properties (margin-inline, etc.).
 
 ## 📜 License
 

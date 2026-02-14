@@ -60,7 +60,8 @@ export type ResourceResolver = (
 ) => Promise<Uint8Array | null>;
 
 export interface RenderOptions {
-  value: string | string[];
+  value?: string | string[];
+  url?: string;
   width: number;
   height?: number;
   format?: "svg" | "png" | "webp" | "pdf";
@@ -210,8 +211,9 @@ export class Satoru {
   async render(options: RenderOptions): Promise<string | Uint8Array>;
   async render(options: RenderOptions): Promise<string | Uint8Array> {
     const mod = await this.getModule();
-    const {
+    let {
       value,
+      url,
       width,
       height = 0,
       format = "svg",
@@ -222,6 +224,31 @@ export class Satoru {
       logLevel,
       onLog,
     } = options;
+
+    if (url && !value) {
+      if (!baseUrl) {
+        baseUrl = url;
+      }
+      const headers: Record<string, string> = {};
+      if (
+        typeof process !== "undefined" &&
+        process.versions?.node &&
+        !options.resolveResource
+      ) {
+        headers["User-Agent"] =
+          options.userAgent ||
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+      }
+      const resp = await fetch(url, { headers });
+      if (!resp.ok) {
+        throw new Error(`Failed to fetch HTML from URL: ${url} (${resp.status})`);
+      }
+      value = await resp.text();
+    }
+
+    if (!value) {
+      throw new Error("Either 'value' or 'url' must be provided.");
+    }
 
     const prevLogLevel = mod.logLevel;
     const prevOnLog = mod.onLog;

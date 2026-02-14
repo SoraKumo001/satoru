@@ -4,7 +4,7 @@ https://sorakumo001.github.io/satoru/
 
 **Satoru** is a portable, WebAssembly-powered HTML rendering engine. It combines the **Skia Graphics Engine** and **litehtml** to provide high-quality, pixel-perfect SVG, PNG, and PDF generation entirely within WebAssembly.
 
-## \ud83d\ude80 Project Status: High-Fidelity Rendering & Edge Ready
+## 🚀 Project Status: High-Fidelity Rendering & Edge Ready
 
 The engine supports full text layout with custom fonts, complex CSS styling, and efficient binary data transfer. It is now compatible with **Cloudflare Workers (workerd)**, allowing for serverless, edge-side image and document generation.
 
@@ -28,7 +28,7 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
   - **Text Decoration**: Supports `underline`, `line-through`, `overline` with `solid`, `dotted`, and `dashed` styles.
   - **Text Shadow**: Multiple shadows with blur, offset, and color support (PNG/SVG/PDF).
 
-## \ud83d\udccb Supported CSS Properties
+## 📋 Supported CSS Properties
 
 Satoru supports a wide range of CSS properties for high-fidelity layout and styling.
 
@@ -72,7 +72,7 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 
 - `caption-side`, `content`, `appearance`
 
-## \ud83d\udd04 Conversion Flow
+## 🔄 Conversion Flow
 
 The following diagram illustrates how Satoru processes HTML/CSS into vector or raster outputs:
 
@@ -111,7 +111,7 @@ graph TD
     style WASM_Raster_Path fill:#e8f5e9,stroke:#1b5e20
 ```
 
-## \ud83d\udee0\ufe0f Usage (TypeScript)
+## 🛠️ Usage (TypeScript)
 
 ### Standard Environment (Node.js / Browser)
 
@@ -137,38 +137,70 @@ const html = `
   </div>
 `;
 
-// Render to PDF with automatic resource resolution
+// Render to PDF with automatic resource resolution from HTML string
 const pdf = await render({
   value: html,
   width: 600,
   format: "pdf",
   baseUrl: "https://example.com/assets/", // Optional: resolve relative URLs
-  logLevel: LogLevel.Info, // Enable logging for this call (default is LogLevel.None)
+  logLevel: LogLevel.Info,
   resolveResource: async (resource) => {
     const res = await fetch(resource.url);
     return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
   },
 });
+
+// Render from a URL directly
+const png = await render({
+  url: "https://example.com/page.html",
+  width: 1024,
+  format: "png",
+});
 ```
 
 #### Render Options
 
-| Option            | Type                      | Description                                                              |
-| ----------------- | ------------------------- | ------------------------------------------------------------------------ |
-| `value`           | `string \| string[]`      | **Required.** HTML string or array of HTML strings (for multi-page PDF). |
-| `width`           | `number`                  | **Required.** Width of the output in pixels.                             |
-| `height`          | `number`                  | Height of the output in pixels. Default is `0` (automatic height).       |
-| `format`          | `"svg" \| "png" \| "pdf"` | Output format. Default is `"svg"`.                                       |
-| `textToPaths`     | `boolean`                 | Whether to convert SVG text to paths. Default is `true`.                 |
-| `resolveResource` | `ResourceResolver`        | Async callback to fetch missing fonts, images, or CSS.                   |
-| `fonts`           | `Object[]`                | Array of `{ name, data }` to pre-load fonts into the engine.             |
-| `images`          | `Object[]`                | Array of `{ name, url, width?, height? }` to pre-load images.            |
-| `css`             | `string`                  | Extra CSS to inject into the rendering process.                          |
-| `clear`           | `boolean`                 | If `true`, clears all cached fonts, images, and CSS before rendering.    |
-| `baseUrl`         | `string`                  | Base URL used to resolve relative URLs in fonts, images, and links.      |
-| `userAgent`       | `string`                  | User-Agent header for fetching resources (Node.js environment).          |
-| `logLevel`        | `LogLevel`                | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`).         |
-| `onLog`           | `Function`                | Custom callback for receiving log messages.                              |
+| Option            | Type                                | Description                                                              |
+| ----------------- | ----------------------------------- | ------------------------------------------------------------------------ |
+| `value`           | `string \| string[]`                | HTML string or array of HTML strings. (One of `value` or `url` is required) |
+| `url`             | `string`                            | URL to fetch HTML from. (One of `value` or `url` is required)            |
+| `width`           | `number`                            | **Required.** Width of the output in pixels.                             |
+| `height`          | `number`                            | Height of the output in pixels. Default is `0` (automatic height).       |
+| `format`          | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default is `"svg"`.                                       |
+| `textToPaths`     | `boolean`                           | Whether to convert SVG text to paths. Default is `true`.                 |
+| `resolveResource` | `ResourceResolver`                  | Async callback to fetch missing fonts, images, or CSS.                   |
+| `fonts`           | `Object[]`                          | Array of `{ name, data: Uint8Array }` to pre-load fonts.                 |
+| `images`          | `Object[]`                          | Array of `{ name, url, width?, height? }` to pre-load images.            |
+| `css`             | `string`                            | Extra CSS to inject into the rendering process.                          |
+| `baseUrl`         | `string`                            | Base URL used to resolve relative URLs in fonts, images, and links.      |
+| `userAgent`       | `string`                            | User-Agent header for fetching resources (Node.js environment).          |
+| `logLevel`        | `LogLevel`                          | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`).         |
+| `onLog`           | `(level, msg) => void`              | Custom callback for receiving log messages.                              |
+
+### 💻 CLI Usage
+
+Satoru includes a command-line interface for easy conversion.
+
+```bash
+# Convert a local HTML file to PNG
+npx satoru input.html -o output.png
+
+# Convert a URL to PDF
+npx satoru https://example.com -o example.pdf -w 1280
+
+# Convert with custom options
+npx satoru input.html -w 1024 -f webp --verbose
+```
+
+#### CLI Options
+
+- `<input>`: Input file path or URL (**Required**)
+- `-o, --output <path>`: Output file path
+- `-w, --width <number>`: Viewport width (default: 800)
+- `-h, --height <number>`: Viewport height (default: 0, auto-calculate)
+- `-f, --format <format>`: Output format: `svg`, `png`, `webp`, `pdf`
+- `--verbose`: Enable detailed logging
+- `--help`: Show help message
 
 ### 📄 Multi-page PDF Generation
 
@@ -186,7 +218,7 @@ const pdf = await satoru.render({
 });
 ```
 
-### \u2601\ufe0f Cloudflare Workers (Edge)
+### ☁️ Cloudflare Workers (Edge)
 
 Satoru is optimized for Cloudflare Workers. Use the `workerd` specific export which handles the specific WASM instantiation requirements of the environment.
 
@@ -209,7 +241,7 @@ export default {
 };
 ```
 
-### \ud83d\udce6 Single-file (Embedded WASM)
+### 📦 Single-file (Embedded WASM)
 
 For environments where deploying a separate `.wasm` file is difficult, use the `single` export which includes the WASM binary embedded.
 
@@ -223,7 +255,7 @@ const png = await render({
 });
 ```
 
-### \ud83e\uddf5 Multi-threaded Rendering (Worker Proxy)
+### 🧵 Multi-threaded Rendering (Worker Proxy)
 
 For high-throughput applications, the Worker proxy distributes rendering tasks across multiple threads. You can configure all resources in a single `render` call for stateless operation.
 
@@ -245,7 +277,7 @@ const png = await satoru.render({
 });
 ```
 
-## \ud83e\uddea Testing & Validation
+## 🧪 Testing & Validation
 
 The project includes a robust **Visual Regression Suite** to ensure rendering fidelity.
 
@@ -275,7 +307,7 @@ pnpm --filter visual-test gen-ref
 pnpm --filter visual-test convert-assets
 ```
 
-## \ud83c\udfd7\ufe0f Build & Run
+## 🏗️ Build & Run
 
 ### Local Environment
 
@@ -298,20 +330,34 @@ pnpm wasm:docker:build
 pnpm build
 ```
 
-## \ud83d\uddfa\ufe0f Roadmap
+## 🗺️ Roadmap
 
+### Core Engine
 - [x] High-level TypeScript Wrapper API with automatic resource resolution.
-- [x] Binary PNG export support via shared memory.
-- [x] **High-fidelity PDF export support via Skia's PDF backend (Single & Multi-page).**
+- [x] **Engine State Persistence (Serialize/Deserialize Layout).**
+- [x] Improved Font Fallback & Generic Family Mapping.
+- [x] **Advanced Table layout with `border-collapse` support.**
+- [x] Multi-threaded rendering via Worker Proxy.
+
+### Rendering Features
+- [x] Binary PNG & **WebP** export support.
+- [x] **High-fidelity PDF export via Skia's PDF backend (Single & Multi-page).**
 - [x] Linear, Elliptical Radial & Conic Gradient support.
 - [x] Border Radius & **Advanced Box Shadow (Outer/Inset)**.
-- [x] Japanese Language Rendering & Standard HTML Tag Support.
-- [x] **Cloudflare Workers (workerd) compatibility.**
 - [x] **Text Shadow (Multiple shadows, Blur, Offset).**
-- [x] **Improved Font Fallback & Generic Family Mapping.**
 - [x] **Optional SVG `<text>` element output.**
-- [ ] SVG Path Shorthand Optimization.
+- [ ] Support for CSS Masks & Filters.
+- [ ] Support for CSS Transforms (translate, rotate, scale).
+- [ ] Support for `aspect-ratio` property.
 
-## \ud83d\udcdc License
+### Platform & Integration
+- [x] **Cloudflare Workers (workerd) compatibility.**
+- [x] React Integration (JSX to HTML conversion).
+- [x] Japanese Language Rendering & Standard HTML Tag Support.
+- [x] **Command-line Interface (CLI) for batch conversion.**
+- [ ] Support for CSS Grid Layout.
+- [ ] Support for CSS Logical Properties (margin-inline, etc.).
+
+## 📜 License
 
 MIT License - SoraKumo <info@croud.jp>

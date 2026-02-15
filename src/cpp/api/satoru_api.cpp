@@ -147,9 +147,6 @@ void api_collect_resources(SatoruInstance *inst, const std::string &html, int wi
 
     std::string master_css_full = get_full_master_css(inst);
 
-    if (!inst->context.getExtraCss().empty()) {
-        inst->context.fontManager.scanFontFaces(inst->context.getExtraCss());
-    }
     inst->context.fontManager.scanFontFaces(html.c_str());
 
     auto doc = litehtml::document::createFromString(html.c_str(), inst->discovery_container,

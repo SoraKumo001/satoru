@@ -125,18 +125,6 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
         typefaces = m_context.get_typefaces("sans-serif", desc.weight, slant, fake_bold);
     }
 
-    // Add global fallbacks (e.g. Noto Sans JP)
-    for (auto &tf : m_context.fontManager.getFallbackTypefaces()) {
-        bool found = false;
-        for (auto &existing : typefaces) {
-            if (existing.get() == tf.get()) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) typefaces.push_back(tf);
-    }
-
     font_info *fi = new font_info;
     fi->desc = desc;
     fi->fake_bold = fake_bold;

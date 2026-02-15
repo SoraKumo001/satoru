@@ -1,0 +1,70 @@
+{
+  "01-layout.html": {
+    "fill": 12.836500000000001,
+    "outline": 8.739875
+  },
+  "02-typography.html": {
+    "fill": 7.743149038461539,
+    "outline": 9.17920673076923
+  },
+  "03-graphics.html": {
+    "fill": 7.062125,
+    "outline": 2.69625
+  },
+  "04-box-effects.html": {
+    "fill": 0.308125,
+    "outline": 0.605625
+  },
+  "05-images.html": {
+    "fill": 9.082374999999999,
+    "outline": 9.38725
+  },
+  "06-box-layout.html": {
+    "fill": 3.859625,
+    "outline": 2.996625
+  },
+  "07-heading-test.html": {
+    "fill": 1.0968749999999998,
+    "outline": 2.359375
+  },
+  "08-font-weight-test.html": {
+    "fill": 1.25725,
+    "outline": 3.8426250000000004
+  },
+  "09-flexbox-test.html": {
+    "fill": 10.007435897435897,
+    "outline": 8.874038461538461
+  },
+  "10-border-test.html": {
+    "fill": 2.703125,
+    "outline": 3.608625
+  },
+  "11-google-fonts-test.html": {
+    "fill": 1.798375,
+    "outline": 4.523375000000001
+  },
+  "12-position-test.html": {
+    "fill": 2.82725,
+    "outline": 3.4028750000000003
+  },
+  "13-table-test.html": {
+    "fill": 28.9738271068636,
+    "outline": 12.305929626411816
+  },
+  "14-list-marker-test.html": {
+    "fill": 0.9012910798122066,
+    "outline": 2.50575117370892
+  },
+  "15-svg-test.html": {
+    "fill": 1.6636250000000001,
+    "outline": 1.068125
+  },
+  "16-flex-gap-test.html": {
+    "fill": 14.256874999999999,
+    "outline": 5.334499999999999
+  },
+  "17-filter-test.html": {
+    "fill": 8.992875,
+    "outline": 5.431
+  }
+}

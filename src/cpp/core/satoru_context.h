@@ -27,11 +27,11 @@ class SatoruContext {
     const std::string &getExtraCss() const { return m_extraCss; }
     void clearCss() { m_extraCss.clear(); }
 
-    void load_font(const char *name, const uint8_t *data, int size) {
-        fontManager.loadFont(name, data, size);
+    void load_font(const char *name, const uint8_t *data, int size, const char *url = nullptr) {
+        fontManager.loadFont(name, data, size, url);
     }
-    void loadFont(const char *name, const uint8_t *data, int size) {
-        fontManager.loadFont(name, data, size);
+    void loadFont(const char *name, const uint8_t *data, int size, const char *url = nullptr) {
+        fontManager.loadFont(name, data, size, url);
     }
 
     void load_image(const char *name, const char *data_url, int width, int height) {

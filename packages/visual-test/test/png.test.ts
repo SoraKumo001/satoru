@@ -19,7 +19,7 @@ const ASSETS_DIR = path.resolve(ROOT_DIR, "assets");
 const REFERENCE_DIR = path.resolve(__dirname, "../reference");
 const DIFF_DIR = path.resolve(__dirname, "../diff");
 const TEMP_DIR = path.resolve(ROOT_DIR, "../temp");
-const BASELINE_PATH = path.join(__dirname, "data/mismatch-baselines.json");
+const BASELINE_PATH = path.join(__dirname, "data/png-mismatch-baselines.json");
 
 const FONT_MAP: {
   name: string;
@@ -48,8 +48,12 @@ describe("PNG (Skia) Visual Tests", () => {
         : {};
 
       for (const file in baselines) {
-        if (!current[file]) current[file] = {};
-        Object.assign(current[file], baselines[file]);
+        current[file] = baselines[file];
+      }
+
+      const dir = path.dirname(BASELINE_PATH);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
       }
 
       fs.writeFileSync(BASELINE_PATH, JSON.stringify(current, null, 2));
@@ -105,10 +109,9 @@ describe("PNG (Skia) Visual Tests", () => {
         `${file} (Png): Fill: ${result.fill.toFixed(2)}%, Outline: ${result.outline.toFixed(2)}%`,
       );
 
-      const baseline = baselines[file]?.png;
+      const baseline = baselines[file];
       if (!baseline || process.env.UPDATE_SNAPSHOTS) {
-        if (!baselines[file]) baselines[file] = {};
-        baselines[file].png = result;
+        baselines[file] = result;
       } else {
         const factor = process.env.GITHUB_ACTIONS ? 20.0 : 1.0;
         const minTolerance = process.env.GITHUB_ACTIONS ? 15.0 : 0.01;

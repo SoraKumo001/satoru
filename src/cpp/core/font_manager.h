@@ -19,7 +19,7 @@ class SatoruFontManager {
     ~SatoruFontManager() = default;
 
     // フォントデータのロード
-    void loadFont(const char* name, const uint8_t* data, int size);
+    void loadFont(const char* name, const uint8_t* data, int size, const char* url = nullptr);
     void clear();
 
     // @font-face 解析と URL 解決
@@ -50,6 +50,17 @@ class SatoruFontManager {
    private:
     sk_sp<SkFontMgr> m_fontMgr;
     std::map<std::string, std::vector<sk_sp<SkTypeface>>> m_typefaceCache;
+    std::map<std::string, sk_sp<SkTypeface>> m_urlToTypeface;
+
+    struct typeface_clone_key {
+        SkTypeface* base;
+        int weight;
+        bool operator<(const typeface_clone_key& other) const {
+            if (base != other.base) return base < other.base;
+            return weight < other.weight;
+        }
+    };
+    std::map<typeface_clone_key, sk_sp<SkTypeface>> m_variableCloneCache;
 
     struct font_face_source {
         std::string url;

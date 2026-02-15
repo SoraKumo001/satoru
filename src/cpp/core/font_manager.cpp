@@ -29,20 +29,46 @@ std::string trim(const std::string &s) {
 
 SatoruFontManager::SatoruFontManager() { m_fontMgr = SkFontMgr_New_Custom_Empty(); }
 
-void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size) {
-    auto data_ptr = SkData::MakeWithCopy(data, size);
+void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size, const char *url) {
+    std::string cleaned = cleanName(name);
     if (!m_fontMgr) m_fontMgr = SkFontMgr_New_Custom_Empty();
 
-    auto typeface = m_fontMgr->makeFromData(std::move(data_ptr));
-    if (typeface) {
-        std::string cleaned = cleanName(name);
-        m_typefaceCache[cleaned].push_back(typeface);
-        if (!m_defaultTypeface) m_defaultTypeface = typeface;
+    sk_sp<SkTypeface> typeface;
 
-        std::stringstream ss;
-        ss << "loadFont: Loaded '" << cleaned
-           << "' (Total for family: " << m_typefaceCache[cleaned].size() << ")";
-        satoru_log(LogLevel::Info, ss.str().c_str());
+    // Check URL cache first to share typeface objects
+    if (url && *url) {
+        auto it = m_urlToTypeface.find(url);
+        if (it != m_urlToTypeface.end()) {
+            typeface = it->second;
+        }
+    }
+
+    if (!typeface) {
+        auto data_ptr = SkData::MakeWithCopy(data, size);
+        typeface = m_fontMgr->makeFromData(std::move(data_ptr));
+        if (url && *url && typeface) {
+            m_urlToTypeface[url] = typeface;
+        }
+    }
+
+    if (typeface) {
+        bool duplicate = false;
+        for (const auto &existing : m_typefaceCache[cleaned]) {
+            if (existing.get() == typeface.get()) {
+                duplicate = true;
+                break;
+            }
+        }
+
+        if (!duplicate) {
+            m_typefaceCache[cleaned].push_back(typeface);
+            if (!m_defaultTypeface) m_defaultTypeface = typeface;
+
+            std::stringstream ss;
+            ss << "loadFont: Loaded '" << cleaned << "' (URL: " << (url ? url : "none")
+               << ", Total for family: " << m_typefaceCache[cleaned].size() << ")";
+            satoru_log(LogLevel::Info, ss.str().c_str());
+        }
     } else {
         std::stringstream ss;
         ss << "loadFont: FAILED to load font data (" << size << " bytes)";
@@ -52,8 +78,10 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
 
 void SatoruFontManager::clear() {
     m_typefaceCache.clear();
+    m_urlToTypeface.clear();
     m_fontFaces.clear();
     m_fallbackTypefaces.clear();
+    m_variableCloneCache.clear();
     m_defaultTypeface = nullptr;
 }
 
@@ -111,7 +139,17 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
                     req.family = family;
                     req.weight = w;
                     req.slant = slant;
-                    m_fontFaces[req].push_back(src);
+
+                    bool duplicate = false;
+                    for (const auto& existing_src : m_fontFaces[req]) {
+                        if (existing_src.url == src.url) {
+                            duplicate = true;
+                            break;
+                        }
+                    }
+                    if (!duplicate) {
+                        m_fontFaces[req].push_back(src);
+                    }
                 }
             }
         }
@@ -212,7 +250,37 @@ std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string &
     std::string cleanFamily = cleanName(family.c_str());
     auto it = m_typefaceCache.find(cleanFamily);
     if (it != m_typefaceCache.end()) {
-        return it->second;
+        const auto &typefaces = it->second;
+        if (typefaces.empty()) return {};
+
+        // Find the best match for weight and slant
+        sk_sp<SkTypeface> bestMatch = nullptr;
+        int minDiff = 10000;
+
+        for (const auto &tf : typefaces) {
+            SkFontStyle style = tf->fontStyle();
+            int diff = std::abs(style.weight() - weight);
+            if (style.slant() != slant) diff += 1000;
+
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestMatch = tf;
+            }
+        }
+
+        if (bestMatch) {
+            // Also include other typefaces that might have different glyph sets (subsets)
+            // but have the same weight/slant. This is important for Google Fonts subsets.
+            std::vector<sk_sp<SkTypeface>> matches;
+            SkFontStyle bestStyle = bestMatch->fontStyle();
+            
+            for (const auto &tf : typefaces) {
+                if (tf->fontStyle() == bestStyle) {
+                    matches.push_back(tf);
+                }
+            }
+            return matches;
+        }
     }
 
     if (cleanFamily == "serif" || cleanFamily == "sans-serif" || cleanFamily == "monospace") {
@@ -228,6 +296,13 @@ SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, 
     int count = typeface->getVariationDesignPosition(
         SkSpan<SkFontArguments::VariationPosition::Coordinate>());
     if (count > 0) {
+        // Check cache first
+        typeface_clone_key key = {typeface.get(), weight};
+        auto it = m_variableCloneCache.find(key);
+        if (it != m_variableCloneCache.end()) {
+            return new SkFont(it->second, size);
+        }
+
         std::vector<SkFontArguments::VariationPosition::Coordinate> coords(count);
         typeface->getVariationDesignPosition(SkSpan(coords));
 
@@ -246,6 +321,7 @@ SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, 
             args.setVariationDesignPosition(pos);
             sk_sp<SkTypeface> varTypeface = typeface->makeClone(args);
             if (varTypeface) {
+                m_variableCloneCache[key] = varTypeface;
                 return new SkFont(varTypeface, size);
             }
         }

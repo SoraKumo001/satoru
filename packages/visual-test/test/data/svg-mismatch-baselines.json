@@ -1,0 +1,70 @@
+{
+  "01-layout.html": {
+    "fill": 12.722,
+    "outline": 8.737375
+  },
+  "02-typography.html": {
+    "fill": 7.743990384615385,
+    "outline": 9.17920673076923
+  },
+  "03-graphics.html": {
+    "fill": 6.684374999999999,
+    "outline": 2.48825
+  },
+  "04-box-effects.html": {
+    "fill": 0.308125,
+    "outline": 0.5473750000000001
+  },
+  "05-images.html": {
+    "fill": 9.119875,
+    "outline": 9.608
+  },
+  "06-box-layout.html": {
+    "fill": 3.859875,
+    "outline": 2.996625
+  },
+  "07-heading-test.html": {
+    "fill": 1.0968749999999998,
+    "outline": 2.359375
+  },
+  "08-font-weight-test.html": {
+    "fill": 1.25725,
+    "outline": 3.8426250000000004
+  },
+  "09-flexbox-test.html": {
+    "fill": 10.006089743589744,
+    "outline": 8.87346153846154
+  },
+  "10-border-test.html": {
+    "fill": 2.705375,
+    "outline": 3.5998750000000004
+  },
+  "11-google-fonts-test.html": {
+    "fill": 1.798375,
+    "outline": 4.523375000000001
+  },
+  "12-position-test.html": {
+    "fill": 15.454375,
+    "outline": 3.4045
+  },
+  "13-table-test.html": {
+    "fill": 28.979039965247612,
+    "outline": 12.298001737619462
+  },
+  "14-list-marker-test.html": {
+    "fill": 0.9012910798122066,
+    "outline": 2.50575117370892
+  },
+  "15-svg-test.html": {
+    "fill": 1.676625,
+    "outline": 1.3078750000000001
+  },
+  "16-flex-gap-test.html": {
+    "fill": 14.307,
+    "outline": 5.339125
+  },
+  "17-filter-test.html": {
+    "fill": 9.03125,
+    "outline": 5.365749999999999
+  }
+}

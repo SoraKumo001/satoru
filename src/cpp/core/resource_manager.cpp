@@ -51,6 +51,7 @@ std::vector<ResourceRequest> ResourceManager::getPendingRequests() {
 void ResourceManager::add(const std::string& url, const uint8_t* data, size_t size,
                           ResourceType type) {
     if (url.empty()) return;
+    if (m_resolvedUrls.count(url)) return;
 
     m_resolvedUrls[url] = type;
 
@@ -67,7 +68,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
         auto it = m_urlToNames.find(url);
         if (it != m_urlToNames.end()) {
             for (const auto& name : it->second) {
-                m_context.loadFont(name.c_str(), data, size);
+                m_context.loadFont(name.c_str(), data, size, url.c_str());
                 if (primaryName.empty()) primaryName = name;
                 registered = true;
             }
@@ -85,7 +86,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
             }
             if (url.find("noto-sans-jp") != std::string::npos) fontName = "Noto Sans JP";
             primaryName = fontName;
-            m_context.loadFont(fontName.c_str(), data, size);
+            m_context.loadFont(fontName.c_str(), data, size, url.c_str());
         }
 
         // Generate @font-face and add it to extra CSS so litehtml knows about it

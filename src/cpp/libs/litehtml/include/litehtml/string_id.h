@@ -141,6 +141,7 @@ namespace litehtml
       // litehtml internal tags
       __tag_before_, // note: real tag cannot start with "-"
       __tag_after_,
+      __litehtml_anchor_,
 
       // CSS pseudo-elements
       _before_,
@@ -159,6 +160,8 @@ namespace litehtml
       _nth_last_child_,
       _nth_last_of_type_,
       _is_,
+      _where_,
+      _has_,
       _not_,
       _lang_,
 

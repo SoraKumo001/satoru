@@ -22,6 +22,26 @@ void css_selector::calc_specificity()
 		} else if(attr.type == select_pseudo_element)
 		{
 			m_specificity.d++;
+		} else if(attr.type == select_pseudo_class)
+		{
+			if (attr.name == _is_ || attr.name == _not_ || attr.name == _has_)
+			{
+				selector_specificity max_sp;
+				for (const auto& sel : attr.selector_list)
+				{
+					sel->calc_specificity();
+					if (sel->m_specificity > max_sp) max_sp = sel->m_specificity;
+				}
+				m_specificity += max_sp;
+			}
+			else if (attr.name == _where_ || attr.name == __litehtml_anchor_)
+			{
+				// :where() and anchor have 0 specificity
+			}
+			else
+			{
+				m_specificity.c++;
+			}
 		} else
 		{
 			m_specificity.c++;
@@ -397,12 +417,19 @@ css_attribute_selector parse_function_pseudo_class(const css_token& token, docum
 	{
 		return parse_nth_child(token, false, mode);
 	}
-	else if (name == "is") // https://www.w3.org/TR/selectors-4/#matches
+	else if (name == "is" || name == "where") // https://www.w3.org/TR/selectors-4/#matches
 	{
 		css_attribute_selector selector(select_pseudo_class, name);
 		// "taking a <forgiving-selector-list> as its sole argument"
 		// "Pseudo-elements... are not valid within :is()."
-		selector.selector_list = parse_selector_list(token.value, forgiving_mode + forbid_pseudo_elements, mode);
+		selector.selector_list = parse_selector_list(token.value, forgiving_mode + forbid_pseudo_elements, mode, false);
+		return selector;
+	}
+	else if (name == "has") // https://www.w3.org/TR/selectors-4/#relational
+	{
+		css_attribute_selector selector(select_pseudo_class, name);
+		selector.selector_list = parse_selector_list(token.value, strict_mode + forbid_pseudo_elements, mode, true);
+		if (selector.selector_list.empty()) return {};
 		return selector;
 	}
 	else if (name == "not") // https://www.w3.org/TR/selectors-4/#negation
@@ -410,7 +437,7 @@ css_attribute_selector parse_function_pseudo_class(const css_token& token, docum
 		css_attribute_selector selector(select_pseudo_class, name);
 		// "taking a selector list as an argument"
 		// "Pseudo-elements... are not valid within :not()."
-		selector.selector_list = parse_selector_list(token.value, strict_mode + forbid_pseudo_elements, mode);
+		selector.selector_list = parse_selector_list(token.value, strict_mode + forbid_pseudo_elements, mode, false);
 		if (selector.selector_list.empty()) return {};
 		return selector;
 	}
@@ -630,15 +657,36 @@ int parse_combinator(const css_token_vector& tokens, int& index)
 	return ws ? ' ' : 0;
 }
 
-css_selector::ptr parse_complex_selector(const css_token_vector& tokens, document_mode mode)
+css_selector::ptr parse_complex_selector(const css_token_vector& tokens, document_mode mode, bool relative)
 {
 	int index = 0;
 	skip_whitespace(tokens, index);
+
+	int leading_combinator = 0;
+	if (relative)
+	{
+		leading_combinator = parse_combinator(tokens, index);
+		if (!leading_combinator) leading_combinator = ' '; // default to descendant
+	}
+
 	auto sel = parse_compound_selector(tokens, index, mode);
 	if (!sel) return nullptr;
 
 	auto selector = make_shared<css_selector>();
 	selector->m_right = *sel;
+
+	if (relative)
+	{
+		auto anchor = make_shared<css_selector>();
+		anchor->m_right.m_tag = star_id;
+		anchor->m_right.m_attrs.emplace_back(select_pseudo_class, "__litehtml_anchor_");
+
+		auto new_selector = make_shared<css_selector>();
+		new_selector->m_left = anchor;
+		new_selector->m_right = selector->m_right;
+		new_selector->m_combinator = (css_combinator)leading_combinator;
+		selector = new_selector;
+	}
 
 	// NOTE: all the whitespace is handled by parse_combinator, that's why skip_whitespace is never called in the loop
 	// NOTE: parse_complex_selector is different from most other parse_xxx functions in that it's required
@@ -686,14 +734,14 @@ bool has_selector(const css_selector& selector, attr_select_type type, const str
 // https://www.w3.org/TR/selectors-4/#selector-list
 // https://www.w3.org/TR/selectors-4/#forgiving-selector
 // Parse comma-separated list of complex selectors.
-css_selector::vector parse_selector_list(const css_token_vector& tokens, int options, document_mode mode)
+css_selector::vector parse_selector_list(const css_token_vector& tokens, int options, document_mode mode, bool relative)
 {
 	vector<css_token_vector> list_of_lists = parse_comma_separated_list(tokens);
 	css_selector::vector result;
 
 	for (const auto& list: list_of_lists)
 	{
-		css_selector::ptr selector = parse_complex_selector(list, mode);
+		css_selector::ptr selector = parse_complex_selector(list, mode, relative);
 
 		if (!selector ||
 			((options & forbid_pseudo_elements) && has_selector(*selector, select_pseudo_element)))
@@ -717,7 +765,7 @@ css_selector::vector parse_selector_list(const css_token_vector& tokens, int opt
 bool css_selector::parse(const string& text, document_mode mode)
 {
 	auto tokens = normalize(text, f_componentize);
-	auto ptr = parse_complex_selector(tokens, mode);
+	auto ptr = parse_complex_selector(tokens, mode, false);
 	if (!ptr) return false;
 	*this = *ptr;
 	return true;

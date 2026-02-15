@@ -179,7 +179,7 @@ namespace litehtml
 		forbid_pseudo_elements = 1 << 1,
 	};
 
-	css_selector::vector parse_selector_list(const css_token_vector& tokens, int options, document_mode mode);
+	css_selector::vector parse_selector_list(const css_token_vector& tokens, int options, document_mode mode, bool relative = false);
 }
 
 #endif  // LH_CSS_SELECTOR_H

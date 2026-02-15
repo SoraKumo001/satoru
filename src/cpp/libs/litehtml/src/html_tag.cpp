@@ -646,7 +646,14 @@ int html_tag::select_pseudoclass(const css_attribute_selector& sel)
         }
         break;
         case _is_:
-                if (!select(sel.selector_list, true))
+        case _where_:
+                if (select(sel.selector_list, true) == select_no_match)
+                {
+                        return select_no_match;
+                }
+                break;
+        case _has_:
+                if (!select_has(sel))
                 {
                         return select_no_match;
                 }
@@ -671,6 +678,67 @@ int html_tag::select_pseudoclass(const css_attribute_selector& sel)
                 break;
         }
         return select_match;
+}
+
+bool html_tag::select_has(const css_attribute_selector& sel)
+{
+	set_pseudo_class(__litehtml_anchor_, true);
+	bool res = false;
+	for (const auto& s : sel.selector_list)
+	{
+		css_selector::ptr anchor_sel = s;
+		while (anchor_sel->m_left && anchor_sel->m_left->m_left) anchor_sel = anchor_sel->m_left;
+		int combinator = anchor_sel->m_combinator;
+
+		if (is_any_child_match(s, combinator))
+		{
+			res = true;
+			break;
+		}
+	}
+	set_pseudo_class(__litehtml_anchor_, false);
+	return res;
+}
+
+bool html_tag::is_any_child_match(const css_selector::ptr& sel, int combinator)
+{
+	if (combinator == '+' || combinator == '~')
+	{
+		auto p = parent();
+		if (!p) return false;
+		bool found = false;
+		for (const auto& sib : p->children())
+		{
+			if (found)
+			{
+				if (sib->select(*sel)) return true;
+				if (combinator == '+') break;
+			}
+			if (sib.get() == this) found = true;
+		}
+	}
+	else if (combinator == '>')
+	{
+		for (const auto& child : m_children)
+		{
+			if (child->select(*sel)) return true;
+		}
+	}
+	else // descendant
+	{
+		// recursive search
+		std::function<bool(const element::ptr&)> search = [&](const element::ptr& el)
+		{
+			for (const auto& child : el->children())
+			{
+				if (child->select(*sel)) return true;
+				if (search(child)) return true;
+			}
+			return false;
+		};
+		if (search(shared_from_this())) return true;
+	}
+	return false;
 }
 
 // https://www.w3.org/TR/selectors-4/#attribute-selectors

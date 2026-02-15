@@ -255,23 +255,23 @@ int css::get_layer_id(const string& name)
 	long long multiplier = 6250000; // 50^4
 	for (int i = 0; i < 5; ++i)
 	{
-	string segment = (i < (int)segments.size()) ? segments[i] : "";
-	if (segment.empty())
-	{
-	rank += 49 * multiplier;
-	}
-	else
-	{
-	string full_segment_path = path.empty() ? segment : path + "." + segment;
-	if (m_segment_orders.find(full_segment_path) == m_segment_orders.end()) 
-	{
-	        m_segment_orders[full_segment_path] = m_next_order[path]++;     
-	        if (m_segment_orders[full_segment_path] >= 49) m_segment_orders[full_segment_path] = 48;
-	}
-	rank += (long long)(m_segment_orders[full_segment_path]) * multiplier;  
-	path = full_segment_path;
-	}
-	multiplier /= 50;
+		string segment = (i < (int)segments.size()) ? segments[i] : "";
+		if (segment.empty())
+		{
+			rank += 0;
+		}
+		else
+		{
+			string full_segment_path = path.empty() ? segment : path + "." + segment;
+			if (m_segment_orders.find(full_segment_path) == m_segment_orders.end()) 
+			{
+				m_segment_orders[full_segment_path] = ++m_next_order[path];     
+				if (m_segment_orders[full_segment_path] >= 50) m_segment_orders[full_segment_path] = 49;
+			}
+			rank += (long long)(m_segment_orders[full_segment_path]) * multiplier;  
+			path = full_segment_path;
+		}
+		multiplier /= 50;
 	}
 
 	m_resolved_ranks[name] = (int)rank;

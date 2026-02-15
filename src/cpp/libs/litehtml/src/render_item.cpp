@@ -935,25 +935,97 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                 case draw_block:
                     if (!el->src_el()->is_inline() && el->src_el()->css().get_float() == float_none && !el->src_el()->is_positioned())
                     {
+                        const auto& transform = el->src_el()->css().get_transform();
+                        const auto& filter = el->src_el()->css().get_filter();
+
+                        if (!transform.empty())
+                        {
+                            position el_pos = el->pos();
+                            el_pos.x += pos.x;
+                            el_pos.y += pos.y;
+                            doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
+                        }
+                        if (!filter.empty())
+                        {
+                            doc->container()->push_filter(hdc, filter);
+                        }
+
                         el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
+
+                        if (!filter.empty())
+                        {
+                            doc->container()->pop_filter(hdc);
+                        }
+                        if (!transform.empty())
+                        {
+                            doc->container()->pop_transform(hdc);
+                        }
                     }
                     break;
                 case draw_floats:
                     if (el->src_el()->css().get_float() != float_none && !el->src_el()->is_positioned())
                     {
+                        const auto& transform = el->src_el()->css().get_transform();
+                        const auto& filter = el->src_el()->css().get_filter();
+
+                        if (!transform.empty())
+                        {
+                            position el_pos = el->pos();
+                            el_pos.x += pos.x;
+                            el_pos.y += pos.y;
+                            doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
+                        }
+                        if (!filter.empty())
+                        {
+                            doc->container()->push_filter(hdc, filter);
+                        }
+
                         el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
                         el->draw_stacking_context(hdc, pos.x, pos.y, clip, false);
+
+                        if (!filter.empty())
+                        {
+                            doc->container()->pop_filter(hdc);
+                        }
+                        if (!transform.empty())
+                        {
+                            doc->container()->pop_transform(hdc);
+                        }
                         process = false;
                     }
                     break;
                 case draw_inlines:
                     if (el->src_el()->is_inline() && el->src_el()->css().get_float() == float_none && !el->src_el()->is_positioned())
                     {
+                        const auto& transform = el->src_el()->css().get_transform();
+                        const auto& filter = el->src_el()->css().get_filter();
+
+                        if (!transform.empty())
+                        {
+                            position el_pos = el->pos();
+                            el_pos.x += pos.x;
+                            el_pos.y += pos.y;
+                            doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
+                        }
+                        if (!filter.empty())
+                        {
+                            doc->container()->push_filter(hdc, filter);
+                        }
+
                         el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
                         if (el->src_el()->css().get_display() == display_inline_block || el->src_el()->css().get_display() == display_inline_flex)
                         {
                             el->draw_stacking_context(hdc, pos.x, pos.y, clip, false);
                             process = false;
+                        }
+
+                        if (!filter.empty())
+                        {
+                            doc->container()->pop_filter(hdc);
+                        }
+                        if (!transform.empty())
+                        {
+                            doc->container()->pop_transform(hdc);
                         }
                     }
                     break;

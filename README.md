@@ -47,6 +47,9 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
   - **Standard Tags**: Full support for `<b>`, `<strong>`, `<i>`, `<u>`, and `<h1>`-`<h6>` via integrated master CSS.
   - **Text Decoration**: Supports `underline`, `line-through`, `overline` with `solid`, `dotted`, and `dashed` styles.
   - **Text Shadow**: Multiple shadows with blur, offset, and color support (PNG/SVG/PDF).
+  - **Expressions**: Robust recursive `calc()` support for all CSS units and mixed-unit calculations.
+  - **Filters**: CSS Filter support including `blur()` and `drop-shadow()` for both PNG and SVG outputs.
+  - **Transforms**: Full support for `translate`, `rotate`, `scale`, `skew`, and `matrix` with correct stacking context handling.
 
 ## 📋 Supported CSS Properties
 
@@ -455,7 +458,7 @@ pnpm build:all
 - [x] Multi-threaded rendering via Worker Proxy.
 - [x] Support for CSS Logical Properties (margin-inline, padding-block, etc.).
 - [ ] Support for CSS Grid Layout (Basic template columns/rows).
-- [ ] **Mixed-unit `calc()` support (e.g., `100% - 20px`).**
+- [x] **Mixed-unit `calc()` support (e.g., `100% - 20px`).**
 - [ ] Support for modern Media Query range syntax (e.g., `width >= 40rem`).
 - [ ] **CSS Container Queries (`@container`).**
 
@@ -472,7 +475,8 @@ pnpm build:all
 - [x] Support for `color-mix()` CSS function (OKLch/OKLab support).
 - [x] Support for `light-dark()` color function.
 - [x] Support for CSS Transforms (`translate`, `rotate`, `scale`, `skew`, `matrix`).
-- [ ] **Advanced CSS Filter support (`drop-shadow`, `blur`, `backdrop-filter`).**
+- [x] **Advanced CSS Filter support (`drop-shadow`, `blur`).**
+- [ ] **Backdrop Filter support (`backdrop-filter`).**
 - [ ] Masking support (`mask-image`).
 - [ ] Wide Gamut Color support (`display-p3`) and Gamut Mapping.
 

@@ -173,7 +173,7 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
         fm->ch_width = (litehtml::pixel_t)fi->fonts[0]->measureText("0", 1, SkTextEncoding::kUTF8);
     }
     float css_line_height = std::max((float)(ascent + descent + leading), (float)desc.size * 1.2f);
-    fi->fm_ascent = (int)(ascent + (css_line_height - (ascent + descent)) / 2.0f);
+    fi->fm_ascent = (int)(ascent + (css_line_height - (ascent + descent)) / 2.0f + 1.0f);
     fi->fm_height = (int)css_line_height;
     return (litehtml::uint_ptr)fi;
 }

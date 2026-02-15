@@ -141,7 +141,7 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
                     req.slant = slant;
 
                     bool duplicate = false;
-                    for (const auto& existing_src : m_fontFaces[req]) {
+                    for (const auto &existing_src : m_fontFaces[req]) {
                         if (existing_src.url == src.url) {
                             duplicate = true;
                             break;
@@ -273,7 +273,7 @@ std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string &
             // but have the same weight/slant. This is important for Google Fonts subsets.
             std::vector<sk_sp<SkTypeface>> matches;
             SkFontStyle bestStyle = bestMatch->fontStyle();
-            
+
             for (const auto &tf : typefaces) {
                 if (tf->fontStyle() == bestStyle) {
                     matches.push_back(tf);

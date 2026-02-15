@@ -144,8 +144,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
 
-                if (elementStart != std::string::npos && elementEnd != std::string::npos) {
-                    // タグ付けされた矩形を <g filter="..."> に置き換える
+                if (elementStart != std::string::npos && elementEnd != std::string::npos && elementStart >= lastPos) {
                     result.erase(result.size() - (pos - elementStart));
                     result.append("<g filter=\"url(#" + filterId + ")\">");
 
@@ -155,8 +154,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
             } else if (r == 0 && g == 5) {
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos) {
-                    // タグ付けされた矩形を </g> に置き換える
+                if (elementStart != std::string::npos && elementEnd != std::string::npos && elementStart >= lastPos) {
                     result.erase(result.size() - (pos - elementStart));
                     result.append("</g>");
 
@@ -175,11 +173,9 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find('>', valEnd);
 
-                if (elementStart != std::string::npos && elementEnd != std::string::npos) {
+                if (elementStart != std::string::npos && elementEnd != std::string::npos && elementStart >= lastPos) {
                     // すでに result に追加されたタグの開始部分を一旦削除して再構築する
-                    if (elementStart >= lastPos) {
-                        result.erase(result.size() - (pos - elementStart));
-                    }
+                    result.erase(result.size() - (pos - elementStart));
 
                     // タグの中身を取得 (例: <text transform="..." fill="..." font-weight="...">)
                     std::string tag = svg.substr(elementStart, elementEnd - elementStart + 1);
@@ -225,7 +221,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
             } else if (r == 1 && g == 0 && b > 0 && b <= (int)images.size()) {
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos) {
+                if (elementStart != std::string::npos && elementEnd != std::string::npos && elementStart >= lastPos) {
                     const auto &draw = images[b - 1];
                     auto it = context.imageCache.find(draw.url);
                     if (it != context.imageCache.end() && it->second.skImage) {
@@ -281,7 +277,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                        b <= (int)container.get_used_inline_svgs().size()) {
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos) {
+                if (elementStart != std::string::npos && elementEnd != std::string::npos && elementStart >= lastPos) {
                     const auto &inlineSvg = container.get_used_inline_svgs()[b - 1];
                     result.erase(result.size() - (pos - elementStart));
                     result.append(inlineSvg);
@@ -291,7 +287,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
             } else if (r == 1 && (g == 1 || g == 2 || g == 3)) {
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos) {
+                if (elementStart != std::string::npos && elementEnd != std::string::npos && elementStart >= lastPos) {
                     SkBitmap bitmap;
                     litehtml::position border_box;
                     litehtml::border_radiuses border_radius;
@@ -764,7 +760,7 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     container.set_canvas(canvas.get());
     container.set_height(content_height);
     container.set_tagging(true);
-    container.reset(); // Clear any state from measurement if necessary
+    container.reset();  // Clear any state from measurement if necessary
 
     litehtml::position clip(0, 0, width, content_height);
     doc->draw(0, 0, 0, &clip);

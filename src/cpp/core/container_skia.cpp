@@ -726,20 +726,12 @@ void container_skia::draw_conic_gradient(
     }
 }
 
-#include "bridge/bridge_types.h"
 #include "api/satoru_api.h"
+#include "bridge/bridge_types.h"
 
 void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::borders &borders,
                                   const litehtml::position &draw_pos, bool root) {
     if (!m_canvas) return;
-
-    if (borders.top.width > 0) {
-        char buf[256];
-        snprintf(buf, sizeof(buf), "draw_borders: top.width=%d, color=rgb(%d,%d,%d), style=%d, pos=(%d,%d,%d,%d)",
-                 borders.top.width, borders.top.color.red, borders.top.color.green, borders.top.color.blue, 
-                 borders.top.style, draw_pos.x, draw_pos.y, draw_pos.width, draw_pos.height);
-        satoru_log(LogLevel::Info, buf);
-    }
 
     bool uniform =
         borders.top.width == borders.bottom.width && borders.top.width == borders.left.width &&
@@ -872,10 +864,14 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                 r2.inset(sw / 2.0f, sw / 2.0f);
                 SkRRect r3 = outer_rr;
                 r3.inset(sw, sw);
+
+                SkPath p1 = SkPathBuilder().addRRect(r1).addRRect(r2, SkPathDirection::kCCW).detach();
+                SkPath p2 = SkPathBuilder().addRRect(r2).addRRect(r3, SkPathDirection::kCCW).detach();
+
                 p.setColor(c1);
-                m_canvas->drawDRRect(r1, r2, p);
+                m_canvas->drawPath(p1, p);
                 p.setColor(c2);
-                m_canvas->drawDRRect(r2, r3, p);
+                m_canvas->drawPath(p2, p);
             } else {
                 // solid, inset, outset
                 if (b.style == litehtml::border_style_inset ||
@@ -899,7 +895,9 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                                         {std::max(0.0f, (float)borders.radius.bottom_left_x - lw),
                                          std::max(0.0f, (float)borders.radius.bottom_left_y - bw)}};
                     inner_rr.setRectRadii(ir, rads);
-                    m_canvas->drawDRRect(outer_rr, inner_rr, p);
+                    
+                    SkPath path = SkPathBuilder().addRRect(outer_rr).addRRect(inner_rr, SkPathDirection::kCCW).detach();
+                    m_canvas->drawPath(path, p);
                 } else
                     m_canvas->drawRRect(outer_rr, p);
             }

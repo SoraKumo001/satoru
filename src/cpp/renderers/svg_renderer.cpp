@@ -128,7 +128,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                 std::string textColor = "rgb(" + std::to_string((int)info.text_color.red) + "," +
                                         std::to_string((int)info.text_color.green) + "," +
                                         std::to_string((int)info.text_color.blue) + ")";
-                float opacity = (float)info.text_color.alpha / 255.0f;
+                float opacity = ((float)info.text_color.alpha / 255.0f) * info.opacity;
 
                 if (isAttr) {
                     result.append("filter=\"url(#" + filterId + ")\" fill=\"" + textColor +
@@ -144,7 +144,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
 
-                if (elementStart != std::string::npos && elementEnd != std::string::npos && elementStart >= lastPos) {
+                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                    elementStart >= lastPos) {
                     result.erase(result.size() - (pos - elementStart));
                     result.append("<g filter=\"url(#" + filterId + ")\">");
 
@@ -154,7 +155,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
             } else if (r == 0 && g == 5) {
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos && elementStart >= lastPos) {
+                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                    elementStart >= lastPos) {
                     result.erase(result.size() - (pos - elementStart));
                     result.append("</g>");
 
@@ -168,12 +170,13 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                 std::string textColor = "rgb(" + std::to_string((int)info.color.red) + "," +
                                         std::to_string((int)info.color.green) + "," +
                                         std::to_string((int)info.color.blue) + ")";
-                float opacity = (float)info.color.alpha / 255.0f;
+                float opacity = ((float)info.color.alpha / 255.0f) * info.opacity;
 
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find('>', valEnd);
 
-                if (elementStart != std::string::npos && elementEnd != std::string::npos && elementStart >= lastPos) {
+                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                    elementStart >= lastPos) {
                     // すでに result に追加されたタグの開始部分を一旦削除して再構築する
                     result.erase(result.size() - (pos - elementStart));
 
@@ -221,7 +224,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
             } else if (r == 1 && g == 0 && b > 0 && b <= (int)images.size()) {
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos && elementStart >= lastPos) {
+                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                    elementStart >= lastPos) {
                     const auto &draw = images[b - 1];
                     auto it = context.imageCache.find(draw.url);
                     if (it != context.imageCache.end() && it->second.skImage) {
@@ -277,7 +281,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                        b <= (int)container.get_used_inline_svgs().size()) {
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos && elementStart >= lastPos) {
+                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                    elementStart >= lastPos) {
                     const auto &inlineSvg = container.get_used_inline_svgs()[b - 1];
                     result.erase(result.size() - (pos - elementStart));
                     result.append(inlineSvg);
@@ -287,7 +292,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
             } else if (r == 1 && (g == 1 || g == 2 || g == 3)) {
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos && elementStart >= lastPos) {
+                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                    elementStart >= lastPos) {
                     SkBitmap bitmap;
                     litehtml::position border_box;
                     litehtml::border_radiuses border_radius;
@@ -466,7 +472,7 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
         std::string floodColor = "rgb(" + std::to_string((int)s.color.red) + "," +
                                  std::to_string((int)s.color.green) + "," +
                                  std::to_string((int)s.color.blue) + ")";
-        float floodOpacity = (float)s.color.alpha / 255.0f;
+        float floodOpacity = ((float)s.color.alpha / 255.0f) * s.opacity;
 
         if (s.inset) {
             defs << "<feFlood flood-color=\"" << floodColor << "\" flood-opacity=\"" << floodOpacity
@@ -482,11 +488,14 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
         } else {
             defs << "<feGaussianBlur in=\"SourceAlpha\" stdDeviation=\"" << s.blur * 0.5f
                  << "\" result=\"blur\"/>"
-                 << "<feOffset dx=\"" << s.x << "\" dy=\"" << s.y << "\" result=\"offsetblur\"/>"
+                 << "<feOffset in=\"blur\" dx=\"" << s.x << "\" dy=\"" << s.y
+                 << "\" result=\"offset\"/>"
                  << "<feFlood flood-color=\"" << floodColor << "\" flood-opacity=\"" << floodOpacity
-                 << "\"/>"
-                 << "<feComposite in2=\"offsetblur\" operator=\"in\"/>"
-                 << "<feMerge><feMergeNode/></feMerge>";
+                 << "\" result=\"color\"/>"
+                 << "<feComposite in=\"color\" in2=\"offset\" operator=\"in\" result=\"shadow\"/>"
+                 << "<feComposite in=\"shadow\" in2=\"SourceAlpha\" operator=\"out\" "
+                    "result=\"clipped-shadow\"/>"
+                 << "<feMerge><feMergeNode in=\"clipped-shadow\"/></feMerge>";
         }
 
         defs << "</filter>";
@@ -505,7 +514,7 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
             std::string floodColor = "rgb(" + std::to_string((int)s.color.red) + "," +
                                      std::to_string((int)s.color.green) + "," +
                                      std::to_string((int)s.color.blue) + ")";
-            float floodOpacity = (float)s.color.alpha / 255.0f;
+            float floodOpacity = ((float)s.color.alpha / 255.0f) * ts.opacity;
 
             defs << "<feGaussianBlur in=\"SourceAlpha\" stdDeviation=\"" << s.blur.val() * 0.5f
                  << "\" result=\"blur-" << si << "\"/>"

@@ -330,6 +330,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         text_shadow_info info;
         info.shadows = fi->desc.text_shadow;
         info.text_color = color;
+        info.opacity = get_current_opacity();
         m_usedTextShadows.push_back(info);
         int index = (int)m_usedTextShadows.size();
         paint.setColor(SkColorSetARGB(255, 0, 2, (index & 0xFF)));
@@ -338,6 +339,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         info.weight = fi->desc.weight;
         info.italic = (fi->desc.style == litehtml::font_style_italic);
         info.color = color;
+        info.opacity = get_current_opacity();
         m_usedTextDraws.push_back(info);
         int index = (int)m_usedTextDraws.size();
         paint.setColor(SkColorSetARGB(255, 0, 3, (index & 0xFF)));
@@ -482,6 +484,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
             info.inset = inset;
             info.box_pos = pos;
             info.box_radius = radius;
+            info.opacity = get_current_opacity();
             m_usedShadows.push_back(info);
             int index = (int)m_usedShadows.size();
             SkPaint p;
@@ -865,8 +868,10 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                 SkRRect r3 = outer_rr;
                 r3.inset(sw, sw);
 
-                SkPath p1 = SkPathBuilder().addRRect(r1).addRRect(r2, SkPathDirection::kCCW).detach();
-                SkPath p2 = SkPathBuilder().addRRect(r2).addRRect(r3, SkPathDirection::kCCW).detach();
+                SkPath p1 =
+                    SkPathBuilder().addRRect(r1).addRRect(r2, SkPathDirection::kCCW).detach();
+                SkPath p2 =
+                    SkPathBuilder().addRRect(r2).addRRect(r3, SkPathDirection::kCCW).detach();
 
                 p.setColor(c1);
                 m_canvas->drawPath(p1, p);
@@ -895,8 +900,11 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                                         {std::max(0.0f, (float)borders.radius.bottom_left_x - lw),
                                          std::max(0.0f, (float)borders.radius.bottom_left_y - bw)}};
                     inner_rr.setRectRadii(ir, rads);
-                    
-                    SkPath path = SkPathBuilder().addRRect(outer_rr).addRRect(inner_rr, SkPathDirection::kCCW).detach();
+
+                    SkPath path = SkPathBuilder()
+                                      .addRRect(outer_rr)
+                                      .addRRect(inner_rr, SkPathDirection::kCCW)
+                                      .detach();
                     m_canvas->drawPath(path, p);
                 } else
                     m_canvas->drawRRect(outer_rr, p);

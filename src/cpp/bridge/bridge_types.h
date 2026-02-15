@@ -46,10 +46,11 @@ struct shadow_info {
     bool inset;
     litehtml::position box_pos;
     litehtml::border_radiuses box_radius;
+    float opacity;
 
     auto as_tuple() const {
         return std::make_tuple(color.red, color.green, color.blue, color.alpha, blur, x, y, spread,
-                               inset, box_pos.x, box_pos.y, box_pos.width, box_pos.height);
+                               inset, box_pos.x, box_pos.y, box_pos.width, box_pos.height, opacity);
     }
     bool operator<(const shadow_info &other) const { return as_tuple() < other.as_tuple(); }
 };
@@ -86,12 +87,14 @@ struct linear_gradient_info {
 struct text_shadow_info {
     litehtml::shadow_vector shadows;
     litehtml::web_color text_color;
+    float opacity;
 };
 
 struct text_draw_info {
     int weight;
     bool italic;
     litehtml::web_color color;
+    float opacity;
 };
 
 struct filter_info {

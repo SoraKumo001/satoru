@@ -17,25 +17,7 @@ You are operating in a **Windows PowerShell** environment.
 
 - **Progress Reporting:** Always report what you are currently doing before and during each step of your work. Provide concise updates on your analysis, planning, and implementation progress to keep the user informed. **Progress reporting should be conducted in the user's language.**
 
-### 3. File Editing Protocol (mcp-text-editor)
-
-When using `get_text_file_contents` and `edit_text_file_contents`, strictly follow these rules to ensure data integrity and avoid `Hash Mismatch` errors.
-
-#### Rule 1: Synchronized Reading
-
-- Always use `get_text_file_contents` to obtain the current `file_hash` and `range_hash` for the specific lines you intend to edit.
-
-#### Rule 2: Bottom-to-Top Patching
-
-- **CRITICAL:** When applying multiple patches to the same file in a single `edit_text_file_contents` call, you **MUST** order the patches from the bottom of the file to the top (descending line numbers).
-
-#### Rule 3: write_file Tool Rules
-
-- When generating the `content` argument for the `write_file` tool, do not double-escape newline characters (e.g., use `\n`, not `\\n`).
-- Always use standard JSON string escape sequences (`\n`) only.
-- Ensure that the generated file content contains actual newlines instead of the literal string `\n`.
-
-### 4. Troubleshooting
+### 3. Troubleshooting
 
 - **Hash Mismatch Handling:** If a `Hash Mismatch` error occurs, immediately re-read the file using `get_text_file_contents` to synchronize. If the error persists or if the file has significant changes, rewrite the entire file using `write_file` to ensure consistency and resolve the conflict.
 
@@ -127,7 +109,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
   - Container overrides MUST return `litehtml::pixel_t` (float), not `int`.
 
 - **Layout Defaults:**
-  - `line-height`: Browser behavior (Ascent + Descent + Leading). Half-leading is distributed equally above and below the content area.
+  - `line-height`: Calculated as `std::max(ascent + descent + leading, font_size * 1.2)` for `normal` to ensure sufficient spacing similar to browsers.
   - `box-sizing`: `border-box` for inputs/buttons.
 
 - **CSS Engine (litehtml Customizations):**

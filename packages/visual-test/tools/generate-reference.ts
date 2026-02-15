@@ -16,14 +16,13 @@ async function processFile(browser: Browser, file: string) {
   const outputPath = path.join(REFERENCE_DIR, file.replace(".html", ".png"));
 
   const context = await browser.newContext({
-    viewport: { width: 800, height: 1000 },
+    viewport: { width: 800, height: 1 },
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
 
   try {
     await page.goto(pathToFileURL(inputPath).toString());
-    await page.addStyleTag({ content: "body { margin: 8px; }" });
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(500);
 
@@ -33,7 +32,6 @@ async function processFile(browser: Browser, file: string) {
       return Math.max(
         doc.scrollHeight,
         doc.offsetHeight,
-        doc.clientHeight,
         body ? body.scrollHeight : 0,
         body ? body.offsetHeight : 0,
       );

@@ -1,7 +1,7 @@
 import { chromium, Browser } from "playwright";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,9 +22,8 @@ async function processFile(browser: Browser, file: string) {
   const page = await context.newPage();
 
   try {
-    const htmlSource = fs.readFileSync(inputPath, "utf8");
-    const html = `<style>body { margin: 8px; }</style>${htmlSource}`;
-    await page.setContent(html);
+    await page.goto(pathToFileURL(inputPath).toString());
+    await page.addStyleTag({ content: "body { margin: 8px; }" });
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(500);
 

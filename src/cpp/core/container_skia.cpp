@@ -19,10 +19,10 @@
 #include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkGradient.h"
 #include "include/effects/SkImageFilters.h"
+#include "litehtml/css_parser.h"
 #include "litehtml/el_table.h"
 #include "litehtml/el_td.h"
 #include "litehtml/el_tr.h"
-#include "litehtml/css_parser.h"
 #include "utils/skia_utils.h"
 
 namespace litehtml {
@@ -1116,7 +1116,8 @@ void container_skia::pop_layer(litehtml::uint_ptr hdc) {
     }
 }
 
-void container_skia::push_transform(litehtml::uint_ptr hdc, const litehtml::css_token_vector &transform,
+void container_skia::push_transform(litehtml::uint_ptr hdc,
+                                    const litehtml::css_token_vector &transform,
                                     const litehtml::css_token_vector &origin,
                                     const litehtml::position &pos) {
     if (!m_canvas) return;
@@ -1131,9 +1132,12 @@ void container_skia::push_transform(litehtml::uint_ptr hdc, const litehtml::css_
         for (const auto &tok : origin) {
             if (tok.type == litehtml::WHITESPACE) continue;
             litehtml::css_length len;
-            if (len.from_token(tok, litehtml::f_length_percentage, "left;right;top;bottom;center")) {
-                if (n == 0) ox = len.calc_percent(pos.width) + pos.x;
-                else if (n == 1) oy = len.calc_percent(pos.height) + pos.y;
+            if (len.from_token(tok, litehtml::f_length_percentage,
+                               "left;right;top;bottom;center")) {
+                if (n == 0)
+                    ox = len.calc_percent(pos.width) + pos.x;
+                else if (n == 1)
+                    oy = len.calc_percent(pos.height) + pos.y;
                 n++;
             }
         }
@@ -1147,8 +1151,9 @@ void container_skia::push_transform(litehtml::uint_ptr hdc, const litehtml::css_
             auto args = litehtml::parse_comma_separated_list(tok.value);
             std::vector<float> vals;
             for (const auto &arg : args) {
-                if (!arg.empty() && (arg[0].type == litehtml::NUMBER || arg[0].type == litehtml::DIMENSION ||
-                                     arg[0].type == litehtml::PERCENTAGE)) {
+                if (!arg.empty() &&
+                    (arg[0].type == litehtml::NUMBER || arg[0].type == litehtml::DIMENSION ||
+                     arg[0].type == litehtml::PERCENTAGE)) {
                     float v = arg[0].n.number;
                     if (arg[0].type == litehtml::PERCENTAGE) {
                         // Context dependent, but let's use a heuristic
@@ -1203,12 +1208,36 @@ void container_skia::pop_transform(litehtml::uint_ptr hdc) {
     }
 }
 
-void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_token_vector& filter) {
+void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_token_vector &filter) {
     if (!m_canvas || filter.empty()) return;
+
+    if (m_tagging) {
+        filter_info info;
+        info.tokens = filter;
+        m_usedFilters.push_back(info);
+        int index = (int)m_usedFilters.size();
+
+        // クリップ領域（またはビューポート）全体をタグ色で塗る。
+        // ポストプロセッサはこの色を見つけたら、直後の要素に filter 属性を付ける。
+        SkPaint p;
+        p.setColor(SkColorSetARGB(255, 0, 4, (index & 0xFF)));
+        
+        SkRect rect;
+        if (!m_clips.empty()) {
+            rect = SkRect::MakeXYWH((float)m_clips.back().first.x, (float)m_clips.back().first.y,
+                                    (float)m_clips.back().first.width, (float)m_clips.back().first.height);
+        } else {
+            rect = SkRect::MakeWH((float)m_width, (float)m_height);
+        }
+        
+        m_canvas->drawRect(rect, p);
+        m_canvas->save(); // 対応する pop_filter の restore のため
+        return;
+    }
 
     sk_sp<SkImageFilter> last_filter = nullptr;
 
-    for (const auto& tok : filter) {
+    for (const auto &tok : filter) {
         if (tok.type == litehtml::CV_FUNCTION) {
             std::string name = litehtml::lowcase(tok.name);
             auto args = litehtml::parse_comma_separated_list(tok.value);
@@ -1216,25 +1245,42 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
             if (name == "blur") {
                 if (!args.empty() && !args[0].empty()) {
                     litehtml::css_length len;
-                    len.from_token(args[0][0], litehtml::f_positive);
+                    len.from_token(args[0][0], litehtml::f_length | litehtml::f_positive);
                     float sigma = len.val();
-                    last_filter = SkImageFilters::Blur(sigma, sigma, last_filter);
+                    if (sigma > 0) {
+                        last_filter = SkImageFilters::Blur(sigma, sigma, last_filter);
+                    }
                 }
             } else if (name == "drop-shadow") {
-                if (args.size() >= 1) { // drop-shadow(dx dy blur color)
-                    // Simplified: assume tokens are dx dy blur color in order
+                if (!args.empty()) {  // drop-shadow(dx dy blur color)
                     float dx = 0, dy = 0, blur = 0;
                     litehtml::web_color color = litehtml::web_color::black;
                     int i = 0;
-                    for(const auto& t : tok.value) {
-                        if(t.type == litehtml::WHITESPACE) continue;
-                        if(i == 0) { litehtml::css_length l; l.from_token(t, 0); dx = l.val(); }
-                        else if(i == 1) { litehtml::css_length l; l.from_token(t, 0); dy = l.val(); }
-                        else if(i == 2) { litehtml::css_length l; l.from_token(t, 0); blur = l.val(); }
-                        else if(i == 3) { litehtml::parse_color(t, color, nullptr); }
+                    for (const auto &t : args[0]) {
+                        if (t.type == litehtml::WHITESPACE) continue;
+                        if (i == 0) {
+                            litehtml::css_length l;
+                            l.from_token(t, litehtml::f_length);
+                            dx = l.val();
+                        } else if (i == 1) {
+                            litehtml::css_length l;
+                            l.from_token(t, litehtml::f_length);
+                            dy = l.val();
+                        } else if (i == 2) {
+                            litehtml::css_length l;
+                            l.from_token(t, litehtml::f_length | litehtml::f_positive);
+                            blur = l.val();
+                        } else if (i == 3) {
+                            litehtml::parse_color(t, color, nullptr);
+                        }
                         i++;
                     }
-                    last_filter = SkImageFilters::DropShadow(dx, dy, blur, blur, SkColorSetARGB(color.alpha, color.red, color.green, color.blue), last_filter);
+                    if (dx != 0 || dy != 0 || blur > 0) {
+                        last_filter = SkImageFilters::DropShadow(
+                            dx, dy, blur, blur,
+                            SkColorSetARGB(color.alpha, color.red, color.green, color.blue),
+                            last_filter);
+                    }
                 }
             }
         }
@@ -1245,12 +1291,19 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
         paint.setImageFilter(last_filter);
         m_canvas->saveLayer(nullptr, &paint);
     } else {
-        m_canvas->save(); // Still need to save for matching restore
+        m_canvas->save();  // Still need to save for matching restore
     }
 }
 
 void container_skia::pop_filter(litehtml::uint_ptr hdc) {
     if (m_canvas) {
+        if (m_tagging) {
+            // フィルター終了タグを出力
+            SkPaint p;
+            p.setColor(SkColorSetARGB(255, 0, 5, 0));
+            SkRect rect = SkRect::MakeXYWH(0, 0, 1, 1); // 最小サイズの矩形
+            m_canvas->drawRect(rect, p);
+        }
         m_canvas->restore();
     }
 }
@@ -1282,6 +1335,7 @@ void container_skia::reset() {
     m_usedRadialGradients.clear();
     m_usedLinearGradients.clear();
     m_usedTextDraws.clear();
+    m_usedFilters.clear();
     m_usedInlineSvgs.clear();
     m_inlineSvgPositions.clear();
     m_clips.clear();

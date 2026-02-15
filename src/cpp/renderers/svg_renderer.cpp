@@ -27,6 +27,10 @@
 #include "include/utils/SkParsePath.h"
 #include "utils/skia_utils.h"
 
+namespace litehtml {
+std::vector<css_token_vector> parse_comma_separated_list(const css_token_vector &tokens);
+}
+
 namespace {
 static std::string bitmapToDataUrl(const SkBitmap &bitmap) {
     SkDynamicMemoryWStream stream;
@@ -65,6 +69,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
     const auto &radials = container.get_used_radial_gradients();
     const auto &linears = container.get_used_linear_gradients();
     const auto &textDraws = container.get_used_text_draws();
+    const auto &filters = container.get_used_filters();
 
     size_t lastPos = 0;
     while (lastPos < svg.size()) {
@@ -134,6 +139,30 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                 }
                 lastPos = valEnd + (isAttr ? 1 : 0);
                 replaced = true;
+            } else if (r == 0 && g == 4 && b > 0 && b <= (int)filters.size()) {
+                std::string filterId = "filter-" + std::to_string(b);
+                size_t elementStart = svg.rfind('<', pos);
+                size_t elementEnd = svg.find("/>", valEnd);
+
+                if (elementStart != std::string::npos && elementEnd != std::string::npos) {
+                    // タグ付けされた矩形を <g filter="..."> に置き換える
+                    result.erase(result.size() - (pos - elementStart));
+                    result.append("<g filter=\"url(#" + filterId + ")\">");
+
+                    lastPos = elementEnd + 2;
+                    replaced = true;
+                }
+            } else if (r == 0 && g == 5) {
+                size_t elementStart = svg.rfind('<', pos);
+                size_t elementEnd = svg.find("/>", valEnd);
+                if (elementStart != std::string::npos && elementEnd != std::string::npos) {
+                    // タグ付けされた矩形を </g> に置き換える
+                    result.erase(result.size() - (pos - elementStart));
+                    result.append("</g>");
+
+                    lastPos = elementEnd + 2;
+                    replaced = true;
+                }
             } else if (r == 0 && g == 3 && b > 0 && b <= (int)textDraws.size()) {
                 const auto &info = textDraws[b - 1];
                 std::string weightStr = std::to_string(info.weight);
@@ -576,6 +605,72 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
                  << "\" />";
             defs << "</clipPath>";
         }
+    }
+
+    const auto &filters = render_container.get_used_filters();
+    for (size_t i = 0; i < filters.size(); ++i) {
+        const auto &f = filters[i];
+        int index = (int)(i + 1);
+        defs << "<filter id=\"filter-" << index
+             << "\" x=\"-100%\" y=\"-100%\" width=\"300%\" height=\"300%\">";
+
+        for (const auto &tok : f.tokens) {
+            if (tok.type == litehtml::CV_FUNCTION) {
+                std::string name = litehtml::lowcase(tok.name);
+                auto args = litehtml::parse_comma_separated_list(tok.value);
+
+                if (name == "blur") {
+                    if (!args.empty() && !args[0].empty()) {
+                        litehtml::css_length len;
+                        len.from_token(args[0][0], litehtml::f_length | litehtml::f_positive);
+                        float sigma = len.val();
+                        if (sigma > 0) {
+                            defs << "<feGaussianBlur stdDeviation=\"" << sigma << "\"/>";
+                        }
+                    }
+                } else if (name == "drop-shadow") {
+                    if (!args.empty()) {
+                        float dx = 0, dy = 0, blur = 0;
+                        litehtml::web_color color = litehtml::web_color::black;
+                        int ti = 0;
+                        for (const auto &t : args[0]) {
+                            if (t.type == litehtml::WHITESPACE) continue;
+                            if (ti == 0) {
+                                litehtml::css_length l;
+                                l.from_token(t, litehtml::f_length);
+                                dx = l.val();
+                            } else if (ti == 1) {
+                                litehtml::css_length l;
+                                l.from_token(t, litehtml::f_length);
+                                dy = l.val();
+                            } else if (ti == 2) {
+                                litehtml::css_length l;
+                                l.from_token(t, litehtml::f_length | litehtml::f_positive);
+                                blur = l.val();
+                            } else if (ti == 3) {
+                                litehtml::parse_color(t, color, nullptr);
+                            }
+                            ti++;
+                        }
+                        std::string floodColor = "rgb(" + std::to_string((int)color.red) + "," +
+                                                 std::to_string((int)color.green) + "," +
+                                                 std::to_string((int)color.blue) + ")";
+                        float floodOpacity = (float)color.alpha / 255.0f;
+
+                        defs << "<feGaussianBlur in=\"SourceAlpha\" stdDeviation=\"" << blur * 0.5f
+                             << "\" result=\"blur\"/>"
+                             << "<feOffset in=\"blur\" dx=\"" << dx << "\" dy=\"" << dy
+                             << "\" result=\"offset\"/>"
+                             << "<feFlood flood-color=\"" << floodColor << "\" flood-opacity=\""
+                             << floodOpacity << "\" result=\"color\"/>"
+                             << "<feComposite in=\"color\" in2=\"offset\" operator=\"in\"/>"
+                             << "<feMerge><feMergeNode/><feMergeNode in=\"SourceGraphic\"/></"
+                                "feMerge>";
+                    }
+                }
+            }
+        }
+        defs << "</filter>";
     }
 
     std::string defsStr = defs.str();

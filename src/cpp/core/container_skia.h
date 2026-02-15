@@ -32,6 +32,7 @@ class container_skia : public litehtml::document_container {
     std::vector<radial_gradient_info> m_usedRadialGradients;
     std::vector<linear_gradient_info> m_usedLinearGradients;
     std::vector<text_draw_info> m_usedTextDraws;
+    std::vector<filter_info> m_usedFilters;
 
     std::set<char32_t> m_usedCodepoints;
     std::set<font_request> m_requestedFontAttributes;
@@ -88,6 +89,7 @@ class container_skia : public litehtml::document_container {
     const std::vector<shadow_info> &get_used_shadows() const { return m_usedShadows; }
     const std::vector<text_shadow_info> &get_used_text_shadows() const { return m_usedTextShadows; }
     const std::vector<text_draw_info> &get_used_text_draws() const { return m_usedTextDraws; }
+    const std::vector<filter_info> &get_used_filters() const { return m_usedFilters; }
 
     const std::set<char32_t> &get_used_codepoints() const { return m_usedCodepoints; }
     const std::set<font_request> &get_requested_font_attributes() const {
@@ -152,9 +154,12 @@ class container_skia : public litehtml::document_container {
     virtual void push_layer(litehtml::uint_ptr hdc, float opacity) override;
     virtual void pop_layer(litehtml::uint_ptr hdc) override;
 
-    virtual void push_transform(litehtml::uint_ptr hdc, const litehtml::css_token_vector& transform, const litehtml::css_token_vector& origin, const litehtml::position& pos) override;
+    virtual void push_transform(litehtml::uint_ptr hdc, const litehtml::css_token_vector &transform,
+                                const litehtml::css_token_vector &origin,
+                                const litehtml::position &pos) override;
     virtual void pop_transform(litehtml::uint_ptr hdc) override;
-    virtual void push_filter(litehtml::uint_ptr hdc, const litehtml::css_token_vector& filter) override;
+    virtual void push_filter(litehtml::uint_ptr hdc,
+                             const litehtml::css_token_vector &filter) override;
     virtual void pop_filter(litehtml::uint_ptr hdc) override;
 
     virtual litehtml::element::ptr create_element(

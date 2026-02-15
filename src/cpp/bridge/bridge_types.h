@@ -94,4 +94,8 @@ struct text_draw_info {
     litehtml::web_color color;
 };
 
+struct filter_info {
+    litehtml::css_token_vector tokens;
+};
+
 #endif  // BRIDGE_TYPES_H

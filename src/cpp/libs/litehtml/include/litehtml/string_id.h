@@ -324,6 +324,7 @@ namespace litehtml
       _caption_side_,
       _order_,
       _filter_,
+      _backdrop_filter_,
 
       _counter_reset_,
       _counter_increment_,

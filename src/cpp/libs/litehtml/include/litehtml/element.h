@@ -190,7 +190,10 @@ namespace litehtml
 
 	inline bool litehtml::element::is_positioned()	const
 	{
-		return (css().get_position() > element_position_static || css().get_opacity() < 1.0f);
+		return (css().get_position() > element_position_static || 
+				css().get_opacity() < 1.0f ||
+				!css().get_transform().empty() ||
+				!css().get_filter().empty());
 	}
 
 	inline bool litehtml::element::is_float()	const

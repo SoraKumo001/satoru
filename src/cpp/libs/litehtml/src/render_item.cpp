@@ -224,7 +224,7 @@ bool litehtml::render_item::fetch_positioned()
     for(auto& el : m_children)
     {
         el_pos = el->src_el()->css().get_position();
-        if (el_pos != element_position_static || el->src_el()->css().get_opacity() < 1.0f)
+        if (el->src_el()->is_positioned())
         {
             add_positioned(el);
         }
@@ -689,7 +689,7 @@ void litehtml::render_item::render_positioned(render_type rt)
 
 void litehtml::render_item::add_positioned(const std::shared_ptr<litehtml::render_item> &el)
 {
-    if (src_el()->css().get_position() != element_position_static || is_root())
+    if (src_el()->is_positioned() || is_root())
     {
         m_positioned.push_back(el);
     } else
@@ -873,16 +873,59 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         float opacity = el->src_el()->css().get_opacity();
                         if (opacity < 1.0f) doc->container()->push_layer(hdc, opacity);
 
+                        const auto& transform = el->src_el()->css().get_transform();
+                        const auto& filter = el->src_el()->css().get_filter();
+
                         if (el->src_el()->css().get_position() == element_position_fixed)
 						{
+                            if (!transform.empty())
+                            {
+                                doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el->pos());
+                            }
+                            if (!filter.empty())
+                            {
+                                doc->container()->push_filter(hdc, filter);
+                            }
+
 							// Fixed elements position is always relative to the (0,0)
                             el->src_el()->draw(hdc, 0, 0, clip, el);
                             el->draw_stacking_context(hdc, 0, 0, clip, true);
+
+                            if (!filter.empty())
+                            {
+                                doc->container()->pop_filter(hdc);
+                            }
+                            if (!transform.empty())
+                            {
+                                doc->container()->pop_transform(hdc);
+                            }
                         }
                         else
                         {
+                            position el_pos = el->pos();
+                            el_pos.x += pos.x;
+                            el_pos.y += pos.y;
+
+                            if (!transform.empty())
+                            {
+                                doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
+                            }
+                            if (!filter.empty())
+                            {
+                                doc->container()->push_filter(hdc, filter);
+                            }
+
                             el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
                             el->draw_stacking_context(hdc, pos.x, pos.y, clip, true);
+
+                            if (!filter.empty())
+                            {
+                                doc->container()->pop_filter(hdc);
+                            }
+                            if (!transform.empty())
+                            {
+                                doc->container()->pop_transform(hdc);
+                            }
                         }
 
                         if (opacity < 1.0f) doc->container()->pop_layer(hdc);

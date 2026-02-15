@@ -181,6 +181,8 @@ namespace litehtml
     case _translate_:
     case _rotate_:
     case _scale_:
+    case _filter_:
+    case _backdrop_filter_:
       add_parsed_property(name, property_value(value, important, false, m_layer));
       break;
 

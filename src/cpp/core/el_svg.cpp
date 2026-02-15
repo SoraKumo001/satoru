@@ -93,8 +93,29 @@ void el_svg::write_element(std::ostream& os, const element::ptr& el) const {
     auto tag_ptr = std::dynamic_pointer_cast<html_tag>(el);
     if (tag_ptr) {
         const auto& attrs = html_tag_accessor::get_attrs(tag_ptr.get());
+        bool stroke_width_is_zero = false;
         for (auto const& attr : attrs) {
-            os << " " << attr.first << "=\"" << attr.second << "\"";
+            if (attr.first == "stroke-width" && (attr.second == "0" || attr.second == "0px")) {
+                stroke_width_is_zero = true;
+                break;
+            }
+        }
+
+        bool stroke_attr_written = false;
+        for (auto const& attr : attrs) {
+            if (attr.first == "stroke") {
+                if (stroke_width_is_zero) {
+                    os << " stroke=\"none\"";
+                } else {
+                    os << " stroke=\"" << attr.second << "\"";
+                }
+                stroke_attr_written = true;
+            } else {
+                os << " " << attr.first << "=\"" << attr.second << "\"";
+            }
+        }
+        if (stroke_width_is_zero && !stroke_attr_written) {
+            os << " stroke=\"none\"";
         }
     }
 
@@ -113,10 +134,33 @@ void el_svg::write_element(std::ostream& os, const element::ptr& el) const {
 std::string el_svg::reconstruct_xml(int x, int y) const {
     std::stringstream ss;
     ss << "<svg x=\"" << x << "\" y=\"" << y << "\" xmlns=\"http://www.w3.org/2000/svg\"";
+
+    bool stroke_width_is_zero = false;
+    for (auto const& attr : m_attrs) {
+        if (attr.first == "stroke-width" && (attr.second == "0" || attr.second == "0px")) {
+            stroke_width_is_zero = true;
+            break;
+        }
+    }
+
+    bool stroke_attr_written = false;
     for (auto const& attr : m_attrs) {
         if (attr.first == "xmlns" || attr.first == "x" || attr.first == "y") continue;
-        ss << " " << attr.first << "=\"" << attr.second << "\"";
+        if (attr.first == "stroke") {
+            if (stroke_width_is_zero) {
+                ss << " stroke=\"none\"";
+            } else {
+                ss << " stroke=\"" << attr.second << "\"";
+            }
+            stroke_attr_written = true;
+        } else {
+            ss << " " << attr.first << "=\"" << attr.second << "\"";
+        }
     }
+    if (stroke_width_is_zero && !stroke_attr_written) {
+        ss << " stroke=\"none\"";
+    }
+
     ss << ">";
     for (auto const& child : m_children) {
         write_element(ss, child);

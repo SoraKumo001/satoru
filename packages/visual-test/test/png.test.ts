@@ -4,7 +4,12 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { Satoru, RequiredResource } from "satoru";
 import { PNG } from "pngjs";
-import { downloadFont, compareImages, ComparisonMetrics, softExpect } from "../src/utils";
+import {
+  downloadFont,
+  compareImages,
+  ComparisonMetrics,
+  softExpect,
+} from "../src/utils";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -93,11 +98,11 @@ describe("PNG (Skia) Visual Tests", () => {
       const result = compareImages(
         refImg,
         currentImg,
-        path.join(DIFF_DIR, `direct-${file.replace(".html", "")}`),
+        path.join(DIFF_DIR, `png-${file.replace(".html", "")}`),
       );
 
       console.log(
-        `${file} (Direct): Fill: ${result.fill.toFixed(2)}%, Outline: ${result.outline.toFixed(2)}%`,
+        `${file} (Png): Fill: ${result.fill.toFixed(2)}%, Outline: ${result.outline.toFixed(2)}%`,
       );
 
       const baseline = baselines[file]?.png;
@@ -107,17 +112,28 @@ describe("PNG (Skia) Visual Tests", () => {
       } else {
         const factor = process.env.GITHUB_ACTIONS ? 20.0 : 1.0;
         const minTolerance = process.env.GITHUB_ACTIONS ? 15.0 : 0.01;
-        softExpect(result.outline, `Outline diff for ${file} increased`, (v) => {
-          expect(v).toBeLessThanOrEqual(Math.max(baseline.outline, minTolerance) * factor);
-        });
+        softExpect(
+          result.outline,
+          `Outline diff for ${file} increased`,
+          (v) => {
+            expect(v).toBeLessThanOrEqual(
+              Math.max(baseline.outline, minTolerance) * factor,
+            );
+          },
+        );
 
         if (result.fill < baseline.fill) baseline.fill = result.fill;
-        if (result.outline < baseline.outline) baseline.outline = result.outline;
+        if (result.outline < baseline.outline)
+          baseline.outline = result.outline;
       }
 
-      softExpect(result.outline, `Outline diff for ${file} is too high`, (v) => {
-        expect(v).toBeLessThan(15);
-      });
+      softExpect(
+        result.outline,
+        `Outline diff for ${file} is too high`,
+        (v) => {
+          expect(v).toBeLessThan(15);
+        },
+      );
       softExpect(result.fill, `Fill diff for ${file} is too high`, (v) => {
         expect(v).toBeLessThan(30);
       });

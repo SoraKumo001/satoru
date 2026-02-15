@@ -94,6 +94,7 @@ describe("SVG (Browser) Visual Tests", () => {
       await page.setContent(
         `<style>body { margin: 0; padding: 0; overflow: hidden; }</style>${svg}`,
       );
+      await page.waitForTimeout(100);
       const svgPngBuffer = await page.screenshot({ omitBackground: false });
 
       const currentImg = PNG.sync.read(svgPngBuffer);

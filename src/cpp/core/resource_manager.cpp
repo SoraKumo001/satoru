@@ -39,6 +39,11 @@ void ResourceManager::request(const std::string& url, const std::string& name, R
         }
     }
 
+    // Check if this URL is already requested (regardless of name/type)
+    for (const auto& req : m_requests) {
+        if (req.url == url) return;
+    }
+
     m_requests.insert({url, name, type});
 }
 

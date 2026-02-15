@@ -164,7 +164,8 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
     float descent = skfm.fDescent;
     float leading = skfm.fLeading;
     if (fm) {
-        float css_line_height = std::max((float)(ascent + descent + leading), (float)desc.size * 1.2f);
+        float css_line_height =
+            std::max((float)(ascent + descent + leading), (float)desc.size * 1.2f);
         fm->font_size = (float)desc.size;
         fm->ascent = ascent;
         fm->descent = descent;

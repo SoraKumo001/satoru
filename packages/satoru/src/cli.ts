@@ -45,7 +45,8 @@ async function main() {
     if (isUrl) {
         options.output = "output" + ext;
     } else {
-        options.output = input.replace(/\.[^/.]+$/, "") + ext;
+        const basename = path.basename(input, path.extname(input));
+        options.output = basename + ext;
     }
   }
 

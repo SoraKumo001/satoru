@@ -127,7 +127,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
   - Container overrides MUST return `litehtml::pixel_t` (float), not `int`.
 
 - **Layout Defaults:**
-  - `line-height`: `1.2` times font height for `normal`.
+  - `line-height`: Browser behavior (Ascent + Descent + Leading). Half-leading is distributed equally above and below the content area.
   - `box-sizing`: `border-box` for inputs/buttons.
 
 - **CSS Engine (litehtml Customizations):**

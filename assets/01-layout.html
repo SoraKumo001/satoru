@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <style>
@@ -9,6 +10,7 @@
       font-weight: 400;
       src: url(https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2) format('woff2');
     }
+
     @font-face {
       font-family: 'Noto Sans JP';
       font-style: normal;
@@ -23,13 +25,15 @@
       --accent: #e74c3c;
       --bg: #f3f4f6;
     }
+
     body {
-      font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+      font-family: 'Roboto', 'Noto Sans JP';
       background-color: var(--bg);
       margin: 0;
       padding: 20px;
       color: #333;
     }
+
     .dashboard {
       max-width: 900px;
       margin: 0 auto;
@@ -37,6 +41,7 @@
       flex-direction: column;
       gap: 20px;
     }
+
     header {
       background-color: #1f2937;
       color: white;
@@ -45,12 +50,14 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
+
     .main-container {
       display: flex;
       gap: 20px;
     }
+
     aside {
       width: 200px;
       background: white;
@@ -61,17 +68,20 @@
       flex-direction: column;
       gap: 10px;
     }
+
     main {
       flex: 1;
       display: flex;
       flex-direction: column;
       gap: 20px;
     }
+
     .grid {
       display: flex;
       gap: 20px;
       flex-wrap: wrap;
     }
+
     .card {
       flex: 1;
       min-width: 200px;
@@ -79,11 +89,13 @@
       padding: 20px;
       border-radius: 12px;
       border: 1px solid #e5e7eb;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
+
     .card-accent {
       border-left: 4px solid var(--primary);
     }
+
     .stack-test {
       position: relative;
       height: 150px;
@@ -91,6 +103,7 @@
       border-radius: 12px;
       overflow: hidden;
     }
+
     .overlap-box {
       position: absolute;
       width: 80px;
@@ -101,8 +114,9 @@
       font-weight: bold;
       color: white;
       border-radius: 8px;
-      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+      box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
     }
+
     .ui-profile {
       width: 300px;
       background: white;
@@ -113,6 +127,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="dashboard">
     <header>
@@ -124,7 +139,8 @@
 
     <div class="main-container">
       <aside>
-        <div style="padding: 8px; background: #eff6ff; color: #1d4ed8; border-radius: 6px; font-weight: bold;">Overview</div>
+        <div style="padding: 8px; background: #eff6ff; color: #1d4ed8; border-radius: 6px; font-weight: bold;">Overview
+        </div>
         <div style="padding: 8px; color: #4b5563;">Analytics</div>
         <div style="padding: 8px; color: #4b5563;">Settings</div>
       </aside>
@@ -146,7 +162,8 @@
           <div class="stack-test">
             <div class="overlap-box" style="top: 20px; left: 20px; background: var(--primary); z-index: 3;">Top</div>
             <div class="overlap-box" style="top: 40px; left: 60px; background: var(--secondary); z-index: 1;">Back</div>
-            <div class="overlap-box" style="top: 60px; left: 100px; background: var(--accent); z-index: 2; border: 3px solid white;">Mid</div>
+            <div class="overlap-box"
+              style="top: 60px; left: 100px; background: var(--accent); z-index: 2; border: 3px solid white;">Mid</div>
           </div>
         </section>
 
@@ -154,10 +171,13 @@
           <div style="height: 80px; background: linear-gradient(135deg, #667eea, #764ba2);"></div>
           <div style="padding: 15px;">
             <h4 style="margin: 0 0 10px 0;">UI Component Test</h4>
-            <p style="font-size: 13px; color: #718096; margin-bottom: 15px;">Combined layout elements in a single card.</p>
+            <p style="font-size: 13px; color: #718096; margin-bottom: 15px;">Combined layout elements in a single card.
+            </p>
             <div style="display: flex; gap: 8px;">
-              <button style="flex: 1; padding: 8px; background: #4c51bf; color: white; border: none; border-radius: 6px;">Action</button>
-              <button style="flex: 1; padding: 8px; background: white; color: #4c51bf; border: 1px solid #4c51bf; border-radius: 6px;">Cancel</button>
+              <button
+                style="flex: 1; padding: 8px; background: #4c51bf; color: white; border: none; border-radius: 6px;">Action</button>
+              <button
+                style="flex: 1; padding: 8px; background: white; color: #4c51bf; border: 1px solid #4c51bf; border-radius: 6px;">Cancel</button>
             </div>
           </div>
         </div>
@@ -165,4 +185,5 @@
     </div>
   </div>
 </body>
+
 </html>

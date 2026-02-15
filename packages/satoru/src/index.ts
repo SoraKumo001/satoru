@@ -281,25 +281,26 @@ export class Satoru {
 
       let { resolveResource } = options;
 
-      if (!resolveResource && baseUrl) {
+      if (!resolveResource) {
         resolveResource = async (r: RequiredResource) => {
           try {
             const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(r.url);
-            if (
-              !isAbsolute &&
-              typeof process !== "undefined" &&
-              process.versions?.node
-            ) {
+            if (typeof process !== "undefined" && process.versions?.node) {
               try {
                 const path = await import("path");
                 const fs = await import("fs");
-                let baseDir = baseUrl.startsWith("file://")
-                  ? baseUrl.slice(7)
-                  : baseUrl;
+                let baseDir = baseUrl
+                  ? baseUrl.startsWith("file://")
+                    ? baseUrl.slice(7)
+                    : baseUrl
+                  : process.cwd();
+
                 if (process.platform === "win32" && baseDir.startsWith("/")) {
                   baseDir = baseDir.slice(1);
                 }
+
                 if (
+                  !isAbsolute &&
                   !/^[a-z][a-z0-9+.-]*:\/\//i.test(baseDir) &&
                   !baseDir.startsWith("data:")
                 ) {
@@ -313,13 +314,14 @@ export class Satoru {
               }
             }
 
-            let finalUrl: string;
+            let finalUrl: string | null = null;
             if (isAbsolute) {
               finalUrl = r.url;
-            } else {
-              if (!/^[a-z][a-z0-9+.-]*:/i.test(baseUrl)) return null;
+            } else if (baseUrl && /^[a-z][a-z0-9+.-]*:/i.test(baseUrl)) {
               finalUrl = new URL(r.url, baseUrl).href;
             }
+
+            if (!finalUrl) return null;
 
             const headers: Record<string, string> = {};
             if (

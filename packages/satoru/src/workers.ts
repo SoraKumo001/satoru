@@ -18,11 +18,11 @@ export type {
  *                      Defaults to the bundled workers.js in the same directory.
  * @param params.maxParallel Maximum number of parallel workers
  */
-export const createSatoruWorker = (params: {
+export const createSatoruWorker = (params?: {
   worker?: string | URL | (() => Worker | string | URL);
   maxParallel?: number;
 }) => {
-  const { worker, maxParallel = 4 } = params;
+  const { worker, maxParallel = 4 } = params ?? {};
 
   const factory = () => {
     let w: any;

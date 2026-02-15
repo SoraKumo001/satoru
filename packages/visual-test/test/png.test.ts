@@ -30,7 +30,7 @@ describe("PNG (Skia) Visual Tests", () => {
     [DIFF_DIR, TEMP_DIR].forEach(
       (dir) => !fs.existsSync(dir) && fs.mkdirSync(dir, { recursive: true }),
     );
-    satoru = createSatoruWorker({});
+    satoru = createSatoruWorker();
     if (fs.existsSync(BASELINE_PATH)) {
       baselines = JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"));
     }
@@ -66,6 +66,7 @@ describe("PNG (Skia) Visual Tests", () => {
         value: html,
         width: 800,
         format: "png",
+        baseUrl: ASSETS_DIR,
         css: "body { margin: 8px; }",
       })) as Uint8Array;
 

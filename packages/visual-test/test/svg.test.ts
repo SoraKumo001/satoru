@@ -33,7 +33,7 @@ describe("SVG (Browser) Visual Tests", () => {
     [DIFF_DIR, TEMP_DIR].forEach(
       (dir) => !fs.existsSync(dir) && fs.mkdirSync(dir, { recursive: true }),
     );
-    satoru = createSatoruWorker({});
+    satoru = createSatoruWorker();
     browser = await chromium.launch();
     page = await browser.newPage();
     if (fs.existsSync(BASELINE_PATH)) {
@@ -72,6 +72,7 @@ describe("SVG (Browser) Visual Tests", () => {
         value: html,
         width: 800,
         format: "svg",
+        baseUrl: ASSETS_DIR,
         css: "body { margin: 8px; }",
       })) as string;
 

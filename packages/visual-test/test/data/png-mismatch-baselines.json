@@ -1,70 +1,70 @@
 {
   "01-layout.html": {
-    "fill": 12.836500000000001,
-    "outline": 8.739875
+    "fill": 4.719125,
+    "outline": 9.975249999999999
   },
   "02-typography.html": {
-    "fill": 7.743149038461539,
-    "outline": 9.17920673076923
+    "fill": 2.111658653846154,
+    "outline": 2.3429086538461537
   },
   "03-graphics.html": {
-    "fill": 7.062125,
-    "outline": 2.69625
+    "fill": 1.185125,
+    "outline": 1.427125
   },
   "04-box-effects.html": {
-    "fill": 0.308125,
-    "outline": 0.605625
+    "fill": 0.30925,
+    "outline": 0.22837500000000002
   },
   "05-images.html": {
-    "fill": 9.082374999999999,
-    "outline": 9.38725
+    "fill": 3.665375,
+    "outline": 5.6693750000000005
   },
   "06-box-layout.html": {
-    "fill": 3.859625,
-    "outline": 2.996625
+    "fill": 2.76975,
+    "outline": 3.2515
   },
   "07-heading-test.html": {
-    "fill": 1.0968749999999998,
-    "outline": 2.359375
+    "fill": 1.521125,
+    "outline": 3.03525
   },
   "08-font-weight-test.html": {
-    "fill": 1.25725,
-    "outline": 3.8426250000000004
+    "fill": 2.36875,
+    "outline": 6.52625
   },
   "09-flexbox-test.html": {
-    "fill": 10.007435897435897,
-    "outline": 8.874038461538461
+    "fill": 3.270833333333333,
+    "outline": 7.130256410256411
   },
   "10-border-test.html": {
-    "fill": 2.703125,
-    "outline": 3.608625
+    "fill": 1.3485,
+    "outline": 1.032125
   },
   "11-google-fonts-test.html": {
-    "fill": 1.798375,
-    "outline": 4.523375000000001
+    "fill": 1.248125,
+    "outline": 1.73425
   },
   "12-position-test.html": {
-    "fill": 2.82725,
-    "outline": 3.4028750000000003
+    "fill": 1.6475,
+    "outline": 1.584375
   },
   "13-table-test.html": {
-    "fill": 28.9738271068636,
-    "outline": 12.305929626411816
+    "fill": 7.029105125977411,
+    "outline": 11.49641615986099
   },
   "14-list-marker-test.html": {
-    "fill": 0.9012910798122066,
-    "outline": 2.50575117370892
+    "fill": 1.3659624413145541,
+    "outline": 3.3792253521126763
   },
   "15-svg-test.html": {
-    "fill": 1.6636250000000001,
-    "outline": 1.068125
+    "fill": 0.7877500000000001,
+    "outline": 0.94275
   },
   "16-flex-gap-test.html": {
-    "fill": 14.256874999999999,
-    "outline": 5.334499999999999
+    "fill": 4.79,
+    "outline": 5.653625
   },
   "17-filter-test.html": {
-    "fill": 8.992875,
-    "outline": 5.431
+    "fill": 4.22,
+    "outline": 4.872
   }
 }

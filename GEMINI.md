@@ -130,6 +130,10 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
   - `line-height`: `1.2` times font height for `normal`.
   - `box-sizing`: `border-box` for inputs/buttons.
 
+- **CSS Engine (litehtml Customizations):**
+  - **Inline Styles Priority:** Inline styles (`style` attribute) must be parsed with `litehtml::css::unlayered_id` to ensure they correctly override properties from stylesheets (which also use `unlayered_id`).
+  - **Style Recalculation:** `litehtml::html_tag::refresh_styles` must re-parse the `style` attribute to prevent inline styles from being lost during style recalculations (e.g., when pseudo-classes change).
+
 ### 4. Skia API & Release Notes
 
 - **SkPath Immutability:** Use `SkPathBuilder` instead of direct `SkPath` modification.
@@ -142,6 +146,7 @@ When using `get_text_file_contents` and `edit_text_file_contents`, strictly foll
 - **Visual Regression Suite (`packages/visual-test`)**:
   - Compares Skia PNG, SVG-rendered PNG, and PDF output.
   - Uses `flattenAlpha` and white-pixel padding for stabilization.
+  - **Read-Only Protocol:** Tests in `png.test.ts` and `svg.test.ts` do NOT write to `REFERENCE_DIR`. They strictly compare against existing references. If a reference is missing, the test fails with an instruction to run `gen-ref`.
 - **Output Validation**:
   - Use `pnpm --filter visual-test convert-assets [file.html] [--verbose]` to verify rendering.
   - Output generated in `packages/visual-test/temp/`.

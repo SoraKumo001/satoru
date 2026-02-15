@@ -81,12 +81,12 @@ document::ptr document::createFromString(
 
 	if (master_styles != "")
 	{
-		doc->m_master_css.parse_css_stylesheet(master_styles, "", doc);
+		doc->m_master_css.parse_css_stylesheet(master_styles, "", doc, nullptr, true, 0);
 		doc->m_master_css.sort_selectors();
 	}
 	if (user_styles != "")
 	{
-		doc->m_user_css.parse_css_stylesheet(user_styles, "", doc);
+		doc->m_user_css.parse_css_stylesheet(user_styles, "", doc, nullptr, true, 1);
 		doc->m_user_css.sort_selectors();
 	}
 

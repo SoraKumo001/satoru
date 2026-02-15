@@ -369,7 +369,7 @@ void litehtml::html_tag::compute_styles(bool recursive)
 
         if (style)
         {
-                m_style.add(style, "", doc->container());
+                m_style.add(style, "", doc->container(), css::unlayered_id);
         }
 
         m_style.subst_vars(this);
@@ -1609,6 +1609,12 @@ void litehtml::html_tag::refresh_styles()
                                 }
                         }
                 }
+        }
+
+        const char* style = get_attr("style");
+        if (style)
+        {
+                m_style.add(style, "", get_document()->container(), css::unlayered_id);
         }
 }
 

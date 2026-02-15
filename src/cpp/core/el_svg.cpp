@@ -5,8 +5,8 @@
 #include "container_skia.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkStream.h"
-#include "libs/litehtml/include/litehtml/render_item.h"
 #include "libs/litehtml/include/litehtml/render_image.h"
+#include "libs/litehtml/include/litehtml/render_item.h"
 #include "modules/svg/include/SkSVGDOM.h"
 
 namespace litehtml {
@@ -60,7 +60,8 @@ void el_svg::get_content_size(size& sz, pixel_t max_width) {
     if (sz.height == 0) sz.height = 100;
 }
 
-std::shared_ptr<render_item> el_svg::create_render_item(const std::shared_ptr<render_item>& parent_ri) {
+std::shared_ptr<render_item> el_svg::create_render_item(
+    const std::shared_ptr<render_item>& parent_ri) {
     auto ret = std::make_shared<render_item_image>(shared_from_this());
     ret->parent(parent_ri);
     return ret;

@@ -1221,17 +1221,18 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
         // ポストプロセッサはこの色を見つけたら、直後の要素に filter 属性を付ける。
         SkPaint p;
         p.setColor(SkColorSetARGB(255, 0, 4, (index & 0xFF)));
-        
+
         SkRect rect;
         if (!m_clips.empty()) {
             rect = SkRect::MakeXYWH((float)m_clips.back().first.x, (float)m_clips.back().first.y,
-                                    (float)m_clips.back().first.width, (float)m_clips.back().first.height);
+                                    (float)m_clips.back().first.width,
+                                    (float)m_clips.back().first.height);
         } else {
             rect = SkRect::MakeWH((float)m_width, (float)m_height);
         }
-        
+
         m_canvas->drawRect(rect, p);
-        m_canvas->save(); // 対応する pop_filter の restore のため
+        m_canvas->save();  // 対応する pop_filter の restore のため
         return;
     }
 
@@ -1301,7 +1302,7 @@ void container_skia::pop_filter(litehtml::uint_ptr hdc) {
             // フィルター終了タグを出力
             SkPaint p;
             p.setColor(SkColorSetARGB(255, 0, 5, 0));
-            SkRect rect = SkRect::MakeXYWH(0, 0, 1, 1); // 最小サイズの矩形
+            SkRect rect = SkRect::MakeXYWH(0, 0, 1, 1);  // 最小サイズの矩形
             m_canvas->drawRect(rect, p);
         }
         m_canvas->restore();

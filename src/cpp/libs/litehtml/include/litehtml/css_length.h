@@ -27,6 +27,9 @@ namespace litehtml
 		};
 		css_units	m_units;
 		bool		m_is_predefined;
+		float		m_px;
+		float		m_percent;
+		bool		m_is_calc;
 	public:
 		css_length();
 		css_length(float val, css_units units = css_units_px);
@@ -42,6 +45,9 @@ namespace litehtml
 		pixel_t		calc_percent(pixel_t width) const;
 		bool		from_token(const css_token& token, int options, const string& predefined_keywords = "");
 		string		to_string() const;
+
+		void        set_calc(float px, float percent) { m_px = px; m_percent = percent; m_is_calc = true; m_is_predefined = false; }
+		bool        is_calc() const { return m_is_calc; }
 	};
 
 	using length_vector = vector<css_length>;
@@ -54,6 +60,9 @@ namespace litehtml
 		m_predef		= 0;
 		m_units			= css_units_none;
 		m_is_predefined	= false;
+		m_px            = 0;
+		m_percent       = 0;
+		m_is_calc       = false;
 	}
 
 	inline css_length::css_length(float val, css_units units)
@@ -61,6 +70,9 @@ namespace litehtml
 		m_value = val;
 		m_units = units;
 		m_is_predefined = false;
+		m_px            = 0;
+		m_percent       = 0;
+		m_is_calc       = false;
 	}
 
 	inline css_length&	css_length::operator=(float val)
@@ -68,6 +80,9 @@ namespace litehtml
 		m_value = val;
 		m_units = css_units_px;
 		m_is_predefined = false;
+		m_px            = 0;
+		m_percent       = 0;
+		m_is_calc       = false;
 		return *this;
 	}
 
@@ -116,6 +131,10 @@ namespace litehtml
 	{
 		if(!is_predefined())
 		{
+			if (m_is_calc)
+			{
+				return (pixel_t)(m_px + (width * m_percent / 100.0));
+			}
 			if(units() == css_units_percentage)
 			{
 				return (pixel_t) (width * m_value / 100.0);

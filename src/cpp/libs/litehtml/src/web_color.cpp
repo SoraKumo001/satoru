@@ -446,6 +446,15 @@ void oklch_to_rgb(float l, float c, float h, float a, float& r, float& g, float&
 	b = gamma(b_lin);
 }
 
+void rgb_to_oklch(float r, float g, float b, float& l, float& c, float& h)
+{
+	float a, b_out;
+	rgb_to_oklab(r, g, b, l, a, b_out);
+	c = sqrt(a * a + b_out * b_out);
+	h = atan2(b_out, a) * 180.0f / 3.14159265358979323846f;
+	if (h < 0) h += 360.0f;
+}
+
 // https://drafts.csswg.org/css-color-4/#the-oklch-notation
 bool parse_oklch_func(const css_token& tok, web_color& color, document_container* container)
 {
@@ -601,15 +610,6 @@ bool parse_color_with_opt_percent(const css_token_vector& tokens, web_color& col
 	}
 
 	return color_idx != -1;
-}
-
-void rgb_to_oklch(float r, float g, float b, float& l, float& c, float& h)
-{
-	float a, b_out;
-	rgb_to_oklab(r, g, b, l, a, b_out);
-	c = sqrt(a * a + b_out * b_out);
-	h = atan2(b_out, a) * 180.0f / 3.14159265358979323846f;
-	if (h < 0) h += 360.0f;
 }
 
 // https://drafts.csswg.org/css-color-5/#color-mix

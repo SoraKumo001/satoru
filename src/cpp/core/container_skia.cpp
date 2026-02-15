@@ -24,6 +24,10 @@
 #include "litehtml/css_parser.h"
 #include "utils/skia_utils.h"
 
+namespace litehtml {
+vector<css_token_vector> parse_comma_separated_list(const css_token_vector &tokens);
+}
+
 namespace {
 static SkColor darken(litehtml::web_color c, float fraction) {
     return SkColorSetARGB(c.alpha,

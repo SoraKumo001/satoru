@@ -1574,33 +1574,9 @@ namespace litehtml
     auto prop = m_properties.find(name);
     if (prop != m_properties.end())
     {
-      if (!prop->second.m_important)
+      if (propval.m_priority >= prop->second.m_priority)
       {
-          if (propval.m_important)
-          {
-              prop->second = propval;
-          }
-          else if (propval.m_layer > prop->second.m_layer)
-          {
-              prop->second = propval;
-          }
-          else if (propval.m_layer == prop->second.m_layer)
-          {
-              if (propval.m_specificity >= prop->second.m_specificity)
-                  prop->second = propval;
-          }
-      }
-      else if (propval.m_important)
-      {
-          if (propval.m_layer < prop->second.m_layer)
-          {
-              prop->second = propval;
-          }
-          else if (propval.m_layer == prop->second.m_layer)
-          {
-              if (propval.m_specificity >= prop->second.m_specificity)
-                  prop->second = propval;
-          }
+          prop->second = propval;
       }
     }
     else
@@ -1612,7 +1588,7 @@ namespace litehtml
     auto prop = m_properties.find(name);
     if (prop != m_properties.end())
     {
-      if (!prop->second.m_important || (important && prop->second.m_important))
+      if (!prop->second.m_priority.important || (important && prop->second.m_priority.important))
         m_properties.erase(prop);
     }
   }
@@ -1624,7 +1600,7 @@ namespace litehtml
         property_value val = property.second;
         if (specificity != selector_specificity())
         {
-            val.m_specificity = specificity;
+            val.m_priority.specificity = specificity;
         }
         add_parsed_property(property.first, val);
     }
@@ -1859,7 +1835,7 @@ namespace litehtml
       {
         auto &value = prop.second.get<css_token_vector>();
         subst_vars_(prop.first, value, el);
-        add_property(prop.first, value, "", prop.second.m_important, el->get_document()->container(), prop.second.m_layer, prop.second.m_specificity);
+        add_property(prop.first, value, "", prop.second.m_priority.important, el->get_document()->container(), prop.second.m_priority.layer_rank, prop.second.m_priority.specificity);
       }
     }
   }

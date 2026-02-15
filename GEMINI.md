@@ -113,6 +113,7 @@ You are operating in a **Windows PowerShell** environment.
   - `box-sizing`: `border-box` for inputs/buttons.
 
 - **CSS Engine (litehtml Customizations):**
+  - **Cascade Priority Logic:** The CSS priority logic is encapsulated in the `css_priority` struct (in `style.h`). It implements the correct W3C cascade order: `Important` > `Layer` > `Specificity`. Comparison operators (`operator<`, `operator>=`) are used in `style::add_parsed_property` to ensure predictable overriding behavior.
   - **Inline Styles Priority:** Inline styles (`style` attribute) must be parsed with `litehtml::css::unlayered_id` to ensure they correctly override properties from stylesheets (which also use `unlayered_id`).
   - **Style Recalculation:** `litehtml::html_tag::refresh_styles` must re-parse the `style` attribute to prevent inline styles from being lost during style recalculations (e.g., when pseudo-classes change).
 
@@ -169,4 +170,3 @@ You are operating in a **Windows PowerShell** environment.
 - **Visual Tests:** Run with `--verbose` to see logs in the console.
   - Example: `pnpm --filter visual-test convert-assets test.html --verbose`
   - Ensure you pass the correct relative path to `convert-assets`.
-

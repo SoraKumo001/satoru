@@ -1,4 +1,4 @@
-﻿#ifndef LH_STYLE_H
+#ifndef LH_STYLE_H
 #define LH_STYLE_H
 
 #include "background.h"
@@ -12,6 +12,30 @@ namespace litehtml
 {
         struct invalid {}; // indicates "not found" condition in style::get_property
         struct inherit {}; // "inherit" was specified as the value of this property
+
+        struct css_priority {
+            bool important;
+            int layer_rank;
+            selector_specificity specificity;
+
+            bool operator >= (const css_priority& other) const
+            {
+                if (important != other.important)
+                    return important;
+                if (layer_rank != other.layer_rank)
+                    return layer_rank > other.layer_rank;
+                return specificity >= other.specificity;
+            }
+
+            bool operator < (const css_priority& other) const
+            {
+                if (important != other.important)
+                    return !important;
+                if (layer_rank != other.layer_rank)
+                    return layer_rank < other.layer_rank;
+                return specificity < other.specificity;
+            }
+        };
 
         struct property_value : variant<
                 invalid,
@@ -31,14 +55,21 @@ namespace litehtml
                 css_token_vector
         >
         {
-                bool m_important = false;
-                bool m_has_var   = false; // css_token_vector, parsing is delayed because of var()   
-                int  m_layer     = 0;
-                selector_specificity m_specificity;
+                css_priority m_priority;
+                bool m_has_var = false; // css_token_vector, parsing is delayed because of var()   
 
-                property_value() {}
+                property_value() 
+                {
+                    m_priority.important = false;
+                    m_priority.layer_rank = 0;
+                }
                 template<class T> property_value(const T& val, bool important, bool has_var = false, int layer = 0, selector_specificity specificity = selector_specificity()) 
-                        : base(val), m_important(important), m_has_var(has_var), m_layer(layer), m_specificity(specificity) {}
+                        : base(val), m_has_var(has_var) 
+                {
+                    m_priority.important = important;
+                    m_priority.layer_rank = layer;
+                    m_priority.specificity = specificity;
+                }
         };
 
         class html_tag;

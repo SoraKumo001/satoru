@@ -19,6 +19,9 @@ void css_selector::calc_specificity()
 		if(attr.type == select_id)
 		{
 			m_specificity.b++;
+		} else if(attr.type == select_pseudo_element)
+		{
+			m_specificity.d++;
 		} else
 		{
 			m_specificity.c++;

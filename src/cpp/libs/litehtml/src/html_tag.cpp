@@ -226,7 +226,7 @@ void litehtml::html_tag::apply_stylesheet( const litehtml::css& stylesheet )
                                                 {
                                                         if(!content_none)
                                                         {
-                                                                el->add_style(*sel->m_style);        
+                                                                el->add_style(*sel->m_style, sel->m_specificity);        
                                                         } else
                                                         {
                                                                 el->parent()->removeChild(el);       
@@ -235,7 +235,7 @@ void litehtml::html_tag::apply_stylesheet( const litehtml::css& stylesheet )
                                                 {
                                                         if(!content_none)
                                                         {
-                                                                add_style(*sel->m_style);
+                                                                add_style(*sel->m_style, sel->m_specificity);
                                                         }
                                                 }
                                                 us->m_used = true;
@@ -251,7 +251,7 @@ void litehtml::html_tag::apply_stylesheet( const litehtml::css& stylesheet )
                                                         apply_before_after();
                                                 } else
                                                 {
-                                                        add_style(*sel->m_style);
+                                                        add_style(*sel->m_style, sel->m_specificity);
                                                         us->m_used = true;
                                                 }
                                         }
@@ -260,7 +260,7 @@ void litehtml::html_tag::apply_stylesheet( const litehtml::css& stylesheet )
                                         apply_before_after();
                                 } else
                                 {
-                                        add_style(*sel->m_style);
+                                        add_style(*sel->m_style, sel->m_specificity);
                                         us->m_used = true;
                                 }
                         }
@@ -369,7 +369,7 @@ void litehtml::html_tag::compute_styles(bool recursive)
 
         if (style)
         {
-                m_style.add(style, "", doc->container(), css::unlayered_id);
+                m_style.add(style, "", doc->container(), css::unlayered_id, selector_specificity(1, 0, 0, 0));
         }
 
         m_style.subst_vars(this);
@@ -1535,9 +1535,9 @@ void litehtml::html_tag::handle_counter_properties()
 }
 
 
-void litehtml::html_tag::add_style(const style& style)
+void litehtml::html_tag::add_style(const style& style, selector_specificity specificity)
 {
-        m_style.combine(style);
+        m_style.combine(style, specificity);
         handle_counter_properties();
 }
 
@@ -1572,19 +1572,19 @@ void litehtml::html_tag::refresh_styles()
                                                         element::ptr el = get_element_after(*usel->m_selector->m_style, false);
                                                         if(el)
                                                         {
-                                                                el->add_style(*usel->m_selector->m_style);
+                                                                el->add_style(*usel->m_selector->m_style, usel->m_selector->m_specificity);
                                                         }
                                                 } else if(apply & select_match_with_before)
                                                 {
                                                         element::ptr el = get_element_before(*usel->m_selector->m_style, false);
                                                         if(el)
                                                         {
-                                                                el->add_style(*usel->m_selector->m_style);
+                                                                el->add_style(*usel->m_selector->m_style, usel->m_selector->m_specificity);
                                                         }
                                                 }
                                                 else
                                                 {
-                                                        add_style(*usel->m_selector->m_style);       
+                                                        add_style(*usel->m_selector->m_style, usel->m_selector->m_specificity);       
                                                         usel->m_used = true;
                                                 }
                                         }
@@ -1593,18 +1593,18 @@ void litehtml::html_tag::refresh_styles()
                                         element::ptr el = get_element_after(*usel->m_selector->m_style, false);
                                         if(el)
                                         {
-                                                el->add_style(*usel->m_selector->m_style);
+                                                el->add_style(*usel->m_selector->m_style, usel->m_selector->m_specificity);
                                         }
                                 } else if(apply & select_match_with_before)
                                 {
                                         element::ptr el = get_element_before(*usel->m_selector->m_style, false);
                                         if(el)
                                         {
-                                                el->add_style(*usel->m_selector->m_style);
+                                                el->add_style(*usel->m_selector->m_style, usel->m_selector->m_specificity);
                                         }
                                 } else
                                 {
-                                        add_style(*usel->m_selector->m_style);
+                                        add_style(*usel->m_selector->m_style, usel->m_selector->m_specificity);
                                         usel->m_used = true;
                                 }
                         }
@@ -1614,7 +1614,7 @@ void litehtml::html_tag::refresh_styles()
         const char* style = get_attr("style");
         if (style)
         {
-                m_style.add(style, "", get_document()->container(), css::unlayered_id);
+                m_style.add(style, "", get_document()->container(), css::unlayered_id, selector_specificity(1, 0, 0, 0));
         }
 }
 

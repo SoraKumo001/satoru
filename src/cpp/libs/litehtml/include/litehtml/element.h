@@ -124,7 +124,7 @@ namespace litehtml
 		virtual bool				is_nth_child(const element::ptr& el, int num, int off, bool of_type, const css_selector::vector& selector_list = {}) const;
 		virtual bool				is_nth_last_child(const element::ptr& el, int num, int off, bool of_type, const css_selector::vector& selector_list = {}) const;
 		virtual bool				is_only_child(const element::ptr& el, bool of_type) const;
-		virtual void				add_style(const style& style);
+		virtual void				add_style(const style& style, selector_specificity specificity = selector_specificity());
 		virtual const background*	get_background(bool own_only = false);
 
 		virtual string				dump_get_name();

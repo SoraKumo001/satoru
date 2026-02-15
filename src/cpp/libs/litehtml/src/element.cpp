@@ -455,7 +455,7 @@ void litehtml::element::run_on_renderers(const std::function<bool(const std::sha
 }
 
 const background* element::get_background(bool /*own_only*/)						LITEHTML_RETURN_FUNC(nullptr)
-void element::add_style( const style& /*style*/)									LITEHTML_EMPTY_FUNC
+void element::add_style( const style& /*style*/, selector_specificity /*specificity*/)	LITEHTML_EMPTY_FUNC
 void element::select_all(const css_selector& /*selector*/, elements_list& /*res*/)	LITEHTML_EMPTY_FUNC
 elements_list element::select_all(const css_selector& /*selector*/)					LITEHTML_RETURN_FUNC(elements_list())
 elements_list element::select_all(const string& /*selector*/)						LITEHTML_RETURN_FUNC(elements_list())

@@ -97,7 +97,7 @@ namespace litehtml
 		void				parse_attributes() override;
 
 		void				get_content_size(size& sz, pixel_t max_width) override;
-		void				add_style(const style& style) override;
+		void				add_style(const style& style, selector_specificity specificity = selector_specificity()) override;
 
 		shared_ptr<html_tag> parent_tag() const;
 

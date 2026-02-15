@@ -380,7 +380,7 @@ std::list<litehtml::flex_line> litehtml::render_item_flex::get_lines(const liteh
 	for(auto& item : items)
 	{
 		pixel_t gap = line.items.empty() ? 0 : main_gap;
-		if(!line.items.empty() && !single_line && line.main_size + gap + item->main_size > container_main_size)
+		if(!line.items.empty() && !single_line && line.main_size + gap + item->main_size > container_main_size + 0.01)
 		{
 			lines.emplace_back(line);
 			line = flex_line(reverse_main, reverse_cross, main_gap);

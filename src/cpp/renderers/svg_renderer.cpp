@@ -140,6 +140,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                 lastPos = valEnd + (isAttr ? 1 : 0);
                 replaced = true;
             } else if (r == 0 && g == 4 && b > 0 && b <= (int)filters.size()) {
+                const auto &info = filters[b - 1];
                 std::string filterId = "filter-" + std::to_string(b);
                 size_t elementStart = svg.rfind('<', pos);
                 size_t elementEnd = svg.find("/>", valEnd);
@@ -147,7 +148,13 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                 if (elementStart != std::string::npos && elementEnd != std::string::npos &&
                     elementStart >= lastPos) {
                     result.erase(result.size() - (pos - elementStart));
-                    result.append("<g filter=\"url(#" + filterId + ")\">");
+                    std::stringstream ss;
+                    ss << "<g filter=\"url(#" << filterId << ")\"";
+                    if (info.opacity < 1.0f) {
+                        ss << " opacity=\"" << info.opacity << "\"";
+                    }
+                    ss << ">";
+                    result.append(ss.str());
 
                     lastPos = elementEnd + 2;
                     replaced = true;

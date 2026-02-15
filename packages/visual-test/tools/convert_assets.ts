@@ -65,7 +65,9 @@ async function main() {
     files.map(async (file) => {
       const startFileTime = Date.now();
       const filePath = path.join(ASSETS_DIR, file);
-      if (!fs.existsSync(filePath)) return;
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`File not found: ${filePath}`);
+      }
 
       const html = fs.readFileSync(filePath, "utf-8");
       const formats: ("svg" | "png" | "webp" | "pdf")[] = [

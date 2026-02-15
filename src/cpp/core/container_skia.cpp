@@ -603,7 +603,7 @@ void container_skia::draw_solid_fill(litehtml::uint_ptr hdc,
     if (!m_canvas) return;
     SkPaint p;
     p.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
-    if (m_tagging) {
+    if (m_tagging && m_usedFilters.empty()) {
         p.setAlphaf(p.getAlphaf() * get_current_opacity());
     }
     p.setAntiAlias(true);
@@ -1225,6 +1225,7 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
     if (m_tagging) {
         filter_info info;
         info.tokens = filter;
+        info.opacity = get_current_opacity();
         m_usedFilters.push_back(info);
         int index = (int)m_usedFilters.size();
 

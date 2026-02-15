@@ -99,6 +99,7 @@ struct text_draw_info {
 
 struct filter_info {
     litehtml::css_token_vector tokens;
+    float opacity;
 };
 
 #endif  // BRIDGE_TYPES_H

@@ -619,6 +619,9 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
         defs << "<filter id=\"filter-" << index
              << "\" x=\"-100%\" y=\"-100%\" width=\"300%\" height=\"300%\">";
 
+        std::string currentIn = "SourceGraphic";
+        int resIdx = 0;
+
         for (const auto &tok : f.tokens) {
             if (tok.type == litehtml::CV_FUNCTION) {
                 std::string name = litehtml::lowcase(tok.name);
@@ -630,7 +633,10 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
                         len.from_token(args[0][0], litehtml::f_length | litehtml::f_positive);
                         float sigma = len.val();
                         if (sigma > 0) {
-                            defs << "<feGaussianBlur stdDeviation=\"" << sigma << "\"/>";
+                            std::string nextIn = "res-" + std::to_string(++resIdx);
+                            defs << "<feGaussianBlur in=\"" << currentIn << "\" stdDeviation=\""
+                                 << sigma << "\" result=\"" << nextIn << "\"/>";
+                            currentIn = nextIn;
                         }
                     }
                 } else if (name == "drop-shadow") {
@@ -662,15 +668,35 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
                                                  std::to_string((int)color.blue) + ")";
                         float floodOpacity = (float)color.alpha / 255.0f;
 
-                        defs << "<feGaussianBlur in=\"SourceAlpha\" stdDeviation=\"" << blur * 0.5f
-                             << "\" result=\"blur\"/>"
-                             << "<feOffset in=\"blur\" dx=\"" << dx << "\" dy=\"" << dy
-                             << "\" result=\"offset\"/>"
+                        std::string nextIn = "res-" + std::to_string(++resIdx);
+                        std::string blurRes = "blur-" + std::to_string(resIdx);
+                        std::string offsetRes = "offset-" + std::to_string(resIdx);
+                        std::string colorRes = "color-" + std::to_string(resIdx);
+                        std::string shadowRes = "shadow-" + std::to_string(resIdx);
+
+                        std::string alphaIn = (currentIn == "SourceGraphic")
+                                                  ? "SourceAlpha"
+                                                  : "alpha-" + std::to_string(resIdx);
+                        if (currentIn != "SourceGraphic") {
+                            defs
+                                << "<feColorMatrix in=\"" << currentIn << "\" type=\"matrix\" "
+                                << "values=\"0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0\" result=\""
+                                << alphaIn << "\"/>";
+                        }
+
+                        defs << "<feGaussianBlur in=\"" << alphaIn << "\" stdDeviation=\""
+                             << blur * 0.5f << "\" result=\"" << blurRes << "\"/>"
+                             << "<feOffset in=\"" << blurRes << "\" dx=\"" << dx << "\" dy=\"" << dy
+                             << "\" result=\"" << offsetRes << "\"/>"
                              << "<feFlood flood-color=\"" << floodColor << "\" flood-opacity=\""
-                             << floodOpacity << "\" result=\"color\"/>"
-                             << "<feComposite in=\"color\" in2=\"offset\" operator=\"in\"/>"
-                             << "<feMerge><feMergeNode/><feMergeNode in=\"SourceGraphic\"/></"
-                                "feMerge>";
+                             << floodOpacity << "\" result=\"color-" << resIdx << "\"/>"
+                             << "<feComposite in=\"color-" << resIdx << "\" in2=\"" << offsetRes
+                             << "\" operator=\"in\" result=\"" << shadowRes << "\"/>"
+                             << "<feMerge result=\"" << nextIn << "\">"
+                             << "<feMergeNode in=\"" << shadowRes << "\"/>"
+                             << "<feMergeNode in=\"" << currentIn << "\"/>"
+                             << "</feMerge>";
+                        currentIn = nextIn;
                     }
                 }
             }

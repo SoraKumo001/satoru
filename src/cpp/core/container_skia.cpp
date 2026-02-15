@@ -1289,7 +1289,7 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
                     }
                     if (dx != 0 || dy != 0 || blur > 0) {
                         last_filter = SkImageFilters::DropShadow(
-                            dx, dy, blur, blur,
+                            dx, dy, blur * 0.5f, blur * 0.5f,
                             SkColorSetARGB(color.alpha, color.red, color.green, color.blue),
                             last_filter);
                     }

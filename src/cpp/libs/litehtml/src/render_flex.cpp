@@ -57,8 +57,8 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 		}
 	}
 
-	pixel_t main_gap = (pixel_t) (is_row_direction ? css().get_column_gap().val() : css().get_row_gap().val());
-	pixel_t cross_gap = (pixel_t) (is_row_direction ? css().get_row_gap().val() : css().get_column_gap().val());
+	pixel_t main_gap = (pixel_t)(is_row_direction ? css().get_column_gap().calc_percent(container_main_size) : css().get_row_gap().calc_percent(container_main_size));
+	pixel_t cross_gap = (pixel_t)(is_row_direction ? css().get_row_gap().calc_percent(self_size.render_height) : css().get_column_gap().calc_percent(self_size.render_width));
 
 	/////////////////////////////////////////////////////////////////
 	/// Split flex items to lines

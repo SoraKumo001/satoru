@@ -240,11 +240,15 @@ int css::get_layer_id(const string& name)
 	size_t end = name.find('.');
 	while (end != string::npos)
 	{
-		segments.push_back(name.substr(start, end - start));
+		string segment = name.substr(start, end - start);
+		segment = trim(segment);
+		segments.push_back(segment);
 		start = end + 1;
 		end = name.find('.', start);
 	}
-	segments.push_back(name.substr(start));
+	string segment = name.substr(start);
+	segment = trim(segment);
+	segments.push_back(segment);
 
 	string path = "";
 	long long rank = 0;

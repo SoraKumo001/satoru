@@ -726,9 +726,20 @@ void container_skia::draw_conic_gradient(
     }
 }
 
+#include "bridge/bridge_types.h"
+#include "api/satoru_api.h"
+
 void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::borders &borders,
                                   const litehtml::position &draw_pos, bool root) {
     if (!m_canvas) return;
+
+    if (borders.top.width > 0) {
+        char buf[256];
+        snprintf(buf, sizeof(buf), "draw_borders: top.width=%d, color=rgb(%d,%d,%d), style=%d, pos=(%d,%d,%d,%d)",
+                 borders.top.width, borders.top.color.red, borders.top.color.green, borders.top.color.blue, 
+                 borders.top.style, draw_pos.x, draw_pos.y, draw_pos.width, draw_pos.height);
+        satoru_log(LogLevel::Info, buf);
+    }
 
     bool uniform =
         borders.top.width == borders.bottom.width && borders.top.width == borders.left.width &&

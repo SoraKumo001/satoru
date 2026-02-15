@@ -738,12 +738,13 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height,
 
 std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context,
                             const char *master_css, const RenderOptions &options) {
-    container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context, nullptr,
-                                     false);
+    int initial_height = (height > 0) ? height : 1000;
+    container_skia container(width, initial_height, nullptr, context, nullptr, false);
+
     std::string css = master_css ? master_css : litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";
 
-    auto doc = litehtml::document::createFromString(html, &measure_container, css.c_str());
+    auto doc = litehtml::document::createFromString(html, &container, css.c_str());
     if (!doc) return "";
     doc->render(width);
 
@@ -760,18 +761,19 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, (float)content_height), &stream,
                                     svg_options);
 
-    container_skia render_container(width, content_height, canvas.get(), context, nullptr, true);
-    auto render_doc = litehtml::document::createFromString(html, &render_container, css.c_str());
-    render_doc->render(width);
+    container.set_canvas(canvas.get());
+    container.set_height(content_height);
+    container.set_tagging(true);
+    container.reset(); // Clear any state from measurement if necessary
 
     litehtml::position clip(0, 0, width, content_height);
-    render_doc->draw(0, 0, 0, &clip);
+    doc->draw(0, 0, 0, &clip);
 
     canvas.reset();
     sk_sp<SkData> data = stream.detachAsData();
     std::string svg((const char *)data->data(), data->size());
 
-    processTags(svg, context, render_container);
+    processTags(svg, context, container);
 
     // Ensure all <image> elements have preserveAspectRatio="none"
     size_t imgPos = 0;
@@ -786,7 +788,7 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
         imgPos = endPos;
     }
 
-    appendDefs(svg, render_container, context, options);
+    appendDefs(svg, container, context, options);
 
     return svg;
 }

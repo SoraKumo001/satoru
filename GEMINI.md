@@ -38,7 +38,7 @@ You are operating in a **Windows PowerShell** environment.
 
 ### 2. Build System
 
-- `pnpm build:all`: Standard build command (Builds everything including WASM + TS wrappers).
+- `pnpm build:all`: Standard build command. Use this for normal builds to verify code changes (Builds both WASM + TS wrappers).
 - `pnpm wasm:configure`: Configure CMake for WASM build via `tsx ./scripts/build-wasm.ts`.
 - `pnpm wasm:build`: Compile C++ to WASM. Produces `satoru.js`/`.wasm` and `satoru-single.js` in `packages/satoru/dist`.
 - `pnpm wasm:docker:build`: Build WASM inside Docker.
@@ -159,4 +159,14 @@ You are operating in a **Windows PowerShell** environment.
 ### 8. Code Maintenance
 
 - **Formatting:** Always run `pnpm format` to ensure code style consistency. This project uses `clang-format` for C++ and Prettier/TSX scripts for TypeScript.
+
+### 9. Logging & Debugging
+
+- **C++ Logging:** Use `satoru_log(LogLevel level, const char* message)` defined in `bridge/bridge_types.h`.
+  - `printf` or `std::cout` may not be visible in all environments (especially workers where `stdout` is not piped).
+  - Logs are routed to the JavaScript `onLog` callback via `satoru_api.cpp`.
+  - Example: `satoru_log(LogLevel::Info, "Message");`
+- **Visual Tests:** Run with `--verbose` to see logs in the console.
+  - Example: `pnpm --filter visual-test convert-assets test.html --verbose`
+  - Ensure you pass the correct relative path to `convert-assets`.
 

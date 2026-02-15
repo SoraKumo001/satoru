@@ -46,7 +46,6 @@ sk_sp<SkData> renderHtmlToPng(const char *html, int width, int height, SatoruCon
 
     std::string css = master_css ? master_css : litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";
-    css += "button { text-align: center; }\n";
 
     litehtml::document::ptr doc =
         litehtml::document::createFromString(html, &container, css.c_str());

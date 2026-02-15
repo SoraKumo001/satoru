@@ -461,12 +461,18 @@ bool parse_oklch_func(const css_token& tok, web_color& color, document_container
 	if (tok.type != CV_FUNCTION || lowcase(tok.name) != "oklch")
 		return false;
 
+	// Remove whitespace tokens for processing
+	css_token_vector tokens;
+	for (const auto& t : tok.value) {
+		if (t.type != WHITESPACE) tokens.push_back(t);
+	}
+
 	// Check for relative color syntax (from ...)
-	if (!tok.value.empty() && tok.value[0].type == IDENT && lowcase(tok.value[0].name) == "from")
+	if (!tokens.empty() && tokens[0].type == IDENT && lowcase(tokens[0].name) == "from")
 	{
-		if (tok.value.size() < 2) return false;
+		if (tokens.size() < 2) return false;
 		web_color base_color;
-		if (!parse_color(tok.value[1], base_color, container)) return false;
+		if (!parse_color(tokens[1], base_color, container)) return false;
 
 		float l, c, h;
 		rgb_to_oklch(base_color.red / 255.0f, base_color.green / 255.0f, base_color.blue / 255.0f, l, c, h);
@@ -476,14 +482,14 @@ bool parse_oklch_func(const css_token& tok, web_color& color, document_container
 		// For now, simple mapping
 		color = base_color;
 
-		for (size_t i = 2; i < tok.value.size(); i++)
+		for (size_t i = 2; i < tokens.size(); i++)
 		{
-			if (tok.value[i].ch == '/')
+			if (tokens[i].ch == '/')
 			{
-				if (i + 1 < tok.value.size())
+				if (i + 1 < tokens.size())
 				{
 					css_length alpha_len;
-					if (alpha_len.from_token(tok.value[i+1], f_number | f_percentage))
+					if (alpha_len.from_token(tokens[i+1], f_number | f_percentage))
 					{
 						color.alpha = calc_percent_and_clamp(alpha_len, 1);
 					}
@@ -494,26 +500,26 @@ bool parse_oklch_func(const css_token& tok, web_color& color, document_container
 		return true;
 	}
 
-	auto n = tok.value.size();
+	auto n = tokens.size();
 	if (!(n == 3 || n == 5)) return false;
 
 	css_length l, c, h, a(1, css_units_none);
 
-	if (!l.from_token(tok.value[0], f_number | f_percentage, "none")) return false;
-	if (!c.from_token(tok.value[1], f_number | f_percentage, "none")) return false;
+	if (!l.from_token(tokens[0], f_number | f_percentage, "none")) return false;
+	if (!c.from_token(tokens[1], f_number | f_percentage, "none")) return false;
 	
 	// Hue can be number or angle
-	if (!h.from_token(tok.value[2], f_number, "none"))
+	if (!h.from_token(tokens[2], f_number, "none"))
 	{
 		float hue;
-		if (!parse_angle(tok.value[2], hue)) return false;
+		if (!parse_angle(tokens[2], hue)) return false;
 		h.set_value(hue, css_units_none);
 	}
 
 	if (n == 5)
 	{
-		if (tok.value[3].ch != '/') return false;
-		if (!a.from_token(tok.value[4], f_number | f_percentage, "none")) return false;
+		if (tokens[3].ch != '/') return false;
+		if (!a.from_token(tokens[4], f_number | f_percentage, "none")) return false;
 	}
 
 	for (auto t : {&l,&c,&h,&a}) if (t->is_predefined()) t->set_value(0, css_units_none);
@@ -733,26 +739,32 @@ bool parse_oklab_func(const css_token& tok, web_color& color, document_container
 	if (tok.type != CV_FUNCTION || lowcase(tok.name) != "oklab")
 		return false;
 
+	// Remove whitespace tokens for processing
+	css_token_vector tokens;
+	for (const auto& t : tok.value) {
+		if (t.type != WHITESPACE) tokens.push_back(t);
+	}
+
 	// Check for relative color syntax (from ...)
-	if (!tok.value.empty() && tok.value[0].type == IDENT && lowcase(tok.value[0].name) == "from")
+	if (!tokens.empty() && tokens[0].type == IDENT && lowcase(tokens[0].name) == "from")
 	{
-		if (tok.value.size() < 2) return false;
+		if (tokens.size() < 2) return false;
 		web_color base_color;
-		if (!parse_color(tok.value[1], base_color, container)) return false;
+		if (!parse_color(tokens[1], base_color, container)) return false;
 
 		float l, a, b;
 		rgb_to_oklab(base_color.red / 255.0f, base_color.green / 255.0f, base_color.blue / 255.0f, l, a, b);
 		
 		color = base_color;
 
-		for (size_t i = 2; i < tok.value.size(); i++)
+		for (size_t i = 2; i < tokens.size(); i++)
 		{
-			if (tok.value[i].ch == '/')
+			if (tokens[i].ch == '/')
 			{
-				if (i + 1 < tok.value.size())
+				if (i + 1 < tokens.size())
 				{
 					css_length alpha_len;
-					if (alpha_len.from_token(tok.value[i+1], f_number | f_percentage))
+					if (alpha_len.from_token(tokens[i+1], f_number | f_percentage))
 					{
 						color.alpha = calc_percent_and_clamp(alpha_len, 1);
 					}
@@ -763,18 +775,18 @@ bool parse_oklab_func(const css_token& tok, web_color& color, document_container
 		return true;
 	}
 
-	auto n = tok.value.size();
+	auto n = tokens.size();
 	if (!(n == 3 || n == 5)) return false;
 
 	css_length l, a, b, alpha(1, css_units_none);
-	if (!l.from_token(tok.value[0], f_number | f_percentage, "none")) return false;
-	if (!a.from_token(tok.value[1], f_number | f_percentage, "none")) return false;
-	if (!b.from_token(tok.value[2], f_number | f_percentage, "none")) return false;
+	if (!l.from_token(tokens[0], f_number | f_percentage, "none")) return false;
+	if (!a.from_token(tokens[1], f_number | f_percentage, "none")) return false;
+	if (!b.from_token(tokens[2], f_number | f_percentage, "none")) return false;
 
 	if (n == 5)
 	{
-		if (tok.value[3].ch != '/') return false;
-		if (!alpha.from_token(tok.value[4], f_number | f_percentage, "none")) return false;
+		if (tokens[3].ch != '/') return false;
+		if (!alpha.from_token(tokens[4], f_number | f_percentage, "none")) return false;
 	}
 
 	for (auto t : {&l,&a,&b,&alpha}) if (t->is_predefined()) t->set_value(0, css_units_none);

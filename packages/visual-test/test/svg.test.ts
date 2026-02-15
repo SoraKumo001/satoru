@@ -102,9 +102,9 @@ describe("SVG (Browser) Visual Tests", () => {
       if (fs.existsSync(refPath)) {
         refImg = PNG.sync.read(fs.readFileSync(refPath));
       } else {
-        refImg = currentImg;
-        console.log(`Generated new reference for ${file} (from SVG)`);
-        fs.writeFileSync(refPath, svgPngBuffer);
+        throw new Error(
+          `Reference image missing for ${file}. Please run 'pnpm run gen-ref' first.`,
+        );
       }
 
       const result = compareImages(
@@ -112,10 +112,6 @@ describe("SVG (Browser) Visual Tests", () => {
         currentImg,
         path.join(DIFF_DIR, `svg-${file.replace(".html", "")}`),
       );
-
-      if (process.env.UPDATE_SNAPSHOTS && fs.existsSync(refPath)) {
-        fs.writeFileSync(refPath, svgPngBuffer);
-      }
 
       console.log(
         `${file} (SVG): Fill: ${result.fill.toFixed(2)}%, Outline: ${result.outline.toFixed(2)}%`,

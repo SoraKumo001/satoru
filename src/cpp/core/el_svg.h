@@ -14,6 +14,7 @@ class el_svg : public html_tag {
     void parse_attributes() override;
     bool is_replaced() const override { return true; }
     void get_content_size(size& sz, pixel_t max_width) override;
+    std::shared_ptr<render_item> create_render_item(const std::shared_ptr<render_item>& parent_ri) override;
 
    private:
     std::string reconstruct_xml(int x, int y) const;

@@ -85,9 +85,9 @@ describe("PNG (Skia) Visual Tests", () => {
       if (fs.existsSync(refPath)) {
         refImg = PNG.sync.read(fs.readFileSync(refPath));
       } else {
-        refImg = currentImg;
-        console.log(`Generated new reference for ${file}`);
-        fs.writeFileSync(refPath, Buffer.from(pngData));
+        throw new Error(
+          `Reference image missing for ${file}. Please run 'pnpm run gen-ref' first.`,
+        );
       }
 
       const result = compareImages(
@@ -95,10 +95,6 @@ describe("PNG (Skia) Visual Tests", () => {
         currentImg,
         path.join(DIFF_DIR, `direct-${file.replace(".html", "")}`),
       );
-
-      if (process.env.UPDATE_SNAPSHOTS && fs.existsSync(refPath)) {
-        fs.writeFileSync(refPath, Buffer.from(pngData));
-      }
 
       console.log(
         `${file} (Direct): Fill: ${result.fill.toFixed(2)}%, Outline: ${result.outline.toFixed(2)}%`,

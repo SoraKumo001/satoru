@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "../../../");
 const ASSETS_DIR = path.resolve(ROOT_DIR, "assets");
 const REFERENCE_DIR = path.resolve(__dirname, "../reference");
-const CONCURRENCY = 4; // 並列実行数
+const CONCURRENCY = 8; // 並列実行数
 
 async function processFile(browser: Browser, file: string) {
   const inputPath = path.join(ASSETS_DIR, file);
@@ -26,11 +26,7 @@ async function processFile(browser: Browser, file: string) {
     const html = `<style>body { margin: 8px; }</style>${htmlSource}`;
     await page.setContent(html);
     await page.waitForLoadState("networkidle");
-
-    // 画像等がある場合のみ短く待機（固定500msから短縮）
-    if (html.includes("<img") || html.includes("url(")) {
-      await page.waitForTimeout(200);
-    }
+    await page.waitForTimeout(500);
 
     const height = await page.evaluate(() => {
       const doc = document.documentElement;
@@ -50,7 +46,7 @@ async function processFile(browser: Browser, file: string) {
     await page.screenshot({
       path: outputPath,
       clip: { x: 0, y: 0, width: 800, height: finalHeight },
-      omitBackground: true,
+      omitBackground: false,
     });
     console.log(`✓ Generated: ${file}`);
   } finally {

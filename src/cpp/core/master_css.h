@@ -28,6 +28,7 @@ const char *satoru_master_css =
     "    background-color: #efefef;\n"
     "    color: #000;\n"
     "}\n"
-    "button, input, select, textarea { box-sizing: border-box; }\n";
+    "button, input, select, textarea { box-sizing: border-box; }\n"
+    "svg { display: inline-block; overflow: hidden; }\n";
 
 #endif  // SATORU_MASTER_CSS_H

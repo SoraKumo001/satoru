@@ -6,11 +6,14 @@
 #include "include/core/SkCanvas.h"
 #include "include/core/SkStream.h"
 #include "libs/litehtml/include/litehtml/render_item.h"
+#include "libs/litehtml/include/litehtml/render_image.h"
 #include "modules/svg/include/SkSVGDOM.h"
 
 namespace litehtml {
 
-el_svg::el_svg(const std::shared_ptr<document>& doc) : html_tag(doc) {}
+el_svg::el_svg(const std::shared_ptr<document>& doc) : html_tag(doc) {
+    m_css.set_display(display_inline_block);
+}
 el_svg::~el_svg() {}
 
 void el_svg::parse_attributes() {
@@ -30,10 +33,37 @@ void el_svg::get_content_size(size& sz, pixel_t max_width) {
         const char* str_h = get_attr("height");
         if (str_w) sz.width = (pixel_t)atof(str_w);
         if (str_h) sz.height = (pixel_t)atof(str_h);
+
+        if (sz.width == 0 || sz.height == 0) {
+            const char* str_vb = get_attr("viewBox");
+            if (str_vb) {
+                float vx, vy, vw, vh;
+                // Try space-separated first
+                if (sscanf(str_vb, "%f %f %f %f", &vx, &vy, &vw, &vh) == 4 ||
+                    sscanf(str_vb, "%f,%f,%f,%f", &vx, &vy, &vw, &vh) == 4) {
+                    if (vw > 0 && vh > 0) {
+                        if (sz.width == 0 && sz.height == 0) {
+                            sz.width = vw;
+                            sz.height = vh;
+                        } else if (sz.width == 0) {
+                            sz.width = sz.height * vw / vh;
+                        } else if (sz.height == 0) {
+                            sz.height = sz.width * vh / vw;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (sz.width == 0) sz.width = 100;
     if (sz.height == 0) sz.height = 100;
+}
+
+std::shared_ptr<render_item> el_svg::create_render_item(const std::shared_ptr<render_item>& parent_ri) {
+    auto ret = std::make_shared<render_item_image>(shared_from_this());
+    ret->parent(parent_ri);
+    return ret;
 }
 
 class html_tag_accessor : public html_tag {

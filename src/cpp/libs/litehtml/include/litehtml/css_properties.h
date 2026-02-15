@@ -106,6 +106,7 @@ namespace litehtml
     aspect_ratio m_aspect_ratio;
     css_token_vector m_transform;
     css_token_vector m_transform_origin;
+    css_token_vector m_filter;
 
   private:
     void compute_font(const html_tag *el, const std::shared_ptr<document> &doc);
@@ -164,7 +165,11 @@ namespace litehtml
                        m_order(0),
                        m_line_clamp(0),
                        m_webkit_box_orient(box_orient_horizontal),
-                       m_opacity(1.0f)
+                       m_opacity(1.0f),
+                       m_aspect_ratio(),
+                       m_transform(),
+                       m_transform_origin(),
+                       m_filter()
     {
     }
 
@@ -337,6 +342,7 @@ namespace litehtml
     const shadow_vector &get_box_shadow() const;
     const css_token_vector &get_transform() const;
     const css_token_vector &get_transform_origin() const;
+    const css_token_vector &get_filter() const;
   };
 
   inline element_position css_properties::get_position() const
@@ -868,6 +874,11 @@ namespace litehtml
   inline const css_token_vector &css_properties::get_transform_origin() const
   {
     return m_transform_origin;
+  }
+
+  inline const css_token_vector &css_properties::get_filter() const
+  {
+    return m_filter;
   }
 }
 

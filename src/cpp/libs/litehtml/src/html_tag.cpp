@@ -308,6 +308,12 @@ void litehtml::html_tag::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position
                 container->push_transform(hdc, m_css.get_transform(), m_css.get_transform_origin(), pos);
         }
 
+        bool has_filter = !m_css.get_filter().empty();
+        if (has_filter)
+        {
+                container->push_filter(hdc, m_css.get_filter());
+        }
+
         draw_background(hdc, x, y, clip, ri);
         draw_borders(hdc, x, y, clip, ri);
 
@@ -334,6 +340,11 @@ void litehtml::html_tag::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position
                 {
                         get_document()->container()->del_clip();
                 }
+        }
+
+        if (has_filter)
+        {
+                container->pop_filter(hdc);
         }
 
         if (has_transform)

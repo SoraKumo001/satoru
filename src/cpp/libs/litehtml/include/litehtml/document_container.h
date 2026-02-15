@@ -77,6 +77,8 @@ namespace litehtml
 
                 virtual void                            push_transform(uint_ptr hdc, const css_token_vector& transform, const css_token_vector& origin, const position& pos) {}
                 virtual void                            pop_transform(uint_ptr hdc) {}
+                virtual void                            push_filter(uint_ptr hdc, const css_token_vector& filter) {}
+                virtual void                            pop_filter(uint_ptr hdc) {}
 
         protected:
                 virtual ~document_container() = default;

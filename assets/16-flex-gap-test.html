@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Flexbox Gap and Transform Test</title>
+
+  <style>
+    @font-face {
+      font-family: 'Noto Sans JP';
+      src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFBEj75vY0rw-oME.ttf');
+      font-weight: 400;
+    }
+
+    :root {
+      --spacing: 20px;
+    }
+
+    body {
+      font-family: sans-serif;
+      background-color: #f3f4f6;
+      padding: 40px;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      /* Standard gap */
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      width: 600px;
+    }
+
+    .item {
+      width: calc(33.333% - (40px / 3));
+      /* calc with mixed units for 3 columns with 20px gap */
+      height: 100px;
+      background-color: #3b82f6;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      font-weight: bold;
+      transition: transform 0.3s;
+    }
+
+    .item:nth-child(2) {
+      background-color: #10b981;
+      transform: rotate(5deg) scale(1.1);
+    }
+
+    .item:nth-child(3) {
+      background-color: #ef4444;
+      transform: translateY(10px);
+    }
+
+    .item:nth-child(4) {
+      background-color: #f59e0b;
+      /* gap test with var and calc */
+      margin-top: var(--spacing);
+    }
+
+    .calc-gap-container {
+      display: flex;
+      margin-top: 40px;
+      gap: calc(var(--spacing) * 2);
+      /* 40px gap */
+      background-color: #e5e7eb;
+      padding: 20px;
+      width: 500px;
+    }
+
+    .box {
+      flex: 1;
+      height: 50px;
+      background-color: #8b5cf6;
+      border: 2px solid #6d28d9;
+    }
+
+    .logical-test {
+      margin-inline: auto;
+      padding-block: 20px;
+      border-inline: 4px solid #f43f5e;
+      width: 300px;
+      text-align: center;
+      margin-top: 20px;
+      background: light-dark(#fff, #333);
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Tailwind-style Flex & Gap Test</h1>
+
+  <div class="container">
+    <div class="item">Item 1</div>
+    <div class="item">Item 2 (Rotated)</div>
+    <div class="item">Item 3 (Offset)</div>
+    <div class="item">Item 4</div>
+    <div class="item">Item 5</div>
+    <div class="item">Item 6</div>
+  </div>
+
+  <div class="calc-gap-container">
+    <div class="box"></div>
+    <div class="box"></div>
+    <div class="box"></div>
+  </div>
+
+  <div class="logical-test">
+    Logical Properties & light-dark()
+  </div>
+</body>
+
+</html>

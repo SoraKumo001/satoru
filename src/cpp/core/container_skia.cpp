@@ -18,6 +18,7 @@
 #include "include/core/SkTileMode.h"
 #include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkGradient.h"
+#include "include/effects/SkImageFilters.h"
 #include "litehtml/el_table.h"
 #include "litehtml/el_td.h"
 #include "litehtml/el_tr.h"
@@ -1197,6 +1198,58 @@ void container_skia::push_transform(litehtml::uint_ptr hdc, const litehtml::css_
 }
 
 void container_skia::pop_transform(litehtml::uint_ptr hdc) {
+    if (m_canvas) {
+        m_canvas->restore();
+    }
+}
+
+void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_token_vector& filter) {
+    if (!m_canvas || filter.empty()) return;
+
+    sk_sp<SkImageFilter> last_filter = nullptr;
+
+    for (const auto& tok : filter) {
+        if (tok.type == litehtml::CV_FUNCTION) {
+            std::string name = litehtml::lowcase(tok.name);
+            auto args = litehtml::parse_comma_separated_list(tok.value);
+
+            if (name == "blur") {
+                if (!args.empty() && !args[0].empty()) {
+                    litehtml::css_length len;
+                    len.from_token(args[0][0], litehtml::f_positive);
+                    float sigma = len.val();
+                    last_filter = SkImageFilters::Blur(sigma, sigma, last_filter);
+                }
+            } else if (name == "drop-shadow") {
+                if (args.size() >= 1) { // drop-shadow(dx dy blur color)
+                    // Simplified: assume tokens are dx dy blur color in order
+                    float dx = 0, dy = 0, blur = 0;
+                    litehtml::web_color color = litehtml::web_color::black;
+                    int i = 0;
+                    for(const auto& t : tok.value) {
+                        if(t.type == litehtml::WHITESPACE) continue;
+                        if(i == 0) { litehtml::css_length l; l.from_token(t, 0); dx = l.val(); }
+                        else if(i == 1) { litehtml::css_length l; l.from_token(t, 0); dy = l.val(); }
+                        else if(i == 2) { litehtml::css_length l; l.from_token(t, 0); blur = l.val(); }
+                        else if(i == 3) { litehtml::parse_color(t, color, nullptr); }
+                        i++;
+                    }
+                    last_filter = SkImageFilters::DropShadow(dx, dy, blur, blur, SkColorSetARGB(color.alpha, color.red, color.green, color.blue), last_filter);
+                }
+            }
+        }
+    }
+
+    if (last_filter) {
+        SkPaint paint;
+        paint.setImageFilter(last_filter);
+        m_canvas->saveLayer(nullptr, &paint);
+    } else {
+        m_canvas->save(); // Still need to save for matching restore
+    }
+}
+
+void container_skia::pop_filter(litehtml::uint_ptr hdc) {
     if (m_canvas) {
         m_canvas->restore();
     }

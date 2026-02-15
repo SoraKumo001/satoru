@@ -11,11 +11,12 @@ namespace
 	{
 		float px = 0;
 		float percent = 0;
+		float rem = 0;
 
-		calc_value& operator+=(const calc_value& other) { px += other.px; percent += other.percent; return *this; }
-		calc_value& operator-=(const calc_value& other) { px -= other.px; percent -= other.percent; return *this; }
-		calc_value& operator*=(float scale) { px *= scale; percent *= scale; return *this; }
-		calc_value& operator/=(float div) { if (div != 0) { px /= div; percent /= div; } return *this; }
+		calc_value& operator+=(const calc_value& other) { px += other.px; percent += other.percent; rem += other.rem; return *this; }
+		calc_value& operator-=(const calc_value& other) { px -= other.px; percent -= other.percent; rem -= other.rem; return *this; }
+		calc_value& operator*=(float scale) { px *= scale; percent *= scale; rem *= scale; return *this; }
+		calc_value& operator/=(float div) { if (div != 0) { px /= div; percent /= div; rem /= div; } return *this; }
 	};
 
 	calc_value parse_calc_expression(const css_token_vector& tokens, size_t& i);
@@ -36,8 +37,11 @@ namespace
 		calc_value res;
 		if (t.type == DIMENSION)
 		{
-			if (lowcase(t.unit) == "px") res.px = t.n.number;
-			// For now only px is supported without document context
+			string unit = lowcase(t.unit);
+			if (unit == "px") res.px = t.n.number;
+			else if (unit == "rem") res.rem = t.n.number;
+			else if (unit == "em") res.px = t.n.number * 16.0f; // Temporary fallback
+			// For now only px and rem are supported without document context in calc
 		}
 		else if (t.type == PERCENTAGE)
 		{
@@ -105,7 +109,7 @@ bool css_length::from_token(const css_token& token, int options, const string& k
 	{
 		size_t i = 0;
 		calc_value val = parse_calc_expression(token.value, i);
-		set_calc(val.px, val.percent);
+		set_calc(val.px, val.percent, val.rem);
 		return true;
 	}
 
@@ -171,7 +175,7 @@ css_length css_length::predef_value(int val)
 string css_length::to_string() const
 {
 	if (is_predefined()) return "";
-	if (m_is_calc) return "calc(" + std::to_string(m_px) + "px + " + std::to_string(m_percent) + "%)";
+	if (m_is_calc) return "calc(" + std::to_string(m_px) + "px + " + std::to_string(m_percent) + "% + " + std::to_string(m_rem) + "rem)";
 	if (m_units == css_units_percentage) return std::to_string(m_value) + "%";
 	return std::to_string(m_value) + "px";
 }

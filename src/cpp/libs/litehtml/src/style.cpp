@@ -6,9 +6,11 @@
 #include <cstdio>
 #include "html_tag.h"
 #include "document.h"
+#include "document_container.h"
 
 namespace litehtml
 {
+  bool evaluate_calc(css_token_vector &tokens, const html_tag *el);
 
   bool parse_bg_image(const css_token &token, image &bg_image, document_container *container);
   bool parse_bg_position_size(const css_token_vector &tokens, int &index, css_length &x, css_length &y, css_size &size);
@@ -162,10 +164,13 @@ namespace litehtml
     if (value.empty() && _s(name).substr(0, 2) != "--")
       return;
 
-    if (has_var(value))
-      return add_parsed_property(name, property_value(value, important, true, m_layer, m_specificity));
+    css_token_vector evaluated_value = value;
+    evaluate_calc(evaluated_value, nullptr);
 
-    css_token val = value.size() == 1 ? value[0] : css_token();
+    if (has_var(evaluated_value))
+      return add_parsed_property(name, property_value(evaluated_value, important, true, m_layer, m_specificity));
+
+    css_token val = evaluated_value.size() == 1 ? evaluated_value[0] : css_token();
     string ident = val.ident();
 
     if (ident == "inherit")
@@ -1727,7 +1732,7 @@ namespace litehtml
               changed = true;
               continue;
             }
-            if (left.type == DIMENSION && right.type == DIMENSION && left.unit == right.unit && (op.ch == '+' || op.ch == '-'))
+            if (left.type == DIMENSION && right.type == DIMENSION && lowcase(left.unit) == lowcase(right.unit) && (op.ch == '+' || op.ch == '-'))
             {
               css_token result = left;
               if (op.ch == '+') result.n.number += right.n.number;
@@ -1754,26 +1759,47 @@ namespace litehtml
         else if (func_name == "min" || func_name == "max")
         {
           auto args = parse_comma_separated_list(val);
-          bool all_same = true;
           if (!args.empty())
           {
-            css_token first = args[0][0];
-            for (const auto& arg : args)
+            auto doc = el ? el->get_document() : nullptr;
+            position viewport;
+            if (doc) doc->container()->get_viewport(viewport);
+            else viewport = {0, 0, 800, 600};
+
+            float base_font_size = 16.0f;
+            if (doc && doc->root()) base_font_size = doc->root()->css().get_font_size();
+
+            auto to_px = [&](const css_token& t) -> float
             {
-              if (arg.size() != 1 || arg[0].type != first.type || (arg[0].type == DIMENSION && lowcase(arg[0].unit) != lowcase(first.unit)))
-              {
-                all_same = false;
-                break;
-              }
+                if (t.type == NUMBER) return t.n.number;
+                if (t.type == PERCENTAGE) return t.n.number * viewport.width / 100.0f;
+                if (t.type == DIMENSION)
+                {
+                    string unit = lowcase(t.unit);
+                    if (unit == "px") return t.n.number;
+                    if (unit == "rem") return t.n.number * base_font_size;
+                    if (unit == "em") return t.n.number * base_font_size;
+                    if (unit == "vw") return t.n.number * viewport.width / 100.0f;
+                    if (unit == "vh") return t.n.number * viewport.height / 100.0f;
+                }
+                return 0;
+            };
+
+            int best_idx = 0;
+            float best_px = to_px(args[0][0]);
+            bool possible = (args[0].size() == 1);
+
+            for (int idx = 1; idx < (int)args.size(); ++idx)
+            {
+                if (args[idx].size() != 1) { possible = false; break; }
+                float px = to_px(args[idx][0]);
+                if (func_name == "min") { if (px < best_px) { best_px = px; best_idx = idx; } }
+                else { if (px > best_px) { best_px = px; best_idx = idx; } }
             }
-            if (all_same)
+
+            if (possible)
             {
-              css_token result = first;
-              for (const auto& arg : args)
-              {
-                if (func_name == "min") result.n.number = min(result.n.number, arg[0].n.number);
-                else result.n.number = max(result.n.number, arg[0].n.number);
-              }
+              css_token result = args[best_idx][0];
               remove(tokens, i);
               insert(tokens, i, {result});
               changed = true;
@@ -1781,28 +1807,47 @@ namespace litehtml
             }
           }
         }
-        else if (func_name == "clamp" && val.size() >= 5)
+        else if (func_name == "clamp")
         {
           auto args = parse_comma_separated_list(val);
           if (args.size() == 3)
           {
-            bool all_same = true;
-            css_token first = args[0][0];
-            for (const auto& arg : args)
+            auto doc = el ? el->get_document() : nullptr;
+            position viewport;
+            if (doc) doc->container()->get_viewport(viewport);
+            else viewport = {0, 0, 800, 600};
+
+            float base_font_size = 16.0f;
+            if (doc && doc->root()) base_font_size = doc->root()->css().get_font_size();
+
+            auto to_px = [&](const css_token& t) -> float
             {
-              if (arg.size() != 1 || arg[0].type != first.type || (arg[0].type == DIMENSION && lowcase(arg[0].unit) != lowcase(first.unit)))
-              {
-                all_same = false;
-                break;
-              }
-            }
-            if (all_same)
+                if (t.type == NUMBER) return t.n.number;
+                if (t.type == PERCENTAGE) return t.n.number * viewport.width / 100.0f;
+                if (t.type == DIMENSION)
+                {
+                    string unit = lowcase(t.unit);
+                    if (unit == "px") return t.n.number;
+                    if (unit == "rem") return t.n.number * base_font_size;
+                    if (unit == "em") return t.n.number * base_font_size;
+                    if (unit == "vw") return t.n.number * viewport.width / 100.0f;
+                    if (unit == "vh") return t.n.number * viewport.height / 100.0f;
+                }
+                return 0;
+            };
+
+            if (args[0].size() == 1 && args[1].size() == 1 && args[2].size() == 1)
             {
-              css_token result = first;
-              float min_v = args[0][0].n.number;
-              float val_v = args[1][0].n.number;
-              float max_v = args[2][0].n.number;
-              result.n.number = max(min_v, min(val_v, max_v));
+              float min_v = to_px(args[0][0]);
+              float val_v = to_px(args[1][0]);
+              float max_v = to_px(args[2][0]);
+              
+              float result_v = std::max(min_v, std::min(val_v, max_v));
+              
+              // どのトークンを返すかは難しいが、とりあえず中央の値を基準に px で返すか、
+              // あるいは単に val_v に一番近いものを返す。
+              // ここでは簡略化のため px DIMENSION を返す。
+              css_token result(DIMENSION, result_v, css_number_number, "px");
               remove(tokens, i);
               insert(tokens, i, {result});
               changed = true;

@@ -360,6 +360,13 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 	};
 
 	items_dimensions line_max_height;
+	// Add strut (invisible character with the font metrics of the container)
+	// This ensures that the line box always has a baseline and accounts for the container's line-height.
+	line_max_height.top = -m_font_metrics.ascent;
+	line_max_height.bottom = m_font_metrics.descent;
+	line_max_height.count = 1;
+	line_max_height.max_height = m_font_metrics.height;
+
 	items_dimensions top_aligned_max_height;
 	items_dimensions bottom_aligned_max_height;
 	items_dimensions inline_boxes_dims;

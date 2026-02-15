@@ -29,6 +29,7 @@ namespace litehtml
 		bool		m_is_predefined;
 		float		m_px;
 		float		m_percent;
+		float		m_rem;
 		bool		m_is_calc;
 	public:
 		css_length();
@@ -46,8 +47,11 @@ namespace litehtml
 		bool		from_token(const css_token& token, int options, const string& predefined_keywords = "");
 		string		to_string() const;
 
-		void        set_calc(float px, float percent) { m_px = px; m_percent = percent; m_is_calc = true; m_is_predefined = false; }
+		void        set_calc(float px, float percent, float rem) { m_px = px; m_percent = percent; m_rem = rem; m_is_calc = true; m_is_predefined = false; }
 		bool        is_calc() const { return m_is_calc; }
+		float       calc_px() const { return m_px; }
+		float       calc_percent() const { return m_percent; }
+		float       calc_rem() const { return m_rem; }
 	};
 
 	using length_vector = vector<css_length>;
@@ -62,6 +66,7 @@ namespace litehtml
 		m_is_predefined	= false;
 		m_px            = 0;
 		m_percent       = 0;
+		m_rem           = 0;
 		m_is_calc       = false;
 	}
 
@@ -72,6 +77,7 @@ namespace litehtml
 		m_is_predefined = false;
 		m_px            = 0;
 		m_percent       = 0;
+		m_rem           = 0;
 		m_is_calc       = false;
 	}
 
@@ -82,6 +88,7 @@ namespace litehtml
 		m_is_predefined = false;
 		m_px            = 0;
 		m_percent       = 0;
+		m_rem           = 0;
 		m_is_calc       = false;
 		return *this;
 	}

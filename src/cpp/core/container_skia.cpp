@@ -23,6 +23,7 @@
 #include "litehtml/el_table.h"
 #include "litehtml/el_td.h"
 #include "litehtml/el_tr.h"
+#include "text_utils.h"
 #include "utils/skia_utils.h"
 
 namespace litehtml {
@@ -51,32 +52,6 @@ std::string trim(const std::string &s) {
     return s.substr(start, end - start + 1);
 }
 
-char32_t decode_utf8(const char **ptr) {
-    const uint8_t *p = (const uint8_t *)*ptr;
-    if (!p || !*p) return 0;
-
-    uint32_t cp = 0;
-    uint8_t b1 = *p++;
-
-    if (b1 < 0x80) {
-        cp = b1;
-    } else if ((b1 & 0xE0) == 0xC0) {
-        cp = (b1 & 0x1F) << 6;
-        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F);
-    } else if ((b1 & 0xF0) == 0xE0) {
-        cp = (b1 & 0x0F) << 12;
-        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F) << 6;
-        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F);
-    } else if ((b1 & 0xF8) == 0xF0) {
-        cp = (b1 & 0x07) << 18;
-        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F) << 12;
-        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F) << 6;
-        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F);
-    }
-
-    *ptr = (const char *)p;
-    return (char32_t)cp;
-}
 }  // namespace
 
 container_skia::container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context,
@@ -195,92 +170,7 @@ void container_skia::delete_font(litehtml::uint_ptr hFont) {
 
 litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_ptr hFont) {
     font_info *fi = (font_info *)hFont;
-    if (!fi || fi->fonts.empty()) return 0;
-    double total_width = 0;
-    const char *p = text;
-    const char *run_start = p;
-    SkFont *current_font = nullptr;
-
-    // Optimistically assume the first font (usually the primary font) covers the text
-    // This is especially true for ASCII.
-    SkFont* primary_font = fi->fonts[0];
-    current_font = primary_font;
-
-    while (*p) {
-        const char *next_p = p;
-        char32_t u;
-        
-        // Fast path for ASCII
-        if ((unsigned char)*p < 0x80) {
-            u = (unsigned char)*p;
-            next_p++;
-        } else {
-            u = decode_utf8(&next_p);
-        }
-
-        if (m_resourceManager) {
-            if (u < 128) {
-                if (!m_asciiUsed[u]) {
-                    m_asciiUsed[u] = true;
-                    m_usedCodepoints.insert(u);
-                }
-            } else {
-                m_usedCodepoints.insert(u);
-            }
-        }
-
-        SkFont *font = nullptr;
-        
-        // Check if current font supports the char (Fastest)
-        if (current_font) {
-             SkGlyphID glyph = 0;
-             SkUnichar sc = (SkUnichar)u;
-             current_font->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
-                                                SkSpan<SkGlyphID>(&glyph, 1));
-             if (glyph != 0) {
-                 font = current_font;
-             }
-        }
-
-        if (!font) {
-            for (auto f : fi->fonts) {
-                if (f == current_font) continue;
-                SkGlyphID glyph = 0;
-                SkUnichar sc = (SkUnichar)u;
-                f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
-                                                   SkSpan<SkGlyphID>(&glyph, 1));
-                if (glyph != 0) {
-                    font = f;
-                    break;
-                }
-            }
-        }
-        
-        if (!font) {
-            font = fi->fonts[0];
-        }
-        
-        if (font != current_font) {
-            if (current_font && p > run_start)
-                total_width +=
-                    current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
-            run_start = p;
-            current_font = font;
-        }
-        p = next_p;
-    }
-    if (current_font && p > run_start) {
-        float w = current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
-        total_width += w;
-    }
-
-    // Adjust for floating point precision issues where text might be slightly wider than expected
-    // causing early wrapping compared to browsers.
-    if (total_width > 0) {
-        total_width -= 0.001;
-    }
-
-    return (litehtml::pixel_t)total_width;
+    return (litehtml::pixel_t)satoru::measure_text(text, fi, -1.0, m_resourceManager ? &m_usedCodepoints : nullptr).width;
 }
 
 void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtml::uint_ptr hFont,
@@ -301,86 +191,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                                        (litehtml::pixel_t)(m_clips.back().first.right() - pos.x));
         }
 
-        litehtml::pixel_t full_width = text_width(text, hFont);
-        if (full_width > available_width) {
-            std::string ellipsis = "...";
-            litehtml::pixel_t ellipsis_width = text_width(ellipsis.c_str(), hFont);
-            if (ellipsis_width >= available_width) {
-                text_str = ellipsis;
-            } else {
-                double max_w = (double)available_width - ellipsis_width;
-                double current_w = 0;
-                const char *p = text;
-                const char *run_start = p;
-                const char *last_safe = p;
-                SkFont *current_font = nullptr;
-
-                while (*p) {
-                    const char *next_p = p;
-                    char32_t u = decode_utf8(&next_p);
-                    SkFont *font = nullptr;
-                    for (auto f : fi->fonts) {
-                        SkGlyphID glyph = 0;
-                        SkUnichar sc = (SkUnichar)u;
-                        f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
-                                                           SkSpan<SkGlyphID>(&glyph, 1));
-                        if (glyph != 0) {
-                            font = f;
-                            break;
-                        }
-                    }
-                    if (!font) font = fi->fonts[0];
-                    if (font != current_font) {
-                        if (current_font && p > run_start) {
-                            double run_w = current_font->measureText(run_start, p - run_start,
-                                                                     SkTextEncoding::kUTF8);
-                            if (current_w + run_w > max_w) {
-                                const char *rp = run_start;
-                                while (rp < p) {
-                                    const char *next_rp = rp;
-                                    decode_utf8(&next_rp);
-                                    double char_w = current_font->measureText(
-                                        rp, next_rp - rp, SkTextEncoding::kUTF8);
-                                    if (current_w + char_w > max_w) goto found_split;
-                                    current_w += char_w;
-                                    last_safe = next_rp;
-                                    rp = next_rp;
-                                }
-                            } else {
-                                current_w += run_w;
-                                last_safe = p;
-                            }
-                        }
-                        run_start = p;
-                        current_font = font;
-                    }
-                    p = next_p;
-                }
-                if (current_font && p > run_start) {
-                    double run_w =
-                        current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
-                    if (current_w + run_w > max_w) {
-                        const char *rp = run_start;
-                        while (rp < p) {
-                            const char *next_rp = rp;
-                            decode_utf8(&next_rp);
-                            double char_w =
-                                current_font->measureText(rp, next_rp - rp, SkTextEncoding::kUTF8);
-                            if (current_w + char_w > max_w) goto found_split;
-                            current_w += char_w;
-                            last_safe = next_rp;
-                            rp = next_rp;
-                        }
-                    } else {
-                        last_safe = p;
-                    }
-                }
-
-            found_split:
-                text_str = std::string(text, last_safe - text) + ellipsis;
-                // satoru_log(LogLevel::Info, (std::string("  -> Ellipsis applied: '") + text_str + "'").c_str());
-            }
-        }
+        text_str = satoru::ellipsize_text(text, fi, (double)available_width, m_resourceManager ? &m_usedCodepoints : nullptr);
     }
 
     SkPaint paint;
@@ -440,7 +251,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         const char *end = str + len;
         while (ptr < end) {
             const char *next_ptr = ptr;
-            char32_t u = decode_utf8(&next_ptr);
+            char32_t u = satoru::decode_utf8_char(&next_ptr);
             if (m_resourceManager) m_usedCodepoints.insert(u);
 
             SkFont *font = nullptr;
@@ -1196,7 +1007,7 @@ void container_skia::split_text(const char *text, const std::function<void(const
     const char *p = text;
     while (*p) {
         const char *next_p = p;
-        char32_t c = decode_utf8(&next_p);
+        char32_t c = satoru::decode_utf8_char(&next_p);
 
         if (c <= ' ' && (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f')) {
             if (!word.empty()) {

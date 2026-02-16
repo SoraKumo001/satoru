@@ -13,6 +13,7 @@ const TEMP_DIR = path.resolve(__dirname, "../temp");
 async function main() {
   const args = process.argv.slice(2);
   const verbose = args.includes("--verbose");
+  const noOutline = args.includes("--no-outline");
   const widthArg = args.find((a) => a.startsWith("--width="));
   const width = widthArg ? parseInt(widthArg.split("=")[1]) : 800;
   const files = args
@@ -84,6 +85,7 @@ async function main() {
           format,
           baseUrl: ASSETS_DIR,
           css: "body { margin: 8px; }",
+          textToPaths: !noOutline,
           onLog: verbose ? onLog : undefined,
           logLevel: verbose ? LogLevel.Debug : LogLevel.None,
         });

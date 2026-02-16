@@ -131,7 +131,8 @@ You are operating in a **Windows PowerShell** environment.
   - Uses `flattenAlpha` and white-pixel padding for stabilization.
   - **Read-Only Protocol:** Tests in `png.test.ts` and `svg.test.ts` do NOT write to `REFERENCE_DIR`. They strictly compare against existing references. If a reference is missing, the test fails with an instruction to run `gen-ref`.
 - **Output Validation**:
-  - Use `pnpm --filter visual-test convert-assets [file.html] [--verbose]` to verify rendering.
+  - Use `pnpm --filter visual-test convert-assets [file.html] [--verbose] [--no-outline]` to verify rendering.
+  - `--no-outline`: Disable text outlining in SVG output (uses `<text>` and `@font-face` instead).
   - Output generated in `packages/visual-test/temp/`.
 - **Tooling Paths**:
   - Reference generation: `packages/visual-test/tools/generate-reference.ts`.
@@ -169,4 +170,5 @@ You are operating in a **Windows PowerShell** environment.
   - Example: `satoru_log(LogLevel::Info, "Message");`
 - **Visual Tests:** Run with `--verbose` to see logs in the console.
   - Example: `pnpm --filter visual-test convert-assets test.html --verbose`
+  - Example (No Outline): `pnpm --filter visual-test convert-assets test.html --no-outline`
   - Ensure you pass the correct relative path to `convert-assets`.

@@ -10,32 +10,33 @@ void filter_code_points(string& input)
 {
 	const char* xFFFD = "\xEF\xBF\xBD";
 
+	if (input.find_first_of("\r\f\0") == string::npos)
+		return;
+
 	size_t null_count = std::count(input.begin(), input.end(), 0);
 
-	string result(input.size() + 2 * null_count, 0);
+	string result;
+	result.reserve(input.size() + 2 * null_count);
 
-	for (int i = 0, j = 0; i < (int)input.size(); i++)
+	for (int i = 0; i < (int)input.size(); i++)
 	{
 		switch (input[i])
 		{
 		case '\r':
-			result[j++] = '\n';
+			result += '\n';
 			if (i + 1 < (int)input.size() && input[i + 1] == '\n') i++; // skip \n after \r
 			break;
 		case '\f':
-			result[j++] = '\n';
+			result += '\n';
 			break;
 		case 0:
-			memcpy(&result[j], xFFFD, 3);
-			j += 3;
+			result += xFFFD;
 			break;
 		default:
-			result[j++] = input[i];
+			result += input[i];
 		}
 	}
 
-	// trim trailing NULs
-	result.resize(strlen(result.c_str()));
 	input = result;
 }
 

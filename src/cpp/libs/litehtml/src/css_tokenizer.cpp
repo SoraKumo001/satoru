@@ -77,6 +77,15 @@ bool css_tokenizer::is_ident_code_point(int ch) {
 // When we know that next input char is ASCII and not NUL, we can just write str[index++] instead.
 int css_tokenizer::consume_char()
 {
+	if (index < (int)str.length())
+	{
+		unsigned char ch = (unsigned char)str[index];
+		if (ch < 0x80)
+		{
+			index++;
+			return current_char = ch;
+		}
+	}
 	// NOTE: if str[index] == 0 index is not incremented
 	return current_char = read_utf8_char(str, index);
 }
@@ -96,6 +105,14 @@ void css_tokenizer::unconsume_char()
 
 int css_tokenizer::peek_char()
 {
+	if (index < (int)str.length())
+	{
+		unsigned char ch = (unsigned char)str[index];
+		if (ch < 0x80)
+		{
+			return ch;
+		}
+	}
 	int i = index;
 	return read_utf8_char(str, i);
 }
@@ -177,6 +194,7 @@ css_token css_tokenizer::consume_string_token(int ending_code_point)
 {
 	// Initially create a <string-token> with its value set to the empty string.
 	css_token token(STRING);
+	token.str.reserve(32);
 
 	while (true)
 	{
@@ -209,8 +227,11 @@ css_token css_tokenizer::consume_string_token(int ending_code_point)
 			if (ch == ending_code_point)
 				return token;
 			else // anything else
+			{
 				// Append the current input code point to the <string-token>’s value.
-				append_char(token.str, ch);
+				if (ch < 0x80) token.str += (char)ch;
+				else append_char(token.str, ch);
+			}
 			break;
 		}
 	}
@@ -242,6 +263,7 @@ bool css_tokenizer::would_start_ident_sequence(three_chars chars)
 string css_tokenizer::consume_ident_sequence()
 {
 	string result;
+	result.reserve(32);
 
 	while (true)
 	{
@@ -249,7 +271,10 @@ string css_tokenizer::consume_ident_sequence()
 		int ch = consume_char();
 
 		if (is_ident_code_point(ch))
-			append_char(result, ch); // Append the code point to result.
+		{
+			if (ch < 0x80) result += (char)ch;
+			else append_char(result, ch); // Append the code point to result.
+		}
 
 		// else if the stream starts with a valid escape
 		// NOTE: the wording is confusing because ch is not in the input stream anymore (it has been consumed)
@@ -336,27 +361,28 @@ double css_tokenizer::consume_number(css_number_type& type)
 	// 1. Initially set type to "integer". Let repr be the empty string.
 	type = css_number_integer;
 	string repr;
+	repr.reserve(16);
 
 	// 2. If the next input code point is U+002B (+) or U+002D (-), consume it and append it to repr.
 	if (is_one_of(str[index], '+', '-'))
-		append_char(repr, str[index++]);
+		repr += str[index++];
 
 	// 3. While the next input code point is a digit, consume it and append it to repr.
 	while (is_digit(str[index]))
-		append_char(repr, str[index++]);
+		repr += str[index++];
 
 	// 4. If the next 2 input code points are U+002E (.) followed by a digit, then:
 	if (str[index] == '.' && is_digit(str[index+1]))
 	{
 		// 1. Consume them.
 		// 2. Append them to repr.
-		append_char(repr, str[index++]);
-		append_char(repr, str[index++]);
+		repr += str[index++];
+		repr += str[index++];
 		// 3. Set type to "number".
 		type = css_number_number;
 		// 4. While the next input code point is a digit, consume it and append it to repr.
 		while (is_digit(str[index]))
-			append_char(repr, str[index++]);
+			repr += str[index++];
 	}
 
 	// 5. If the next 2 or 3 input code points are U+0045 (E) or U+0065 (e),
@@ -368,14 +394,14 @@ double css_tokenizer::consume_number(css_number_type& type)
 	{
 		// 1. Consume them.
 		// 2. Append them to repr.
-		append_char(repr, str[index++]);
-		append_char(repr, str[index++]);
-		if (a) append_char(repr, str[index++]);
+		repr += str[index++];
+		repr += str[index++];
+		if (a) repr += str[index++];
 		// 3. Set type to "number".
 		type = css_number_number;
 		// 4. While the next input code point is a digit, consume it and append it to repr.
 		while (is_digit(str[index]))
-			append_char(repr, str[index++]);
+			repr += str[index++];
 	}
 
 	// 6. Convert repr to a number, and set the value to the returned value.
@@ -712,6 +738,7 @@ css_token css_tokenizer::consume_token()
 css_token_vector css_tokenizer::tokenize()
 {
 	css_token_vector tokens;
+	tokens.reserve(str.length() / 8 + 16);
 	while (true)
 	{
 		css_token token = consume_token();

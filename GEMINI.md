@@ -113,7 +113,7 @@ You are operating in a **Windows PowerShell** environment.
   - Container overrides MUST return `litehtml::pixel_t` (float), not `int`.
 
 - **Layout Defaults:**
-  - `line-height`: Calculated as `std::max(ascent + descent + leading, font_size * 1.2)` for `normal` to ensure sufficient spacing similar to browsers.
+  - `line-height`: Calculated as `ascent + descent + leading` for `normal` to better match modern browser behavior. A fallback floor of `font_size * 1.2` is only applied if the calculated metrics are unavailable (<= 0).
   - `box-sizing`: `border-box` for inputs/buttons.
 
 - **CSS Engine (litehtml Customizations):**

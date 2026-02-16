@@ -1033,7 +1033,8 @@ void container_skia::draw_list_marker(litehtml::uint_ptr hdc, const litehtml::li
 }
 
 void container_skia::load_image(const char *src, const char *baseurl, bool redraw_on_ready) {
-    if (m_resourceManager && src && *src) m_resourceManager->request(src, src, ResourceType::Image);
+    if (m_resourceManager && src && *src)
+        m_resourceManager->request(src, src, ResourceType::Image, redraw_on_ready);
 }
 void container_skia::get_image_size(const char *src, const char *baseurl, litehtml::size &sz) {
     int w, h;

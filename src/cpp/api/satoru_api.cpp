@@ -200,7 +200,8 @@ std::string api_get_pending_resources(SatoruInstance *inst) {
             typeStr = "css";
 
         ss << "{\"url\":\"" << req.url << "\",\"name\":\"" << req.name << "\",\"type\":\""
-           << typeStr << "\"}";
+           << typeStr << "\",\"redraw_on_ready\":" << (req.redraw_on_ready ? "true" : "false")
+           << "}";
         if (i < requests.size() - 1) ss << ",";
     }
     ss << "]";

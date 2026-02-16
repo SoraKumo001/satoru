@@ -15,12 +15,14 @@ struct ResourceRequest {
     std::string url;
     std::string name;  // Font family name, or other identifier
     ResourceType type;
+    bool redraw_on_ready;
 
     // For std::set to work
     bool operator<(const ResourceRequest& other) const {
         if (url != other.url) return url < other.url;
         if (name != other.name) return name < other.name;
-        return type < other.type;
+        if (type != other.type) return type < other.type;
+        return redraw_on_ready < other.redraw_on_ready;
     }
 };
 
@@ -29,7 +31,8 @@ class ResourceManager {
     ResourceManager(SatoruContext& context);
 
     // Register a needed resource
-    void request(const std::string& url, const std::string& name, ResourceType type);
+    void request(const std::string& url, const std::string& name, ResourceType type,
+                 bool redraw_on_ready = false);
 
     // Get list of pending requests to send to JS
     std::vector<ResourceRequest> getPendingRequests();

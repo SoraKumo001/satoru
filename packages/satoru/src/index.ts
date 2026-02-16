@@ -53,6 +53,7 @@ export interface RequiredResource {
   type: "font" | "css" | "image";
   url: string;
   name: string;
+  redraw_on_ready?: boolean;
 }
 
 export type ResourceResolver = (

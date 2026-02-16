@@ -47,20 +47,22 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
 
     // If max_width is negative, treat it as infinite
     bool limit_width = max_width >= 0;
+    const double epsilon = 0.005; 
     
     // Helper to commit run
     auto commit_run = [&](const char* end_ptr) -> bool {
         if (current_font && end_ptr > run_start) {
             double run_w = current_font->measureText(run_start, end_ptr - run_start, SkTextEncoding::kUTF8);
-            if (limit_width && result.width + run_w > max_width) {
+            if (limit_width && result.width + run_w > max_width + epsilon) {
                 // Run exceeds max width, need to find split point
+                
                 const char* rp = run_start;
                 while (rp < end_ptr) {
                     const char* next_rp = rp;
                     char32_t u_inner = decode_utf8_char(&next_rp);
                     (void)u_inner; // suppress unused warning if not used
                     double char_w = current_font->measureText(rp, next_rp - rp, SkTextEncoding::kUTF8);
-                    if (result.width + char_w > max_width) {
+                    if (result.width + char_w > max_width + epsilon) {
                         result.fits = false;
                         result.last_safe_pos = rp;
                         result.length = rp - text;
@@ -136,11 +138,6 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
     result.length = p - text;
     result.last_safe_pos = p;
     
-    // Adjust for floating point precision issues (legacy behavior)
-    if (result.width > 0) {
-        result.width -= 0.001;
-    }
-    
     return result;
 }
 
@@ -167,8 +164,6 @@ std::string ellipsize_text(const char *text, font_info *fi, double max_width,
     double available_width = max_width - ellipsis_width;
     
     // Re-measure with stricter limit
-    // Note: We already measured partially, but reusing `measure_text` is cleaner than manually doing it.
-    // Ideally we could resume or optimize, but this is simple and robust.
     MeasureResult part_res = measure_text(text, fi, available_width, nullptr); // codepoints already collected in first pass?
     // Actually, if we pass used_codepoints again, we just re-insert same ones mostly.
     

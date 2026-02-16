@@ -272,21 +272,75 @@ void litehtml::flex_item_row_direction::perform_render(litehtml::flex_line &ln,
 													   const litehtml::containing_block_context &self_size,
 													   litehtml::formatting_context *fmt_ctx)
 {
+	// Create a new containing block context with the calculated width/height
+	// We cannot use self_size.new_width_height() because it preserves the diff from the parent.
+	containing_block_context child_cb = self_size;
+	child_cb.width = main_size - el->content_offset_width() + el->box_sizing_width();
+	child_cb.render_width = child_cb.width;
+	child_cb.height = self_size.height; // keep height auto or percent
+	child_cb.render_height = self_size.render_height; // This might be incorrect if diff matters for height? 
+	// For height, if self_size.height is auto, child_cb.height should be auto. 
+	// If self_size.height is absolute, child_cb.height should probably strip diff?
+	// But let's assume height diff handling in new_width_height was desired? 
+	// new_width_height: ret.height = h + diff.
+	// If we want exact height? No, here height is passed as self_size.height (which might include diff).
+	// If self_size.height is auto, diff is irrelevant.
+	// If self_size.height is absolute, it includes padding of parent.
+	// But we are setting child's constraint.
+	// child_cb.height should be the "available height" for the child.
+	// If parent has height, child sees that height.
+	// But self_size represents Parent's Content Box usually.
+	// So self_size.height IS the available height.
+	// So we should set child_cb.height = self_size.render_height (Available Content Height)?
+	// If we use self_size.height (Outer Height of Parent?), that's wrong.
+	// self_size.height usually means "Height of Containing Block".
+	// For a child of a flex item, the containing block is the flex item content box.
+	// So self_size.width should be flex_item_content_width.
+	// But `self_size` passed to `place` comes from `render_flex`.
+	// `render_flex` `self_size` is Header's CBC.
+	// Header's CBC: width=800, render_width=784.
+	// So `self_size.height` = Header's Outer Height? No, Header's containing block height.
+	// `self_size` is calculated relative to Header's parent (`div.flex`).
+	// So `self_size.height` is `div.flex` content height?
+	// `calculate_cbc`: `ret.height.value = cb_context.height - content_offset`.
+	// So `self_size.height` is Header's Content Height (Available space).
+	// `self_size.render_height` is `self_size.height - box_sizing_width`.
+	// Wait, `calculate_cbc` sets `ret.height`.
+	// If `header` is `border-box`.
+	// `ret.height` = `cb.height` (800) if fixed.
+	// `ret.render_height` = `800 - 16 = 784`.
+	// So `self_size.height` = 800. `self_size.render_height` = 784.
+	// The available height for child is 784.
+	// So we should pass 784 as `height`.
+	// But we also want `render_height` to be 784?
+	// `new_width_height` preserves diff. `diff` = 16.
+	// If we pass `h = self_size.height` (800).
+	// `ret.render_height` = 800.
+	// `ret.height` = 816.
+	// This seems wrong. We want child to see 784 as available height.
+	// So `child_cb.height` should be `self_size.render_height` (784).
+	// And `child_cb.render_height` = 784.
+	// `diff` = 0.
+	
+	// But wait, `self_size.height` might be `auto`.
+	if(self_size.height.type == containing_block_context::cbc_value_type_auto)
+	{
+		child_cb.height.type = containing_block_context::cbc_value_type_auto;
+		child_cb.render_height.type = containing_block_context::cbc_value_type_auto;
+	} else {
+		child_cb.height = self_size.render_height;
+		child_cb.render_height = self_size.render_height;
+	}
+
+	child_cb.size_mode = containing_block_context::size_mode_exact_width;
+
 	if (el->css().get_height().is_predefined())
 	{
 		// If height is auto - render with content size
-		el->render(el->left(), el->top(), self_size.new_width_height(
-				main_size - el->content_offset_width() + el->box_sizing_width(),
-				self_size.height, // keep height auto or percent
-				containing_block_context::size_mode_exact_width
-		), fmt_ctx);
+		el->render(el->left(), el->top(), child_cb, fmt_ctx);
 	} else
 	{
-		el->render(el->left(), el->top(), self_size.new_width_height(
-				main_size - el->content_offset_width() + el->box_sizing_width(),
-				self_size.height,
-				containing_block_context::size_mode_exact_width
-		), fmt_ctx);
+		el->render(el->left(), el->top(), child_cb, fmt_ctx);
 	}
 }
 

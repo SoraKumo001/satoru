@@ -373,9 +373,21 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container, 
                 /// Find line first/last baseline
                 for (auto &item: items)
                 {
-                        item->el->render(0,
-                                                         0,
-                                                         self_size.new_width(item->main_size - item->el->render_offset_width(), containing_block_context::size_mode_exact_width), fmt_ctx, false);        
+                        pixel_t w = item->main_size - item->el->render_offset_width();
+                        if(item->el->css().get_box_sizing() == box_sizing_border_box)
+                        {
+                            w = item->main_size - item->el->get_margins().width();
+                        }
+
+                        // Create a new containing block context with the calculated width
+                        // We cannot use self_size.new_width() because it preserves the diff between width and render_width
+                        // from the parent (self_size), effectively adding parent's padding/border to the child's width.
+                        containing_block_context child_cb = self_size;
+                        child_cb.width = w;
+                        child_cb.render_width = w;
+                        child_cb.size_mode = containing_block_context::size_mode_exact_width;
+
+                        item->el->render(0, 0, child_cb, fmt_ctx, false);        
 
                         if((item->align & 0xFF) == flex_align_items_baseline)
                         {
@@ -444,13 +456,29 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container, 
                         pixel_t el_ret_width = item->el->render(0,
                                                                                                 0,   
                                                                                                 self_size, fmt_ctx, false);
-                        item->el->render(0,
-                                                         0,
-                                                         self_size.new_width_height(el_ret_width - item->el->content_offset_width(),
-                                                                                                    item->main_size - item->el->content_offset_height(),
-                                                                                                    containing_block_context::size_mode_exact_width |
-                                                                                                    containing_block_context::size_mode_exact_height),
-                                                         fmt_ctx, false);
+                        
+                        pixel_t w = el_ret_width - item->el->content_offset_width();
+                        if(item->el->css().get_box_sizing() == box_sizing_border_box)
+                        {
+                            w = el_ret_width - item->el->get_margins().width();
+                        }
+
+                        pixel_t h = item->main_size - item->el->content_offset_height();
+                        if(item->el->css().get_box_sizing() == box_sizing_border_box)
+                        {
+                            h = item->main_size - item->el->get_margins().height();
+                        }
+
+                        // Create a new containing block context with the calculated width/height
+                        // We cannot use self_size.new_width_height() because it preserves the diff from the parent.
+                        containing_block_context child_cb = self_size;
+                        child_cb.width = w;
+                        child_cb.render_width = w;
+                        child_cb.height = h;
+                        child_cb.render_height = h;
+                        child_cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;
+
+                        item->el->render(0, 0, child_cb, fmt_ctx, false);
                         if(main_size != 0) main_size += main_gap;
                         main_size += item->el->height();
                         cross_size = std::max(cross_size, item->el->width());

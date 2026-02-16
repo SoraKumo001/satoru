@@ -269,8 +269,17 @@ litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_pt
         }
         p = next_p;
     }
-    if (current_font && p > run_start)
-        total_width += current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
+    if (current_font && p > run_start) {
+        float w = current_font->measureText(run_start, p - run_start, SkTextEncoding::kUTF8);
+        total_width += w;
+    }
+
+    // Adjust for floating point precision issues where text might be slightly wider than expected
+    // causing early wrapping compared to browsers.
+    if (total_width > 0) {
+        total_width -= 0.001;
+    }
+
     return (litehtml::pixel_t)total_width;
 }
 
@@ -280,6 +289,9 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
     if (!m_canvas) return;
     font_info *fi = (font_info *)hFont;
     if (!fi || fi->fonts.empty()) return;
+
+    // Temporary log for verification
+    // satoru_log(LogLevel::Info, (std::string("draw_text: '") + text + "' at x=" + std::to_string(pos.x) + " w=" + std::to_string(pos.width) + " overflow=" + std::to_string((int)overflow)).c_str());
 
     std::string text_str = text;
     if (overflow == litehtml::text_overflow_ellipsis) {
@@ -366,6 +378,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 
             found_split:
                 text_str = std::string(text, last_safe - text) + ellipsis;
+                // satoru_log(LogLevel::Info, (std::string("  -> Ellipsis applied: '") + text_str + "'").c_str());
             }
         }
     }
@@ -1151,6 +1164,45 @@ void container_skia::get_media_features(litehtml::media_features &features) cons
 void container_skia::get_language(litehtml::string &language, litehtml::string &culture) const {
     language = "en";
     culture = "en-US";
+}
+
+void container_skia::split_text(const char *text, const std::function<void(const char *)> &on_word,
+                                const std::function<void(const char *)> &on_space) {
+    std::string word;
+    const char *p = text;
+    while (*p) {
+        const char *next_p = p;
+        char32_t c = decode_utf8(&next_p);
+
+        if (c <= ' ' && (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f')) {
+            if (!word.empty()) {
+                on_word(word.c_str());
+                word.clear();
+            }
+            std::string s;
+            s.append(p, next_p - p);
+            on_space(s.c_str());
+        } else if ((c >= 0x3000 && c <= 0x30FF) ||    // CJK symbols, Hiragana, Katakana
+                   (c >= 0x4E00 && c <= 0x9FAF) ||    // Kanji
+                   (c >= 0xFF00 && c <= 0xFFEF) ||    // Full-width forms
+                   (c >= 0x3400 && c <= 0x4DBF) ||    // CJK Extension A
+                   (c >= 0x20000 && c <= 0x2EBEF)) {  // CJK Extension B-F
+            if (!word.empty()) {
+                on_word(word.c_str());
+                word.clear();
+            }
+            std::string s;
+            s.append(p, next_p - p);
+            on_word(s.c_str());
+        } else {
+            // Latin characters etc. are collected into words
+            word.append(p, next_p - p);
+        }
+        p = next_p;
+    }
+    if (!word.empty()) {
+        on_word(word.c_str());
+    }
 }
 
 void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity) {

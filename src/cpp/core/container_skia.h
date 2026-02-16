@@ -152,6 +152,8 @@ class container_skia : public litehtml::document_container {
     virtual void get_viewport(litehtml::position &viewport) const override;
     virtual void get_media_features(litehtml::media_features &features) const override;
     virtual void get_language(litehtml::string &language, litehtml::string &culture) const override;
+    virtual void split_text(const char *text, const std::function<void(const char *)> &on_word,
+                            const std::function<void(const char *)> &on_space) override;
 
     virtual void push_layer(litehtml::uint_ptr hdc, float opacity) override;
     virtual void pop_layer(litehtml::uint_ptr hdc) override;

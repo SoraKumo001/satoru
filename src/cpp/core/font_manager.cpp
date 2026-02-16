@@ -322,12 +322,20 @@ SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, 
             sk_sp<SkTypeface> varTypeface = typeface->makeClone(args);
             if (varTypeface) {
                 m_variableCloneCache[key] = varTypeface;
-                return new SkFont(varTypeface, size);
+                SkFont *font = new SkFont(varTypeface, size);
+                font->setSubpixel(true);
+                font->setLinearMetrics(true);
+                font->setEdging(SkFont::Edging::kAntiAlias);
+                return font;
             }
         }
     }
 
-    return new SkFont(typeface, size);
+    SkFont *font = new SkFont(typeface, size);
+    font->setSubpixel(true);
+    font->setLinearMetrics(true);
+    font->setEdging(SkFont::Edging::kAntiAlias);
+    return font;
 }
 
 std::string SatoruFontManager::cleanName(const char *name) const {

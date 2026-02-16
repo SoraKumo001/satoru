@@ -73,7 +73,7 @@ namespace litehtml
         };
 
         class html_tag;
-        typedef std::map<string_id, property_value>     props_map;
+        typedef std::vector<std::pair<string_id, property_value>>     props_map;
 
         // represents a style block, eg. "color: black; display: inline"
         class style

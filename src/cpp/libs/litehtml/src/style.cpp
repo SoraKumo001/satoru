@@ -1589,25 +1589,32 @@ namespace litehtml
 
   void style::add_parsed_property(string_id name, const property_value &propval)
   {
-    auto prop = m_properties.find(name);
-    if (prop != m_properties.end())
+    for (auto &prop : m_properties)
     {
-      if (propval.m_priority >= prop->second.m_priority)
+      if (prop.first == name)
       {
-          prop->second = propval;
+        if (propval.m_priority >= prop.second.m_priority)
+        {
+          prop.second = propval;
+        }
+        return;
       }
     }
-    else
-      m_properties[name] = propval;
+    m_properties.push_back({name, propval});
   }
 
   void style::remove_property(string_id name, bool important)
   {
-    auto prop = m_properties.find(name);
-    if (prop != m_properties.end())
+    for (auto it = m_properties.begin(); it != m_properties.end(); ++it)
     {
-      if (!prop->second.m_priority.important || (important && prop->second.m_priority.important))
-        m_properties.erase(prop);
+      if (it->first == name)
+      {
+        if (!it->second.m_priority.important || (important && it->second.m_priority.important))
+        {
+          m_properties.erase(it);
+        }
+        return;
+      }
     }
   }
 
@@ -1626,9 +1633,13 @@ namespace litehtml
 
   const property_value &style::get_property(string_id name) const
   {
-    auto it = m_properties.find(name);
-    if (it != m_properties.end())
-      return it->second;
+    for (const auto &prop : m_properties)
+    {
+      if (prop.first == name)
+      {
+        return prop.second;
+      }
+    }
     static property_value dummy;
     return dummy;
   }
@@ -1887,7 +1898,8 @@ namespace litehtml
 
   void style::subst_vars(const html_tag *el)
   {
-    for (auto &prop : m_properties)
+    auto properties = m_properties;
+    for (auto &prop : properties)
     {
       if (prop.second.m_has_var)
       {

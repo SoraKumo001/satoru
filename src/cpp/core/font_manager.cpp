@@ -332,9 +332,11 @@ SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, 
 
 std::string SatoruFontManager::cleanName(const char *name) const {
     if (!name) return "";
-    std::string s = name;
-    std::string res = "";
-    for (char c : s) {
+    size_t len = strlen(name);
+    std::string res;
+    res.reserve(len);
+    for (size_t i = 0; i < len; ++i) {
+        char c = name[i];
         if (c == '\'' || c == '\"') continue;
         if (c == ' ' || c == '\t' || c == '\r' || c == '\n') continue;
         res += (char)tolower(c);

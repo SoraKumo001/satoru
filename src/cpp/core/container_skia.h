@@ -39,6 +39,8 @@ class container_skia : public litehtml::document_container {
 
     std::set<font_request> m_missingFonts;
 
+    std::vector<bool> m_asciiUsed;
+
     std::vector<std::pair<litehtml::position, litehtml::border_radiuses>> m_clips;
     std::vector<float> m_opacity_stack;
 

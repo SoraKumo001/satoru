@@ -86,7 +86,9 @@ container_skia::container_skia(int w, int h, SkCanvas *canvas, SatoruContext &co
       m_height(h),
       m_context(context),
       m_resourceManager(rm),
-      m_tagging(tagging) {}
+      m_tagging(tagging) {
+    m_asciiUsed.resize(128, false);
+}
 
 litehtml::uint_ptr container_skia::create_font(const litehtml::font_description &desc,
                                                const litehtml::document *doc,
@@ -194,25 +196,66 @@ litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_pt
     const char *p = text;
     const char *run_start = p;
     SkFont *current_font = nullptr;
+
+    // Optimistically assume the first font (usually the primary font) covers the text
+    // This is especially true for ASCII.
+    SkFont* primary_font = fi->fonts[0];
+    current_font = primary_font;
+
     while (*p) {
         const char *next_p = p;
-        char32_t u = decode_utf8(&next_p);
-        if (m_resourceManager) m_usedCodepoints.insert(u);
+        char32_t u;
+        
+        // Fast path for ASCII
+        if ((unsigned char)*p < 0x80) {
+            u = (unsigned char)*p;
+            next_p++;
+        } else {
+            u = decode_utf8(&next_p);
+        }
 
-        SkFont *font = nullptr;
-        for (auto f : fi->fonts) {
-            SkGlyphID glyph = 0;
-            SkUnichar sc = (SkUnichar)u;
-            f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
-                                               SkSpan<SkGlyphID>(&glyph, 1));
-            if (glyph != 0) {
-                font = f;
-                break;
+        if (m_resourceManager) {
+            if (u < 128) {
+                if (!m_asciiUsed[u]) {
+                    m_asciiUsed[u] = true;
+                    m_usedCodepoints.insert(u);
+                }
+            } else {
+                m_usedCodepoints.insert(u);
             }
         }
+
+        SkFont *font = nullptr;
+        
+        // Check if current font supports the char (Fastest)
+        if (current_font) {
+             SkGlyphID glyph = 0;
+             SkUnichar sc = (SkUnichar)u;
+             current_font->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
+                                                SkSpan<SkGlyphID>(&glyph, 1));
+             if (glyph != 0) {
+                 font = current_font;
+             }
+        }
+
+        if (!font) {
+            for (auto f : fi->fonts) {
+                if (f == current_font) continue;
+                SkGlyphID glyph = 0;
+                SkUnichar sc = (SkUnichar)u;
+                f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
+                                                   SkSpan<SkGlyphID>(&glyph, 1));
+                if (glyph != 0) {
+                    font = f;
+                    break;
+                }
+            }
+        }
+        
         if (!font) {
             font = fi->fonts[0];
         }
+        
         if (font != current_font) {
             if (current_font && p > run_start)
                 total_width +=
@@ -1355,6 +1398,7 @@ void container_skia::reset() {
     m_clips.clear();
     m_opacity_stack.clear();
     m_usedCodepoints.clear();
+    std::fill(m_asciiUsed.begin(), m_asciiUsed.end(), false);
     m_requestedFontAttributes.clear();
     m_missingFonts.clear();
 }

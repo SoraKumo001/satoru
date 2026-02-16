@@ -21,6 +21,10 @@ You are operating in a **Windows PowerShell** environment.
 
 - **Hash Mismatch Handling:** If a `Hash Mismatch` error occurs, immediately re-read the file using `get_text_file_contents` to synchronize. If the error persists or if the file has significant changes, rewrite the entire file using `write_file` to ensure consistency and resolve the conflict.
 
+### 4. Git Usage
+
+- **No Write Operations:** Do not perform any git write operations (e.g., `git add`, `git commit`, `git push`, `git branch`, `git checkout -b`, `git merge`) unless explicitly and specifically instructed by the user. Read-only operations for context (e.g., `git status`, `git diff`, `git log`) are permitted.
+
 ## Project Context: Satoru
 
 ### 1. Overview
@@ -130,6 +134,7 @@ You are operating in a **Windows PowerShell** environment.
   - Compares Skia PNG, SVG-rendered PNG, and PDF output.
   - Uses `flattenAlpha` and white-pixel padding for stabilization.
   - **Read-Only Protocol:** Tests in `png.test.ts` and `svg.test.ts` do NOT write to `REFERENCE_DIR`. They strictly compare against existing references. If a reference is missing, the test fails with an instruction to run `gen-ref`.
+- **Assets Protection:** The original HTML files in the `assets` directory are critical baseline files for testing. Do not modify or overwrite them directly. If testing or experimentation is required, create a new file or use a temporary directory such as `packages/visual-test/temp/`.
 - **Output Validation**:
   - Use `pnpm --filter visual-test convert-assets [file.html] [--verbose] [--no-outline]` to verify rendering.
   - `--no-outline`: Disable text outlining in SVG output (uses `<text>` and `@font-face` instead).

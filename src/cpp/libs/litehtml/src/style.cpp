@@ -361,6 +361,19 @@ namespace litehtml
       add_property(_border_bottom_color_, value, baseurl, important, container, layer, specificity);
       return;
 
+    case _border_start_start_radius_:
+      add_property(_border_top_left_radius_, value, baseurl, important, container, layer, specificity);
+      return;
+    case _border_start_end_radius_:
+      add_property(_border_top_right_radius_, value, baseurl, important, container, layer, specificity);
+      return;
+    case _border_end_start_radius_:
+      add_property(_border_bottom_left_radius_, value, baseurl, important, container, layer, specificity);
+      return;
+    case _border_end_end_radius_:
+      add_property(_border_bottom_right_radius_, value, baseurl, important, container, layer, specificity);
+      return;
+
     case _inset_:
       if (int n = parse_1234_lengths(value, len, f_length_percentage, "auto"))
         add_four_properties(_top_, len, n, important);

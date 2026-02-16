@@ -224,6 +224,11 @@ namespace litehtml
       _border_bottom_right_radius_,
       _border_bottom_left_radius_,
 
+      _border_start_start_radius_,
+      _border_start_end_radius_,
+      _border_end_start_radius_,
+      _border_end_end_radius_,
+
       _border_top_left_radius_x_,
       _border_top_right_radius_x_,
       _border_bottom_right_radius_x_,

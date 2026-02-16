@@ -26,6 +26,7 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   m_vertical_align = (vertical_align)el->get_property<int>(_vertical_align_, false, va_baseline, offset(m_vertical_align));
   m_text_transform = (text_transform)el->get_property<int>(_text_transform_, true, text_transform_none, offset(m_text_transform));
   m_white_space = (white_space)el->get_property<int>(_white_space_, true, white_space_normal, offset(m_white_space));
+  m_word_break = (word_break)el->get_property<int>(_word_break_, true, word_break_normal, offset(m_word_break));
   m_caption_side = (caption_side)el->get_property<int>(_caption_side_, true, caption_side_top, offset(m_caption_side));
   m_table_layout = (table_layout)el->get_property<int>(_table_layout_, true, table_layout_auto, offset(m_table_layout));
 

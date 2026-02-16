@@ -851,6 +851,16 @@ namespace litehtml
                 table_layout_fixed
         };
 
+#define word_break_strings "normal;break-all;keep-all;break-word"
+
+		enum word_break
+		{
+				word_break_normal,
+				word_break_break_all,
+				word_break_keep_all,
+				word_break_break_word
+		};
+
 #define content_property_string         "none;normal;open-quote;close-quote;no-open-quote;no-close-quote"
 
         enum content_property

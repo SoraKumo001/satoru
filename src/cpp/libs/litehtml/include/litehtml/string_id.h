@@ -283,6 +283,7 @@ namespace litehtml
       _text_emphasis_position_,
 
       _white_space_,
+      _word_break_,
       _text_align_,
       _vertical_align_,
       _color_,

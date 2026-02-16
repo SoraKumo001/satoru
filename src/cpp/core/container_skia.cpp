@@ -391,8 +391,20 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         info.shadows = fi->desc.text_shadow;
         info.text_color = color;
         info.opacity = get_current_opacity();
-        m_usedTextShadows.push_back(info);
-        int index = (int)m_usedTextShadows.size();
+
+        int index = -1;
+        for (size_t i = 0; i < m_usedTextShadows.size(); ++i) {
+            if (m_usedTextShadows[i] == info) {
+                index = (int)i + 1;
+                break;
+            }
+        }
+
+        if (index == -1) {
+            m_usedTextShadows.push_back(info);
+            index = (int)m_usedTextShadows.size();
+        }
+
         paint.setColor(SkColorSetARGB(255, 0, 2, (index & 0xFF)));
     } else if (m_tagging) {
         text_draw_info info;
@@ -400,8 +412,20 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         info.italic = (fi->desc.style == litehtml::font_style_italic);
         info.color = color;
         info.opacity = get_current_opacity();
-        m_usedTextDraws.push_back(info);
-        int index = (int)m_usedTextDraws.size();
+
+        int index = -1;
+        for (size_t i = 0; i < m_usedTextDraws.size(); ++i) {
+            if (m_usedTextDraws[i] == info) {
+                index = (int)i + 1;
+                break;
+            }
+        }
+
+        if (index == -1) {
+            m_usedTextDraws.push_back(info);
+            index = (int)m_usedTextDraws.size();
+        }
+
         paint.setColor(SkColorSetARGB(255, 0, 3, (index & 0xFF)));
     } else {
         paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));

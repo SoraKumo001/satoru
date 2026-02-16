@@ -38,6 +38,7 @@ namespace litehtml
           {_vertical_align_, vertical_align_strings},
           {_text_transform_, text_transform_strings},
           {_white_space_, white_space_strings},
+          {_word_break_, word_break_strings},
 
           {_font_style_, font_style_strings},
           {_font_variant_, font_variant_strings},
@@ -206,6 +207,7 @@ namespace litehtml
     case _vertical_align_:
     case _text_transform_:
     case _white_space_:
+    case _word_break_:
     case _font_style_:
     case _font_variant_:
     case _text_decoration_style_:

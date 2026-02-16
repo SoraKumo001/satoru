@@ -107,6 +107,7 @@ namespace litehtml
     css_token_vector m_transform;
     css_token_vector m_transform_origin;
     css_token_vector m_filter;
+    word_break m_word_break;
 
   private:
     void compute_font(const html_tag *el, const std::shared_ptr<document> &doc);
@@ -169,7 +170,8 @@ namespace litehtml
                        m_aspect_ratio(),
                        m_transform(),
                        m_transform_origin(),
-                       m_filter()
+                       m_filter(),
+                       m_word_break(word_break_normal)
     {
     }
 
@@ -190,6 +192,9 @@ namespace litehtml
 
     white_space get_white_space() const;
     void set_white_space(white_space mWhiteSpace);
+
+    word_break get_word_break() const;
+    void set_word_break(word_break mWordBreak);
 
     style_display get_display() const;
     void set_display(style_display mDisplay);
@@ -393,6 +398,16 @@ namespace litehtml
   inline void css_properties::set_white_space(white_space mWhiteSpace)
   {
     m_white_space = mWhiteSpace;
+  }
+
+  inline word_break css_properties::get_word_break() const
+  {
+    return m_word_break;
+  }
+
+  inline void css_properties::set_word_break(word_break mWordBreak)
+  {
+    m_word_break = mWordBreak;
   }
 
   inline style_display css_properties::get_display() const

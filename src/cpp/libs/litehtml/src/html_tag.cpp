@@ -2,6 +2,7 @@
 
 #include "html.h"
 #include "html_tag.h"
+#include "el_text.h"
 #include "document.h"
 #include "html_microsyntaxes.h"
 #include "iterators.h"
@@ -15,6 +16,32 @@
 
 namespace litehtml
 {
+
+static char32_t decode_utf8(const char **ptr) {
+    const char *p = *ptr;
+    unsigned char c = (unsigned char)*p++;
+    if (c < 0x80) {
+        *ptr = p;
+        return c;
+    }
+    char32_t res;
+    int len;
+    if (c < 0xE0) {
+        res = c & 0x1F;
+        len = 1;
+    } else if (c < 0xF0) {
+        res = c & 0x0F;
+        len = 2;
+    } else {
+        res = c & 0x07;
+        len = 3;
+    }
+    while (len--) {
+        res = (res << 6) | ((unsigned char)*p++ & 0x3F);
+    }
+    *ptr = p;
+    return res;
+}
 
 litehtml::html_tag::html_tag(const std::shared_ptr<document>& doc) : element(doc)
 {
@@ -383,6 +410,67 @@ void litehtml::html_tag::compute_styles(bool recursive)
                         el->compute_styles();
                 }
         }
+}
+
+void litehtml::html_tag::apply_word_break()
+{
+	word_break wb = m_css.get_word_break();
+	if(wb == word_break_break_all)
+	{
+		for (auto it = m_children.begin(); it != m_children.end(); )
+		{
+			if((*it)->is_text() && !(*it)->is_white_space() && !(*it)->is_break())
+			{
+				string text;
+				(*it)->get_text(text);
+				const char* p = text.c_str();
+				const char* start_p = p;
+				
+				// Count characters to see if we need to split
+				int count = 0;
+				const char* p_test = p;
+				while(*p_test) { decode_utf8(&p_test); count++; }
+				
+				if(count > 1)
+				{
+					auto original_el = *it;
+					it = m_children.erase(it);
+					
+					p = text.c_str();
+					while(*p)
+					{
+						const char* next_p = p;
+						decode_utf8(&next_p);
+						
+						string char_str(p, next_p - p);
+						auto new_el = std::make_shared<el_text>(char_str.c_str(), get_document());
+						new_el->parent(shared_from_this());
+						new_el->compute_styles(false);
+						
+						m_children.insert(it, new_el);
+						p = next_p;
+					}
+					// it now points to the element after the inserted ones
+				}
+				else
+				{
+					++it;
+				}
+			}
+			else
+			{
+				(*it)->apply_word_break();
+				++it;
+			}
+		}
+	}
+	else
+	{
+		for (auto& el : m_children)
+		{
+			el->apply_word_break();
+		}
+	}
 }
 
 bool litehtml::html_tag::is_white_space() const

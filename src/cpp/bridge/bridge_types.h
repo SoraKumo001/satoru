@@ -88,6 +88,24 @@ struct text_shadow_info {
     litehtml::shadow_vector shadows;
     litehtml::web_color text_color;
     float opacity;
+
+    bool operator==(const text_shadow_info &other) const {
+        if (shadows.size() != other.shadows.size()) return false;
+        for (size_t i = 0; i < shadows.size(); ++i) {
+            const auto &s1 = shadows[i];
+            const auto &s2 = other.shadows[i];
+            if (s1.color.red != s2.color.red || s1.color.green != s2.color.green ||
+                s1.color.blue != s2.color.blue || s1.color.alpha != s2.color.alpha ||
+                s1.blur.val() != s2.blur.val() || s1.x.val() != s2.x.val() ||
+                s1.y.val() != s2.y.val() || s1.spread.val() != s2.spread.val() ||
+                s1.inset != s2.inset)
+                return false;
+        }
+        return text_color.red == other.text_color.red &&
+               text_color.green == other.text_color.green &&
+               text_color.blue == other.text_color.blue &&
+               text_color.alpha == other.text_color.alpha && opacity == other.opacity;
+    }
 };
 
 struct text_draw_info {
@@ -95,6 +113,12 @@ struct text_draw_info {
     bool italic;
     litehtml::web_color color;
     float opacity;
+
+    bool operator==(const text_draw_info &other) const {
+        return weight == other.weight && italic == other.italic && color.red == other.color.red &&
+               color.green == other.color.green && color.blue == other.color.blue &&
+               color.alpha == other.color.alpha && opacity == other.opacity;
+    }
 };
 
 struct filter_info {

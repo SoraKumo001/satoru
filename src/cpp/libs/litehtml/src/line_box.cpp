@@ -163,7 +163,7 @@ litehtml::pixel_t litehtml::lbi_continue::width() const
 
 void litehtml::line_box::add_item(std::unique_ptr<line_box_item> item)
 {
-    item->get_el()->skip(false);
+	item->get_el()->skip(false);
     bool add	= true;
 	switch (item->get_type())
 	{

@@ -480,6 +480,13 @@ void element::apply_stylesheet( const litehtml::css& /*stylesheet*/ )				LITEHTM
 void element::refresh_styles()														LITEHTML_EMPTY_FUNC
 void element::on_click()															LITEHTML_EMPTY_FUNC
 void element::compute_styles( bool /*recursive*/ )									LITEHTML_EMPTY_FUNC
+void element::apply_word_break()
+{
+	for (auto& el : m_children)
+	{
+		el->apply_word_break();
+	}
+}
 const char* element::get_attr( const char* /*name*/, const char* def /*= 0*/ ) const LITEHTML_RETURN_FUNC(def)
 bool element::is_white_space() const												LITEHTML_RETURN_FUNC(false)
 bool element::is_space() const														LITEHTML_RETURN_FUNC(false)

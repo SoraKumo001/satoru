@@ -130,6 +130,9 @@ document::ptr document::createFromString(
 		// Initialize element::m_css
 		doc->m_root->compute_styles();
 
+		// Apply word-break splitting
+		doc->m_root->apply_word_break();
+
 		// Create rendering tree
 		doc->m_root_render = doc->m_root->create_render_item(nullptr);
 
@@ -1184,6 +1187,9 @@ void document::append_children_from_string(element& parent, const char* str, boo
 
 		// Initialize m_css
 		child->compute_styles();
+
+		// Apply word-break splitting
+		child->apply_word_break();
 
 		// Finally initialize elements
 		if(parent_render)

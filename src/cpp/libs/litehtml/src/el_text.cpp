@@ -113,6 +113,10 @@ void litehtml::el_text::compute_styles(bool /*recursive*/)
 	m_draw_spaces = fm.draw_spaces;
 }
 
+void litehtml::el_text::apply_word_break()
+{
+}
+
 void litehtml::el_text::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position *clip, const std::shared_ptr<render_item> &ri)
 {
 	if(is_white_space() && !m_draw_spaces)

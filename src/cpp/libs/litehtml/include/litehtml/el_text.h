@@ -20,6 +20,7 @@ namespace litehtml
 		void				get_text(string& text) const override;
 		void				set_text(const char* text) override;
 		void				compute_styles(bool recursive) override;
+		virtual void		apply_word_break() override;
 		bool				is_text() const override { return true; }
 
 		void draw(uint_ptr hdc, pixel_t x, pixel_t y, const position *clip, const std::shared_ptr<render_item> &ri) override;

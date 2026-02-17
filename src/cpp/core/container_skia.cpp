@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "bridge/magic_tags.h"
 #include "el_svg.h"
 #include "include/core/SkBlurTypes.h"
 #include "include/core/SkClipOp.h"
@@ -229,7 +230,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
             index = (int)m_usedTextShadows.size();
         }
 
-        paint.setColor(SkColorSetARGB(255, 0, 2, (index & 0xFF)));
+        paint.setColor(
+            SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::TextShadow, (index & 0xFF)));
     } else if (m_tagging) {
         text_draw_info info;
         info.weight = fi->desc.weight;
@@ -250,7 +252,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
             index = (int)m_usedTextDraws.size();
         }
 
-        paint.setColor(SkColorSetARGB(255, 0, 3, (index & 0xFF)));
+        paint.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::TextDraw, (index & 0xFF)));
     } else {
         paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     }
@@ -396,7 +398,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
             m_usedShadows.push_back(info);
             int index = (int)m_usedShadows.size();
             SkPaint p;
-            p.setColor(SkColorSetARGB(255, 0, 1, (index & 0xFF)));
+            p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::Shadow, (index & 0xFF)));
             m_canvas->drawRRect(make_rrect(pos, radius), p);
         }
         return;
@@ -453,7 +455,8 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
         m_usedImageDraws.push_back(draw);
         int index = (int)m_usedImageDraws.size();
         SkPaint p;
-        p.setColor(SkColorSetARGB(255, 1, 0, (index & 0xFF)));
+        p.setColor(
+            SkColorSetARGB(255, 1, (uint8_t)satoru::MagicTagExtended::ImageDraw, (index & 0xFF)));
         m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     } else {
         auto it = m_context.imageCache.find(url);
@@ -530,7 +533,8 @@ void container_skia::draw_linear_gradient(
         m_usedLinearGradients.push_back(info);
         int index = (int)m_usedLinearGradients.size();
         SkPaint p;
-        p.setColor(SkColorSetARGB(255, 1, 3, (index & 0xFF)));
+        p.setColor(SkColorSetARGB(255, 1, (uint8_t)satoru::MagicTagExtended::LinearGradient,
+                                  (index & 0xFF)));
         m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     } else {
         SkPoint pts[2] = {SkPoint::Make((float)gradient.start.x, (float)gradient.start.y),
@@ -565,7 +569,8 @@ void container_skia::draw_radial_gradient(
         m_usedRadialGradients.push_back(info);
         int index = (int)m_usedRadialGradients.size();
         SkPaint p;
-        p.setColor(SkColorSetARGB(255, 1, 2, (index & 0xFF)));
+        p.setColor(SkColorSetARGB(255, 1, (uint8_t)satoru::MagicTagExtended::RadialGradient,
+                                  (index & 0xFF)));
         m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     } else {
         SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
@@ -603,7 +608,8 @@ void container_skia::draw_conic_gradient(
         m_usedConicGradients.push_back(info);
         int index = (int)m_usedConicGradients.size();
         SkPaint p;
-        p.setColor(SkColorSetARGB(255, 1, 1, (index & 0xFF)));
+        p.setColor(SkColorSetARGB(255, 1, (uint8_t)satoru::MagicTagExtended::ConicGradient,
+                                  (index & 0xFF)));
         m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     } else {
         SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
@@ -895,7 +901,8 @@ void container_skia::draw_list_marker(litehtml::uint_ptr hdc, const litehtml::li
                 draw.opacity = get_current_opacity();
                 m_usedImageDraws.push_back(draw);
                 int index = (int)m_usedImageDraws.size();
-                p.setColor(SkColorSetARGB(255, 1, 0, (index & 0xFF)));
+                p.setColor(SkColorSetARGB(255, 1, (uint8_t)satoru::MagicTagExtended::ImageDraw,
+                                          (index & 0xFF)));
                 m_canvas->drawRect(dst, p);
             } else {
                 m_canvas->drawImageRect(it->second.skImage, dst,
@@ -1180,7 +1187,7 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
         // クリップ領域（またはビューポート）全体をタグ色で塗る。
         // ポストプロセッサはこの色を見つけたら、直後の要素に filter 属性を付ける。
         SkPaint p;
-        p.setColor(SkColorSetARGB(255, 0, 4, (index & 0xFF)));
+        p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::FilterPush, (index & 0xFF)));
 
         SkRect rect;
         if (!m_clips.empty()) {
@@ -1261,12 +1268,12 @@ void container_skia::pop_filter(litehtml::uint_ptr hdc) {
         if (m_tagging) {
             // フィルター終了タグを出力。確実に描画されるように現在のクリップ領域を使用。
             SkPaint p;
-            p.setColor(SkColorSetARGB(255, 0, 5, 0));
+            p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::FilterPop, 0));
             SkRect rect;
             if (!m_clips.empty()) {
-                rect = SkRect::MakeXYWH((float)m_clips.back().first.x, (float)m_clips.back().first.y,
-                                        (float)m_clips.back().first.width,
-                                        (float)m_clips.back().first.height);
+                rect = SkRect::MakeXYWH(
+                    (float)m_clips.back().first.x, (float)m_clips.back().first.y,
+                    (float)m_clips.back().first.width, (float)m_clips.back().first.height);
             } else {
                 rect = SkRect::MakeWH((float)m_width, (float)m_height);
             }

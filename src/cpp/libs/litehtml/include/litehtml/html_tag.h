@@ -51,6 +51,7 @@ namespace litehtml
 		const char*			get_attr(const char* name, const char* def = nullptr) const override;
 		void				apply_stylesheet(const litehtml::css& stylesheet) override;
 		void				refresh_styles() override;
+		void				reset_style() override;
 
 		bool				is_white_space() const override;
 		bool				is_body() const override;

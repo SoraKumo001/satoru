@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    @font-face {
+      font-family: 'Roboto';
+      src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2') format('woff2');
+    }
+
+    .container {
+      container-type: inline-size;
+      border: 2px solid black;
+      margin: 20px;
+      padding: 10px;
+    }
+
+    .box {
+      background-color: lightgray;
+      padding: 20px;
+      text-align: center;
+      font-size: 20px;
+    }
+
+    /* Default style */
+    .box::before {
+      content: "Default (Narrow)";
+    }
+
+    /* Container Query */
+    @container (min-width: 300px) {
+      .box {
+        background-color: lightgreen;
+      }
+
+      .box::before {
+        content: "Wide Container (> 300px)";
+      }
+    }
+
+    @container (min-width: 500px) {
+      .box {
+        background-color: lightblue;
+        font-size: 30px;
+      }
+
+      .box::before {
+        content: "Very Wide Container (> 500px)";
+      }
+    }
+
+    .named-container {
+      container-name: sidebar;
+      container-type: inline-size;
+      width: 200px;
+      border: 2px solid red;
+    }
+
+    @container sidebar (min-width: 150px) {
+      .sidebar-item {
+        color: red;
+        font-weight: bold;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container" style="width: 200px;">
+    <div class="box"></div>
+  </div>
+
+  <div class="container" style="width: 400px;">
+    <div class="box"></div>
+  </div>
+
+  <div class="container" style="width: 600px;">
+    <div class="box"></div>
+  </div>
+
+  <div class="named-container">
+    <div class="sidebar-item">Named Container Item (Should be red/bold)</div>
+  </div>
+</body>
+
+</html>

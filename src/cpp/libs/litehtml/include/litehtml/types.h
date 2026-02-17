@@ -1162,6 +1162,18 @@ namespace litehtml
                 }
         };
 
+        struct container_features
+        {
+                pixel_t         width;
+                pixel_t         height;
+
+                container_features()
+                {
+                        width = 0;
+                        height = 0;
+                }
+        };
+
         enum render_type
         {
                 render_all,
@@ -1260,6 +1272,16 @@ namespace litehtml
                 flex_basis_fit_content,
                 flex_basis_min_content,
                 flex_basis_max_content,
+        };
+
+#define  container_type_strings         "none;normal;size;inline-size"
+
+        enum container_type
+        {
+                container_type_none,
+                container_type_normal,
+                container_type_size,
+                container_type_inline_size
         };
 
 #define caption_side_strings            "top;bottom"

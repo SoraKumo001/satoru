@@ -4,6 +4,7 @@
 #include "string_id.h"
 #include "style.h"
 #include "media_query.h"
+#include "container_query.h"
 #include "css_tokenizer.h"
 
 namespace litehtml
@@ -97,12 +98,14 @@ namespace litehtml
 		css_element_selector		m_right;
 		css_combinator				m_combinator = combinator_descendant;
 		media_query_list_list::ptr	m_media_query;
+		container_query_list_list::ptr m_container_query;
 		style::ptr					m_style;
 
 	public:
 		bool parse(const string& text, document_mode mode);
 		void calc_specificity();
 		bool is_media_valid() const;
+		bool is_container_valid(const html_tag* el) const;
 		void add_media_to_doc(document* doc) const;
 	};
 
@@ -113,6 +116,15 @@ namespace litehtml
 			return true;
 		}
 		return m_media_query->is_used();
+	}
+
+	inline bool css_selector::is_container_valid(const html_tag* el) const
+	{
+		if(!m_container_query)
+		{
+			return true;
+		}
+		return m_container_query->check(el);
 	}
 
 

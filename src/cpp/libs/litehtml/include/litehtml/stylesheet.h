@@ -56,13 +56,13 @@ public:
 	}
 
 	template<class Input>
-	void	parse_css_stylesheet(const Input& input, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media = nullptr, bool top_level = true, int layer = unlayered_id, string layer_prefix = "");
+	void	parse_css_stylesheet(const Input& input, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media = nullptr, container_query_list_list::ptr container = nullptr, bool top_level = true, int layer = unlayered_id, string layer_prefix = "");
 
 	void	sort_selectors();
 
 private:
-	bool	parse_style_rule(raw_rule::ptr rule, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media, int layer);
-	void	parse_import_rule(raw_rule::ptr rule, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media, int layer, string layer_prefix);
+	bool	parse_style_rule(raw_rule::ptr rule, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media, container_query_list_list::ptr container, int layer);
+	void	parse_import_rule(raw_rule::ptr rule, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media, container_query_list_list::ptr container, int layer, string layer_prefix);
 	void	add_selector(const css_selector::ptr& selector, int layer);
 	int		get_layer_id(const string& name);
 	void	parse_property_rule(raw_rule::ptr rule, shared_ptr<document> doc);

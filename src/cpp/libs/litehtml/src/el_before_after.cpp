@@ -14,12 +14,12 @@ void litehtml::el_before_after_base::add_style(const style& style, selector_spec
 {
 	html_tag::add_style(style, specificity);
 
-	auto children = m_children;
-	m_children.clear();
-
+	// In container queries or style changes, we need to re-evaluate the content.
+	// But we should only do this if the 'content' property is actually present in the new style.
 	const auto& content_property = style.get_property(_content_);
 	if(content_property.is<string>() && !content_property.get<string>().empty())
 	{
+		m_children.clear();
 		const string& str = content_property.get<string>();
 		int idx = value_index(str, content_property_string);
 		if(idx < 0)
@@ -70,11 +70,6 @@ void litehtml::el_before_after_base::add_style(const style& style, selector_spec
 				}
 			}
 		}
-	}
-
-	if(m_children.empty())
-	{
-		m_children = children;
 	}
 }
 

@@ -122,6 +122,9 @@ namespace litehtml
     word_break m_word_break;
     overflow_wrap m_overflow_wrap;
 
+    container_type m_container_type;
+    string m_container_name;
+
   private:
     void compute_font(const html_tag *el, const std::shared_ptr<document> &doc);
     void compute_background(const html_tag *el, const std::shared_ptr<document> &doc);
@@ -192,7 +195,8 @@ namespace litehtml
                        m_transform_origin(),
                        m_filter(),
                        m_word_break(word_break_normal),
-                       m_overflow_wrap(overflow_wrap_normal)
+                       m_overflow_wrap(overflow_wrap_normal),
+                       m_container_type(container_type_none)
     {
     }
 
@@ -369,6 +373,12 @@ namespace litehtml
     void set_opacity(float opacity);
 
     aspect_ratio get_aspect_ratio() const;
+
+    container_type get_container_type() const;
+    void set_container_type(container_type type);
+
+    const string& get_container_name() const;
+    void set_container_name(const string& name);
 
     int get_text_decoration_line() const;
     text_decoration_style get_text_decoration_style() const;
@@ -930,6 +940,26 @@ namespace litehtml
   inline aspect_ratio css_properties::get_aspect_ratio() const
   {
     return m_aspect_ratio;
+  }
+
+  inline container_type css_properties::get_container_type() const
+  {
+    return m_container_type;
+  }
+
+  inline void css_properties::set_container_type(container_type type)
+  {
+    m_container_type = type;
+  }
+
+  inline const string& css_properties::get_container_name() const
+  {
+    return m_container_name;
+  }
+
+  inline void css_properties::set_container_name(const string& name)
+  {
+    m_container_name = name;
   }
 
   inline int css_properties::get_text_decoration_line() const

@@ -75,6 +75,7 @@ namespace litehtml
           {_text_decoration_style_, style_text_decoration_style_strings},
           {_text_emphasis_position_, style_text_emphasis_position_strings},
           {_text_overflow_, text_overflow_strings},
+          {_container_type_, container_type_strings},
   };
   std::map<string_id, vector<string_id>> shorthands =
       {
@@ -104,6 +105,7 @@ namespace litehtml
 
           {_text_decoration_, {_text_decoration_color_, _text_decoration_line_, _text_decoration_style_, _text_decoration_thickness_}},
           {_text_emphasis_, {_text_emphasis_style_, _text_emphasis_color_}},
+          {_container_, {_container_name_, _container_type_}},
   };
 
   void style::add(const string &txt, const string &baseurl, document_container *container, int layer, selector_specificity specificity)
@@ -233,6 +235,7 @@ namespace litehtml
     case _align_content_:
     case _caption_side_:
     case __webkit_box_orient_:
+    case _container_type_:
       if (int index = value_index(ident, m_valid_values[name]); index >= 0)
         add_parsed_property(name, property_value(index, important, false, m_layer, m_specificity));
       break;
@@ -694,6 +697,31 @@ namespace litehtml
     case _aspect_ratio_:
       parse_aspect_ratio(value, important);
       break;
+
+    case _container_name_:
+      if (val.type == IDENT || val.type == STRING)
+        add_parsed_property(name, property_value(val.str, important, false, m_layer, m_specificity));
+      break;
+
+    case _container_:
+    {
+      css_token_vector name_tokens, type_tokens;
+      bool slash_found = false;
+      for (const auto &tok : value)
+      {
+        if (tok.ch == '/')
+          slash_found = true;
+        else if (slash_found)
+          type_tokens.push_back(tok);
+        else
+          name_tokens.push_back(tok);
+      }
+      if (!name_tokens.empty())
+        add_property(_container_name_, name_tokens, baseurl, important, container, layer, specificity);
+      if (!type_tokens.empty())
+        add_property(_container_type_, type_tokens, baseurl, important, container, layer, specificity);
+      break;
+    }
 
     case _margin_trim_:
     case __webkit_hyphens_:

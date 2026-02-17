@@ -230,7 +230,7 @@ void litehtml::html_tag::apply_stylesheet( const litehtml::css& stylesheet )
                 {
                         used_selector::ptr us = std::make_unique<used_selector>(sel, false);
 
-                        if(sel->is_media_valid())
+                        if(sel->is_media_valid() && sel->is_container_valid(this))
                         {
                                 auto apply_before_after = [&]()
                                         {
@@ -1698,6 +1698,11 @@ void litehtml::html_tag::add_style(const style& style, selector_specificity spec
         handle_counter_properties();
 }
 
+void litehtml::html_tag::reset_style()
+{
+	m_style.clear();
+}
+
 void litehtml::html_tag::refresh_styles()
 {
         for (auto& el : m_children)
@@ -1714,7 +1719,7 @@ void litehtml::html_tag::refresh_styles()
         {
                 usel->m_used = false;
 
-                if(usel->m_selector->is_media_valid())
+                if(usel->m_selector->is_media_valid() && usel->m_selector->is_container_valid(this))
                 {
                         int apply = select(*usel->m_selector, false);
 
@@ -1729,6 +1734,7 @@ void litehtml::html_tag::refresh_styles()
                                                         element::ptr el = get_element_after(*usel->m_selector->m_style, false);
                                                         if(el)
                                                         {
+                                                                el->reset_style();
                                                                 el->add_style(*usel->m_selector->m_style, usel->m_selector->m_specificity);
                                                         }
                                                 } else if(apply & select_match_with_before)
@@ -1736,6 +1742,7 @@ void litehtml::html_tag::refresh_styles()
                                                         element::ptr el = get_element_before(*usel->m_selector->m_style, false);
                                                         if(el)
                                                         {
+                                                                el->reset_style();
                                                                 el->add_style(*usel->m_selector->m_style, usel->m_selector->m_specificity);
                                                         }
                                                 }

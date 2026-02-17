@@ -101,6 +101,7 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 
 ### Others
 
+- `container-type`, `container-name`, `container` (Container Queries)
 - `caption-side`, `content`, `appearance`
 
 ## 🔄 Conversion Flow
@@ -473,7 +474,7 @@ pnpm build:all
 - [x] Support for CSS Grid Layout (Basic template columns/rows).
 - [x] **Mixed-unit `calc()` support (e.g., `100% - 20px`).**
 - [x] Support for modern Media Query range syntax (e.g., `width >= 40rem`).
-- [ ] **CSS Container Queries (`@container`).**
+- [x] **CSS Container Queries (`@container`).**
 
 ### Rendering Features
 

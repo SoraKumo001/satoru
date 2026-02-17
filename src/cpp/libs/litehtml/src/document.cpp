@@ -81,12 +81,12 @@ document::ptr document::createFromString(
 
 	if (master_styles != "")
 	{
-		doc->m_master_css.parse_css_stylesheet(master_styles, "", doc, nullptr, true, 0);
+		doc->m_master_css.parse_css_stylesheet(master_styles, "", doc, nullptr, nullptr, true, 0);
 		doc->m_master_css.sort_selectors();
 	}
 	if (user_styles != "")
 	{
-		doc->m_user_css.parse_css_stylesheet(user_styles, "", doc, nullptr, true, 1);
+		doc->m_user_css.parse_css_stylesheet(user_styles, "", doc, nullptr, nullptr, true, 1);
 		doc->m_user_css.sort_selectors();
 	}
 
@@ -113,7 +113,7 @@ document::ptr document::createFromString(
 				media = make_shared<media_query_list_list>();
 				media->add(mq_list);
 			}
-			doc->m_styles.parse_css_stylesheet(css.text, css.baseurl, doc, media);
+			doc->m_styles.parse_css_stylesheet(css.text, css.baseurl, doc, media, nullptr);
 		}
 		// Sort css selectors using CSS rules.
 		doc->m_styles.sort_selectors();
@@ -552,6 +552,16 @@ pixel_t document::render( pixel_t max_width, render_type rt )
 		} else
 		{
 			ret = m_root_render->render(0, 0, cb_context, nullptr);
+			
+			// Container Queries support: 
+			// After the first layout, container sizes are known.
+			// We trigger a style refresh and a second layout pass.
+			m_root->refresh_styles();
+			m_root->compute_styles();
+			
+			// Second pass
+			ret = m_root_render->render(0, 0, cb_context, nullptr);
+
 			if(m_root_render->fetch_positioned())
 			{
 				m_fixed_boxes.clear();

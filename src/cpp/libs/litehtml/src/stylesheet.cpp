@@ -9,7 +9,7 @@ namespace litehtml
 
 // https://www.w3.org/TR/css-syntax-3/#parse-a-css-stylesheet
 template<class Input> // Input == string or css_token_vector
-void css::parse_css_stylesheet(const Input& input, string baseurl, document::ptr doc, media_query_list_list::ptr media, bool top_level, int layer, string layer_prefix)
+void css::parse_css_stylesheet(const Input& input, string baseurl, document::ptr doc, media_query_list_list::ptr media, container_query_list_list::ptr container, bool top_level, int layer, string layer_prefix)
 {
 	if (doc && media)
 		doc->add_media_list(media);
@@ -25,7 +25,7 @@ void css::parse_css_stylesheet(const Input& input, string baseurl, document::ptr
 	{
 		if (rule->type == raw_rule::qualified)
 		{
-			if (parse_style_rule(rule, baseurl, doc, media, layer))
+			if (parse_style_rule(rule, baseurl, doc, media, container, layer))
 				import_allowed = false;
 			continue;
 		}
@@ -38,7 +38,7 @@ void css::parse_css_stylesheet(const Input& input, string baseurl, document::ptr
 
 		case _import_:
 			if (import_allowed)
-				parse_import_rule(rule, baseurl, doc, media, layer, layer_prefix);
+				parse_import_rule(rule, baseurl, doc, media, container, layer, layer_prefix);
 			else
 				css_parse_error("incorrect placement of @import rule");
 			break;
@@ -56,7 +56,22 @@ void css::parse_css_stylesheet(const Input& input, string baseurl, document::ptr
 				new_media = make_shared<media_query_list_list>(media ? *media : media_query_list_list());
 				new_media->add(mq_list);
 			}
-			parse_css_stylesheet(rule->block.value, baseurl, doc, new_media, false, layer, layer_prefix);
+			parse_css_stylesheet(rule->block.value, baseurl, doc, new_media, container, false, layer, layer_prefix);
+			import_allowed = false;
+			break;
+		}
+
+		case _container_:
+		{
+			if (rule->block.type != CURLY_BLOCK) break;
+			auto new_container = container;
+			auto cq_list = parse_container_query_list(rule->prelude, doc);
+			if (!cq_list.empty())
+			{
+				new_container = make_shared<container_query_list_list>(container ? *container : container_query_list_list());
+				new_container->add(cq_list);
+			}
+			parse_css_stylesheet(rule->block.value, baseurl, doc, media, new_container, false, layer, layer_prefix);
 			import_allowed = false;
 			break;
 		}
@@ -84,7 +99,7 @@ void css::parse_css_stylesheet(const Input& input, string baseurl, document::ptr
 				{
 					new_layer_id = get_layer_id("");
 				}
-				parse_css_stylesheet(rule->block.value, baseurl, doc, media, false, new_layer_id, new_layer_prefix);
+				parse_css_stylesheet(rule->block.value, baseurl, doc, media, container, false, new_layer_id, new_layer_prefix);
 			}
 			else
 			{
@@ -111,7 +126,7 @@ void css::parse_css_stylesheet(const Input& input, string baseurl, document::ptr
 			if (rule->block.type != CURLY_BLOCK) break;
 			if (evaluate_supports(rule->prelude, doc))
 			{
-				parse_css_stylesheet(rule->block.value, baseurl, doc, media, false, layer, layer_prefix);
+				parse_css_stylesheet(rule->block.value, baseurl, doc, media, container, false, layer, layer_prefix);
 			}
 			import_allowed = false;
 			break;
@@ -133,7 +148,7 @@ void css::parse_css_stylesheet(const Input& input, string baseurl, document::ptr
 // https://drafts.csswg.org/css-cascade-5/#at-import
 // `supports` is not supported
 // @import [ <url> | <string> ] [ layer | layer(<layer-name>) ]? <media-query-list>?
-void css::parse_import_rule(raw_rule::ptr rule, string baseurl, document::ptr doc, media_query_list_list::ptr media, int layer, string layer_prefix)
+void css::parse_import_rule(raw_rule::ptr rule, string baseurl, document::ptr doc, media_query_list_list::ptr media, container_query_list_list::ptr container, int layer, string layer_prefix)
 {
 	auto tokens = rule->prelude;
 	int index = 0;
@@ -173,10 +188,10 @@ void css::parse_import_rule(raw_rule::ptr rule, string baseurl, document::ptr do
 		index++;
 	}
 
-	document_container* container = doc->container();
+	document_container* container_ptr = doc->container();
 	string css_text;
 	string css_baseurl = baseurl;
-	container->import_css(css_text, url, css_baseurl);
+	container_ptr->import_css(css_text, url, css_baseurl);
 
 	auto new_media = media;
 	tokens = slice(tokens, index);
@@ -187,11 +202,11 @@ void css::parse_import_rule(raw_rule::ptr rule, string baseurl, document::ptr do
 		new_media->add(mq_list);
 	}
 
-	parse_css_stylesheet(css_text, css_baseurl, doc, new_media, true, import_layer, import_layer_prefix);
+	parse_css_stylesheet(css_text, css_baseurl, doc, new_media, container, true, import_layer, import_layer_prefix);
 }
 
 // https://www.w3.org/TR/css-syntax-3/#style-rules
-bool css::parse_style_rule(raw_rule::ptr rule, string baseurl, document::ptr doc, media_query_list_list::ptr media, int layer)
+bool css::parse_style_rule(raw_rule::ptr rule, string baseurl, document::ptr doc, media_query_list_list::ptr media, container_query_list_list::ptr container, int layer)
 {
 	// The prelude of the qualified rule is parsed as a <selector-list>. If this returns failure, the entire style rule is invalid.
 	auto list = parse_selector_list(rule->prelude, strict_mode, doc->mode());
@@ -209,6 +224,7 @@ bool css::parse_style_rule(raw_rule::ptr rule, string baseurl, document::ptr doc
 	{
 		sel->m_style = style;
 		sel->m_media_query = media;
+		sel->m_container_query = container;
 		sel->calc_specificity();
 		add_selector(sel, layer);
 	}

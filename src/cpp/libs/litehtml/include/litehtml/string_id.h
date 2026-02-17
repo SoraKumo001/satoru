@@ -296,6 +296,9 @@ namespace litehtml
       _max_width_,
       _max_height_,
       _contain_intrinsic_size_,
+      _container_,
+      _container_type_,
+      _container_name_,
       _position_,
       _overflow_,
       _text_overflow_,
@@ -446,7 +449,9 @@ namespace litehtml
       _aspect_ratio_,
       _device_aspect_ratio_,
       _color_index_,
-      _monochrome_)
+      _monochrome_,
+      _inline_size_,
+      _size_)
 #undef STRING_ID
   extern const string_id empty_id; // _id("")
   extern const string_id star_id;  // _id("*")

@@ -124,6 +124,13 @@ You are operating in a **Windows PowerShell** environment.
   - Support for `calc()` and other functions in media feature values.
   - Added support for discrete features: `hover`, `any-hover`, `pointer`, `any-pointer`, `prefers-reduced-motion`.
 
+- **Container Queries:**
+  - Implemented `@container` support with size and name queries.
+  - Supports `container-type` (`size`, `inline-size`) and `container-name`.
+  - Supports `container` shorthand property.
+  - Uses a multi-pass layout approach (2-pass) in `document::render` to resolve styles after container sizes are determined.
+  - Reuses media query condition evaluation logic for container conditions.
+
 - **litehtml Types:**
   - Container overrides MUST return `litehtml::pixel_t` (float), not `int`.
 

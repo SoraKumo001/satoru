@@ -46,23 +46,25 @@ function run(cmd: string, cwd?: string) {
   execSync(fullCmd, { stdio: "inherit", shell, cwd });
 }
 
+const isDebug = process.argv.includes("--debug");
+const buildType = isDebug ? "Debug" : "Release";
+const buildDir = `build-wasm-${buildType.toLowerCase()}`;
+
 if (action === "configure") {
   const force = process.argv.includes("--force");
-  if (force && fs.existsSync("build-wasm")) {
+  if (force && fs.existsSync(buildDir)) {
     try {
-      fs.rmSync("build-wasm", { recursive: true, force: true });
+      fs.rmSync(buildDir, { recursive: true, force: true });
     } catch (e) {
-      console.warn("Warning: Could not remove build-wasm directory, attempting to continue.");
+      console.warn(`Warning: Could not remove ${buildDir} directory, attempting to continue.`);
     }
   }
-  if (!fs.existsSync("build-wasm")) {
-    fs.mkdirSync("build-wasm");
+  if (!fs.existsSync(buildDir)) {
+    fs.mkdirSync(buildDir);
   }
 
   const generator = useNinja ? "Ninja" : "Unix Makefiles";
   const projectRoot = process.cwd().replace(/\\/g, "/");
-  const isDebug = process.argv.includes("--debug");
-  const buildType = isDebug ? "Debug" : "Release";
 
   const cmakeCmd =
     `cmake .. -G "${generator}" ` +
@@ -74,14 +76,19 @@ if (action === "configure") {
     `-DVCPKG_OVERLAY_TRIPLETS="${projectRoot}/triplets" ` +
     `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`;
 
-  run(cmakeCmd, "build-wasm");
+  run(cmakeCmd, buildDir);
 } else if (action === "build") {
+  if (!fs.existsSync(buildDir)) {
+    console.error(`Error: Build directory ${buildDir} does not exist. Run configure first.`);
+    process.exit(1);
+  }
+
   if (useNinja) {
-    run("ninja", "build-wasm");
+    run("ninja", buildDir);
   } else {
-    run("emmake make -j16", "build-wasm");
+    run("emmake make -j16", buildDir);
   }
 } else {
-  console.error("Usage: tsx scripts/build-wasm.ts [configure|build]");
+  console.error("Usage: tsx scripts/build-wasm.ts [configure|build] [--debug] [--force]");
   process.exit(1);
 }

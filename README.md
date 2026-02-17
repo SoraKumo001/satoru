@@ -191,8 +191,6 @@ const png = await render({
 });
 ```
 
-````
-
 #### Render Options
 
 | Option            | Type                                | Description                                                              |
@@ -236,7 +234,7 @@ export default {
     });
   },
 };
-````
+```
 
 ### 📦 Single-file (Embedded WASM)
 
@@ -442,20 +440,40 @@ pnpm --filter visual-test convert-assets [file.html] [--width <number>] [--no-ou
 
 ## 🏗️ Build & Run
 
-### Local Environment
+### Prerequisites
 
-Requires Emscripten SDK and vcpkg.
+- [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html)
+- [vcpkg](https://vcpkg.io/)
+- [Ninja](https://ninja-build.org/) (Recommended for faster builds)
+- [ccache](https://ccache.dev/) (Optional, for compiler caching)
+
+### Local Build Commands
+
+The build system automatically detects **Ninja** and **ccache** to maximize performance. Intermediate files for Debug and Release modes are stored in separate directories.
 
 ```bash
+# 1. Install JS dependencies
 pnpm install
+
+# 2. Configure Wasm build (Release mode)
 pnpm wasm:configure
+
+# 2b. Configure Wasm build (Debug mode)
+pnpm wasm:configure:debug
+
+# 3. Build Wasm (Incremental)
+pnpm wasm:build
+
+# 3b. Build Wasm (Debug mode)
+pnpm wasm:build:debug
+
+# 4. Build everything (Wasm + TS wrappers)
 pnpm build:all
-pnpm dev:playground
 ```
 
-### Docker Environment (Recommended for WASM)
+### Docker Environment
 
-Build WASM artifacts inside a Docker container without local toolchains.
+Build WASM artifacts inside a Docker container without local toolchains. The Docker build uses BuildKit cache mounts for `pnpm` and `vcpkg`.
 
 ```bash
 pnpm wasm:docker:build

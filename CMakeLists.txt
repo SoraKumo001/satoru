@@ -34,7 +34,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(skia)
 
 # --- libavif ---
-set(VCPKG_INSTALLED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build-wasm/vcpkg_installed/wasm32-emscripten-wasm-eh")
+set(VCPKG_INSTALLED_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/wasm32-emscripten-wasm-eh")
 
 if(NOT TARGET dav1d::dav1d)
     add_library(dav1d::dav1d STATIC IMPORTED GLOBAL)
@@ -116,15 +116,15 @@ set(SATORU_LIBS
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(COMMON_COMPILE_OPTIONS
-        -O0
-        -g
+        -O2
+        -g0
         -fexceptions
         -msimd128
     )
     set(COMMON_LINK_OPTIONS
         "--bind"
-        "-O0"
-        "-g"
+        "-O1"
+        -g0
         -fexceptions
         -msimd128
         "-sWASM_BIGINT=1"
@@ -135,7 +135,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         "-sMODULARIZE=1"
         "-sEXPORT_ES6=1"
         "-sEXPORT_NAME='createSatoruModule'"
-        "-sENVIRONMENT=web,worker"
+        "-sENVIRONMENT=web"
         "-sFILESYSTEM=0"
         "-sERROR_ON_UNDEFINED_SYMBOLS=0"
         "-sWARN_ON_UNDEFINED_SYMBOLS=0"
@@ -147,7 +147,6 @@ else()
         -g0
         -fexceptions
         -msimd128
-        -flto=thin
     )
     set(COMMON_LINK_OPTIONS
         "--bind"
@@ -155,7 +154,6 @@ else()
         "-g0"
         -fexceptions
         -msimd128
-        -flto=thin
         "-sWASM_BIGINT=1"
         "-sSUPPORT_LONGJMP=emscripten"
         "-sDISABLE_EXCEPTION_CATCHING=0"
@@ -164,7 +162,7 @@ else()
         "-sMODULARIZE=1"
         "-sEXPORT_ES6=1"
         "-sEXPORT_NAME='createSatoruModule'"
-        "-sENVIRONMENT=web,worker"
+        "-sENVIRONMENT=web"
         "-sFILESYSTEM=0"
         "-sERROR_ON_UNDEFINED_SYMBOLS=0"
         "-sWARN_ON_UNDEFINED_SYMBOLS=0"

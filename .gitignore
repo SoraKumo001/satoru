@@ -5,7 +5,6 @@ vcpkg_installed/
 node_modules/
 
 # Emscripten / CMake build artifacts
-build-wasm/
 dist/wasm/
 
 # Vite / Build outputs
@@ -33,3 +32,6 @@ temp
 external
 *.log
 tsconfig.tsbuildinfo
+build-wasm-debug
+build-wasm-release
+build

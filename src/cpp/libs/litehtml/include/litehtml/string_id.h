@@ -335,7 +335,12 @@ namespace litehtml
       _grid_template_columns_,
       _grid_template_rows_,
       _grid_column_,
+      _grid_column_start_,
+      _grid_column_end_,
       _grid_row_,
+      _grid_row_start_,
+      _grid_row_end_,
+      _justify_self_,
 
       _caption_side_,
       _order_,

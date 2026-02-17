@@ -93,8 +93,16 @@ namespace litehtml
     flex_align_items m_flex_align_self;
     flex_align_content m_flex_align_content;
 
+    flex_justify_content m_justify_self;
+    flex_align_items m_align_self;
+
     length_vector m_grid_template_columns;
     length_vector m_grid_template_rows;
+
+    css_token_vector m_grid_column_start;
+    css_token_vector m_grid_column_end;
+    css_token_vector m_grid_row_start;
+    css_token_vector m_grid_row_end;
 
     css_length m_row_gap;
     css_length m_column_gap;
@@ -167,6 +175,12 @@ namespace litehtml
                        m_flex_align_items(flex_align_items_stretch),
                        m_flex_align_self(flex_align_items_auto),
                        m_flex_align_content(flex_align_content_stretch),
+                       m_justify_self(flex_justify_content_auto),
+                       m_align_self(flex_align_items_auto),
+                       m_grid_column_start(),
+                       m_grid_column_end(),
+                       m_grid_row_start(),
+                       m_grid_row_end(),
                        m_row_gap(0),
                        m_column_gap(0),
                        m_order(0),
@@ -328,8 +342,16 @@ namespace litehtml
     flex_align_items get_flex_align_self() const;
     flex_align_content get_flex_align_content() const;
 
+    flex_justify_content get_justify_self() const;
+    flex_align_items get_align_self() const;
+
     const length_vector &get_grid_template_columns() const;
     const length_vector &get_grid_template_rows() const;
+
+    const css_token_vector &get_grid_column_start() const;
+    const css_token_vector &get_grid_column_end() const;
+    const css_token_vector &get_grid_row_start() const;
+    const css_token_vector &get_grid_row_end() const;
 
     const css_length &get_row_gap() const;
     const css_length &get_column_gap() const;
@@ -806,6 +828,16 @@ namespace litehtml
     return m_flex_align_content;
   }
 
+  inline flex_justify_content css_properties::get_justify_self() const
+  {
+    return m_justify_self;
+  }
+
+  inline flex_align_items css_properties::get_align_self() const
+  {
+    return m_align_self;
+  }
+
   inline const length_vector &css_properties::get_grid_template_columns() const
   {
     return m_grid_template_columns;
@@ -814,6 +846,26 @@ namespace litehtml
   inline const length_vector &css_properties::get_grid_template_rows() const
   {
     return m_grid_template_rows;
+  }
+
+  inline const css_token_vector &css_properties::get_grid_column_start() const
+  {
+    return m_grid_column_start;
+  }
+
+  inline const css_token_vector &css_properties::get_grid_column_end() const
+  {
+    return m_grid_column_end;
+  }
+
+  inline const css_token_vector &css_properties::get_grid_row_start() const
+  {
+    return m_grid_row_start;
+  }
+
+  inline const css_token_vector &css_properties::get_grid_row_end() const
+  {
+    return m_grid_row_end;
   }
 
   inline const css_length &css_properties::get_row_gap() const

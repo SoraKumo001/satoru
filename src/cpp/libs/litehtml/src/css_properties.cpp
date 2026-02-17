@@ -629,6 +629,15 @@ void litehtml::css_properties::compute_grid(const html_tag *el, const document::
     doc->cvt_units(m_row_gap, m_font_metrics, 0);
     doc->cvt_units(m_column_gap, m_font_metrics, 0);
   }
+
+  // Grid item properties
+  m_grid_column_start = el->get_property<css_token_vector>(_grid_column_start_, false, css_token_vector(), offset(m_grid_column_start));
+  m_grid_column_end = el->get_property<css_token_vector>(_grid_column_end_, false, css_token_vector(), offset(m_grid_column_end));
+  m_grid_row_start = el->get_property<css_token_vector>(_grid_row_start_, false, css_token_vector(), offset(m_grid_row_start));
+  m_grid_row_end = el->get_property<css_token_vector>(_grid_row_end_, false, css_token_vector(), offset(m_grid_row_end));
+
+  m_align_self = (flex_align_items)el->get_property<int>(_align_self_, false, flex_align_items_auto, offset(m_align_self));
+  m_justify_self = (flex_justify_content)el->get_property<int>(_justify_self_, false, flex_justify_content_auto, offset(m_justify_self));
 }
 
 // https://www.w3.org/TR/css-values-4/#snap-a-length-as-a-border-width

@@ -1193,10 +1193,11 @@ namespace litehtml
                 flex_wrap_wrap_reverse
         };
 
-#define flex_justify_content_strings            "normal;flex-start;flex-end;center;space-between;space-around;start;end;left;right;space-evenly;stretch"
+#define flex_justify_content_strings            "auto;normal;flex-start;flex-end;center;space-between;space-around;start;end;left;right;space-evenly;stretch"
 
         enum flex_justify_content
         {
+                flex_justify_content_auto,
                 flex_justify_content_normal,
                 flex_justify_content_flex_start,
                 flex_justify_content_flex_end,

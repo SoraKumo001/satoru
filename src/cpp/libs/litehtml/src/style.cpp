@@ -64,6 +64,7 @@ namespace litehtml
           {_flex_direction_, flex_direction_strings},
           {_flex_wrap_, flex_wrap_strings},
           {_justify_content_, flex_justify_content_strings},
+          {_justify_self_, flex_justify_content_strings},
           {_align_content_, flex_align_content_strings},
           {_align_items_, flex_align_items_strings},
           {_align_self_, flex_align_items_strings},
@@ -98,6 +99,8 @@ namespace litehtml
           {_flex_, {_flex_grow_, _flex_shrink_, _flex_basis_}},
           {_flex_flow_, {_flex_direction_, _flex_wrap_}},
           {_gap_, {_row_gap_, _column_gap_}},
+          {_grid_column_, {_grid_column_start_, _grid_column_end_}},
+          {_grid_row_, {_grid_row_start_, _grid_row_end_}},
 
           {_text_decoration_, {_text_decoration_color_, _text_decoration_line_, _text_decoration_style_, _text_decoration_thickness_}},
           {_text_emphasis_, {_text_emphasis_style_, _text_emphasis_color_}},
@@ -226,6 +229,7 @@ namespace litehtml
     case _flex_direction_:
     case _flex_wrap_:
     case _justify_content_:
+    case _justify_self_:
     case _align_content_:
     case _caption_side_:
     case __webkit_box_orient_:
@@ -604,6 +608,44 @@ namespace litehtml
     case _grid_template_rows_:
       parse_grid_template(name, value, important);
       break;
+
+    case _grid_column_start_:
+    case _grid_column_end_:
+    case _grid_row_start_:
+    case _grid_row_end_:
+      add_parsed_property(name, property_value(value, important, false, m_layer, m_specificity));
+      break;
+
+    case _grid_column_:
+    case _grid_row_:
+    {
+      std::vector<css_token_vector> tokens_list;
+      css_token_vector current;
+      for (const auto& tok : value)
+      {
+        if (tok.ch == '/')
+        {
+          tokens_list.push_back(current);
+          current.clear();
+        }
+        else
+        {
+          current.push_back(tok);
+        }
+      }
+      tokens_list.push_back(current);
+
+      if (tokens_list.size() >= 1)
+      {
+        string_id start_id = (name == _grid_column_ ? _grid_column_start_ : _grid_row_start_);
+        string_id end_id = (name == _grid_column_ ? _grid_column_end_ : _grid_row_end_);
+        
+        add_property(start_id, tokens_list[0], baseurl, important, container, layer, specificity);
+        if (tokens_list.size() >= 2)
+          add_property(end_id, tokens_list[1], baseurl, important, container, layer, specificity);
+      }
+      return;
+    }
 
     case _column_gap_:
     case _row_gap_:

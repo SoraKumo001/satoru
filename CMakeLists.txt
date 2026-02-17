@@ -9,6 +9,14 @@ set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "$ENV{EMSDK}/upstream/emscripten/cmake/Module
 project(satoru_wasm)
 set(CMAKE_CXX_STANDARD 17)
 
+# --- Enable ccache ---
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    message(STATUS "ccache enabled")
+endif()
+
 # --- Directories ---
 set(LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/libs")
 set(LITEHTML_DIR "${LIBS_DIR}/litehtml")
@@ -43,6 +51,7 @@ set(AVIF_LIBYUV OFF CACHE BOOL "" FORCE)
 set(AVIF_BUILD_APPS OFF CACHE BOOL "" FORCE)
 set(AVIF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(AVIF_ENABLE_WASM OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE) # Force static for libavif
 
 FetchContent_Declare(
   libavif
@@ -105,32 +114,63 @@ set(SATORU_LIBS
     harfbuzz::harfbuzz
 )
 
-set(COMMON_COMPILE_OPTIONS
-    -O3
-    -fexceptions
-    -msimd128
-)
-
-set(COMMON_LINK_OPTIONS
-    "--bind"
-    "-O3"
-    "-fexceptions"
-    "-msimd128"
-    "-sWASM_BIGINT=1"
-    "-sSUPPORT_LONGJMP=emscripten"
-    "-sDISABLE_EXCEPTION_CATCHING=0"
-    "-sDYNAMIC_EXECUTION=0"
-    "-sASSERTIONS=1"
-    "-sMODULARIZE=1"
-    "-sEXPORT_ES6=1"
-    "-sEXPORT_NAME='createSatoruModule'"
-    "-sENVIRONMENT=web,worker,node"
-    "-sERROR_ON_UNDEFINED_SYMBOLS=0"
-    "-sWARN_ON_UNDEFINED_SYMBOLS=0"
-    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','getValue','setValue','HEAPU8','stringToUTF8','lengthBytesUTF8']"
-    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
-    "-sALLOW_MEMORY_GROWTH=1"
-)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(COMMON_COMPILE_OPTIONS
+        -O0
+        -g
+        -fexceptions
+        -msimd128
+    )
+    set(COMMON_LINK_OPTIONS
+        "--bind"
+        "-O0"
+        "-g"
+        -fexceptions
+        -msimd128
+        "-sWASM_BIGINT=1"
+        "-sSUPPORT_LONGJMP=emscripten"
+        "-sDISABLE_EXCEPTION_CATCHING=0"
+        "-sDYNAMIC_EXECUTION=0"
+        "-sASSERTIONS=1"
+        "-sMODULARIZE=1"
+        "-sEXPORT_ES6=1"
+        "-sEXPORT_NAME='createSatoruModule'"
+        "-sENVIRONMENT=web,worker"
+        "-sFILESYSTEM=0"
+        "-sERROR_ON_UNDEFINED_SYMBOLS=0"
+        "-sWARN_ON_UNDEFINED_SYMBOLS=0"
+        "-sALLOW_MEMORY_GROWTH=1"
+    )
+else()
+    set(COMMON_COMPILE_OPTIONS
+        -Oz
+        -g0
+        -fexceptions
+        -msimd128
+        -flto=thin
+    )
+    set(COMMON_LINK_OPTIONS
+        "--bind"
+        "-Oz"
+        "-g0"
+        -fexceptions
+        -msimd128
+        -flto=thin
+        "-sWASM_BIGINT=1"
+        "-sSUPPORT_LONGJMP=emscripten"
+        "-sDISABLE_EXCEPTION_CATCHING=0"
+        "-sDYNAMIC_EXECUTION=0"
+        "-sASSERTIONS=0"
+        "-sMODULARIZE=1"
+        "-sEXPORT_ES6=1"
+        "-sEXPORT_NAME='createSatoruModule'"
+        "-sENVIRONMENT=web,worker"
+        "-sFILESYSTEM=0"
+        "-sERROR_ON_UNDEFINED_SYMBOLS=0"
+        "-sWARN_ON_UNDEFINED_SYMBOLS=0"
+        "-sALLOW_MEMORY_GROWTH=1"
+    )
+endif()
 
 # --- Target: litehtml ---
 add_library(litehtml STATIC)
@@ -220,7 +260,7 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/modules/skunicode/src/SkUnicode_hardcoded.cpp"
 )
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
-list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkGPU.*|.*SkDocument_PDF_None.cpp")
+list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkGPU.*|.*SkGpu.*|.*SkGraphite.*|.*SkDocument_PDF_None.cpp|.*src/gpu/.*|.*src/graphite/.*")
 
 target_sources(skia_lib PRIVATE ${SKIA_CORE_SRC})
 target_include_directories(skia_lib PUBLIC
@@ -231,7 +271,7 @@ target_include_directories(skia_lib PUBLIC
     "${skia_SOURCE_DIR}/modules/skshaper/include"
     "${skia_SOURCE_DIR}/modules/skunicode/include"
 )
-target_compile_definitions(skia_lib PUBLIC SK_USER_CONFIG_HEADER="SkUserConfig.h" SK_ENABLE_SVG SK_SHAPER_HARFBUZZ_AVAILABLE SK_SHAPER_UNICODE_AVAILABLE)
+target_compile_definitions(skia_lib PUBLIC SK_USER_CONFIG_HEADER="SkUserConfig.h" SK_ENABLE_SVG SK_SHAPER_HARFBUZZ_AVAILABLE SK_SHAPER_UNICODE_AVAILABLE SK_DISABLE_FILESYSTEM)
 target_compile_options(skia_lib PRIVATE ${COMMON_COMPILE_OPTIONS})
 target_link_libraries(skia_lib PUBLIC ${SATORU_LIBS})
 

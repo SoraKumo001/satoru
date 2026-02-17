@@ -47,16 +47,27 @@ function run(cmd: string, cwd?: string) {
 }
 
 if (action === "configure") {
-  if (fs.existsSync("build-wasm")) {
-    fs.rmSync("build-wasm", { recursive: true, force: true });
+  const force = process.argv.includes("--force");
+  if (force && fs.existsSync("build-wasm")) {
+    try {
+      fs.rmSync("build-wasm", { recursive: true, force: true });
+    } catch (e) {
+      console.warn("Warning: Could not remove build-wasm directory, attempting to continue.");
+    }
   }
-  fs.mkdirSync("build-wasm");
+  if (!fs.existsSync("build-wasm")) {
+    fs.mkdirSync("build-wasm");
+  }
 
   const generator = useNinja ? "Ninja" : "Unix Makefiles";
   const projectRoot = process.cwd().replace(/\\/g, "/");
+  const isDebug = process.argv.includes("--debug");
+  const buildType = isDebug ? "Debug" : "Release";
+
   const cmakeCmd =
     `cmake .. -G "${generator}" ` +
-    `-DCMAKE_BUILD_TYPE=Release ` +
+    `-Wno-dev ` +
+    `-DCMAKE_BUILD_TYPE=${buildType} ` +
     `-DCMAKE_TOOLCHAIN_FILE="${vcpkgCmake}" ` +
     `-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${emscriptenCmake}" ` +
     `-DVCPKG_TARGET_TRIPLET=wasm32-emscripten-wasm-eh ` +

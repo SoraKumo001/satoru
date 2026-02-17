@@ -73,6 +73,8 @@ find_package(unofficial-gumbo CONFIG REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
 find_package(BZip2 REQUIRED)
 find_package(ctre CONFIG REQUIRED)
+find_package(utf8proc CONFIG REQUIRED)
+find_package(libunibreak CONFIG REQUIRED)
 
 set(SATORU_LIBS
     Freetype::Freetype
@@ -92,6 +94,8 @@ set(SATORU_LIBS
     unofficial::brotli::brotlicommon
     BZip2::BZip2
     ctre::ctre
+    utf8proc::utf8proc
+    libunibreak::libunibreak
 )
 
 set(COMMON_COMPILE_OPTIONS

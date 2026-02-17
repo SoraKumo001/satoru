@@ -20,6 +20,9 @@ struct MeasureResult {
 // Decodes a UTF-8 character and advances the pointer.
 char32_t decode_utf8_char(const char** ptr);
 
+// Normalizes a UTF-8 string to NFC.
+std::string normalize_utf8(const char* text);
+
 // Measures the text width. If max_width is provided (>= 0), stops when width exceeds max_width.
 MeasureResult measure_text(const char* text, font_info* fi, double max_width = -1.0,
                            std::set<char32_t>* used_codepoints = nullptr);

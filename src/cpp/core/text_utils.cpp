@@ -1,5 +1,8 @@
 #include "text_utils.h"
 
+#include <linebreak.h>
+#include <utf8proc.h>
+
 #include <algorithm>
 
 #include "include/core/SkFont.h"
@@ -9,30 +12,29 @@
 namespace satoru {
 
 char32_t decode_utf8_char(const char **ptr) {
-    const uint8_t *p = (const uint8_t *)*ptr;
-    if (!p || !*p) return 0;
+    if (!ptr || !*ptr || !**ptr) return 0;
 
-    uint32_t cp = 0;
-    uint8_t b1 = *p++;
+    utf8proc_int32_t cp;
+    utf8proc_ssize_t result = utf8proc_iterate((const utf8proc_uint8_t *)*ptr, -1, &cp);
 
-    if (b1 < 0x80) {
-        cp = b1;
-    } else if ((b1 & 0xE0) == 0xC0) {
-        cp = (b1 & 0x1F) << 6;
-        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F);
-    } else if ((b1 & 0xF0) == 0xE0) {
-        cp = (b1 & 0x0F) << 12;
-        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F) << 6;
-        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F);
-    } else if ((b1 & 0xF8) == 0xF0) {
-        cp = (b1 & 0x07) << 18;
-        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F) << 12;
-        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F) << 6;
-        if ((*p & 0xC0) == 0x80) cp |= (*p++ & 0x3F);
+    if (result < 0) {
+        (*ptr)++;  // Advance one byte on error
+        return 0xFFFD;
     }
 
-    *ptr = (const char *)p;
+    *ptr += result;
     return (char32_t)cp;
+}
+
+std::string normalize_utf8(const char *text) {
+    if (!text || !*text) return "";
+    utf8proc_uint8_t *retval = nullptr;
+    utf8proc_ssize_t len = utf8proc_map((const utf8proc_uint8_t *)text, 0, &retval,
+                                        (utf8proc_option_t)UTF8PROC_COMPOSE);
+    if (len < 0 || !retval) return std::string(text);
+    std::string result((const char *)retval);
+    free(retval);
+    return result;
 }
 
 MeasureResult measure_text(const char *text, font_info *fi, double max_width,
@@ -42,9 +44,8 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
 
     const char *p = text;
     const char *run_start = p;
-    SkFont *current_font = fi->fonts[0];  // Optimistically assume first font
+    SkFont *current_font = fi->fonts[0];
 
-    // If max_width is negative, treat it as infinite
     bool limit_width = max_width >= 0;
     const double epsilon = 0.1;
 
@@ -54,34 +55,37 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
             double run_w =
                 current_font->measureText(run_start, end_ptr - run_start, SkTextEncoding::kUTF8);
             if (limit_width && result.width + run_w > max_width + epsilon) {
-                // Run exceeds max width, need to find split point
-
+                // Run exceeds max width, find split point at grapheme boundaries
                 const char *rp = run_start;
                 double last_w = 0;
+                utf8proc_int32_t state = 0;
                 while (rp < end_ptr) {
                     const char *next_rp = rp;
                     char32_t u_inner = decode_utf8_char(&next_rp);
-                    (void)u_inner;  // suppress unused warning if not used
 
-                    // Measure from run_start to next_rp to account for kerning correctly
-                    double current_w = current_font->measureText(run_start, next_rp - run_start,
-                                                                 SkTextEncoding::kUTF8);
-
-                    if (result.width + current_w > max_width + epsilon) {
-                        result.fits = false;
-                        result.last_safe_pos = rp;
-                        result.length = rp - text;
-                        result.width += last_w;
-                        return false;  // stop measuring
+                    // Check for grapheme break
+                    bool is_break = true;
+                    if (next_rp < end_ptr) {
+                        const char *peek_p = next_rp;
+                        char32_t next_u = decode_utf8_char(&peek_p);
+                        is_break = utf8proc_grapheme_break_stateful(u_inner, next_u, &state);
                     }
-                    last_w = current_w;
-                    result.last_safe_pos = next_rp;
+
+                    if (is_break) {
+                        double current_w = current_font->measureText(
+                            run_start, next_rp - run_start, SkTextEncoding::kUTF8);
+                        if (result.width + current_w > max_width + epsilon) {
+                            result.fits = false;
+                            result.last_safe_pos = rp;
+                            result.length = rp - text;
+                            result.width += last_w;
+                            return false;
+                        }
+                        last_w = current_w;
+                        result.last_safe_pos = next_rp;
+                    }
                     rp = next_rp;
                 }
-                // If loop finished but we didn't return false, it means float precision tricked us
-                // in the run_w check, or run_w was slightly larger than last_w due to full
-                // measurement differences? Add the full run width as calculated by the loop
-                // (last_w).
                 result.width += last_w;
                 return true;
             } else {
@@ -94,21 +98,11 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
 
     while (*p) {
         const char *next_p = p;
-        char32_t u;
-
-        // Fast path for ASCII
-        if ((unsigned char)*p < 0x80) {
-            u = (unsigned char)*p;
-            next_p++;
-        } else {
-            u = decode_utf8_char(&next_p);
-        }
+        char32_t u = decode_utf8_char(&next_p);
 
         if (used_codepoints) used_codepoints->insert(u);
 
         SkFont *font = nullptr;
-
-        // Check current font first
         if (current_font) {
             SkGlyphID glyph = 0;
             SkUnichar sc = (SkUnichar)u;
@@ -141,7 +135,6 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
         p = next_p;
     }
 
-    // Commit final run
     if (!commit_run(p)) return result;
 
     result.length = p - text;

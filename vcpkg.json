@@ -12,6 +12,8 @@
     "bzip2",
     "brotli",
     "expat",
-    "ctre"
+    "ctre",
+    "utf8proc",
+    "libunibreak"
   ]
 }

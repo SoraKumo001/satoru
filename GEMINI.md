@@ -143,6 +143,12 @@ You are operating in a **Windows PowerShell** environment.
   - **Inline Styles Priority:** Inline styles (`style` attribute) must be parsed with `litehtml::css::unlayered_id` to ensure they correctly override properties from stylesheets (which also use `unlayered_id`).
   - **Style Recalculation:** `litehtml::html_tag::refresh_styles` must re-parse the `style` attribute to prevent inline styles from being lost during style recalculations (e.g., when pseudo-classes change).
 
+- **International Text Support (UAX #14):**
+  - Integrated `utf8proc` for Unicode normalization and grapheme boundary detection.
+  - Integrated `libunibreak` for UAX #14 compliant line breaking.
+  - `container_skia::split_text` uses range-based checking to map `libunibreak` byte-offsets to character boundaries, ensuring correct wrapping for CJK and mixed-script text.
+  - `text_utils::ellipsize_text` is grapheme-safe, preventing broken multi-byte characters when truncating text.
+
 ### 4. Skia API & Release Notes
 
 - **SkPath Immutability:** Use `SkPathBuilder` instead of direct `SkPath` modification.

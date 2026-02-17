@@ -1,5 +1,8 @@
 #include "container_skia.h"
 
+#include <linebreak.h>
+#include <utf8proc.h>
+
 #include <algorithm>
 #include <iostream>
 #include <sstream>
@@ -1023,40 +1026,54 @@ void container_skia::get_language(litehtml::string &language, litehtml::string &
 
 void container_skia::split_text(const char *text, const std::function<void(const char *)> &on_word,
                                 const std::function<void(const char *)> &on_space) {
-    std::string word;
+    if (!text || !*text) return;
+
+    size_t len = strlen(text);
+    std::vector<char> brks(len);
+    set_linebreaks_utf8((const unsigned char *)text, len, nullptr, brks.data());
+
     const char *p = text;
+    const char *last_p = text;
+    int prev_char_idx = -1;
+
     while (*p) {
         const char *next_p = p;
         char32_t c = satoru::decode_utf8_char(&next_p);
+        size_t idx = p - text;
 
         if (c <= ' ' && (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f')) {
-            if (!word.empty()) {
-                on_word(word.c_str());
-                word.clear();
+            // Commit previous word
+            if (p > last_p) {
+                on_word(std::string(last_p, p - last_p).c_str());
             }
-            std::string s;
-            s.append(p, next_p - p);
-            on_space(s.c_str());
-        } else if ((c >= 0x3000 && c <= 0x30FF) ||    // CJK symbols, Hiragana, Katakana
-                   (c >= 0x4E00 && c <= 0x9FAF) ||    // Kanji
-                   (c >= 0xFF00 && c <= 0xFFEF) ||    // Full-width forms
-                   (c >= 0x3400 && c <= 0x4DBF) ||    // CJK Extension A
-                   (c >= 0x20000 && c <= 0x2EBEF)) {  // CJK Extension B-F
-            if (!word.empty()) {
-                on_word(word.c_str());
-                word.clear();
-            }
-            std::string s;
-            s.append(p, next_p - p);
-            on_word(s.c_str());
+            // Emit space
+            on_space(std::string(p, next_p - p).c_str());
+            last_p = next_p;
+            prev_char_idx = -1;
         } else {
-            // Latin characters etc. are collected into words
-            word.append(p, next_p - p);
+            // Check for break opportunity BEFORE this character (idx > 0)
+            // libunibreak's brks array contains the break opportunity AFTER the corresponding byte.
+            // We check if any byte in the PREVIOUS character allows a break after it.
+            if (p > last_p && prev_char_idx != -1) {
+                bool can_break = false;
+                for (int i = prev_char_idx; i < (int)idx; ++i) {
+                    if (brks[i] == LINEBREAK_ALLOWBREAK || brks[i] == LINEBREAK_MUSTBREAK) {
+                        can_break = true;
+                        break;
+                    }
+                }
+                if (can_break) {
+                    on_word(std::string(last_p, p - last_p).c_str());
+                    last_p = p;
+                }
+            }
+            prev_char_idx = (int)idx;
         }
         p = next_p;
     }
-    if (!word.empty()) {
-        on_word(word.c_str());
+
+    if (p > last_p) {
+        on_word(std::string(last_p, p - last_p).c_str());
     }
 }
 

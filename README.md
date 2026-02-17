@@ -36,6 +36,7 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
 - **High-Level TS Wrapper**: Includes a `Satoru` class that abstracts Wasm memory management and provides a clean async API.
 - **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime with automatic weight/style inference.
 - **No Default Fonts**: Satoru does not contain any built-in fonts. You must explicitly load fonts via `@font-face` or the `loadFont` API to render text.
+- **International Text Support**: Robust line-breaking (UAX #14) and character-boundary handling for CJK and mixed-script text using `libunibreak` and `utf8proc`.
 - **Japanese Support**: Full support for Japanese rendering with multi-font fallback logic.
 - **Image Format Support**: Native support for **PNG**, **JPEG**, **WebP**, **AVIF**, **GIF**, **BMP**, and **ICO** image formats.
 - **Advanced CSS Support**:
@@ -468,6 +469,7 @@ pnpm build:all
 - [x] High-level TypeScript Wrapper API with automatic resource resolution.
 - [x] **Engine State Persistence (Serialize/Deserialize Layout).**
 - [x] Improved Font Fallback & Generic Family Mapping.
+- [x] **International text processing (UAX #14 Line Breaking via libunibreak & utf8proc).**
 - [x] **Advanced Table layout with `border-collapse` support.**
 - [x] Multi-threaded rendering via Worker Proxy.
 - [x] Support for CSS Logical Properties (margin-inline, padding-block, etc.).
@@ -503,6 +505,14 @@ pnpm build:all
 - [x] Support for `aspect-ratio` property.
 - [x] Support for `prefers-color-scheme` media feature.
 - [ ] Partial support for modern feature detection stubs (`margin-trim`, `contain-intrinsic-size`, `hyphens`, etc.).
+
+### Future Enhancements (Roadmap)
+
+- [ ] **Professional Text Shaping (HarfBuzz)**: Integrate HarfBuzz via SkShaper to support complex scripts, ligatures, and RTL languages.
+- [x] **Advanced Unicode Support**: Integrated `utf8proc` and `libunibreak` for proper Unicode normalization, grapheme clusters, and UAX #14 line breaking.
+- [ ] **Robust Serialization**: Replace the custom binary serialization with a structured format like JSON (nlohmann/json) or Protocol Buffers for better maintainability and JS/TS integration.
+- [ ] **Structured Logging & Formatting**: Adopt `spdlog` and `{fmt}` for high-performance, structured logging and cleaner C++ code.
+- [ ] **WASM Binary Optimization**: Fine-tune library sub-setting to reduce the `.wasm` bundle size while adding more features.
 
 ## 📜 License
 

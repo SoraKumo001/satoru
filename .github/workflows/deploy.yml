@@ -73,13 +73,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Wasm Configure
-        run: pnpm wasm:configure:release
+        run: pnpm wasm:configure
         env:
           CMAKE_C_COMPILER_LAUNCHER: ccache
           CMAKE_CXX_COMPILER_LAUNCHER: ccache
 
       - name: Wasm Build
-        run: pnpm wasm:build:release
+        run: pnpm wasm:build
 
       - name: ccache stats
         run: ccache -s

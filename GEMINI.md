@@ -47,13 +47,15 @@ You are operating in a **Windows PowerShell** environment.
   - **Ninja**: Uses Ninja as the primary CMake generator for faster parallel builds.
   - **ccache**: Enabled by default to cache compiler objects.
   - **Incremental Builds**: `pnpm wasm:configure` does not delete build directories by default (use `--force` to clean).
+- **Optimization Strategy**:
+  - **Selector Indexing**: Implemented map-based selector lookup (ID, Class, Tag) in `litehtml` to replace linear scanning.
+  - **Bottleneck Resolution**: `apply_stylesheet` now retrieves only relevant selectors, significantly reducing $O(N \times M)$ complexity.
 - **Directory Structure**:
-  - `build-wasm-release/`: Intermediate files for Release builds (`-Oz`, `ThinLTO`).
-  - `build-wasm-debug/`: Intermediate files for Debug builds (`-O0`, `-g`).
+  - `build/`: Intermediate files for Release builds (`-Oz`).
 - **Commands**:
-  - `pnpm build:all`: Builds both WASM + TS wrappers.
-  - `pnpm wasm:configure[:debug]`: Configures CMake via `scripts/build-wasm.ts`.
-  - `pnpm wasm:build[:debug]`: Compiles C++ to WASM using Ninja.
+  - `pnpm build`: Builds both WASM + TS wrappers.
+  - `pnpm wasm:configure`: Configures CMake via `scripts/build-wasm.ts`.
+  - `pnpm wasm:build`: Compiles C++ to WASM using Ninja.
   - `pnpm wasm:docker:build`: Optimized Docker build using BuildKit cache mounts.
 
 ### 3. Implementation Details
@@ -73,7 +75,7 @@ You are operating in a **Windows PowerShell** environment.
 - **Size Optimizations**:
   - **GPU Disabled**: `SK_SUPPORT_GPU=0` and `SK_GANESH`/`SK_GRAPHITE` disabled to reduce Wasm size.
   - **Filesystem Disabled**: `-s FILESYSTEM=0` and `SK_DISABLE_FILESYSTEM` enabled.
-  - **LTO**: `-flto=thin` used in Release mode.
+  - **LTO**: `-flto=thin` (Not currently enabled).
   - **Oz**: Aggressive size optimization (`-Oz`) used in Release mode.
 
 - **Resource Management:**
@@ -104,6 +106,7 @@ You are operating in a **Windows PowerShell** environment.
   - Compares Skia outputs against Chromium references.
   - **Read-Only Protocol:** `png.test.ts` and `svg.test.ts` do not modify references.
   - **Output Validation**: `pnpm --filter visual-test convert-assets [file.html]`.
+    - Supports relative and absolute paths for the input file (e.g., `assets/01-layout.html`).
 
 ### 5. Code Maintenance
 

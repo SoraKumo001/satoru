@@ -46,9 +46,8 @@ function run(cmd: string, cwd?: string) {
   execSync(fullCmd, { stdio: "inherit", shell, cwd });
 }
 
-const isDebug = process.argv.includes("--debug");
-const buildType = isDebug ? "Debug" : "Release";
-const buildDir = `build-wasm-${buildType.toLowerCase()}`;
+const buildType = "Release";
+const buildDir = "build";
 
 if (action === "configure") {
   const force = process.argv.includes("--force");
@@ -89,6 +88,6 @@ if (action === "configure") {
     run("emmake make -j16", buildDir);
   }
 } else {
-  console.error("Usage: tsx scripts/build-wasm.ts [configure|build] [--debug] [--force]");
+  console.error("Usage: tsx scripts/build-wasm.ts [configure|build] [--force]");
   process.exit(1);
 }

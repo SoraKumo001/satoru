@@ -43,6 +43,11 @@ public:
 class css
 {
 	css_selector::vector	m_selectors;
+	std::map<string_id, css_selector::vector> m_id_selectors;
+	std::map<string_id, css_selector::vector> m_class_selectors;
+	std::map<string_id, css_selector::vector> m_tag_selectors;
+	css_selector::vector	m_universal_selectors;
+
 	std::map<string, int>	m_resolved_ranks;
 	std::map<string, int>	m_segment_orders;
 	std::map<string, int>	m_next_order;
@@ -50,10 +55,25 @@ class css
 public:
 	static const int unlayered_id = 2000000000;
 
-	const css_selector::vector& selectors() const
+	const css_selector::vector* id_selectors(string_id id) const
 	{
-		return m_selectors;
+		auto it = m_id_selectors.find(id);
+		if (it != m_id_selectors.end()) return &it->second;
+		return nullptr;
 	}
+	const css_selector::vector* class_selectors(string_id id) const
+	{
+		auto it = m_class_selectors.find(id);
+		if (it != m_class_selectors.end()) return &it->second;
+		return nullptr;
+	}
+	const css_selector::vector* tag_selectors(string_id id) const
+	{
+		auto it = m_tag_selectors.find(id);
+		if (it != m_tag_selectors.end()) return &it->second;
+		return nullptr;
+	}
+	const css_selector::vector& universal_selectors() const { return m_universal_selectors; }
 
 	template<class Input>
 	void	parse_css_stylesheet(const Input& input, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media = nullptr, container_query_list_list::ptr container = nullptr, bool top_level = true, int layer = unlayered_id, string layer_prefix = "");

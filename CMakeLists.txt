@@ -114,34 +114,6 @@ set(SATORU_LIBS
     harfbuzz::harfbuzz
 )
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(COMMON_COMPILE_OPTIONS
-        -O2
-        -g0
-        -fexceptions
-        -msimd128
-    )
-    set(COMMON_LINK_OPTIONS
-        "--bind"
-        "-O1"
-        -g0
-        -fexceptions
-        -msimd128
-        "-sWASM_BIGINT=1"
-        "-sSUPPORT_LONGJMP=emscripten"
-        "-sDISABLE_EXCEPTION_CATCHING=0"
-        "-sDYNAMIC_EXECUTION=0"
-        "-sASSERTIONS=1"
-        "-sMODULARIZE=1"
-        "-sEXPORT_ES6=1"
-        "-sEXPORT_NAME='createSatoruModule'"
-        "-sENVIRONMENT=web"
-        "-sFILESYSTEM=0"
-        "-sERROR_ON_UNDEFINED_SYMBOLS=0"
-        "-sWARN_ON_UNDEFINED_SYMBOLS=0"
-        "-sALLOW_MEMORY_GROWTH=1"
-    )
-else()
     set(COMMON_COMPILE_OPTIONS
         -Oz
         -g0
@@ -162,13 +134,12 @@ else()
         "-sMODULARIZE=1"
         "-sEXPORT_ES6=1"
         "-sEXPORT_NAME='createSatoruModule'"
-        "-sENVIRONMENT=web"
+        "-sENVIRONMENT=web,worker"
         "-sFILESYSTEM=0"
         "-sERROR_ON_UNDEFINED_SYMBOLS=0"
         "-sWARN_ON_UNDEFINED_SYMBOLS=0"
         "-sALLOW_MEMORY_GROWTH=1"
     )
-endif()
 
 # --- Target: litehtml ---
 add_library(litehtml STATIC)
@@ -309,7 +280,7 @@ set_target_properties(satoru PROPERTIES
 
 add_executable(satoru_single $<TARGET_OBJECTS:satoru_core>)
 target_link_libraries(satoru_single PRIVATE litehtml skia_lib)
-target_link_options(satoru_single PRIVATE ${COMMON_LINK_OPTIONS} "-sSINGLE_FILE=1")
+target_link_options(satoru_single PRIVATE ${COMMON_LINK_OPTIONS} "-sSINGLE_FILE=1" "-sENVIRONMENT=web,worker,node")
 set_target_properties(satoru_single PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/packages/satoru/dist"
     OUTPUT_NAME "satoru-single"

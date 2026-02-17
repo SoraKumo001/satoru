@@ -239,6 +239,53 @@ void css::sort_selectors()
 			 return (*v1) < (*v2);
 		 }
 	);
+
+	m_id_selectors.clear();
+	m_class_selectors.clear();
+	m_tag_selectors.clear();
+	m_universal_selectors.clear();
+
+	for (const auto& selector : m_selectors)
+	{
+		bool added = false;
+
+		// Check for ID
+		for (const auto& attr : selector->m_right.m_attrs)
+		{
+			if (attr.type == select_id)
+			{
+				m_id_selectors[attr.name].push_back(selector);
+				added = true;
+				break;
+			}
+		}
+		if (added) continue;
+
+		// Check for Class
+		for (const auto& attr : selector->m_right.m_attrs)
+		{
+			if (attr.type == select_class)
+			{
+				m_class_selectors[attr.name].push_back(selector);
+				added = true;
+				break;
+			}
+		}
+		if (added) continue;
+
+		// Check for Tag
+		if (selector->m_right.m_tag != empty_id && selector->m_right.m_tag != star_id)
+		{
+			m_tag_selectors[selector->m_right.m_tag].push_back(selector);
+			added = true;
+		}
+
+		// Universal / Fallback
+		if (!added)
+		{
+			m_universal_selectors.push_back(selector);
+		}
+	}
 }
 
 int css::get_layer_id(const string& name)

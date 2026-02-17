@@ -5,16 +5,22 @@ import { fileURLToPath } from "url";
 import { createSatoruWorker, LogLevel } from "satoru";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
-const ASSETS_DIR = path.resolve(__dirname, "../../../assets");
-const TEMP_DIR = path.resolve(__dirname, "../temp");
+const ASSETS_DIR = path.resolve(process.cwd(), "../../assets");
+const TEMP_DIR = path.resolve(process.cwd(), "temp");
+
+function getFilePath(file: string): string {
+  if (path.isAbsolute(file)) {
+    return file;
+  }
+  return path.resolve(process.cwd(), file);
+}
 
 async function main() {
   const args = process.argv.slice(2);
   const verbose = args.includes("--verbose");
   const noOutline = args.includes("--no-outline");
-  
+
   let width = 800;
   const widthIdx = args.findIndex((a) => a === "--width");
   if (widthIdx !== -1 && args[widthIdx + 1]) {
@@ -26,13 +32,14 @@ async function main() {
     }
   }
 
-  const files = args
-    .filter((a) => a.endsWith(".html") && !a.startsWith("-"))
-    .concat(
-      args.filter(a => !a.startsWith("-")).length === 0
-        ? fs.readdirSync(ASSETS_DIR).filter((f) => f.endsWith(".html"))
-        : [],
-    );
+  const files = args.filter((a) => !a.startsWith("-"));
+
+  if (files.length === 0) {
+    const assetsDirFiles = fs
+      .readdirSync(ASSETS_DIR)
+      .filter((f) => f.endsWith(".html"));
+    files.push(...assetsDirFiles.map((f) => path.join(ASSETS_DIR, f)));
+  }
 
   if (files.length === 0) {
     console.log("No files to convert.");
@@ -75,12 +82,17 @@ async function main() {
   await Promise.all(
     files.map(async (file) => {
       const startFileTime = Date.now();
-      const filePath = path.join(ASSETS_DIR, file);
+      const filePath = getFilePath(file);
+
       if (!fs.existsSync(filePath)) {
-        throw new Error(`File not found: ${filePath}`);
+        console.error(`File not found: ${filePath}`);
+        return;
       }
 
+      const fileName = path.basename(filePath, path.extname(filePath));
       const html = fs.readFileSync(filePath, "utf-8");
+      // Use the file's directory as base URL
+      const fileDir = path.dirname(filePath);
       const formats: ("svg" | "png" | "webp" | "pdf")[] = [
         "svg",
         "png",
@@ -89,24 +101,28 @@ async function main() {
       ];
 
       for (const format of formats) {
-        const result = await satoru.render({
-          value: html,
-          width,
-          format,
-          baseUrl: ASSETS_DIR,
-          css: "body { margin: 8px; }",
-          textToPaths: !noOutline,
-          onLog: verbose ? onLog : undefined,
-          logLevel: verbose ? LogLevel.Debug : LogLevel.None,
-        });
+        try {
+          const result = await satoru.render({
+            value: html,
+            width,
+            format,
+            baseUrl: fileDir,
+            css: "body { margin: 8px; }",
+            textToPaths: !noOutline,
+            onLog: verbose ? onLog : undefined,
+            logLevel: verbose ? LogLevel.Debug : LogLevel.None,
+          });
 
-        if (result) {
-          const ext = `.${format}`;
-          const outputPath = path.join(TEMP_DIR, file.replace(".html", ext));
-          fs.writeFileSync(outputPath, result);
+          if (result) {
+            const ext = `.${format}`;
+            const outputPath = path.join(TEMP_DIR, `${fileName}${ext}`);
+            fs.writeFileSync(outputPath, result);
+          }
+        } catch (e) {
+          console.error(`Error converting ${file} to ${format}:`, e);
         }
       }
-      console.log(`Finished: ${file} in ${Date.now() - startFileTime}ms`);
+      console.log(`Finished: ${fileName} in ${Date.now() - startFileTime}ms`);
     }),
   );
 

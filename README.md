@@ -433,7 +433,7 @@ pnpm --filter visual-test gen-ref
 pnpm --filter visual-test convert-assets [file.html] [--width <number>] [--no-outline] [--verbose]
 ```
 
-- `file.html`: Optional. Convert a specific asset.
+- `file.html`: Optional. Convert a specific asset (relative or absolute path).
 - `--width <number>`: Optional. Set output width (default: 800).
 - `--no-outline`: Optional. Disable text outlining in SVG.
 - `--verbose`: Optional. Show detailed logs.
@@ -455,20 +455,14 @@ The build system automatically detects **Ninja** and **ccache** to maximize perf
 # 1. Install JS dependencies
 pnpm install
 
-# 2. Configure Wasm build (Release mode)
+# 2. Configure Wasm build
 pnpm wasm:configure
-
-# 2b. Configure Wasm build (Debug mode)
-pnpm wasm:configure:debug
 
 # 3. Build Wasm (Incremental)
 pnpm wasm:build
 
-# 3b. Build Wasm (Debug mode)
-pnpm wasm:build:debug
-
 # 4. Build everything (Wasm + TS wrappers)
-pnpm build:all
+pnpm build
 ```
 
 ### Docker Environment

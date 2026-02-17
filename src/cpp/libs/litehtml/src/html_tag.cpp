@@ -208,100 +208,108 @@ litehtml::element::ptr litehtml::html_tag::select_one( const css_selector& selec
 
 void litehtml::html_tag::apply_stylesheet( const litehtml::css& stylesheet )
 {
-        for(const auto& sel : stylesheet.selectors())
-        {
-                // optimization
-                {
-                        const auto& r = sel->m_right;
-                        if (r.m_tag != star_id && r.m_tag != m_tag)
-                                continue;
+	auto apply_selectors = [&](const css_selector::vector* selectors)
+	{
+		if (!selectors) return;
 
-                        if (!r.m_attrs.empty())
-                        {
-                                const auto& attr = r.m_attrs[0];
-                                if (attr.type == select_class && !(attr.name in m_classes))
-                                        continue;
-                        }
-                }
+		for(const auto& sel : *selectors)
+		{
+			int apply = select(*sel, false);
 
-                int apply = select(*sel, false);
+			if(apply != select_no_match)
+			{
+				used_selector::ptr us = std::make_unique<used_selector>(sel, false);
 
-                if(apply != select_no_match)
-                {
-                        used_selector::ptr us = std::make_unique<used_selector>(sel, false);
+				if(sel->is_media_valid() && sel->is_container_valid(this))
+				{
+					auto apply_before_after = [&]()
+						{
+							const auto& content_property = sel->m_style->get_property(_content_);
+							bool content_none = content_property.is<string>() && content_property.get<string>() == "none";
+							bool create = !content_none && (sel->m_right.m_attrs.size() > 1 || sel->m_right.m_tag != star_id);
 
-                        if(sel->is_media_valid() && sel->is_container_valid(this))
-                        {
-                                auto apply_before_after = [&]()
-                                        {
-                                                const auto& content_property = sel->m_style->get_property(_content_);
-                                                bool content_none = content_property.is<string>() && content_property.get<string>() == "none";
-                                                bool create = !content_none && (sel->m_right.m_attrs.size() > 1 || sel->m_right.m_tag != star_id);
-
-                                                element::ptr el;
-                                                if(apply & select_match_with_after)
-                                                {
-                                                        el = get_element_after(*sel->m_style, create);
-                                                } else if(apply & select_match_with_before)
-                                                {
-                                                        el = get_element_before(*sel->m_style, create);
-                                                } else
-                                                {
-                                                        return;
-                                                }
-                                                if(el)
-                                                {
-                                                        if(!content_none)
-                                                        {
-                                                                el->add_style(*sel->m_style, sel->m_specificity);        
-                                                        } else
-                                                        {
-                                                                el->parent()->removeChild(el);       
-                                                        }
-                                                } else
-                                                {
-                                                        if(!content_none)
-                                                        {
-                                                                add_style(*sel->m_style, sel->m_specificity);
-                                                        }
-                                                }
-                                                us->m_used = true;
-                                        };
+							element::ptr el;
+							if(apply & select_match_with_after)
+							{
+								el = get_element_after(*sel->m_style, create);
+							} else if(apply & select_match_with_before)
+							{
+								el = get_element_before(*sel->m_style, create);
+							} else
+							{
+								return;
+							}
+							if(el)
+							{
+								if(!content_none)
+								{
+									el->add_style(*sel->m_style, sel->m_specificity);        
+								} else
+								{
+									el->parent()->removeChild(el);       
+								}
+							} else
+							{
+								if(!content_none)
+								{
+									add_style(*sel->m_style, sel->m_specificity);
+								}
+							}
+							us->m_used = true;
+						};
 
 
-                                if(apply & select_match_pseudo_class)
-                                {
-                                        if(select(*sel, true))
-                                        {
-                                                if((apply & (select_match_with_after | select_match_with_before)))
-                                                {
-                                                        apply_before_after();
-                                                } else
-                                                {
-                                                        add_style(*sel->m_style, sel->m_specificity);
-                                                        us->m_used = true;
-                                                }
-                                        }
-                                } else if((apply & (select_match_with_after | select_match_with_before)))
-                                {
-                                        apply_before_after();
-                                } else
-                                {
-                                        add_style(*sel->m_style, sel->m_specificity);
-                                        us->m_used = true;
-                                }
-                        }
-                        m_used_styles.push_back(std::move(us));
-                }
-        }
+					if(apply & select_match_pseudo_class)
+					{
+						if(select(*sel, true))
+						{
+							if((apply & (select_match_with_after | select_match_with_before)))
+							{
+								apply_before_after();
+							} else
+							{
+								add_style(*sel->m_style, sel->m_specificity);
+								us->m_used = true;
+							}
+						}
+					} else if((apply & (select_match_with_after | select_match_with_before)))
+					{
+						apply_before_after();
+					} else
+					{
+						add_style(*sel->m_style, sel->m_specificity);
+						us->m_used = true;
+					}
+				}
+				m_used_styles.push_back(std::move(us));
+			}
+		}
+	};
 
-        for(auto& el : m_children)
-        {
-                if(el->css().get_display() != display_inline_text)
-                {
-                        el->apply_stylesheet(stylesheet);
-                }
-        }
+	if (m_id != empty_id)
+	{
+		apply_selectors(stylesheet.id_selectors(m_id));
+	}
+
+	for(const auto& cls : m_classes)
+	{
+		apply_selectors(stylesheet.class_selectors(cls));
+	}
+
+	if (m_tag != empty_id)
+	{
+		apply_selectors(stylesheet.tag_selectors(m_tag));
+	}
+
+	apply_selectors(&stylesheet.universal_selectors());
+
+	for(auto& el : m_children)
+	{
+		if(el->css().get_display() != display_inline_text)
+		{
+			el->apply_stylesheet(stylesheet);
+		}
+	}
 }
 
 void litehtml::html_tag::get_content_size( size& sz, pixel_t max_width )

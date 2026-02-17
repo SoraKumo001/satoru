@@ -4,14 +4,15 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build:all": "pnpm run wasm:build && pnpm --filter satoru build",
+    "build:all": "pnpm wasm:build && pnpm --filter satoru build",
     "build:js": "pnpm -r --if-present build",
     "dev:playground": "pnpm --filter playground dev",
     "dev:cloudflare": "pnpm --filter cloudflare-test dev",
     "test:visual": "pnpm --filter satoru test",
     "wasm:configure": "tsx ./scripts/build-wasm.ts configure",
-    "wasm:docker:build": "tsx ./scripts/wasm-docker-build.ts",
+    "wasm:configure:debug": "tsx ./scripts/build-wasm.ts configure --debug",
     "wasm:build": "tsx ./scripts/build-wasm.ts build",
+    "wasm:docker:build": "tsx ./scripts/wasm-docker-build.ts",
     "format": "tsx ./scripts/format.ts"
   },
   "devDependencies": {

@@ -1,43 +1,46 @@
+# syntax=docker/dockerfile:1
+
 # Use Emscripten SDK as base
-FROM emscripten/emsdk:latest
+FROM emscripten/emsdk:latest AS builder
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    ninja-build \
-    curl \
-    git \
-    pkg-config \
-    zip \
-    unzip \
-    tar \
+    ninja-build curl git pkg-config zip unzip tar \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g pnpm
 
 # Set up vcpkg
 ENV VCPKG_ROOT=/opt/vcpkg
-RUN git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT \
+RUN git clone --depth 1 https://github.com/microsoft/vcpkg.git $VCPKG_ROOT \
     && $VCPKG_ROOT/bootstrap-vcpkg.sh
 
 WORKDIR /app
 
-# Copy configuration files for pnpm
+# 1. Install Node.js dependencies (Cached layer)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/satoru/package.json ./packages/satoru/
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --filter satoru... --filter satoru-monorepo
 
-# Install Node.js dependencies
-RUN pnpm install --frozen-lockfile --filter satoru... --filter satoru-monorepo
-
-# Copy source code and build assets
-COPY CMakeLists.txt vcpkg.json ./
-COPY scripts/ ./scripts/
+# 2. Build C++ dependencies via vcpkg (Cached layer)
+# Only copy files needed for vcpkg to trigger re-build only when dependencies change
+COPY vcpkg.json ./
 COPY triplets/ ./triplets/
+COPY scripts/build-wasm.ts ./scripts/
+COPY CMakeLists.txt ./
+
+# Configure only (triggers vcpkg install)
+RUN --mount=type=cache,target=/opt/vcpkg/archives \
+    pnpm wasm:configure
+
+# 3. Copy source code and Build (Frequently changing layer)
 COPY src/cpp/ ./src/cpp/
 
-# Configure and Build Wasm
-RUN pnpm wasm:configure
+# Build Wasm (Incremental build if possible, but ccache inside docker is tricky without mount)
 RUN pnpm wasm:build
 
-# The output will be in /app/packages/satoru/dist/
-# We can use this image to extract artifacts
-CMD ["cp", "-r", "/app/packages/satoru/dist/.", "/output/"]
+# Extraction stage
+FROM busybox AS runner
+COPY --from=builder /app/packages/satoru/dist/ /dist/
+CMD ["cp", "-r", "/dist/.", "/output/"]

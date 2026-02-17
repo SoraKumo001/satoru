@@ -11,9 +11,11 @@ if (!fs.existsSync(distPath)) {
 
 console.log("Building Docker image...");
 try {
-  // Dockerfile.wasm is now located in the docker directory
+  // Ensure BuildKit is used for cache mounts
+  const env = { ...process.env, DOCKER_BUILDKIT: "1" };
   execSync("docker build -f docker/Dockerfile.wasm -t satoru-wasm-build .", {
     stdio: "inherit",
+    env,
   });
 
   console.log("Extracting build artifacts...");

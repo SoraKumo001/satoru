@@ -2,6 +2,8 @@
 #include "line_box.h"
 #include "element.h"
 #include "render_item.h"
+#include "document.h"
+#include "document_container.h"
 #include "types.h"
 #include <algorithm>
 
@@ -217,6 +219,78 @@ litehtml::pixel_t litehtml::line_box::calc_va_baseline(const va_context& current
 
 std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish(bool last_box, const containing_block_context &containing_block_size)
 {
+	if (m_text_overflow == text_overflow_ellipsis && m_width > (m_right - m_left))
+	{
+		pixel_t container_width = m_right - m_left;
+		
+		// Calculate ellipsis width
+		pixel_t ellipsis_width = 0;
+		for (auto& item : m_items)
+		{
+			if (item->get_type() == line_box_item::type_text_part)
+			{
+				ellipsis_width = item->get_el()->src_el()->get_document()->container()->text_width("...", item->get_el()->src_el()->css().get_font());
+				break;
+			}
+		}
+
+		// 1. Skip items that are completely outside the container
+		auto it = m_items.rbegin();
+		while (it != m_items.rend())
+		{
+			if (!(*it)->get_el()->skip())
+			{
+				if ((*it)->get_el()->pos().x + (*it)->width() > m_right)
+				{
+					(*it)->get_el()->skip(true);
+				} else {
+					break;
+				}
+			}
+			it++;
+		}
+
+		// 2. Skip more items to make room for ellipsis.
+		// We only need to skip an item if its START position plus the ellipsis width 
+		// would already exceed the container right edge.
+		while (it != m_items.rend())
+		{
+			if (!(*it)->get_el()->skip())
+			{
+				if ((*it)->get_el()->pos().x + ellipsis_width > m_right + 0.01)
+				{
+					(*it)->get_el()->skip(true);
+				} else {
+					break;
+				}
+			}
+			it++;
+		}
+
+		// 3. Mark the last visible item to show ellipsis
+		// We set its width to a very small value. 
+		// The backend's ellipsize_text will see that text doesn't fit, 
+		// and will output "..." regardless of width (based on our recent change).
+		for (auto it_f = m_items.rbegin(); it_f != m_items.rend(); ++it_f)
+		{
+			if (!(*it_f)->get_el()->skip())
+			{
+				(*it_f)->get_el()->pos().width = 0.1; 
+				break;
+			}
+		}
+
+		// Recalculate line width
+		m_width = 0;
+		for (auto& item : m_items)
+		{
+			if (!item->get_el()->skip())
+			{
+				m_width += item->width();
+			}
+		}
+	}
+
 	std::list< std::unique_ptr<line_box_item> > ret_items;
 	if(!last_box)
 	{

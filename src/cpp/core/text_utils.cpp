@@ -1,7 +1,6 @@
 #include "text_utils.h"
 
 #include <algorithm>
-#include <iostream>
 
 #include "include/core/SkFont.h"
 #include "include/core/SkFontTypes.h"
@@ -57,23 +56,30 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
                 // Run exceeds max width, need to find split point
                 
                 const char* rp = run_start;
+                double last_w = 0;
                 while (rp < end_ptr) {
                     const char* next_rp = rp;
                     char32_t u_inner = decode_utf8_char(&next_rp);
                     (void)u_inner; // suppress unused warning if not used
-                    double char_w = current_font->measureText(rp, next_rp - rp, SkTextEncoding::kUTF8);
-                    if (result.width + char_w > max_width + epsilon) {
+                    
+                    // Measure from run_start to next_rp to account for kerning correctly
+                    double current_w = current_font->measureText(run_start, next_rp - run_start, SkTextEncoding::kUTF8);
+                    
+                    if (result.width + current_w > max_width + epsilon) {
                         result.fits = false;
                         result.last_safe_pos = rp;
                         result.length = rp - text;
+                        result.width += last_w;
                         return false; // stop measuring
                     }
-                    result.width += char_w;
+                    last_w = current_w;
                     result.last_safe_pos = next_rp;
                     rp = next_rp;
                 }
-                // Should not reach here if logic is correct unless float precision issues?
-                // Just in case, add full run if loop completed without break (e.g. strict equality?)
+                // If loop finished but we didn't return false, it means float precision tricked us
+                // in the run_w check, or run_w was slightly larger than last_w due to full measurement differences?
+                // Add the full run width as calculated by the loop (last_w).
+                result.width += last_w;
                 return true; 
             } else {
                 result.width += run_w;
@@ -157,15 +163,18 @@ std::string ellipsize_text(const char *text, font_info *fi, double max_width,
     const char* ellipsis = "...";
     double ellipsis_width = text_width(ellipsis, fi, used_codepoints);
     
-    if (ellipsis_width >= max_width) {
-        return std::string(ellipsis);
+    // Use a small epsilon to handle float precision issues
+    const double epsilon = 0.005;
+
+    if (max_width < ellipsis_width - epsilon) {
+        // スペースが足りない場合でも、ellipsis モードなら最低限 ... を出す
+        return ellipsis;
     }
     
-    double available_width = max_width - ellipsis_width;
+    double available_width = std::max(0.0, max_width - ellipsis_width);
     
     // Re-measure with stricter limit
-    MeasureResult part_res = measure_text(text, fi, available_width, nullptr); // codepoints already collected in first pass?
-    // Actually, if we pass used_codepoints again, we just re-insert same ones mostly.
+    MeasureResult part_res = measure_text(text, fi, available_width, nullptr); 
     
     std::string result(text, part_res.length); // length is bytes processed that fit
     result += ellipsis;

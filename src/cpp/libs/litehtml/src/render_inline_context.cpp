@@ -247,7 +247,8 @@ litehtml::pixel_t litehtml::render_item_inline_context::new_box(const std::uniqu
 			line_ctx.left + first_line_margin + text_indent, line_ctx.right,
 			css().line_height(),
 			css().get_font_metrics(),
-			css().get_text_align()));
+			css().get_text_align(),
+			css().get_text_overflow()));
 
 	// Add items returned by finish_last_box function into the new line
 	for(auto& it : items)

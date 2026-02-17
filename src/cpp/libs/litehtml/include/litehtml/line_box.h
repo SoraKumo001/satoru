@@ -137,10 +137,11 @@ namespace litehtml
         font_metrics			m_font_metrics;
         pixel_t					m_baseline;
         text_align				m_text_align;
+        text_overflow			m_text_overflow;
 		pixel_t 				m_min_width;
 		std::list< std::unique_ptr<line_box_item> > m_items;
     public:
-        line_box(pixel_t top, pixel_t left, pixel_t right, const css_line_height_t& line_height, const font_metrics& fm, text_align align) :
+        line_box(pixel_t top, pixel_t left, pixel_t right, const css_line_height_t& line_height, const font_metrics& fm, text_align align, text_overflow overflow) :
 				m_top(top),
 				m_left(left),
 				m_right(right),
@@ -150,6 +151,7 @@ namespace litehtml
 				m_font_metrics(fm),
 				m_baseline(0),
 				m_text_align(align),
+				m_text_overflow(overflow),
 				m_min_width(0)
 		{
         }

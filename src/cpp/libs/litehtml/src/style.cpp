@@ -39,6 +39,8 @@ namespace litehtml
           {_text_transform_, text_transform_strings},
           {_white_space_, white_space_strings},
           {_word_break_, word_break_strings},
+          {_overflow_wrap_, overflow_wrap_strings},
+          {_word_wrap_, overflow_wrap_strings},
 
           {_font_style_, font_style_strings},
           {_font_variant_, font_variant_strings},
@@ -208,6 +210,8 @@ namespace litehtml
     case _text_transform_:
     case _white_space_:
     case _word_break_:
+    case _overflow_wrap_:
+    case _word_wrap_:
     case _font_style_:
     case _font_variant_:
     case _text_decoration_style_:

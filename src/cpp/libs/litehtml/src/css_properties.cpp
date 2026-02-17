@@ -27,6 +27,11 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   m_text_transform = (text_transform)el->get_property<int>(_text_transform_, true, text_transform_none, offset(m_text_transform));
   m_white_space = (white_space)el->get_property<int>(_white_space_, true, white_space_normal, offset(m_white_space));
   m_word_break = (word_break)el->get_property<int>(_word_break_, true, word_break_normal, offset(m_word_break));
+  m_overflow_wrap = (overflow_wrap)el->get_property<int>(_overflow_wrap_, true, overflow_wrap_normal, offset(m_overflow_wrap));
+  if (m_overflow_wrap == overflow_wrap_normal)
+  {
+    m_overflow_wrap = (overflow_wrap)el->get_property<int>(_word_wrap_, true, overflow_wrap_normal, offset(m_overflow_wrap));
+  }
   m_caption_side = (caption_side)el->get_property<int>(_caption_side_, true, caption_side_top, offset(m_caption_side));
   m_table_layout = (table_layout)el->get_property<int>(_table_layout_, true, table_layout_auto, offset(m_table_layout));
 
@@ -664,6 +669,8 @@ std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_proper
   ret.emplace_back("border_spacing_y", m_css_border_spacing_y.to_string());
   ret.emplace_back("line_clamp", std::to_string(m_line_clamp));
   ret.emplace_back("webkit_box_orient", index_value(m_webkit_box_orient, box_orient_strings));
+  ret.emplace_back("word_break", index_value(m_word_break, word_break_strings));
+  ret.emplace_back("overflow_wrap", index_value(m_overflow_wrap, overflow_wrap_strings));
   ret.emplace_back("opacity", std::to_string(m_opacity));
 
   return ret;

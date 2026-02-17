@@ -108,6 +108,7 @@ namespace litehtml
     css_token_vector m_transform_origin;
     css_token_vector m_filter;
     word_break m_word_break;
+    overflow_wrap m_overflow_wrap;
 
   private:
     void compute_font(const html_tag *el, const std::shared_ptr<document> &doc);
@@ -171,7 +172,8 @@ namespace litehtml
                        m_transform(),
                        m_transform_origin(),
                        m_filter(),
-                       m_word_break(word_break_normal)
+                       m_word_break(word_break_normal),
+                       m_overflow_wrap(overflow_wrap_normal)
     {
     }
 
@@ -195,6 +197,9 @@ namespace litehtml
 
     word_break get_word_break() const;
     void set_word_break(word_break mWordBreak);
+
+    overflow_wrap get_overflow_wrap() const;
+    void set_overflow_wrap(overflow_wrap mOverflowWrap);
 
     style_display get_display() const;
     void set_display(style_display mDisplay);
@@ -408,6 +413,16 @@ namespace litehtml
   inline void css_properties::set_word_break(word_break mWordBreak)
   {
     m_word_break = mWordBreak;
+  }
+
+  inline overflow_wrap css_properties::get_overflow_wrap() const
+  {
+    return m_overflow_wrap;
+  }
+
+  inline void css_properties::set_overflow_wrap(overflow_wrap mOverflowWrap)
+  {
+    m_overflow_wrap = mOverflowWrap;
   }
 
   inline style_display css_properties::get_display() const

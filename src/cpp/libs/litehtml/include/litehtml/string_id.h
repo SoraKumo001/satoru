@@ -284,6 +284,8 @@ namespace litehtml
 
       _white_space_,
       _word_break_,
+      _overflow_wrap_,
+      _word_wrap_,
       _text_align_,
       _vertical_align_,
       _color_,

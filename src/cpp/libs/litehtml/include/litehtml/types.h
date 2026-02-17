@@ -851,6 +851,15 @@ namespace litehtml
                 table_layout_fixed
         };
 
+#define overflow_wrap_strings "normal;break-word;anywhere"
+
+		enum overflow_wrap
+		{
+				overflow_wrap_normal,
+				overflow_wrap_break_word,
+				overflow_wrap_anywhere
+		};
+
 #define word_break_strings "normal;break-all;keep-all;break-word"
 
 		enum word_break

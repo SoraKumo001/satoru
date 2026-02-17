@@ -415,7 +415,8 @@ void litehtml::html_tag::compute_styles(bool recursive)
 void litehtml::html_tag::apply_word_break()
 {
 	word_break wb = m_css.get_word_break();
-	if(wb == word_break_break_all)
+	overflow_wrap ow = m_css.get_overflow_wrap();
+	if(wb == word_break_break_all || wb == word_break_break_word || ow == overflow_wrap_break_word || ow == overflow_wrap_anywhere)
 	{
 		for (auto it = m_children.begin(); it != m_children.end(); )
 		{

@@ -109,6 +109,13 @@ You are operating in a **Windows PowerShell** environment.
   - Supports `disc` (filled oval), `circle` (stroked oval), `square` (filled rect).
   - Supports `list-style-image` via `SkImage` drawing.
 
+- **Grid Layout (Basic):**
+  - Implemented in `render_item_grid`.
+  - Supports `grid-template-columns` and `grid-template-rows` with fixed, percentage, and `fr` units.
+  - Basic automatic placement (row-by-row).
+  - Supports `gap`, `column-gap`, and `row-gap`.
+  - Items are stretched by default to fill the track height if it's fixed or fractional.
+
 - **litehtml Types:**
   - Container overrides MUST return `litehtml::pixel_t` (float), not `int`.
 

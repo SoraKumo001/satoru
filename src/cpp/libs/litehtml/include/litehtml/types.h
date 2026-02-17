@@ -694,27 +694,28 @@ namespace litehtml
                 box_orient_vertical
         };
 
-#define  css_units_strings      "none;%;in;cm;mm;em;ex;pt;pc;px;vw;vh;vmin;vmax;rem;ch"
+#define  css_units_strings      "none;%;in;cm;mm;em;ex;pt;pc;px;vw;vh;vmin;vmax;rem;ch;fr"
 
-        enum css_units : byte // see css_length
-        {
-                css_units_none,
-                css_units_percentage,
-                css_units_in,
-                css_units_cm,
-                css_units_mm,
-                css_units_em,
-                css_units_ex,
-                css_units_pt,
-                css_units_pc,
-                css_units_px,
-                css_units_vw,
-                css_units_vh,
-                css_units_vmin,
-                css_units_vmax,
-                css_units_rem,
-                css_units_ch,
-        };
+	enum css_units : byte // see css_length
+	{
+		css_units_none,
+		css_units_percentage,
+		css_units_in,
+		css_units_cm,
+		css_units_mm,
+		css_units_em,
+		css_units_ex,
+		css_units_pt,
+		css_units_pc,
+		css_units_px,
+		css_units_vw,
+		css_units_vh,
+		css_units_vmin,
+		css_units_vmax,
+		css_units_rem,
+		css_units_ch,
+		css_units_fr,
+	};
 
 #define  background_attachment_strings  "scroll;fixed"
 

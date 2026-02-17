@@ -299,6 +299,7 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
 
   compute_background(el, doc);
   compute_flex(el, doc);
+  compute_grid(el, doc);
 }
 
 // used for all color properties except `color` (color:currentcolor is converted to color:inherit during parsing)
@@ -608,6 +609,25 @@ void litehtml::css_properties::compute_flex(const html_tag *el, const document::
     {
       m_display = display_flex;
     }
+  }
+}
+
+void litehtml::css_properties::compute_grid(const html_tag *el, const document::ptr &doc)
+{
+  if (m_display == display_grid || m_display == display_inline_grid)
+  {
+    m_grid_template_columns = el->get_property<length_vector>(_grid_template_columns_, false, length_vector(), offset(m_grid_template_columns));
+    m_grid_template_rows = el->get_property<length_vector>(_grid_template_rows_, false, length_vector(), offset(m_grid_template_rows));
+
+    for (auto &x : m_grid_template_columns)
+      doc->cvt_units(x, m_font_metrics, 0);
+    for (auto &y : m_grid_template_rows)
+      doc->cvt_units(y, m_font_metrics, 0);
+
+    m_row_gap = el->get_property<css_length>(_row_gap_, false, 0, offset(m_row_gap));
+    m_column_gap = el->get_property<css_length>(_column_gap_, false, 0, offset(m_column_gap));
+    doc->cvt_units(m_row_gap, m_font_metrics, 0);
+    doc->cvt_units(m_column_gap, m_font_metrics, 0);
   }
 }
 

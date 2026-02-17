@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    @font-face {
+      font-family: 'Noto Sans JP';
+      font-style: normal;
+      font-weight: 400;
+      src: url(https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2) format('woff2');
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: 100px 1fr 2fr;
+      grid-template-rows: 50px auto;
+      gap: 10px;
+      background-color: #f0f0f0;
+      padding: 10px;
+      width: 500px;
+    }
+
+    .grid-item {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px;
+      border: 1px solid #333;
+      font-family: sans-serif;
+    }
+
+    .item1 {
+      background-color: #2196F3;
+    }
+
+    .item2 {
+      background-color: #f44336;
+    }
+
+    .item3 {
+      background-color: #ffeb3b;
+      color: black;
+    }
+
+    .item4 {
+      background-color: #9c27b0;
+    }
+
+    .item5 {
+      background-color: #ff9800;
+    }
+
+    .item6 {
+      background-color: #00bcd4;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Basic Grid Layout Test</h1>
+  <div class="grid-container">
+    <div class="grid-item item1">100px</div>
+    <div class="grid-item item2">1fr</div>
+    <div class="grid-item item3">2fr</div>
+    <div class="grid-item item4">Row 2 - 1</div>
+    <div class="grid-item item5">Row 2 - 2</div>
+    <div class="grid-item item6">Row 2 - 3</div>
+  </div>
+</body>
+
+</html>

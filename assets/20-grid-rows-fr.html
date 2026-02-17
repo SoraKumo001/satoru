@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    @font-face {
+      font-family: 'Noto Sans JP';
+      font-style: normal;
+      font-weight: 400;
+      src: url(https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2) format('woff2');
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 2fr;
+      gap: 10px;
+      background-color: #f0f0f0;
+      padding: 10px;
+      width: 400px;
+      height: 300px;
+    }
+
+    .grid-item {
+      background-color: #4CAF50;
+      color: white;
+      border: 1px solid #333;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="grid-container">
+    <div class="grid-item">1fr (Row 1)</div>
+    <div class="grid-item">1fr (Row 1)</div>
+    <div class="grid-item">2fr (Row 2)</div>
+    <div class="grid-item">2fr (Row 2)</div>
+  </div>
+</body>
+
+</html>

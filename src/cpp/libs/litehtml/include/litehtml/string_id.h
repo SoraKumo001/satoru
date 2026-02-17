@@ -332,6 +332,11 @@ namespace litehtml
       _column_gap_,
       _row_gap_,
 
+      _grid_template_columns_,
+      _grid_template_rows_,
+      _grid_column_,
+      _grid_row_,
+
       _caption_side_,
       _order_,
       _filter_,

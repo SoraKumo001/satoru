@@ -659,7 +659,7 @@ void document::cvt_units( css_length& val, const font_metrics& metrics, pixel_t 
 	{
 		return;
 	}
-	if(val.units() != css_units_percentage)
+	if(val.units() != css_units_percentage && val.units() != css_units_fr)
 	{
 		val.set_value((float)to_pixels(val, metrics, size), css_units_px);
 	}

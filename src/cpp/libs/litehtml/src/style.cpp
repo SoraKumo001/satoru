@@ -600,6 +600,11 @@ namespace litehtml
       parse_align_self(name, value, important);
       break;
 
+    case _grid_template_columns_:
+    case _grid_template_rows_:
+      parse_grid_template(name, value, important);
+      break;
+
     case _column_gap_:
     case _row_gap_:
       return add_length_property(name, val, "normal", f_length_percentage | f_positive, important);
@@ -1591,6 +1596,26 @@ namespace litehtml
       idx |= (a == "safe" ? flex_align_items_safe : flex_align_items_unsafe);
       add_parsed_property(name, property_value(idx, important, false, m_layer, m_specificity));
     }
+  }
+
+  void style::parse_grid_template(string_id name, const css_token_vector& tokens, bool important)
+  {
+    length_vector tracks;
+    for (const auto& tok : tokens)
+    {
+      css_length len;
+      if (len.from_token(tok, f_length_percentage | f_positive))
+      {
+        tracks.push_back(len);
+      }
+      else if (tok.ident() == "auto")
+      {
+        len.predef(0);
+        tracks.push_back(len);
+      }
+    }
+    if (!tracks.empty())
+      add_parsed_property(name, property_value(tracks, important, false, m_layer, m_specificity));
   }
 
   void style::add_parsed_property(string_id name, const property_value &propval)

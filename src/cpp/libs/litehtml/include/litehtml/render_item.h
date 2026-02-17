@@ -411,7 +411,8 @@ namespace litehtml
                 bool is_flex_item() const
                 {
                         auto par = parent();
-                        if(par && (par->css().get_display() == display_inline_flex || par->css().get_display() == display_flex))
+                        if(par && (par->css().get_display() == display_inline_flex || par->css().get_display() == display_flex ||
+                                   par->css().get_display() == display_inline_grid || par->css().get_display() == display_grid))
                         {
                                 return true;
                         }

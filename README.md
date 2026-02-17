@@ -91,6 +91,12 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `flex-grow`, `flex-shrink`, `flex-basis`, `flex`
 - `row-gap`, `column-gap`, `gap`, `order`
 
+### Grid Layout (Basic)
+
+- `display: grid`, `display: inline-grid`
+- `grid-template-columns`, `grid-template-rows` (Supports `px`, `%`, `fr`, `auto`)
+- `column-gap`, `row-gap`, `gap`
+
 ### Others
 
 - `caption-side`, `content`, `appearance`
@@ -457,7 +463,7 @@ pnpm build:all
 - [x] **Advanced Table layout with `border-collapse` support.**
 - [x] Multi-threaded rendering via Worker Proxy.
 - [x] Support for CSS Logical Properties (margin-inline, padding-block, etc.).
-- [ ] Support for CSS Grid Layout (Basic template columns/rows).
+- [x] Support for CSS Grid Layout (Basic template columns/rows).
 - [x] **Mixed-unit `calc()` support (e.g., `100% - 20px`).**
 - [ ] Support for modern Media Query range syntax (e.g., `width >= 40rem`).
 - [ ] **CSS Container Queries (`@container`).**

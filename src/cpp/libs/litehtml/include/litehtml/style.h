@@ -137,6 +137,7 @@ namespace litehtml
                 void parse_flex(const css_token_vector& tokens, bool important);
                 void parse_shadow(string_id name, const css_token_vector& tokens, bool important, document_container* container);
                 void parse_align_self(string_id name, const css_token_vector& tokens, bool important);
+                void parse_grid_template(string_id name, const css_token_vector& tokens, bool important);
 
                 void add_parsed_property(string_id name, const property_value& propval);
                 void add_length_property(string_id name, css_token val, string keywords, int options, bool important);

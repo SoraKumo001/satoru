@@ -92,6 +92,10 @@ namespace litehtml
     flex_align_items m_flex_align_items;
     flex_align_items m_flex_align_self;
     flex_align_content m_flex_align_content;
+
+    length_vector m_grid_template_columns;
+    length_vector m_grid_template_rows;
+
     css_length m_row_gap;
     css_length m_column_gap;
 
@@ -114,6 +118,7 @@ namespace litehtml
     void compute_font(const html_tag *el, const std::shared_ptr<document> &doc);
     void compute_background(const html_tag *el, const std::shared_ptr<document> &doc);
     void compute_flex(const html_tag *el, const std::shared_ptr<document> &doc);
+    void compute_grid(const html_tag *el, const std::shared_ptr<document> &doc);
     web_color get_color_property(const html_tag *el, string_id name, bool inherited, web_color default_value, uint_ptr member_offset) const;
     void snap_border_width(css_length &width, const std::shared_ptr<document> &doc);
 
@@ -322,6 +327,10 @@ namespace litehtml
     flex_align_items get_flex_align_items() const;
     flex_align_items get_flex_align_self() const;
     flex_align_content get_flex_align_content() const;
+
+    const length_vector &get_grid_template_columns() const;
+    const length_vector &get_grid_template_rows() const;
+
     const css_length &get_row_gap() const;
     const css_length &get_column_gap() const;
 
@@ -795,6 +804,16 @@ namespace litehtml
   inline flex_align_content css_properties::get_flex_align_content() const
   {
     return m_flex_align_content;
+  }
+
+  inline const length_vector &css_properties::get_grid_template_columns() const
+  {
+    return m_grid_template_columns;
+  }
+
+  inline const length_vector &css_properties::get_grid_template_rows() const
+  {
+    return m_grid_template_rows;
   }
 
   inline const css_length &css_properties::get_row_gap() const

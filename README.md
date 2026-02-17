@@ -91,10 +91,12 @@ Satoru supports a wide range of CSS properties for high-fidelity layout and styl
 - `flex-grow`, `flex-shrink`, `flex-basis`, `flex`
 - `row-gap`, `column-gap`, `gap`, `order`
 
-### Grid Layout (Basic)
+### Grid Layout (Advanced)
 
 - `display: grid`, `display: inline-grid`
-- `grid-template-columns`, `grid-template-rows` (Supports `px`, `%`, `fr`, `auto`)
+- `grid-template-columns`, `grid-template-rows` (Supports `px`, `%`, `fr`, `auto`, and spanning)
+- `grid-column-start`, `grid-column-end`, `grid-row-start`, `grid-row-end` (Full `span` support)
+- `justify-content`, `align-content` (Supports `center`, `start`, `end`, `space-between`, `space-around`, `space-evenly`)
 - `column-gap`, `row-gap`, `gap`
 
 ### Others

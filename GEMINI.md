@@ -109,12 +109,14 @@ You are operating in a **Windows PowerShell** environment.
   - Supports `disc` (filled oval), `circle` (stroked oval), `square` (filled rect).
   - Supports `list-style-image` via `SkImage` drawing.
 
-- **Grid Layout (Basic):**
+- **Grid Layout:**
   - Implemented in `render_item_grid`.
   - Supports `grid-template-columns` and `grid-template-rows` with fixed, percentage, and `fr` units.
-  - Basic automatic placement (row-by-row).
+  - Supports spanning (`grid-column: span N`) and fixed placements.
+  - Advanced automatic placement with collision detection using an occupancy map.
   - Supports `gap`, `column-gap`, and `row-gap`.
-  - Items are stretched by default to fill the track height if it's fixed or fractional.
+  - Full support for container alignment: `justify-content` and `align-content` (`center`, `start`, `end`, `space-between`, `space-around`, `space-evenly`).
+  - Items are stretched by default (`align-self: stretch`) to fill the track height.
 
 - **Media Queries (Level 4/5):**
   - Supports modern range syntax (e.g., `(width >= 400px)` or `(200px < height <= 800px)`).

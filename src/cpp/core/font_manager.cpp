@@ -63,11 +63,6 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
         if (!duplicate) {
             m_typefaceCache[cleaned].push_back(typeface);
             if (!m_defaultTypeface) m_defaultTypeface = typeface;
-
-            std::stringstream ss;
-            ss << "loadFont: Loaded '" << cleaned << "' (URL: " << (url ? url : "none")
-               << ", Total for family: " << m_typefaceCache[cleaned].size() << ")";
-            satoru_log(LogLevel::Info, ss.str().c_str());
         }
     } else {
         std::stringstream ss;

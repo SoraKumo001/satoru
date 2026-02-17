@@ -558,6 +558,14 @@ pixel_t document::render( pixel_t max_width, render_type rt )
 			// We trigger a style refresh and a second layout pass.
 			m_root->refresh_styles();
 			m_root->compute_styles();
+
+			// Rebuild rendering tree because structure might have changed (e.g. pseudo-elements)
+			m_root_render = m_root->create_render_item(nullptr);
+			fix_tables_layout();
+			if (m_root_render)
+			{
+				m_root_render = m_root_render->init();
+			}
 			
 			// Second pass
 			ret = m_root_render->render(0, 0, cb_context, nullptr);

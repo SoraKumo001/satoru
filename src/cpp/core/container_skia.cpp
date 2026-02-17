@@ -27,8 +27,11 @@
 #include "litehtml/el_table.h"
 #include "litehtml/el_td.h"
 #include "litehtml/el_tr.h"
+#include "modules/skshaper/include/SkShaper.h"
+#include "modules/skshaper/include/SkShaper_harfbuzz.h"
 #include "text_utils.h"
 #include "utils/skia_utils.h"
+#include "utils/skunicode_satoru.h"
 
 namespace litehtml {
 vector<css_token_vector> parse_comma_separated_list(const css_token_vector &tokens);
@@ -55,6 +58,42 @@ std::string trim(const std::string &s) {
     auto end = s.find_last_not_of(" \t\r\n'\"");
     return s.substr(start, end - start + 1);
 }
+
+class SatoruFontRunIterator : public SkShaper::FontRunIterator {
+   public:
+    struct CharFont {
+        const char *ptr;
+        size_t len;
+        SkFont font;
+    };
+
+    SatoruFontRunIterator(const std::vector<CharFont> &charFonts, size_t total_bytes)
+        : m_charFonts(charFonts), m_totalBytes(total_bytes), m_currentPos(0), m_currentIndex(0) {}
+
+    void consume() override {
+        if (m_currentIndex < m_charFonts.size()) {
+            m_currentPos += m_charFonts[m_currentIndex].len;
+            m_currentIndex++;
+        }
+    }
+
+    size_t endOfCurrentRun() const override {
+        return m_currentPos +
+               (m_currentIndex < m_charFonts.size() ? m_charFonts[m_currentIndex].len : 0);
+    }
+
+    bool atEnd() const override { return m_currentIndex >= m_charFonts.size(); }
+
+    const SkFont &currentFont() const override {
+        return m_charFonts[std::min(m_currentIndex, m_charFonts.size() - 1)].font;
+    }
+
+   private:
+    const std::vector<CharFont> &m_charFonts;
+    size_t m_totalBytes;
+    size_t m_currentPos;
+    size_t m_currentIndex;
+};
 
 }  // namespace
 
@@ -115,11 +154,6 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
         if (font) {
             fi->fonts.push_back(font);
         }
-    }
-
-    if (fi->fonts.size() > 1) {
-        // printf("[WASM] create_font: Family '%s' has %zu subset fonts loaded.\n",
-        // desc.family.c_str(), fi->fonts.size());
     }
 
     if (fi->fonts.empty()) {
@@ -186,11 +220,6 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
     font_info *fi = (font_info *)hFont;
     if (!fi || fi->fonts.empty()) return;
 
-    // Temporary log for verification
-    // satoru_log(LogLevel::Info, (std::string("draw_text: '") + text + "' at x=" +
-    // std::to_string(pos.x) + " w=" + std::to_string(pos.width) + " overflow=" +
-    // std::to_string((int)overflow)).c_str());
-
     std::string text_str = text;
     if (overflow == litehtml::text_overflow_ellipsis) {
         litehtml::pixel_t available_width = pos.width;
@@ -199,9 +228,6 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                                        (litehtml::pixel_t)(m_clips.back().first.right() - pos.x));
         }
 
-        // Forcing ellipsis if width is near zero (forced by line_box::finish)
-        // or if it's a real overflow (using a safe margin to avoid accidental truncation due to
-        // float errors).
         bool forced = (pos.width < 1.0f);
         litehtml::pixel_t margin = forced ? 0.0f : 2.0f;
 
@@ -262,55 +288,53 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 
     auto draw_text_internal = [&](const char *str, size_t len, double x, double y,
                                   const SkPaint &p) {
-        double x_offset = 0;
-        const char *ptr = str;
-        const char *run_start = ptr;
-        SkFont *current_font = nullptr;
-        const char *end = str + len;
-        while (ptr < end) {
-            const char *next_ptr = ptr;
-            char32_t u = satoru::decode_utf8_char(&next_ptr);
+        if (len == 0) return 0.0;
+        auto unicode = satoru::MakeUnicode();
+        auto shaper = SkShapers::HB::ShapeDontWrapOrReorder(unicode, nullptr);
+        if (!shaper) return 0.0;
+
+        // 1. 各文字の使用フォントを判定 (measure_text と同一ロジック)
+        std::vector<SatoruFontRunIterator::CharFont> charFonts;
+        const char *p_walk = str;
+        const char *p_end = str + len;
+        while (p_walk < p_end) {
+            const char *prev_walk = p_walk;
+            char32_t u = satoru::decode_utf8_char(&p_walk);
             if (m_resourceManager) m_usedCodepoints.insert(u);
 
-            SkFont *font = nullptr;
+            SkFont *selected_font = nullptr;
             for (auto f : fi->fonts) {
                 SkGlyphID glyph = 0;
                 SkUnichar sc = (SkUnichar)u;
                 f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
                                                    SkSpan<SkGlyphID>(&glyph, 1));
                 if (glyph != 0) {
-                    font = f;
+                    selected_font = f;
                     break;
                 }
             }
-            if (!font) {
-                font = fi->fonts[0];
-            }
-            if (font != current_font) {
-                if (current_font && ptr > run_start) {
-                    SkFont render_font = *current_font;
-                    if (fi->fake_bold) render_font.setEmbolden(true);
-                    m_canvas->drawSimpleText(run_start, ptr - run_start, SkTextEncoding::kUTF8,
-                                             (float)x + (float)x_offset,
-                                             (float)y + (float)fi->fm_ascent, render_font, p);
-                    x_offset += current_font->measureText(run_start, ptr - run_start,
-                                                          SkTextEncoding::kUTF8);
-                }
-                run_start = ptr;
-                current_font = font;
-            }
-            ptr = next_ptr;
+            if (!selected_font) selected_font = fi->fonts[0];
+
+            SkFont font = *selected_font;
+            if (fi->fake_bold) font.setEmbolden(true);
+            charFonts.push_back({prev_walk, (size_t)(p_walk - prev_walk), font});
         }
-        if (current_font && ptr > run_start) {
-            SkFont render_font = *current_font;
-            if (fi->fake_bold) render_font.setEmbolden(true);
-            m_canvas->drawSimpleText(run_start, ptr - run_start, SkTextEncoding::kUTF8,
-                                     (float)x + (float)x_offset, (float)y + (float)fi->fm_ascent,
-                                     render_font, p);
-            x_offset +=
-                current_font->measureText(run_start, ptr - run_start, SkTextEncoding::kUTF8);
+
+        // 2. カスタムイテレータを使用してまとめて整形・描画
+        SkTextBlobBuilderRunHandler handler(str, {0, 0});
+        SatoruFontRunIterator fontRuns(charFonts, len);
+        SkShaper::TrivialBiDiRunIterator bidi(0, len);
+        SkShaper::TrivialScriptRunIterator script(SkSetFourByteTag('Z', 'y', 'y', 'y'), len);
+        SkShaper::TrivialLanguageRunIterator lang("en", len);
+
+        shaper->shape(str, len, fontRuns, bidi, script, lang, nullptr, 0, 1000000, &handler);
+
+        sk_sp<SkTextBlob> blob = handler.makeBlob();
+        if (blob) {
+            m_canvas->drawTextBlob(blob, (float)x, (float)y, p);
         }
-        return x_offset;
+
+        return (double)handler.endPoint().fX;
     };
 
     if (!m_tagging && !fi->desc.text_shadow.empty()) {
@@ -466,8 +490,6 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
         if (it != m_context.imageCache.end() && it->second.skImage) {
             SkPaint p;
             p.setAntiAlias(true);
-            // PNG mode uses saveLayer, so we don't need to apply opacity to p here
-            // unless we want to support non-stacking context opacity (rare in satoru).
             m_canvas->save();
             m_canvas->clipRRect(make_rrect(layer.border_box, layer.border_radius), true);
             SkTileMode tileX = SkTileMode::kRepeat;
@@ -698,17 +720,14 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
         } else if (borders.top.style == litehtml::border_style_double) {
             p.setStrokeWidth((float)borders.top.width / 3.0f);
             p.setStyle(SkPaint::kStroke_Style);
-            // Outer ring
             SkRRect outer = rr;
             outer.inset((float)borders.top.width / 6.0f, (float)borders.top.width / 6.0f);
             m_canvas->drawRRect(outer, p);
-            // Inner ring
             SkRRect inner = rr;
             inner.inset((float)borders.top.width * 5.0f / 6.0f,
                         (float)borders.top.width * 5.0f / 6.0f);
             m_canvas->drawRRect(inner, p);
         } else {
-            // solid
             p.setStrokeWidth((float)borders.top.width);
             p.setStyle(SkPaint::kStroke_Style);
             rr.inset((float)borders.top.width / 2.0f, (float)borders.top.width / 2.0f);
@@ -795,7 +814,6 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                 p.setColor(c2);
                 m_canvas->drawPath(p2, p);
             } else {
-                // solid, inset, outset
                 if (b.style == litehtml::border_style_inset ||
                     b.style == litehtml::border_style_outset) {
                     bool outset = (b.style == litehtml::border_style_outset);
@@ -829,7 +847,6 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
             m_canvas->restore();
         };
 
-        // Top
         draw_side(borders.top,
                   SkPathBuilder()
                       .moveTo(x, y)
@@ -840,7 +857,6 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                       .close()
                       .detach(),
                   true, tw);
-        // Bottom
         draw_side(borders.bottom,
                   SkPathBuilder()
                       .moveTo(x, y + h)
@@ -851,7 +867,6 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                       .close()
                       .detach(),
                   false, bw);
-        // Left
         draw_side(borders.left,
                   SkPathBuilder()
                       .moveTo(x, y)
@@ -862,7 +877,6 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
                       .close()
                       .detach(),
                   true, lw);
-        // Right
         draw_side(borders.right,
                   SkPathBuilder()
                       .moveTo(x + w, y)
@@ -1042,18 +1056,13 @@ void container_skia::split_text(const char *text, const std::function<void(const
         size_t idx = p - text;
 
         if (c <= ' ' && (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f')) {
-            // Commit previous word
             if (p > last_p) {
                 on_word(std::string(last_p, p - last_p).c_str());
             }
-            // Emit space
             on_space(std::string(p, next_p - p).c_str());
             last_p = next_p;
             prev_char_idx = -1;
         } else {
-            // Check for break opportunity BEFORE this character (idx > 0)
-            // libunibreak's brks array contains the break opportunity AFTER the corresponding byte.
-            // We check if any byte in the PREVIOUS character allows a break after it.
             if (p > last_p && prev_char_idx != -1) {
                 bool can_break = false;
                 for (int i = prev_char_idx; i < (int)idx; ++i) {
@@ -1139,7 +1148,6 @@ void container_skia::push_transform(litehtml::uint_ptr hdc,
                      arg[0].type == litehtml::PERCENTAGE)) {
                     float v = arg[0].n.number;
                     if (arg[0].type == litehtml::PERCENTAGE) {
-                        // Context dependent, but let's use a heuristic
                         if (name.find("translate") != std::string::npos) {
                             v = v * (vals.empty() ? pos.width : pos.height) / 100.0f;
                         } else {
@@ -1201,8 +1209,6 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
         m_usedFilters.push_back(info);
         int index = (int)m_usedFilters.size();
 
-        // クリップ領域（またはビューポート）全体をタグ色で塗る。
-        // ポストプロセッサはこの色を見つけたら、直後の要素に filter 属性を付ける。
         SkPaint p;
         p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::FilterPush, (index & 0xFF)));
 
@@ -1216,7 +1222,7 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
         }
 
         m_canvas->drawRect(rect, p);
-        m_canvas->save();  // 対応する pop_filter の restore のため
+        m_canvas->save();
         return;
     }
 
@@ -1237,7 +1243,7 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
                     }
                 }
             } else if (name == "drop-shadow") {
-                if (!args.empty()) {  // drop-shadow(dx dy blur color)
+                if (!args.empty()) {
                     float dx = 0, dy = 0, blur = 0;
                     litehtml::web_color color = litehtml::web_color::black;
                     int i = 0;
@@ -1276,14 +1282,13 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
         paint.setImageFilter(last_filter);
         m_canvas->saveLayer(nullptr, &paint);
     } else {
-        m_canvas->save();  // Still need to save for matching restore
+        m_canvas->save();
     }
 }
 
 void container_skia::pop_filter(litehtml::uint_ptr hdc) {
     if (m_canvas) {
         if (m_tagging) {
-            // フィルター終了タグを出力。確実に描画されるように現在のクリップ領域を使用。
             SkPaint p;
             p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::FilterPop, 0));
             SkRect rect;

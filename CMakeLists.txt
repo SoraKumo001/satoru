@@ -75,6 +75,12 @@ find_package(BZip2 REQUIRED)
 find_package(ctre CONFIG REQUIRED)
 find_package(utf8proc CONFIG REQUIRED)
 find_package(libunibreak CONFIG REQUIRED)
+find_package(harfbuzz REQUIRED)
+
+# Workaround for vcpkg harfbuzz path bug
+if(TARGET harfbuzz)
+    set_target_properties(harfbuzz PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${VCPKG_INSTALLED_DIR}/include/harfbuzz")
+endif()
 
 set(SATORU_LIBS
     Freetype::Freetype
@@ -96,6 +102,7 @@ set(SATORU_LIBS
     ctre::ctre
     utf8proc::utf8proc
     libunibreak::libunibreak
+    harfbuzz::harfbuzz
 )
 
 set(COMMON_COMPILE_OPTIONS
@@ -113,10 +120,11 @@ set(COMMON_LINK_OPTIONS
     "-sSUPPORT_LONGJMP=emscripten"
     "-sDISABLE_EXCEPTION_CATCHING=0"
     "-sDYNAMIC_EXECUTION=0"
+    "-sASSERTIONS=1"
     "-sMODULARIZE=1"
     "-sEXPORT_ES6=1"
     "-sEXPORT_NAME='createSatoruModule'"
-    "-sENVIRONMENT=web,worker"
+    "-sENVIRONMENT=web,worker,node"
     "-sERROR_ON_UNDEFINED_SYMBOLS=0"
     "-sWARN_ON_UNDEFINED_SYMBOLS=0"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','getValue','setValue','HEAPU8','stringToUTF8','lengthBytesUTF8']"
@@ -205,6 +213,11 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/modules/svg/src/*.cpp"
     "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper.cpp"
     "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper_primitive.cpp"
+    "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper_harfbuzz.cpp"
+    "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper_skunicode.cpp"
+    "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper_factory.cpp"
+    "${skia_SOURCE_DIR}/modules/skunicode/src/SkUnicode.cpp"
+    "${skia_SOURCE_DIR}/modules/skunicode/src/SkUnicode_hardcoded.cpp"
 )
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkGPU.*|.*SkDocument_PDF_None.cpp")
@@ -216,8 +229,9 @@ target_include_directories(skia_lib PUBLIC
     "${WUFFS_RELEASE_DIR}"
     "${skia_SOURCE_DIR}/modules/svg/include"
     "${skia_SOURCE_DIR}/modules/skshaper/include"
+    "${skia_SOURCE_DIR}/modules/skunicode/include"
 )
-target_compile_definitions(skia_lib PUBLIC SK_USER_CONFIG_HEADER="SkUserConfig.h" SK_ENABLE_SVG)
+target_compile_definitions(skia_lib PUBLIC SK_USER_CONFIG_HEADER="SkUserConfig.h" SK_ENABLE_SVG SK_SHAPER_HARFBUZZ_AVAILABLE SK_SHAPER_UNICODE_AVAILABLE)
 target_compile_options(skia_lib PRIVATE ${COMMON_COMPILE_OPTIONS})
 target_link_libraries(skia_lib PUBLIC ${SATORU_LIBS})
 
@@ -238,6 +252,7 @@ target_sources(satoru_core PRIVATE
     src/cpp/renderers/pdf_renderer.cpp
     src/cpp/utils/skia_utils.cpp
     src/cpp/utils/skia_stubs.cpp
+    src/cpp/utils/skunicode_satoru.cpp
 )
 target_include_directories(satoru_core PRIVATE "src/cpp")
 target_link_libraries(satoru_core PUBLIC litehtml skia_lib)

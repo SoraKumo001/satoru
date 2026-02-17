@@ -1236,7 +1236,7 @@ namespace litehtml
                 flex_align_items_safe  = 0x800,
         };
 
-#define flex_align_content_strings              "flex-start;start;flex-end;end;center;space-between;space-around;stretch"
+#define flex_align_content_strings              "flex-start;start;flex-end;end;center;space-between;space-around;space-evenly;stretch"
 
         enum flex_align_content
         {
@@ -1247,6 +1247,7 @@ namespace litehtml
                 flex_align_content_center,
                 flex_align_content_space_between,
                 flex_align_content_space_around,
+                flex_align_content_space_evenly,
                 flex_align_content_stretch
         };
 

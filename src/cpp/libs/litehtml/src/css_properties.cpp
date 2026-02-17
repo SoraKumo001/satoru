@@ -628,6 +628,10 @@ void litehtml::css_properties::compute_grid(const html_tag *el, const document::
     m_column_gap = el->get_property<css_length>(_column_gap_, false, 0, offset(m_column_gap));
     doc->cvt_units(m_row_gap, m_font_metrics, 0);
     doc->cvt_units(m_column_gap, m_font_metrics, 0);
+
+    m_flex_justify_content = (flex_justify_content)el->get_property<int>(_justify_content_, false, flex_justify_content_flex_start, offset(m_flex_justify_content));
+    m_flex_align_items = (flex_align_items)el->get_property<int>(_align_items_, false, flex_align_items_normal, offset(m_flex_align_items));
+    m_flex_align_content = (flex_align_content)el->get_property<int>(_align_content_, false, flex_align_content_stretch, offset(m_flex_align_content));
   }
 
   // Grid item properties

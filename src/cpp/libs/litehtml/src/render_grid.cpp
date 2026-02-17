@@ -466,15 +466,38 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
     if (jc == flex_justify_content_center) extra_x = (self_size.render_width - total_grid_width) / 2;
     else if (jc == flex_justify_content_end || jc == flex_justify_content_flex_end) extra_x = self_size.render_width - total_grid_width;
     else if (jc == flex_justify_content_space_between && num_columns > 1) justify_gap += (self_size.render_width - total_grid_width) / (num_columns - 1);
+    else if (jc == flex_justify_content_space_around && num_columns > 0)
+    {
+        pixel_t diff = self_size.render_width - total_grid_width;
+        extra_x = diff / (num_columns * 2);
+        justify_gap += diff / num_columns;
+    }
+    else if (jc == flex_justify_content_space_evenly && num_columns > 0)
+    {
+        pixel_t diff = self_size.render_width - total_grid_width;
+        extra_x = diff / (num_columns + 1);
+        justify_gap += diff / (num_columns + 1);
+    }
 
     // align-content
     auto ac = css().get_flex_align_content();
     if (self_size.render_height.type != containing_block_context::cbc_value_type_auto)
     {
         pixel_t container_h = self_size.render_height;
-        if (ac == flex_align_content_center) extra_y = (container_h - total_grid_height) / 2;
-        else if (ac == flex_align_content_end || ac == flex_align_content_flex_end) extra_y = container_h - total_grid_height;
-        else if (ac == flex_align_content_space_between && num_rows > 1) align_gap += (container_h - total_grid_height) / (num_rows - 1);
+        pixel_t diff = container_h - total_grid_height;
+        if (ac == flex_align_content_center) extra_y = diff / 2;
+        else if (ac == flex_align_content_end || ac == flex_align_content_flex_end) extra_y = diff;
+        else if (ac == flex_align_content_space_between && num_rows > 1) align_gap += diff / (num_rows - 1);
+        else if (ac == flex_align_content_space_around && num_rows > 0)
+        {
+            extra_y = diff / (num_rows * 2);
+            align_gap += diff / num_rows;
+        }
+        else if (ac == flex_align_content_space_evenly && num_rows > 0)
+        {
+            extra_y = diff / (num_rows + 1);
+            align_gap += diff / (num_rows + 1);
+        }
     }
 
     acc_x = extra_x;

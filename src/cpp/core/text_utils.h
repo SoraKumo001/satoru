@@ -12,9 +12,9 @@ namespace satoru {
 
 struct MeasureResult {
     double width;
-    size_t length;  // bytes processed that fit
-    bool fits;      // true if all text fits within max_width
-    const char* last_safe_pos; // pointer to the end of the last character that fits
+    size_t length;              // bytes processed that fit
+    bool fits;                  // true if all text fits within max_width
+    const char* last_safe_pos;  // pointer to the end of the last character that fits
 };
 
 // Decodes a UTF-8 character and advances the pointer.

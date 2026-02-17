@@ -143,7 +143,7 @@ int api_get_last_svg_size(SatoruInstance *inst) {
 void api_collect_resources(SatoruInstance *inst, const std::string &html, int width) {
     if (inst->discovery_container) delete inst->discovery_container;
     inst->discovery_container =
-        new container_skia(width, 1000, nullptr, inst->context, &inst->resourceManager, false);
+        new container_skia(width, 32767, nullptr, inst->context, &inst->resourceManager, false);
 
     std::string master_css_full = get_full_master_css(inst);
 
@@ -211,7 +211,7 @@ std::string api_get_pending_resources(SatoruInstance *inst) {
 void api_init_document(SatoruInstance *inst, const char *html, int width) {
     if (inst->render_container) delete inst->render_container;
     inst->render_container =
-        new container_skia(width, 1000, nullptr, inst->context, &inst->resourceManager, false);
+        new container_skia(width, 32767, nullptr, inst->context, &inst->resourceManager, false);
 
     std::string master_css_full = get_full_master_css(inst);
     std::string css = master_css_full + "\nbr { display: -litehtml-br !important; }\n";

@@ -46,41 +46,44 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
 
     // If max_width is negative, treat it as infinite
     bool limit_width = max_width >= 0;
-    const double epsilon = 0.1; 
-    
+    const double epsilon = 0.1;
+
     // Helper to commit run
-    auto commit_run = [&](const char* end_ptr) -> bool {
+    auto commit_run = [&](const char *end_ptr) -> bool {
         if (current_font && end_ptr > run_start) {
-            double run_w = current_font->measureText(run_start, end_ptr - run_start, SkTextEncoding::kUTF8);
+            double run_w =
+                current_font->measureText(run_start, end_ptr - run_start, SkTextEncoding::kUTF8);
             if (limit_width && result.width + run_w > max_width + epsilon) {
                 // Run exceeds max width, need to find split point
-                
-                const char* rp = run_start;
+
+                const char *rp = run_start;
                 double last_w = 0;
                 while (rp < end_ptr) {
-                    const char* next_rp = rp;
+                    const char *next_rp = rp;
                     char32_t u_inner = decode_utf8_char(&next_rp);
-                    (void)u_inner; // suppress unused warning if not used
-                    
+                    (void)u_inner;  // suppress unused warning if not used
+
                     // Measure from run_start to next_rp to account for kerning correctly
-                    double current_w = current_font->measureText(run_start, next_rp - run_start, SkTextEncoding::kUTF8);
-                    
+                    double current_w = current_font->measureText(run_start, next_rp - run_start,
+                                                                 SkTextEncoding::kUTF8);
+
                     if (result.width + current_w > max_width + epsilon) {
                         result.fits = false;
                         result.last_safe_pos = rp;
                         result.length = rp - text;
                         result.width += last_w;
-                        return false; // stop measuring
+                        return false;  // stop measuring
                     }
                     last_w = current_w;
                     result.last_safe_pos = next_rp;
                     rp = next_rp;
                 }
                 // If loop finished but we didn't return false, it means float precision tricked us
-                // in the run_w check, or run_w was slightly larger than last_w due to full measurement differences?
-                // Add the full run width as calculated by the loop (last_w).
+                // in the run_w check, or run_w was slightly larger than last_w due to full
+                // measurement differences? Add the full run width as calculated by the loop
+                // (last_w).
                 result.width += last_w;
-                return true; 
+                return true;
             } else {
                 result.width += run_w;
                 result.last_safe_pos = end_ptr;
@@ -92,7 +95,7 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
     while (*p) {
         const char *next_p = p;
         char32_t u;
-        
+
         // Fast path for ASCII
         if ((unsigned char)*p < 0x80) {
             u = (unsigned char)*p;
@@ -104,14 +107,14 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
         if (used_codepoints) used_codepoints->insert(u);
 
         SkFont *font = nullptr;
-        
+
         // Check current font first
         if (current_font) {
-             SkGlyphID glyph = 0;
-             SkUnichar sc = (SkUnichar)u;
-             current_font->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
-                                                SkSpan<SkGlyphID>(&glyph, 1));
-             if (glyph != 0) font = current_font;
+            SkGlyphID glyph = 0;
+            SkUnichar sc = (SkUnichar)u;
+            current_font->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
+                                                          SkSpan<SkGlyphID>(&glyph, 1));
+            if (glyph != 0) font = current_font;
         }
 
         if (!font) {
@@ -127,9 +130,9 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
                 }
             }
         }
-        
+
         if (!font) font = fi->fonts[0];
-        
+
         if (font != current_font) {
             if (!commit_run(p)) return result;
             run_start = p;
@@ -140,10 +143,10 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
 
     // Commit final run
     if (!commit_run(p)) return result;
-    
+
     result.length = p - text;
     result.last_safe_pos = p;
-    
+
     return result;
 }
 
@@ -154,15 +157,15 @@ double text_width(const char *text, font_info *fi, std::set<char32_t> *used_code
 std::string ellipsize_text(const char *text, font_info *fi, double max_width,
                            std::set<char32_t> *used_codepoints) {
     if (!text || !*text) return "";
-    
+
     // First, check if full text fits
     MeasureResult full_res = measure_text(text, fi, max_width, used_codepoints);
     if (full_res.fits) return std::string(text);
-    
+
     // Calculate ellipsis width
-    const char* ellipsis = "...";
+    const char *ellipsis = "...";
     double ellipsis_width = text_width(ellipsis, fi, used_codepoints);
-    
+
     // Use a small epsilon to handle float precision issues
     const double epsilon = 0.1;
 
@@ -170,15 +173,15 @@ std::string ellipsize_text(const char *text, font_info *fi, double max_width,
         // スペースが足りない場合でも、ellipsis モードなら最低限 ... を出す
         return ellipsis;
     }
-    
+
     double available_width = std::max(0.0, max_width - ellipsis_width);
-    
+
     // Re-measure with stricter limit
-    MeasureResult part_res = measure_text(text, fi, available_width, nullptr); 
-    
-    std::string result(text, part_res.length); // length is bytes processed that fit
+    MeasureResult part_res = measure_text(text, fi, available_width, nullptr);
+
+    std::string result(text, part_res.length);  // length is bytes processed that fit
     result += ellipsis;
-    
+
     return result;
 }
 

@@ -143,7 +143,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                 const auto &info = filters[b - 1];
                 std::string filterId = "filter-" + std::to_string(b);
                 size_t elementStart = svg.rfind('<', pos);
-                size_t elementEnd = svg.find("/>", valEnd);
+                size_t elementEnd = svg.find('>', valEnd);
 
                 if (elementStart != std::string::npos && elementEnd != std::string::npos &&
                     elementStart >= lastPos) {
@@ -156,18 +156,18 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                     ss << ">";
                     result.append(ss.str());
 
-                    lastPos = elementEnd + 2;
+                    lastPos = elementEnd + 1;
                     replaced = true;
                 }
             } else if (r == 0 && g == 5) {
                 size_t elementStart = svg.rfind('<', pos);
-                size_t elementEnd = svg.find("/>", valEnd);
+                size_t elementEnd = svg.find('>', valEnd);
                 if (elementStart != std::string::npos && elementEnd != std::string::npos &&
                     elementStart >= lastPos) {
                     result.erase(result.size() - (pos - elementStart));
                     result.append("</g>");
 
-                    lastPos = elementEnd + 2;
+                    lastPos = elementEnd + 1;
                     replaced = true;
                 }
             } else if (r == 0 && g == 3 && b > 0 && b <= (int)textDraws.size()) {
@@ -230,7 +230,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                 }
             } else if (r == 1 && g == 0 && b > 0 && b <= (int)images.size()) {
                 size_t elementStart = svg.rfind('<', pos);
-                size_t elementEnd = svg.find("/>", valEnd);
+                size_t elementEnd = svg.find('>', valEnd);
                 if (elementStart != std::string::npos && elementEnd != std::string::npos &&
                     elementStart >= lastPos) {
                     const auto &draw = images[b - 1];
@@ -280,25 +280,25 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
 
                         result.erase(result.size() - (pos - elementStart));
                         result.append(ss.str());
-                        lastPos = elementEnd + 2;
+                        lastPos = elementEnd + 1;
                         replaced = true;
                     }
                 }
             } else if (r == 1 && g == 4 && b > 0 &&
                        b <= (int)container.get_used_inline_svgs().size()) {
                 size_t elementStart = svg.rfind('<', pos);
-                size_t elementEnd = svg.find("/>", valEnd);
+                size_t elementEnd = svg.find('>', valEnd);
                 if (elementStart != std::string::npos && elementEnd != std::string::npos &&
                     elementStart >= lastPos) {
                     const auto &inlineSvg = container.get_used_inline_svgs()[b - 1];
                     result.erase(result.size() - (pos - elementStart));
                     result.append(inlineSvg);
-                    lastPos = elementEnd + 2;
+                    lastPos = elementEnd + 1;
                     replaced = true;
                 }
             } else if (r == 1 && (g == 1 || g == 2 || g == 3)) {
                 size_t elementStart = svg.rfind('<', pos);
-                size_t elementEnd = svg.find("/>", valEnd);
+                size_t elementEnd = svg.find('>', valEnd);
                 if (elementStart != std::string::npos && elementEnd != std::string::npos &&
                     elementStart >= lastPos) {
                     SkBitmap bitmap;
@@ -440,7 +440,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         ss << " />";
                         result.erase(result.size() - (pos - elementStart));
                         result.append(ss.str());
-                        lastPos = elementEnd + 2;
+                        lastPos = elementEnd + 1;
                         replaced = true;
                     }
                 }
@@ -776,7 +776,7 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height,
 
 std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context,
                             const char *master_css, const RenderOptions &options) {
-    int initial_height = (height > 0) ? height : 1000;
+    int initial_height = (height > 0) ? height : 32767;
     container_skia container(width, initial_height, nullptr, context, nullptr, false);
 
     std::string css = master_css ? master_css : litehtml::master_css;

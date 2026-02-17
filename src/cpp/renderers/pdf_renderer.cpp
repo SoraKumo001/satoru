@@ -79,7 +79,7 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string> &htmls, int width,
 
     for (const auto &html : htmls) {
         // Measure pass
-        container_skia measure_container(width, height > 0 ? height : 1000, nullptr, context,
+        container_skia measure_container(width, height > 0 ? height : 32767, nullptr, context,
                                          nullptr, false);
         auto measure_doc =
             litehtml::document::createFromString(html.c_str(), &measure_container, css.c_str());

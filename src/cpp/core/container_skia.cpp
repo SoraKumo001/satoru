@@ -170,7 +170,9 @@ void container_skia::delete_font(litehtml::uint_ptr hFont) {
 
 litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_ptr hFont) {
     font_info *fi = (font_info *)hFont;
-    return (litehtml::pixel_t)satoru::measure_text(text, fi, -1.0, m_resourceManager ? &m_usedCodepoints : nullptr).width;
+    return (litehtml::pixel_t)satoru::measure_text(text, fi, -1.0,
+                                                   m_resourceManager ? &m_usedCodepoints : nullptr)
+        .width;
 }
 
 void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtml::uint_ptr hFont,
@@ -181,7 +183,9 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
     if (!fi || fi->fonts.empty()) return;
 
     // Temporary log for verification
-    // satoru_log(LogLevel::Info, (std::string("draw_text: '") + text + "' at x=" + std::to_string(pos.x) + " w=" + std::to_string(pos.width) + " overflow=" + std::to_string((int)overflow)).c_str());
+    // satoru_log(LogLevel::Info, (std::string("draw_text: '") + text + "' at x=" +
+    // std::to_string(pos.x) + " w=" + std::to_string(pos.width) + " overflow=" +
+    // std::to_string((int)overflow)).c_str());
 
     std::string text_str = text;
     if (overflow == litehtml::text_overflow_ellipsis) {
@@ -192,12 +196,14 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         }
 
         // Forcing ellipsis if width is near zero (forced by line_box::finish)
-        // or if it's a real overflow (using a safe margin to avoid accidental truncation due to float errors).
+        // or if it's a real overflow (using a safe margin to avoid accidental truncation due to
+        // float errors).
         bool forced = (pos.width < 1.0f);
-        litehtml::pixel_t margin = forced ? 0.0f : 2.0f; 
+        litehtml::pixel_t margin = forced ? 0.0f : 2.0f;
 
         if (forced || satoru::text_width(text, fi, nullptr) > available_width + margin) {
-            text_str = satoru::ellipsize_text(text, fi, (double)available_width, m_resourceManager ? &m_usedCodepoints : nullptr);
+            text_str = satoru::ellipsize_text(text, fi, (double)available_width,
+                                              m_resourceManager ? &m_usedCodepoints : nullptr);
         }
     }
 
@@ -1253,10 +1259,17 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
 void container_skia::pop_filter(litehtml::uint_ptr hdc) {
     if (m_canvas) {
         if (m_tagging) {
-            // フィルター終了タグを出力
+            // フィルター終了タグを出力。確実に描画されるように現在のクリップ領域を使用。
             SkPaint p;
             p.setColor(SkColorSetARGB(255, 0, 5, 0));
-            SkRect rect = SkRect::MakeXYWH(0, 0, 1, 1);  // 最小サイズの矩形
+            SkRect rect;
+            if (!m_clips.empty()) {
+                rect = SkRect::MakeXYWH((float)m_clips.back().first.x, (float)m_clips.back().first.y,
+                                        (float)m_clips.back().first.width,
+                                        (float)m_clips.back().first.height);
+            } else {
+                rect = SkRect::MakeWH((float)m_width, (float)m_height);
+            }
             m_canvas->drawRect(rect, p);
         }
         m_canvas->restore();

@@ -14,12 +14,22 @@ async function main() {
   const args = process.argv.slice(2);
   const verbose = args.includes("--verbose");
   const noOutline = args.includes("--no-outline");
-  const widthArg = args.find((a) => a.startsWith("--width="));
-  const width = widthArg ? parseInt(widthArg.split("=")[1]) : 800;
+  
+  let width = 800;
+  const widthIdx = args.findIndex((a) => a === "--width");
+  if (widthIdx !== -1 && args[widthIdx + 1]) {
+    width = parseInt(args[widthIdx + 1]);
+  } else {
+    const widthArg = args.find((a) => a.startsWith("--width="));
+    if (widthArg) {
+      width = parseInt(widthArg.split("=")[1]);
+    }
+  }
+
   const files = args
-    .filter((a) => a.endsWith(".html"))
+    .filter((a) => a.endsWith(".html") && !a.startsWith("-"))
     .concat(
-      args.length === 0 || (args.length === 1 && verbose)
+      args.filter(a => !a.startsWith("-")).length === 0
         ? fs.readdirSync(ASSETS_DIR).filter((f) => f.endsWith(".html"))
         : [],
     );

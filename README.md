@@ -428,8 +428,13 @@ pnpm --filter visual-test gen-ref
 #### Batch Convert Assets (Multithreaded)
 
 ```bash
-pnpm --filter visual-test convert-assets
+pnpm --filter visual-test convert-assets [file.html] [--width <number>] [--no-outline] [--verbose]
 ```
+
+- `file.html`: Optional. Convert a specific asset.
+- `--width <number>`: Optional. Set output width (default: 800).
+- `--no-outline`: Optional. Disable text outlining in SVG.
+- `--verbose`: Optional. Show detailed logs.
 
 ## 🏗️ Build & Run
 
@@ -465,7 +470,7 @@ pnpm build:all
 - [x] Support for CSS Logical Properties (margin-inline, padding-block, etc.).
 - [x] Support for CSS Grid Layout (Basic template columns/rows).
 - [x] **Mixed-unit `calc()` support (e.g., `100% - 20px`).**
-- [ ] Support for modern Media Query range syntax (e.g., `width >= 40rem`).
+- [x] Support for modern Media Query range syntax (e.g., `width >= 40rem`).
 - [ ] **CSS Container Queries (`@container`).**
 
 ### Rendering Features

@@ -116,6 +116,12 @@ You are operating in a **Windows PowerShell** environment.
   - Supports `gap`, `column-gap`, and `row-gap`.
   - Items are stretched by default to fill the track height if it's fixed or fractional.
 
+- **Media Queries (Level 4/5):**
+  - Supports modern range syntax (e.g., `(width >= 400px)` or `(200px < height <= 800px)`).
+  - Flexible whitespace handling between operators.
+  - Support for `calc()` and other functions in media feature values.
+  - Added support for discrete features: `hover`, `any-hover`, `pointer`, `any-pointer`, `prefers-reduced-motion`.
+
 - **litehtml Types:**
   - Container overrides MUST return `litehtml::pixel_t` (float), not `int`.
 

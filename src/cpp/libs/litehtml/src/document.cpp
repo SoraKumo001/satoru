@@ -638,7 +638,10 @@ pixel_t document::to_pixels( const css_length& val, const font_metrics& metrics,
 		ret = (pixel_t) (std::max(m_media.height, m_media.width) * val.val() / 100.0);
 		break;
 	case css_units_rem:
-		ret = (pixel_t) (m_root->css().get_font_size() * val.val());
+		if (m_root && m_root->css().get_font_size() > 0)
+			ret = (pixel_t) (m_root->css().get_font_size() * val.val());
+		else
+			ret = (pixel_t) (metrics.font_size * val.val());
 		break;
 	case css_units_ex:
 		ret = (pixel_t) (metrics.x_height * val.val());

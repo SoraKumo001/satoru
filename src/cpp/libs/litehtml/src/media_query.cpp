@@ -70,8 +70,15 @@ bool media_feature::check(const media_features& feat) const
 		return compare(feat.resolution);
 	case _prefers_color_scheme_:
 		return compare(feat.scheme == color_scheme_dark ? _dark_ : _light_);
+	case _hover_:
+	case _any_hover_:
+		return compare(_none_);
+	case _pointer_:
+	case _any_pointer_:
+		return compare(_none_);
+	case _prefers_reduced_motion_:
+		return compare(_no_preference_);
 	default:
-		assert(0); // must never happen, unknown media features are handled in parse_media_feature
 		return false;
 	}
 }
@@ -190,11 +197,7 @@ bool parse_media_query(const css_token_vector& tokens, media_query& mquery, docu
 // https://drafts.csswg.org/mediaqueries-5/#typedef-media-query-list
 media_query_list parse_media_query_list(const css_token_vector& _tokens, document::ptr doc)
 {
-	auto keep_whitespace = [](auto left_token, auto right_token)
-	{
-		return is_one_of(left_token.ch, '<', '>') && right_token.ch == '=';
-	};
-	css_token_vector tokens = normalize(_tokens, f_componentize | f_remove_whitespace, keep_whitespace);
+	css_token_vector tokens = normalize(_tokens, f_componentize | f_remove_whitespace);
 	// this needs special treatment because empty media query list evaluates to true
 	if (tokens.empty()) return {};
 
@@ -402,6 +405,17 @@ std::map<string, mf_info> supported_media_features =
 
 	// https://drafts.csswg.org/mediaqueries-5/#prefers-color-scheme
 	{"prefers-color-scheme", {_discrete_, _keyword_, {_light_, _dark_}}},
+
+	// https://drafts.csswg.org/mediaqueries-4/#hover
+	{"hover", {_discrete_, _keyword_, {_none_, _hover_}}},
+	{"any-hover", {_discrete_, _keyword_, {_none_, _hover_}}},
+
+	// https://drafts.csswg.org/mediaqueries-4/#pointer
+	{"pointer", {_discrete_, _keyword_, {_none_, _coarse_, _fine_}}},
+	{"any-pointer", {_discrete_, _keyword_, {_none_, _coarse_, _fine_}}},
+
+	// https://drafts.csswg.org/mediaqueries-5/#prefers-reduced-motion
+	{"prefers-reduced-motion", {_discrete_, _keyword_, {_no_preference_, _reduce_}}},
 };
 
 bool convert_units(mf_info mfi, css_token val[2], document::ptr doc)
@@ -563,7 +577,7 @@ bool parse_media_feature(const css_token& token, media_feature& result, document
 	return parse_mf_range(tokens, result, doc);
 }
 
-// <mf-value> = <number> | <dimension> | <ident> | <ratio>
+// <mf-value> = <number> | <dimension> | <ident> | <ratio> | <function>
 // <ratio> = <number [0,∞]> [ / <number [0,∞]> ]?
 bool parse_mf_value(const css_token_vector& tokens, int& index, css_token val[2])
 {
@@ -571,7 +585,7 @@ bool parse_mf_value(const css_token_vector& tokens, int& index, css_token val[2]
 	const css_token& b = at(tokens, index + 1);
 	const css_token& c = at(tokens, index + 2);
 
-	if (!is_one_of(a.type, NUMBER, DIMENSION, IDENT)) return false;
+	if (!is_one_of(a.type, NUMBER, DIMENSION, IDENT, CV_FUNCTION)) return false;
 
 	if (a.type == NUMBER && a.n.number >= 0 && b.ch == '/' &&
 		c.type == NUMBER && c.n.number >= 0)

@@ -191,7 +191,14 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                                        (litehtml::pixel_t)(m_clips.back().first.right() - pos.x));
         }
 
-        text_str = satoru::ellipsize_text(text, fi, (double)available_width, m_resourceManager ? &m_usedCodepoints : nullptr);
+        // Forcing ellipsis if width is near zero (forced by line_box::finish)
+        // or if it's a real overflow (using a safe margin to avoid accidental truncation due to float errors).
+        bool forced = (pos.width < 1.0f);
+        litehtml::pixel_t margin = forced ? 0.0f : 2.0f; 
+
+        if (forced || satoru::text_width(text, fi, nullptr) > available_width + margin) {
+            text_str = satoru::ellipsize_text(text, fi, (double)available_width, m_resourceManager ? &m_usedCodepoints : nullptr);
+        }
     }
 
     SkPaint paint;

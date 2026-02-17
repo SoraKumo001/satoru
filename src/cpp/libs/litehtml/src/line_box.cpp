@@ -219,7 +219,9 @@ litehtml::pixel_t litehtml::line_box::calc_va_baseline(const va_context& current
 
 std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish(bool last_box, const containing_block_context &containing_block_size)
 {
-	if (m_text_overflow == text_overflow_ellipsis && m_width > (m_right - m_left))
+	if (m_text_overflow == text_overflow_ellipsis && 
+		!(containing_block_size.size_mode & containing_block_context::size_mode_content) &&
+		m_width > (m_right - m_left))
 	{
 		pixel_t container_width = m_right - m_left;
 		
@@ -234,49 +236,51 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 			}
 		}
 
-		// 1. Skip items that are completely outside the container
-		auto it = m_items.rbegin();
-		while (it != m_items.rend())
+		// 1. Find the first item that (with ellipsis) exceeds the container width
+		auto it_f = m_items.begin();
+		auto last_visible_it = m_items.end();
+		
+		while (it_f != m_items.end())
 		{
-			if (!(*it)->get_el()->skip())
+			if ((*it_f)->get_el()->skip()) 
 			{
-				if ((*it)->get_el()->pos().x + (*it)->width() > m_right)
-				{
-					(*it)->get_el()->skip(true);
-				} else {
-					break;
-				}
+				it_f++;
+				continue;
 			}
-			it++;
-		}
 
-		// 2. Skip more items to make room for ellipsis.
-		// We only need to skip an item if its START position plus the ellipsis width 
-		// would already exceed the container right edge.
-		while (it != m_items.rend())
-		{
-			if (!(*it)->get_el()->skip())
+			// If this item starts so late that even ellipsis wouldn't fit, 
+			// or if the item itself plus ellipsis exceeds the width.
+			if ((*it_f)->get_el()->pos().x + ellipsis_width > m_right + 0.01)
 			{
-				if ((*it)->get_el()->pos().x + ellipsis_width > m_right + 0.01)
-				{
-					(*it)->get_el()->skip(true);
-				} else {
-					break;
-				}
-			}
-			it++;
-		}
-
-		// 3. Mark the last visible item to show ellipsis
-		// We set its width to a very small value. 
-		// The backend's ellipsize_text will see that text doesn't fit, 
-		// and will output "..." regardless of width (based on our recent change).
-		for (auto it_f = m_items.rbegin(); it_f != m_items.rend(); ++it_f)
-		{
-			if (!(*it_f)->get_el()->skip())
-			{
-				(*it_f)->get_el()->pos().width = 0.1; 
+				// This item and all subsequent items must be skipped.
 				break;
+			}
+			
+			last_visible_it = it_f;
+			
+			// If this item's end plus ellipsis exceeds the width, 
+			// this is the last visible item and it needs to be ellipsized.
+			if ((*it_f)->get_el()->pos().x + (*it_f)->width() + ellipsis_width > m_right + 0.01)
+			{
+				it_f++; // Point to the next item to start skipping
+				break;
+			}
+			
+			it_f++;
+		}
+
+		if (last_visible_it != m_items.end())
+		{
+			// Force ellipsis by setting a near-zero width.
+			// The backend will see this doesn't fit and output "..."
+			(*last_visible_it)->get_el()->pos().width = 0.1f;
+			
+			// Skip and remove everything AFTER the last visible item
+			auto next_it = std::next(last_visible_it);
+			while (next_it != m_items.end())
+			{
+				(*next_it)->get_el()->skip(true);
+				next_it = m_items.erase(next_it);
 			}
 		}
 

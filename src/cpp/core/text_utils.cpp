@@ -46,7 +46,7 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
 
     // If max_width is negative, treat it as infinite
     bool limit_width = max_width >= 0;
-    const double epsilon = 0.005; 
+    const double epsilon = 0.1; 
     
     // Helper to commit run
     auto commit_run = [&](const char* end_ptr) -> bool {
@@ -164,7 +164,7 @@ std::string ellipsize_text(const char *text, font_info *fi, double max_width,
     double ellipsis_width = text_width(ellipsis, fi, used_codepoints);
     
     // Use a small epsilon to handle float precision issues
-    const double epsilon = 0.005;
+    const double epsilon = 0.1;
 
     if (max_width < ellipsis_width - epsilon) {
         // スペースが足りない場合でも、ellipsis モードなら最低限 ... を出す

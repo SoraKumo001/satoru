@@ -508,7 +508,7 @@ pnpm build:all
 
 ### Future Enhancements (Roadmap)
 
-- [ ] **Professional Text Shaping (HarfBuzz)**: Integrate HarfBuzz via SkShaper to support complex scripts, ligatures, and RTL languages.
+- [x] **Professional Text Shaping (HarfBuzz)**: Integrate HarfBuzz via SkShaper to support complex scripts, ligatures, and RTL languages.
 - [x] **Advanced Unicode Support**: Integrated `utf8proc` and `libunibreak` for proper Unicode normalization, grapheme clusters, and UAX #14 line breaking.
 - [ ] **Robust Serialization**: Replace the custom binary serialization with a structured format like JSON (nlohmann/json) or Protocol Buffers for better maintainability and JS/TS integration.
 - [ ] **Structured Logging & Formatting**: Adopt `spdlog` and `{fmt}` for high-performance, structured logging and cleaner C++ code.

@@ -2,12 +2,13 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <title>Typography & Fonts Test</title>
   <style>
     @font-face {
       font-family: 'Roboto';
+      src: url('https://fonts.gstatic.com/s/roboto/v50/KFO7CnqEu92Fr1ME7kSn66aGLdTylUAMa3yUBA.woff2');
+      font-weight: 100 900;
       font-style: normal;
-      font-weight: 400;
-      src: url(https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2) format('woff2');
     }
     @font-face {
       font-family: 'Noto Sans JP';
@@ -15,8 +16,6 @@
       font-weight: 400;
       src: url(https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2) format('woff2');
     }
-  </style>
-  <style>
     body {
       font-family: 'Roboto', 'Noto Sans JP', sans-serif;
       padding: 30px;
@@ -31,8 +30,9 @@
       border-radius: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    h1 { font-size: 32px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
-    .label { font-size: 12px; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 10px; }
+    h1 { font-size: 32px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 0; }
+    h2 { font-size: 20px; color: #374151; margin-bottom: 15px; border-left: 4px solid #3b82f6; padding-left: 10px; }
+    .label { font-size: 12px; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 10px; font-family: monospace; }
     
     .japanese-test { font-size: 20px; color: #111827; }
     .decoration-test span { margin-right: 15px; }
@@ -50,40 +50,70 @@
       overflow: hidden;
       font-size: 14px;
     }
+    .weight-row { display: flex; align-items: baseline; margin-bottom: 5px; }
+    .weight-label { width: 100px; font-size: 12px; color: #999; }
   </style>
 </head>
 <body>
-  <h1>Typography & Text Effects</h1>
+  <h1>Typography & Fonts</h1>
 
+  <!-- Headings Test -->
   <div class="section">
-    <span class="label">Standard Tags & Japanese</span>
-    <p>This is <b>bold</b>, <i>italic</i>, and <u>underlined</u> text.</p>
-    <p class="japanese-test">Satoru Engineは<b>日本語</b>の描画も美しく再現します。Font metrics are handled correctly via FreeType.</p>
+    <h2>HTML Headings (em units)</h2>
+    <div style="border: 1px solid #eee; padding: 10px;">
+        <h1>Heading 1 (2em)</h1>
+        <h2>Heading 2 (1.5em)</h2>
+        <h3>Heading 3 (1.17em)</h3>
+        <h4>Heading 4 (1em)</h4>
+        <h5>Heading 5 (0.83em)</h5>
+        <h6>Heading 6 (0.67em)</h6>
+    </div>
   </div>
 
+  <!-- Variable Font Weights -->
   <div class="section">
-    <span class="label">Text Decorations (Line Styles)</span>
+    <h2>Font Weights (Variable Font)</h2>
+    <div class="weight-row" style="font-weight: 100;"><span class="weight-label">100</span><span>Thin - The quick brown fox jumps over the lazy dog.</span></div>
+    <div class="weight-row" style="font-weight: 300;"><span class="weight-label">300</span><span>Light - The quick brown fox jumps over the lazy dog.</span></div>
+    <div class="weight-row" style="font-weight: 400;"><span class="weight-label">400</span><span>Normal - The quick brown fox jumps over the lazy dog.</span></div>
+    <div class="weight-row" style="font-weight: 500;"><span class="weight-label">500</span><span>Medium - The quick brown fox jumps over the lazy dog.</span></div>
+    <div class="weight-row" style="font-weight: 700;"><span class="weight-label">700</span><span>Bold - The quick brown fox jumps over the lazy dog.</span></div>
+    <div class="weight-row" style="font-weight: 900;"><span class="weight-label">900</span><span>Black - The quick brown fox jumps over the lazy dog.</span></div>
+  </div>
+
+  <!-- Standard & Japanese -->
+  <div class="section">
+    <h2>Standard Formatting & Japanese</h2>
+    <p>This is <b>bold</b>, <i>italic</i>, <u>underlined</u>, and <del>strikethrough</del> text.</p>
+    <p class="japanese-test">Satoru Engineは<b>日本語</b>の描画も美しく再現します。Font metrics are handled correctly.</p>
+  </div>
+
+  <!-- Decorations -->
+  <div class="section">
+    <h2>Text Decorations (Modern Styles)</h2>
     <div class="decoration-test">
-      <span style="text-decoration: underline dotted #ef4444;">Dotted Underline</span>
+      <span style="text-decoration: underline dotted #ef4444; text-underline-offset: 4px;">Dotted Underline</span>
       <span style="text-decoration: underline dashed #10b981;">Dashed Underline</span>
       <span style="text-decoration: line-through double #6366f1;">Double Strike</span>
       <span style="text-decoration: overline solid #f59e0b;">Solid Overline</span>
     </div>
   </div>
 
+  <!-- Shadows -->
   <div class="section">
-    <span class="label">Text Shadows</span>
+    <h2>Text Shadows</h2>
     <div style="display: flex; flex-direction: column; gap: 20px; background: #374151; padding: 20px; border-radius: 8px;">
       <div class="shadow-glow">Neon Glow Effect</div>
-      <div class="shadow-multi" style="color: #111827;">Stacked 3D Shadows</div>
+      <div class="shadow-multi" style="color: #fff;">Stacked 3D Shadows</div>
       <div style="font-size: 24px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Basic Soft Shadow</div>
     </div>
   </div>
 
+  <!-- Line Clamp -->
   <div class="section">
-    <span class="label">Line Clamp</span>
+    <h2>Line Clamp (-webkit-line-clamp)</h2>
     <div class="clamp-box">
-      This is a long text that should be clamped to exactly two lines. If the implementation is correct, you will see an ellipsis at the end of this sentence.
+      This is a long text that should be clamped to exactly two lines. If the implementation is correct, you will see an ellipsis at the end of this sentence. This text goes on to ensure overflow.
     </div>
   </div>
 </body>

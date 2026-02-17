@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Box Model & Positioning Test</title>
+  <style>
+    @font-face {
+      font-family: 'Roboto';
+      src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2');
+      font-weight: 400;
+      font-style: normal;
+    }
+    body {
+      background: #f0f2f5;
+      padding: 30px;
+      font-family: 'Roboto', sans-serif;
+    }
+    .section {
+      margin-bottom: 40px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    h1 { margin-top: 0; }
+    h2 { font-size: 18px; margin-bottom: 15px; color: #4b5563; }
+
+    /* Borders & Shadows */
+    .box {
+      width: 120px;
+      height: 120px;
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      margin: 15px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .shadow-outer { box-shadow: 8px 8px 15px rgba(0,0,0,0.2); border-radius: 10px; }
+    .shadow-inset { box-shadow: inset 4px 4px 10px rgba(0,0,0,0.3); border: 1px solid #ddd; }
+    .radius-complex { border-radius: 40px 0 40px 0; border: 4px solid #1e3a8a; background: #3b82f6; color: white; }
+    .multi-shadow { box-shadow: 0 0 10px #10b981, 8px 8px 0px #34d399; border-radius: 5px; }
+
+    /* Border Styles */
+    .border-test { border-width: 6px; border-color: #333; margin: 10px; width: 100px; height: 40px; display: inline-block; }
+    .dotted { border-style: dotted; }
+    .dashed { border-style: dashed; }
+    .double { border-style: double; }
+    .mixed { 
+      border-top: 4px solid red; 
+      border-right: 4px dashed green; 
+      border-bottom: 4px dotted blue; 
+      border-left: 4px double orange; 
+    }
+
+    /* Positioning */
+    .pos-container {
+      position: relative;
+      width: 100%;
+      height: 250px;
+      background: #f8fafc;
+      border: 2px solid #cbd5e1;
+      margin-top: 20px;
+    }
+    .abs-box { position: absolute; padding: 10px; color: white; font-size: 11px; }
+    .tl { top: 10px; left: 10px; background: #e74c3c; }
+    .tr { top: 10px; right: 10px; background: #f1c40f; color: black; }
+    .bl { bottom: 10px; left: 10px; background: #2ecc71; }
+    .br { bottom: 10px; right: 10px; background: #9b59b6; width: 100px; text-align: right; }
+    .center {
+      top: 50%; left: 50%; width: 140px; height: 60px;
+      margin-top: -30px; margin-left: -70px;
+      background: #3b82f6; display: flex; align-items: center; justify-content: center;
+      z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .overlap { top: 40px; left: 40px; width: 80px; height: 80px; background: rgba(52, 152, 219, 0.6); z-index: 5; border: 1px dashed blue; }
+  </style>
+</head>
+<body>
+  <h1>Box Model & Positioning</h1>
+
+  <div class="section">
+    <h2>Shadows & Border Radius</h2>
+    <div class="box shadow-outer">Outer</div>
+    <div class="box shadow-inset">Inset</div>
+    <div class="box radius-complex">Radius</div>
+    <div class="box multi-shadow">Multi</div>
+  </div>
+
+  <div class="section">
+    <h2>Border Styles</h2>
+    <div class="border-test dotted">Dotted</div>
+    <div class="border-test dashed">Dashed</div>
+    <div class="border-test double">Double</div>
+    <div class="border-test mixed">Mixed</div>
+    <div class="border-test mixed" style="border-radius: 15px;">Rounded</div>
+  </div>
+
+  <div class="section">
+    <h2>Absolute Positioning & Z-Index</h2>
+    <div class="pos-container">
+      <div class="abs-box tl">Top Left</div>
+      <div class="abs-box tr">Top Right</div>
+      <div class="abs-box bl">Bottom Left (Auto width)</div>
+      <div class="abs-box br">Bottom Right (Fixed)</div>
+      <div class="abs-box center">Centered Box</div>
+      <div class="abs-box overlap">Overlap (Z:5)</div>
+    </div>
+  </div>
+</body>
+</html>

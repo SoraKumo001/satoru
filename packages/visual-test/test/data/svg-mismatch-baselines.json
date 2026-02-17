@@ -4,83 +4,47 @@
     "outline": 5.298064918851435
   },
   "02-typography.html": {
-    "fill": 2.1528846153846155,
-    "outline": 2.5556490384615387
+    "fill": 2.6384753593429155,
+    "outline": 3.9762577002053385
   },
   "03-graphics.html": {
-    "fill": 0.27848939929328625,
-    "outline": 1.2179770318021201
+    "fill": 4.384776006074412,
+    "outline": 4.440679574791192
   },
-  "04-box-effects.html": {
-    "fill": 0.44239631336405527,
-    "outline": 0.285426267281106
+  "04-box-model.html": {
+    "fill": 2.775857843137255,
+    "outline": 5.293504901960784
   },
   "05-images.html": {
     "fill": 3.9704595185995624,
     "outline": 5.93777352297593
   },
-  "06-box-layout.html": {
-    "fill": 0.49915540540540543,
-    "outline": 0.6137387387387387
+  "06-flexbox.html": {
+    "fill": 2.4674873737373737,
+    "outline": 6.6521464646464645
   },
-  "07-heading-test.html": {
-    "fill": 1.7229634831460676,
-    "outline": 1.4592696629213484
-  },
-  "08-font-weight-test.html": {
-    "fill": 6.356115107913669,
-    "outline": 7.201438848920863
-  },
-  "09-flexbox-test.html": {
-    "fill": 3.215,
-    "outline": 6.899102564102565
-  },
-  "10-border-test.html": {
-    "fill": 3.0909685863874348,
-    "outline": 2.244764397905759
-  },
-  "11-google-fonts-test.html": {
+  "07-google-fonts.html": {
     "fill": 3.39025,
     "outline": 4.62475
   },
-  "12-position-test.html": {
+  "08-background.html": {
     "fill": 1.684138141809291,
     "outline": 1.7484718826405867
   },
-  "13-table-test.html": {
-    "fill": 7.1621416159860996,
-    "outline": 11.594374456993918
+  "09-table.html": {
+    "fill": 5.243246445497631,
+    "outline": 7.761374407582938
   },
-  "14-list-marker-test.html": {
-    "fill": 1.3423708920187793,
-    "outline": 3.342605633802817
+  "10-list-marker.html": {
+    "fill": 0.9740032327586208,
+    "outline": 1.886449353448276
   },
-  "15-svg-test.html": {
-    "fill": 2.0054878048780487,
-    "outline": 2.658231707317073
-  },
-  "16-flex-gap-test.html": {
-    "fill": 7.041972140762463,
-    "outline": 8.434017595307918
-  },
-  "17-filter-test.html": {
-    "fill": 7.341911764705883,
-    "outline": 8.714965397923875
-  },
-  "18-wrap-test.html": {
+  "11-wrap.html": {
     "fill": 1.651218220338983,
     "outline": 0.774364406779661
   },
-  "test.html": {
-    "fill": 0.9316406249999999,
-    "outline": 0.49023437499999994
-  },
-  "19-grid-test.html": {
-    "fill": 25.54894578313253,
-    "outline": 8.893825301204819
-  },
-  "20-grid-rows-fr.html": {
-    "fill": 2.9419642857142856,
-    "outline": 3.4933035714285716
+  "12-grid.html": {
+    "fill": 17.548191573926868,
+    "outline": 7.706379173290938
   }
 }

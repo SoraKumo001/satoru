@@ -4,83 +4,47 @@
     "outline": 5.334737827715355
   },
   "02-typography.html": {
-    "fill": 2.017548076923077,
-    "outline": 2.464783653846154
+    "fill": 2.5546072895277208,
+    "outline": 3.9388475359342916
   },
   "03-graphics.html": {
-    "fill": 1.7471289752650176,
-    "outline": 1.8714664310954063
+    "fill": 3.5609339407744875,
+    "outline": 4.3570615034168565
   },
-  "04-box-effects.html": {
-    "fill": 0.47206221198156684,
-    "outline": 0.347926267281106
+  "04-box-model.html": {
+    "fill": 2.8330882352941176,
+    "outline": 5.31421568627451
   },
   "05-images.html": {
     "fill": 3.8766411378555796,
     "outline": 5.949671772428884
   },
-  "06-box-layout.html": {
-    "fill": 0.46677927927927926,
-    "outline": 0.5396959459459459
+  "06-flexbox.html": {
+    "fill": 2.7526304713804715,
+    "outline": 6.818287037037036
   },
-  "07-heading-test.html": {
-    "fill": 1.7608848314606744,
-    "outline": 1.4680477528089886
-  },
-  "08-font-weight-test.html": {
-    "fill": 6.529676258992806,
-    "outline": 7.523830935251799
-  },
-  "09-flexbox-test.html": {
-    "fill": 3.2405128205128206,
-    "outline": 6.944038461538462
-  },
-  "10-border-test.html": {
-    "fill": 2.9931282722513086,
-    "outline": 2.198625654450262
-  },
-  "11-google-fonts-test.html": {
+  "07-google-fonts.html": {
     "fill": 3.3167500000000003,
     "outline": 4.59375
   },
-  "12-position-test.html": {
+  "08-background.html": {
     "fill": 1.9352078239608803,
     "outline": 1.8424511002444985
   },
-  "13-table-test.html": {
-    "fill": 7.195807993049522,
-    "outline": 11.587966985230235
+  "09-table.html": {
+    "fill": 5.330568720379147,
+    "outline": 7.900592417061611
   },
-  "14-list-marker-test.html": {
-    "fill": 1.3637323943661972,
-    "outline": 3.346830985915493
+  "10-list-marker.html": {
+    "fill": 0.9898976293103448,
+    "outline": 1.978582974137931
   },
-  "15-svg-test.html": {
-    "fill": 1.9728658536585366,
-    "outline": 2.1728658536585366
-  },
-  "16-flex-gap-test.html": {
-    "fill": 7.057184750733138,
-    "outline": 8.440065982404692
-  },
-  "17-filter-test.html": {
-    "fill": 7.317906574394464,
-    "outline": 8.637759515570934
-  },
-  "18-wrap-test.html": {
+  "11-wrap.html": {
     "fill": 1.5828919491525424,
     "outline": 0.7488082627118644
   },
-  "test.html": {
-    "fill": 0.7998046875,
-    "outline": 0.48046875
-  },
-  "19-grid-test.html": {
-    "fill": 25.537650602409638,
-    "outline": 8.887424698795181
-  },
-  "20-grid-rows-fr.html": {
-    "fill": 2.9501488095238093,
-    "outline": 3.4895833333333335
+  "12-grid.html": {
+    "fill": 17.553656597774246,
+    "outline": 7.762817965023848
   }
 }

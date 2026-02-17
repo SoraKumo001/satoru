@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Grid & Media Queries Test</title>
+  <style>
+    @font-face {
+      font-family: 'Roboto';
+      src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2');
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Noto Sans JP';
+      font-style: normal;
+      font-weight: 400;
+      src: url(https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2) format('woff2');
+    }
+    body {
+      font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+      padding: 20px;
+      background-color: #f8fafc;
+    }
+    .section {
+      margin-bottom: 30px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    h1 { margin-top: 0; color: #1e293b; }
+    h2 { font-size: 18px; color: #64748b; margin-bottom: 15px; }
+
+    /* Basic Grid */
+    .grid-basic {
+      display: grid;
+      grid-template-columns: 100px 1fr 2fr;
+      gap: 15px;
+      background: #f1f5f9;
+      padding: 15px;
+    }
+    .grid-item {
+      background: #3b82f6;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    /* fr rows test */
+    .grid-rows-fr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 2fr;
+      gap: 10px;
+      height: 300px;
+      width: 400px;
+      background: #f0f0f0;
+      padding: 10px;
+    }
+    .row-item {
+      background: #4CAF50;
+      border: 1px solid #333;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Media Query Test */
+    .mq-box {
+      width: 150px;
+      height: 100px;
+      background-color: #ef4444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      margin-top: 10px;
+    }
+    @media (width >= 600px) {
+      .mq-box { background-color: #10b981; }
+      .mq-box::after { content: " (>= 600px)"; }
+    }
+    @media (width < 400px) {
+      .mq-box { background-color: #3b82f6; }
+      .mq-box::after { content: " (< 400px)"; }
+    }
+    @media (40rem <= width <= 1000px) {
+      .mq-box { border: 5px solid yellow; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Grid Layout & Media Queries</h1>
+
+  <div class="section">
+    <h2>Basic Grid (Fixed & fr columns)</h2>
+    <div class="grid-basic">
+      <div class="grid-item">100px</div>
+      <div class="grid-item">1fr</div>
+      <div class="grid-item">2fr</div>
+      <div class="grid-item" style="grid-column: span 2;">Span 2</div>
+      <div class="grid-item">End</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Grid fr Rows & Stretch (400x300)</h2>
+    <div class="grid-rows-fr">
+      <div class="row-item">Row 1 (1fr)</div>
+      <div class="row-item">Row 1 (1fr)</div>
+      <div class="row-item">Row 2 (2fr)</div>
+      <div class="row-item">Row 2 (2fr)</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Modern Media Query Range Syntax</h2>
+    <p>Resize viewport width to see effects (Default is ~800px):</p>
+    <div class="mq-box">Status</div>
+    <div style="margin-top: 10px; font-size: 14px; color: #666;">
+        Supports: (width >= 600px), (width < 400px), (40rem <= width <= 1000px)
+    </div>
+  </div>
+</body>
+</html>

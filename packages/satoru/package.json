@@ -9,8 +9,7 @@
     "satoru": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc -b && rolldown -c rolldown.config.js",
-    "test": "vitest run"
+    "build": "tsc -b && rolldown -c rolldown.config.js"
   },
   "exports": {
     ".": {

@@ -213,17 +213,41 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
         int item_row_span = 1;
 
         // Resolve spans and fixed positions
-        if (cs.is_span) item_col_span = cs.span;
-        else if (cs.index > 0) item_col_start = cs.index - 1;
+        if (cs.is_span)
+        {
+            item_col_span = cs.span;
+        }
+        else if (cs.index > 0)
+        {
+            item_col_start = cs.index - 1;
+        }
 
-        if (ce.is_span) item_col_span = ce.span;
-        else if (ce.index > cs.index && cs.index > 0) item_col_span = ce.index - cs.index;
+        if (ce.is_span)
+        {
+            item_col_span = ce.span;
+        }
+        else if (ce.index > cs.index && cs.index > 0)
+        {
+            item_col_span = ce.index - cs.index;
+        }
 
-        if (rs.is_span) item_row_span = rs.span;
-        else if (rs.index > 0) item_row_start = rs.index - 1;
+        if (rs.is_span)
+        {
+            item_row_span = rs.span;
+        }
+        else if (rs.index > 0)
+        {
+            item_row_start = rs.index - 1;
+        }
 
-        if (re.is_span) item_row_span = re.span;
-        else if (re.index > rs.index && rs.index > 0) item_row_span = re.index - rs.index;
+        if (re.is_span)
+        {
+            item_row_span = re.span;
+        }
+        else if (re.index > rs.index && rs.index > 0)
+        {
+            item_row_span = re.index - rs.index;
+        }
 
         // Auto placement: find a big enough empty rectangle
         if (cs.index <= 0 && !cs.is_span)
@@ -236,27 +260,81 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
                     curr_col = 0;
                     curr_row++;
                 }
-                
+
                 bool conflict = false;
                 for (int r = curr_row; r < curr_row + item_row_span; r++)
                 {
                     for (int c = curr_col; c < curr_col + item_col_span; c++)
                     {
-                        if (is_occupied(r, c)) { conflict = true; break; }
+                        if (is_occupied(r, c))
+                        {
+                            conflict = true;
+                            break;
+                        }
                     }
                     if (conflict) break;
                 }
-                
+
                 if (!conflict)
                 {
                     item_col_start = curr_col;
                     item_row_start = curr_row;
                     found = true;
+                    // Move cursor for next auto-placed item
+                    curr_col += item_col_span;
                 }
                 else
                 {
                     curr_col++;
-                    if (curr_col >= num_columns) { curr_col = 0; curr_row++; }
+                    if (curr_col >= num_columns)
+                    {
+                        curr_col = 0;
+                        curr_row++;
+                    }
+                }
+            }
+        }
+        else if (cs.is_span && cs.index <= 0)
+        {
+            // Handle span without fixed start
+            bool found = false;
+            while (!found)
+            {
+                if (curr_col + item_col_span > num_columns)
+                {
+                    curr_col = 0;
+                    curr_row++;
+                }
+
+                bool conflict = false;
+                for (int r = curr_row; r < curr_row + item_row_span; r++)
+                {
+                    for (int c = curr_col; c < curr_col + item_col_span; c++)
+                    {
+                        if (is_occupied(r, c))
+                        {
+                            conflict = true;
+                            break;
+                        }
+                    }
+                    if (conflict) break;
+                }
+
+                if (!conflict)
+                {
+                    item_col_start = curr_col;
+                    item_row_start = curr_row;
+                    found = true;
+                    curr_col += item_col_span;
+                }
+                else
+                {
+                    curr_col++;
+                    if (curr_col >= num_columns)
+                    {
+                        curr_col = 0;
+                        curr_row++;
+                    }
                 }
             }
         }
@@ -272,6 +350,39 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
 
     int num_rows = std::max((int)rows_template.size(), max_row);
     vector<pixel_t> row_heights(num_rows, 0);
+    float total_row_fr = 0;
+    pixel_t fixed_height = 0;
+
+    // Calculate fixed and percentage rows
+    for (int i = 0; i < (int)rows_template.size(); i++)
+    {
+        const auto& len = rows_template[i];
+        if (len.units() == css_units_fr)
+        {
+            total_row_fr += len.val();
+        }
+        else
+        {
+            row_heights[i] = len.calc_percent(self_size.render_height);
+            fixed_height += row_heights[i];
+        }
+    }
+    fixed_height += row_gap * (num_rows - 1);
+
+    // Distribute remaining space to fr rows if container height is fixed
+    if (total_row_fr > 0 && self_size.render_height.type != containing_block_context::cbc_value_type_auto)
+    {
+        pixel_t remaining_height = self_size.render_height - fixed_height;
+        if (remaining_height < 0) remaining_height = 0;
+        for (int i = 0; i < (int)rows_template.size(); i++)
+        {
+            const auto& len = rows_template[i];
+            if (len.units() == css_units_fr)
+            {
+                row_heights[i] = remaining_height * (len.val() / total_row_fr);
+            }
+        }
+    }
 
     // Use relative coordinates (0,0) as the base for child rendering.
     // litehtml's render(x, y) adds these to the parent's position internally.

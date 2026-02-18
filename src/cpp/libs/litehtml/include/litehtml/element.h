@@ -45,6 +45,7 @@ namespace litehtml
 
 		const css_properties&		css() const;
 		css_properties&				css_w();
+		direction					get_direction() const;
 
 		bool						in_normal_flow()			const;
 		bool						is_inline()					const;	// returns true if element is inline
@@ -216,6 +217,11 @@ namespace litehtml
 	inline css_properties& element::css_w()
 	{
 		return m_css;
+	}
+
+	inline direction element::get_direction() const
+	{
+		return m_css.get_direction();
 	}
 
 	inline bool element::is_block_box() const

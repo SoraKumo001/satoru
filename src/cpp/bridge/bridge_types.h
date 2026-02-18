@@ -23,6 +23,7 @@ struct font_info {
     int fm_ascent;
     int fm_height;
     bool fake_bold;
+    bool is_rtl;
 };
 
 struct font_request {

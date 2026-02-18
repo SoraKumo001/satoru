@@ -42,11 +42,15 @@ namespace litehtml
 		pixel_t m_rendered_min_width = 0;
 		pixel_t m_items_top = 0;
 		pixel_t m_items_bottom = 0;
+		int m_bidi_level = 0;
 	public:
 		explicit line_box_item(const std::shared_ptr<render_item>& element) : m_element(element) {}
 		line_box_item(const line_box_item& el) = default;
 		line_box_item(line_box_item&&) = default;
 		virtual ~line_box_item();
+
+		void set_bidi_level(int level) { m_bidi_level = level; }
+		int get_bidi_level() const { return m_bidi_level; }
 
 		virtual pixel_t height() const;
 		const std::shared_ptr<render_item>& get_el() const { return m_element; }
@@ -137,11 +141,12 @@ namespace litehtml
         font_metrics			m_font_metrics;
         pixel_t					m_baseline;
         text_align				m_text_align;
+        direction				m_direction;
         text_overflow			m_text_overflow;
 		pixel_t 				m_min_width;
 		std::list< std::unique_ptr<line_box_item> > m_items;
     public:
-        line_box(pixel_t top, pixel_t left, pixel_t right, const css_line_height_t& line_height, const font_metrics& fm, text_align align, text_overflow overflow) :
+        line_box(pixel_t top, pixel_t left, pixel_t right, const css_line_height_t& line_height, const font_metrics& fm, text_align align, direction dir, text_overflow overflow) :
 				m_top(top),
 				m_left(left),
 				m_right(right),
@@ -151,6 +156,7 @@ namespace litehtml
 				m_font_metrics(fm),
 				m_baseline(0),
 				m_text_align(align),
+				m_direction(dir),
 				m_text_overflow(overflow),
 				m_min_width(0)
 		{

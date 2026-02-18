@@ -108,7 +108,7 @@ void litehtml::el_text::compute_styles(bool /*recursive*/)
 	} else
 	{
 		m_size.height	= fm.height;
-		m_size.width	= get_document()->container()->text_width(m_use_transformed ? m_transformed_text.c_str() : m_text.c_str(), font);
+		m_size.width	= get_document()->container()->text_width(m_use_transformed ? m_transformed_text.c_str() : m_text.c_str(), font, el_parent->get_direction());
 	}
 	m_draw_spaces = fm.draw_spaces;
 }
@@ -143,7 +143,7 @@ void litehtml::el_text::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position 
 			{
 				web_color color = el_parent->css().get_color();
 				doc->container()->draw_text(hdc, m_use_transformed ? m_transformed_text.c_str() : m_text.c_str(), font,
-											color, pos, el_parent->css().get_text_overflow());
+											color, pos, el_parent->css().get_text_overflow(), el_parent->css().get_direction());
 			}
 		}
 	}

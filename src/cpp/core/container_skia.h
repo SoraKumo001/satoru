@@ -38,6 +38,8 @@ class container_skia : public litehtml::document_container {
     std::set<font_request> m_requestedFontAttributes;
 
     std::set<font_request> m_missingFonts;
+    int m_last_bidi_level = -1;
+    int m_last_base_level = -1;
 
     std::vector<bool> m_asciiUsed;
 
@@ -107,10 +109,11 @@ class container_skia : public litehtml::document_container {
                                            const litehtml::document *doc,
                                            litehtml::font_metrics *fm) override;
     virtual void delete_font(litehtml::uint_ptr hFont) override;
-    virtual litehtml::pixel_t text_width(const char *text, litehtml::uint_ptr hFont) override;
+    virtual litehtml::pixel_t text_width(const char *text, litehtml::uint_ptr hFont,
+                                         litehtml::direction dir) override;
     virtual void draw_text(litehtml::uint_ptr hdc, const char *text, litehtml::uint_ptr hFont,
                            litehtml::web_color color, const litehtml::position &pos,
-                           litehtml::text_overflow overflow) override;
+                           litehtml::text_overflow overflow, litehtml::direction dir) override;
     virtual litehtml::pixel_t pt_to_px(float pt) const override;
     virtual litehtml::pixel_t get_default_font_size() const override;
     virtual const char *get_default_font_name() const override;
@@ -137,6 +140,7 @@ class container_skia : public litehtml::document_container {
                                  const litehtml::position &pos,
                                  const litehtml::border_radiuses &radius, bool inset) override;
 
+    virtual int get_bidi_level(const char *text, int base_level) override;
     virtual void set_caption(const char *caption) override {}
     virtual void set_base_url(const char *base_url) override {}
     virtual void link(const std::shared_ptr<litehtml::document> &doc,

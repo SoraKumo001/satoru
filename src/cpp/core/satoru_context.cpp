@@ -15,7 +15,9 @@
 #include "include/core/SkData.h"
 #include "include/core/SkImage.h"
 #include "include/core/SkSpan.h"
+#include "modules/skshaper/include/SkShaper_harfbuzz.h"
 #include "utils/skia_utils.h"
+#include "utils/skunicode_satoru.h"
 
 void SatoruContext::init() {
     SkCodecs::Register(SkPngDecoder::Decoder());
@@ -25,6 +27,20 @@ void SatoruContext::init() {
     SkCodecs::Register(SkBmpDecoder::Decoder());
     SkCodecs::Register(SkIcoDecoder::Decoder());
     SkCodecs::Register(SkGifDecoder::Decoder());
+}
+
+sk_sp<SkUnicode> SatoruContext::getUnicode() {
+    if (!m_unicode) {
+        m_unicode = satoru::MakeUnicode();
+    }
+    return m_unicode;
+}
+
+SkShaper *SatoruContext::getShaper() {
+    if (!m_shaper) {
+        m_shaper = SkShapers::HB::ShapeDontWrapOrReorder(getUnicode(), nullptr);
+    }
+    return m_shaper.get();
 }
 
 void SatoruContext::loadImage(const char *name, const char *data_url, int width, int height) {

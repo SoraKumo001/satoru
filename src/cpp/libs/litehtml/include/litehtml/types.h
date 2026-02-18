@@ -767,15 +767,25 @@ namespace litehtml
                 element_position_fixed,
         };
 
-#define text_align_strings              "left;right;center;justify"
+#define text_align_strings              "left;right;center;justify;start;end"
 
         enum text_align
         {
                 text_align_left,
                 text_align_right,
                 text_align_center,
-                text_align_justify
+                text_align_justify,
+                text_align_start,
+                text_align_end
         };
+
+#define direction_strings               "ltr;rtl"
+
+		enum direction
+		{
+				direction_ltr,
+				direction_rtl
+		};
 
 #define text_transform_strings          "none;capitalize;uppercase;lowercase"
 

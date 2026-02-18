@@ -2,12 +2,15 @@
 #define SATORU_CONTEXT_H
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "font_manager.h"
 #include "include/core/SkData.h"
 #include "include/core/SkFontStyle.h"
+#include "modules/skshaper/include/SkShaper.h"
+#include "modules/skunicode/include/SkUnicode.h"
 #include "utils/skia_utils.h"
 
 class SatoruContext {
@@ -17,11 +20,17 @@ class SatoruContext {
     sk_sp<SkData> m_lastSvg;
     std::string m_extraCss;
 
+    sk_sp<SkUnicode> m_unicode;
+    std::unique_ptr<SkShaper> m_shaper;
+
    public:
     SatoruFontManager fontManager;
     std::map<std::string, image_info> imageCache;
 
     void init();
+
+    sk_sp<SkUnicode> getUnicode();
+    SkShaper *getShaper();
 
     void addCss(const std::string &css) { m_extraCss += css + "\n"; }
     const std::string &getExtraCss() const { return m_extraCss; }

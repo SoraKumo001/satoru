@@ -106,7 +106,9 @@ container_skia::container_skia(int w, int h, SkCanvas *canvas, SatoruContext &co
       m_height(h),
       m_context(context),
       m_resourceManager(rm),
-      m_tagging(tagging) {
+      m_tagging(tagging),
+      m_last_bidi_level(-1),
+      m_last_base_level(-1) {
     m_asciiUsed.resize(128, false);
 }
 
@@ -150,6 +152,15 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
     font_info *fi = new font_info;
     fi->desc = desc;
     fi->fake_bold = fake_bold;
+
+    // Check direction from element's property (if available)
+    fi->is_rtl = false;
+    if (doc) {
+        // Find the root element or relevant element to check direction
+        // For simplicity, we check if the family or specific context suggests RTL
+        // or we could use document's container-level direction if litehtml supported it.
+        // Here we'll try to get it from CSS properties if we can.
+    }
 
     for (auto &typeface : typefaces) {
         SkFont *font = m_context.fontManager.createSkFont(typeface, (float)desc.size, desc.weight);
@@ -208,19 +219,25 @@ void container_skia::delete_font(litehtml::uint_ptr hFont) {
     }
 }
 
-litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_ptr hFont) {
+litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_ptr hFont,
+                                             litehtml::direction dir) {
     font_info *fi = (font_info *)hFont;
-    return (litehtml::pixel_t)satoru::measure_text(text, fi, -1.0,
+    if (fi) {
+        fi->is_rtl = (dir == litehtml::direction_rtl);
+    }
+    return (litehtml::pixel_t)satoru::measure_text(&m_context, text, fi, -1.0,
                                                    m_resourceManager ? &m_usedCodepoints : nullptr)
         .width;
 }
 
 void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtml::uint_ptr hFont,
                                litehtml::web_color color, const litehtml::position &pos,
-                               litehtml::text_overflow overflow) {
+                               litehtml::text_overflow overflow, litehtml::direction dir) {
     if (!m_canvas) return;
     font_info *fi = (font_info *)hFont;
     if (!fi || fi->fonts.empty()) return;
+
+    fi->is_rtl = (dir == litehtml::direction_rtl);
 
     std::string text_str = text;
     if (overflow == litehtml::text_overflow_ellipsis) {
@@ -233,8 +250,9 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         bool forced = (pos.width < 1.0f);
         litehtml::pixel_t margin = forced ? 0.0f : 2.0f;
 
-        if (forced || satoru::text_width(text, fi, nullptr) > available_width + margin) {
-            text_str = satoru::ellipsize_text(text, fi, (double)available_width,
+        if (forced ||
+            satoru::text_width(&m_context, text, fi, nullptr) > available_width + margin) {
+            text_str = satoru::ellipsize_text(&m_context, text, fi, (double)available_width,
                                               m_resourceManager ? &m_usedCodepoints : nullptr);
         }
     }
@@ -291,8 +309,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
     auto draw_text_internal = [&](const char *str, size_t strLen, double tx, double ty,
                                   const SkPaint &p) {
         if (strLen == 0) return 0.0;
-        auto unicode = satoru::MakeUnicode();
-        auto shaper = SkShapers::HB::ShapeDontWrapOrReorder(unicode, nullptr);
+        SkShaper *shaper = m_context.getShaper();
         if (!shaper) return 0.0;
 
         std::vector<SatoruFontRunIterator::CharFont> charFonts;
@@ -351,11 +368,30 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 
         SkTextBlobBuilderRunHandler handler(str, {0, 0});
         SatoruFontRunIterator fontRuns(charFonts, strLen);
-        SkShaper::TrivialBiDiRunIterator bidi(0, strLen);
-        SkShaper::TrivialScriptRunIterator script(SkSetFourByteTag('Z', 'y', 'y', 'y'), strLen);
-        SkShaper::TrivialLanguageRunIterator lang("en", strLen);
 
-        shaper->shape(str, strLen, fontRuns, bidi, script, lang, nullptr, 0, 1000000, &handler);
+        int baseLevel = fi->is_rtl ? 1 : 0;
+        uint8_t itemLevel = (uint8_t)get_bidi_level(str, baseLevel);
+
+        std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
+            SkShaper::MakeBiDiRunIterator(str, strLen, itemLevel);
+        if (!bidi) {
+            bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, strLen);
+        }
+
+        std::unique_ptr<SkShaper::ScriptRunIterator> script =
+            SkShaper::MakeSkUnicodeHbScriptRunIterator(str, strLen);
+        if (!script) {
+            script = std::make_unique<SkShaper::TrivialScriptRunIterator>(
+                SkSetFourByteTag('Z', 'y', 'y', 'y'), strLen);
+        }
+
+        std::unique_ptr<SkShaper::LanguageRunIterator> lang =
+            SkShaper::MakeStdLanguageRunIterator(str, strLen);
+        if (!lang) {
+            lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", strLen);
+        }
+
+        shaper->shape(str, strLen, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000, &handler);
 
         sk_sp<SkTextBlob> blob = handler.makeBlob();
         if (blob) {
@@ -963,6 +999,14 @@ litehtml::pixel_t container_skia::pt_to_px(float pt) const { return pt * 96.0f /
 litehtml::pixel_t container_skia::get_default_font_size() const { return 16.0f; }
 const char *container_skia::get_default_font_name() const { return "sans-serif"; }
 
+int container_skia::get_bidi_level(const char *text, int base_level) {
+    if (m_last_base_level != base_level) {
+        m_last_bidi_level = base_level;
+        m_last_base_level = base_level;
+    }
+    return satoru::get_bidi_level(text, base_level, &m_last_bidi_level);
+}
+
 void container_skia::draw_list_marker(litehtml::uint_ptr hdc, const litehtml::list_marker &marker) {
     if (!m_canvas) return;
 
@@ -1408,4 +1452,6 @@ void container_skia::reset() {
     std::fill(m_asciiUsed.begin(), m_asciiUsed.end(), false);
     m_requestedFontAttributes.clear();
     m_missingFonts.clear();
+    m_last_bidi_level = -1;
+    m_last_base_level = -1;
 }

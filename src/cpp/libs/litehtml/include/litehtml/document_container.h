@@ -35,8 +35,8 @@ namespace litehtml
         public:
                 virtual litehtml::uint_ptr      create_font(const font_description& descr, const document* doc, litehtml::font_metrics* fm) = 0;
                 virtual void                            delete_font(litehtml::uint_ptr hFont) = 0;   
-                virtual pixel_t                         text_width(const char* text, litehtml::uint_ptr hFont) = 0;
-                virtual void                            draw_text(litehtml::uint_ptr hdc, const char* text, litehtml::uint_ptr hFont, litehtml::web_color color, const litehtml::position& pos, litehtml::text_overflow overflow) = 0;      
+                virtual pixel_t                         text_width(const char* text, litehtml::uint_ptr hFont, litehtml::direction dir) = 0;
+                virtual void                            draw_text(litehtml::uint_ptr hdc, const char* text, litehtml::uint_ptr hFont, litehtml::web_color color, const litehtml::position& pos, litehtml::text_overflow overflow, litehtml::direction dir) = 0;      
                 virtual pixel_t                         pt_to_px(float pt) const = 0;
                 virtual pixel_t                         get_default_font_size() const = 0;
                 virtual const char*                     get_default_font_name() const = 0;
@@ -51,6 +51,7 @@ namespace litehtml
                 virtual void                            draw_borders(litehtml::uint_ptr hdc, const litehtml::borders& borders, const litehtml::position& draw_pos, bool root) = 0;
                 virtual void                            draw_box_shadow(litehtml::uint_ptr hdc, const shadow_vector& shadows, const position& pos, const border_radiuses& radius, bool inset) = 0;
 
+                virtual int                             get_bidi_level(const char* text, int base_level) = 0;
                 virtual void                            set_caption(const char* caption) = 0;        
                 virtual void                            set_base_url(const char* base_url) = 0;      
                 virtual void                            link(const std::shared_ptr<litehtml::document>& doc, const litehtml::element::ptr& el) = 0;

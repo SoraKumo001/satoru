@@ -14,6 +14,7 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   m_color = el->get_property<web_color>(_color_, true, web_color::black, offset(m_color));
 
   m_el_position = (element_position)el->get_property<int>(_position_, false, element_position_static, offset(m_el_position));
+  m_direction = (direction)el->get_property<int>(_direction_, true, direction_ltr, offset(m_direction));
   m_display = (style_display)el->get_property<int>(_display_, false, display_inline, offset(m_display));
   m_visibility = (visibility)el->get_property<int>(_visibility_, true, visibility_visible, offset(m_visibility));
   m_float = (element_float)el->get_property<int>(_float_, false, float_none, offset(m_float));
@@ -172,20 +173,20 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   doc->cvt_units(m_css_max_width, m_font_metrics, 0);
   doc->cvt_units(m_css_max_height, m_font_metrics, 0);
 
-  m_css_margins.left = el->get_property<css_length>(_margin_left_, false, 0, offset(m_css_margins.left));
-  m_css_margins.right = el->get_property<css_length>(_margin_right_, false, 0, offset(m_css_margins.right));
-  m_css_margins.top = el->get_property<css_length>(_margin_top_, false, 0, offset(m_css_margins.top));
-  m_css_margins.bottom = el->get_property<css_length>(_margin_bottom_, false, 0, offset(m_css_margins.bottom));
+  m_css_margins.left = get_logical_property(el, _margin_inline_start_, _margin_inline_end_, _margin_left_, _margin_right_, _margin_inline_, offset(m_css_margins.left));
+  m_css_margins.right = get_logical_property(el, _margin_inline_end_, _margin_inline_start_, _margin_right_, _margin_left_, _margin_inline_, offset(m_css_margins.right));
+  m_css_margins.top = get_logical_property(el, _margin_block_start_, _margin_block_end_, _margin_top_, _margin_bottom_, _margin_block_, offset(m_css_margins.top));
+  m_css_margins.bottom = get_logical_property(el, _margin_block_end_, _margin_block_start_, _margin_bottom_, _margin_top_, _margin_block_, offset(m_css_margins.bottom));
 
   doc->cvt_units(m_css_margins.left, m_font_metrics, 0);
   doc->cvt_units(m_css_margins.right, m_font_metrics, 0);
   doc->cvt_units(m_css_margins.top, m_font_metrics, 0);
   doc->cvt_units(m_css_margins.bottom, m_font_metrics, 0);
 
-  m_css_padding.left = el->get_property<css_length>(_padding_left_, false, 0, offset(m_css_padding.left));
-  m_css_padding.right = el->get_property<css_length>(_padding_right_, false, 0, offset(m_css_padding.right));
-  m_css_padding.top = el->get_property<css_length>(_padding_top_, false, 0, offset(m_css_padding.top));
-  m_css_padding.bottom = el->get_property<css_length>(_padding_bottom_, false, 0, offset(m_css_padding.bottom));
+  m_css_padding.left = get_logical_property(el, _padding_inline_start_, _padding_inline_end_, _padding_left_, _padding_right_, _padding_inline_, offset(m_css_padding.left));
+  m_css_padding.right = get_logical_property(el, _padding_inline_end_, _padding_inline_start_, _padding_right_, _padding_left_, _padding_inline_, offset(m_css_padding.right));
+  m_css_padding.top = get_logical_property(el, _padding_block_start_, _padding_block_end_, _padding_top_, _padding_bottom_, _padding_block_, offset(m_css_padding.top));
+  m_css_padding.bottom = get_logical_property(el, _padding_block_end_, _padding_block_start_, _padding_bottom_, _padding_top_, _padding_block_, offset(m_css_padding.bottom));
 
   doc->cvt_units(m_css_padding.left, m_font_metrics, 0);
   doc->cvt_units(m_css_padding.right, m_font_metrics, 0);
@@ -250,10 +251,10 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   doc->cvt_units(m_css_border_spacing_x, m_font_metrics, 0);
   doc->cvt_units(m_css_border_spacing_y, m_font_metrics, 0);
 
-  m_css_offsets.left = el->get_property<css_length>(_left_, false, _auto, offset(m_css_offsets.left));
-  m_css_offsets.right = el->get_property<css_length>(_right_, false, _auto, offset(m_css_offsets.right));
-  m_css_offsets.top = el->get_property<css_length>(_top_, false, _auto, offset(m_css_offsets.top));
-  m_css_offsets.bottom = el->get_property<css_length>(_bottom_, false, _auto, offset(m_css_offsets.bottom));
+  m_css_offsets.left = get_logical_property(el, _inset_inline_start_, _inset_inline_end_, _left_, _right_, _inset_inline_, offset(m_css_offsets.left));
+  m_css_offsets.right = get_logical_property(el, _inset_inline_end_, _inset_inline_start_, _right_, _left_, _inset_inline_, offset(m_css_offsets.right));
+  m_css_offsets.top = get_logical_property(el, _inset_block_start_, _inset_block_end_, _top_, _bottom_, _inset_block_, offset(m_css_offsets.top));
+  m_css_offsets.bottom = get_logical_property(el, _inset_block_end_, _inset_block_start_, _bottom_, _top_, _inset_block_, offset(m_css_offsets.bottom));
 
   doc->cvt_units(m_css_offsets.left, m_font_metrics, 0);
   doc->cvt_units(m_css_offsets.right, m_font_metrics, 0);
@@ -669,11 +670,38 @@ void litehtml::css_properties::snap_border_width(css_length &width, const std::s
   width.set_value(px, css_units_px);
 }
 
+litehtml::css_length litehtml::css_properties::get_logical_property(const html_tag *el, string_id logical_start, string_id logical_end, string_id physical_left, string_id physical_right, string_id logical_all, uint_ptr member_offset) const
+{
+  direction dir = m_direction;
+  bool is_inline = (logical_start == _margin_inline_start_ || logical_start == _padding_inline_start_ || logical_start == _inset_inline_start_ || logical_start == _border_inline_width_);
+
+  string_id target_logical = logical_start;
+  string_id target_physical = physical_left;
+
+  if (is_inline && dir == direction_rtl)
+  {
+    target_logical = logical_end;
+    target_physical = physical_right;
+  }
+
+  // Priority: logical-start/end > logical-all > physical-left/right
+  const property_value &v_logical = el->get_property_value(target_logical);
+  if (!v_logical.is<invalid>())
+    return v_logical.get<css_length>();
+
+  const property_value &v_logical_all = el->get_property_value(logical_all);
+  if (!v_logical_all.is<invalid>())
+    return v_logical_all.get<css_length>();
+
+  return el->get_property<css_length>(target_physical, false, 0, member_offset);
+}
+
 std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_properties::dump_get_attrs()
 {
   std::vector<std::tuple<string, string>> ret;
 
   ret.emplace_back("display", index_value(m_display, style_display_strings));
+  ret.emplace_back("direction", index_value(m_direction, direction_strings));
   ret.emplace_back("el_position", index_value(m_el_position, element_position_strings));
   ret.emplace_back("text_align", index_value(m_text_align, text_align_strings));
   ret.emplace_back("font_size", m_font_size.to_string());

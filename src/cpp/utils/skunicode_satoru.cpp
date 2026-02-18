@@ -95,7 +95,45 @@ class SkUnicode_Satoru : public SkUnicode {
 
     bool getBidiRegions(const char utf8[], int utf8Units, TextDirection dir,
                         std::vector<BidiRegion>* results) override {
-        return false;
+        results->clear();
+        if (utf8Units <= 0) return true;
+
+        const char* p = utf8;
+        const char* end = utf8 + utf8Units;
+        int last_pos = 0;
+        BidiLevel last_level = (dir == TextDirection::kRTL) ? 1 : 0;
+
+        while (p < end) {
+            const char* prev_p = p;
+            utf8proc_int32_t cp;
+            utf8proc_ssize_t res = utf8proc_iterate((const utf8proc_uint8_t*)p, end - p, &cp);
+            if (res <= 0) break;
+            p += res;
+
+            // Simple check for Arabic/Hebrew scripts
+            BidiLevel level = 0;
+            if ((cp >= 0x0590 && cp <= 0x08FF) || (cp >= 0xFB50 && cp <= 0xFDFF) ||
+                (cp >= 0xFE70 && cp <= 0xFEFF)) {
+                level = 1;  // RTL
+            } else if (dir == TextDirection::kRTL) {
+                level = 1;  // Base RTL
+            }
+
+            if (level != last_level) {
+                if (prev_p - utf8 > last_pos) {
+                    results->push_back(
+                        {(size_t)last_pos, (size_t)(prev_p - utf8 - last_pos), last_level});
+                }
+                last_pos = prev_p - utf8;
+                last_level = level;
+            }
+        }
+
+        if (utf8 + utf8Units - utf8 > last_pos) {
+            results->push_back({(size_t)last_pos, (size_t)(utf8Units - last_pos), last_level});
+        }
+
+        return true;
     }
     bool getWords(const char utf8[], int utf8Units, const char* locale,
                   std::vector<Position>* results) override {

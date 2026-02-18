@@ -1,5 +1,6 @@
 #include "render_inline_context.h"
 #include "document.h"
+#include "document_container.h"
 #include "iterators.h"
 #include "types.h"
 
@@ -248,6 +249,7 @@ litehtml::pixel_t litehtml::render_item_inline_context::new_box(const std::uniqu
 			css().line_height(),
 			css().get_font_metrics(),
 			css().get_text_align(),
+			css().get_direction(),
 			css().get_text_overflow()));
 
 	// Add items returned by finish_last_box function into the new line
@@ -303,6 +305,12 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
 			item->get_el()->src_el()->get_content_size(sz, line_ctx.right);
 			item->get_el()->pos() = sz;
 			item->set_rendered_min_width(sz.width);
+
+			// Detect BiDi level for text part
+			string text;
+			item->get_el()->src_el()->get_text(text);
+			int base_level = (css().get_direction() == direction_rtl ? 1 : 0);
+			item->set_bidi_level(src_el()->get_document()->container()->get_bidi_level(text.c_str(), base_level));
 		}
 	}
 

@@ -1402,7 +1402,7 @@ void litehtml::html_tag::draw_list_marker( uint_ptr hdc, const position& pos, co
                 {
                         if(lm.font)
                         {
-                                auto tw_space = get_document()->container()->text_width(" ", lm.font);
+                                auto tw_space = get_document()->container()->text_width(" ", lm.font, get_direction());
                                 lm.pos.x = pos.x - tw_space * 2;
                                 lm.pos.width = tw_space;
                         } else
@@ -1428,12 +1428,12 @@ void litehtml::html_tag::draw_list_marker( uint_ptr hdc, const position& pos, co
                         if(lm.font)
                         {
                                 marker_text += ".";
-                                auto tw = get_document()->container()->text_width(marker_text.c_str(), lm.font);
+                                auto tw = get_document()->container()->text_width(marker_text.c_str(), lm.font, get_direction());
                                 auto text_pos = lm.pos;
                                 text_pos.move_to(text_pos.right() - tw, text_pos.y);
                                 text_pos.width = tw;
                                 text_pos.round();
-                                get_document()->container()->draw_text(hdc, marker_text.c_str(), lm.font, lm.color, text_pos, litehtml::text_overflow_clip);
+                                get_document()->container()->draw_text(hdc, marker_text.c_str(), lm.font, lm.color, text_pos, litehtml::text_overflow_clip, get_direction());
                         }
                 }
         }

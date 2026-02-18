@@ -231,7 +231,7 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 		{
 			if (item->get_type() == line_box_item::type_text_part)
 			{
-				ellipsis_width = item->get_el()->src_el()->get_document()->container()->text_width("...", item->get_el()->src_el()->css().get_font());
+				ellipsis_width = item->get_el()->src_el()->get_document()->container()->text_width("...", item->get_el()->src_el()->css().get_font(), m_direction);
 				break;
 			}
 		}
@@ -376,7 +376,22 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
     pixel_t shift_x = 0;	// Shift elements by X to apply the text-align
 
     if (!(containing_block_size.size_mode & containing_block_context::size_mode_content))
-    {        switch (m_text_align)
+    {
+        text_align align = m_text_align;
+        if (align == text_align_start)
+        {
+            align = (m_direction == direction_rtl ? text_align_right : text_align_left);
+        }
+        else if (align == text_align_end)
+        {
+            align = (m_direction == direction_rtl ? text_align_left : text_align_right);
+        }
+        else if (align == text_align_left && m_direction == direction_rtl)
+        {
+            align = text_align_right;
+        }
+
+        switch (align)
         {
             case text_align_right:
                 if (m_width < (m_right - m_left))
@@ -402,6 +417,44 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
                 break;
             default:
                 shift_x = 0;
+        }
+
+        if (m_direction == direction_rtl)
+        {
+            // Visual reordering for RTL:
+            // 1. Initial reverse of all items (Level 1 reordering)
+            std::reverse(m_items.begin(), m_items.end());
+
+            // 2. Reverse back LTR runs (Level 2 reordering)
+            auto it = m_items.begin();
+            while (it != m_items.end())
+            {
+                if ((*it)->get_bidi_level() % 2 == 0) // LTR run
+                {
+                    auto run_start = it;
+                    while (it != m_items.end() && (*it)->get_bidi_level() % 2 == 0)
+                    {
+                        it++;
+                    }
+                    std::reverse(run_start, it);
+                }
+                else
+                {
+                    it++;
+                }
+            }
+
+            // 3. Assign final coordinates from left to right in the new visual order
+            pixel_t current_x = m_left + shift_x;
+            for (auto &lbi : m_items)
+            {
+                lbi->pos().x = current_x;
+                current_x += lbi->width();
+            }
+
+            // Reset shift_x and spacing_x since we've already positioned items
+            shift_x = 0;
+            spacing_x = 0;
         }
     }
 

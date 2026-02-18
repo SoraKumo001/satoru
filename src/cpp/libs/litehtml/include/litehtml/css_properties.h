@@ -30,6 +30,7 @@ namespace litehtml
   {
   private:
     element_position m_el_position;
+    direction m_direction;
     text_align m_text_align;
     overflow m_overflow;
     text_overflow m_text_overflow;
@@ -131,10 +132,12 @@ namespace litehtml
     void compute_flex(const html_tag *el, const std::shared_ptr<document> &doc);
     void compute_grid(const html_tag *el, const std::shared_ptr<document> &doc);
     web_color get_color_property(const html_tag *el, string_id name, bool inherited, web_color default_value, uint_ptr member_offset) const;
+    css_length get_logical_property(const html_tag *el, string_id logical_start, string_id logical_end, string_id physical_left, string_id physical_right, string_id logical_all, uint_ptr member_offset) const;
     void snap_border_width(css_length &width, const std::shared_ptr<document> &doc);
 
   public:
     css_properties() : m_el_position(element_position_static),
+                       m_direction(direction_ltr),
                        m_text_align(text_align_left),
                        m_overflow(overflow_visible),
                        m_text_overflow(text_overflow_clip),
@@ -205,6 +208,9 @@ namespace litehtml
 
     element_position get_position() const;
     void set_position(element_position mElPosition);
+
+    direction get_direction() const;
+    void set_direction(direction mDirection);
 
     text_align get_text_align() const;
     void set_text_align(text_align mTextAlign);
@@ -404,6 +410,16 @@ namespace litehtml
   inline void css_properties::set_position(element_position mElPosition)
   {
     m_el_position = mElPosition;
+  }
+
+  inline direction css_properties::get_direction() const
+  {
+    return m_direction;
+  }
+
+  inline void css_properties::set_direction(direction mDirection)
+  {
+    m_direction = mDirection;
   }
 
   inline text_align css_properties::get_text_align() const

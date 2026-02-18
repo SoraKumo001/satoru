@@ -8,6 +8,8 @@
 #include "bridge/bridge_types.h"
 #include "include/core/SkFont.h"
 
+class SatoruContext;
+
 namespace satoru {
 
 struct MeasureResult {
@@ -24,15 +26,18 @@ char32_t decode_utf8_char(const char** ptr);
 std::string normalize_utf8(const char* text);
 
 // Measures the text width. If max_width is provided (>= 0), stops when width exceeds max_width.
-MeasureResult measure_text(const char* text, font_info* fi, double max_width = -1.0,
-                           std::set<char32_t>* used_codepoints = nullptr);
+MeasureResult measure_text(SatoruContext* ctx, const char* text, font_info* fi,
+                           double max_width = -1.0, std::set<char32_t>* used_codepoints = nullptr);
 
 // Helper to calculate full text width (wrapper around measure_text).
-double text_width(const char* text, font_info* fi, std::set<char32_t>* used_codepoints = nullptr);
+double text_width(SatoruContext* ctx, const char* text, font_info* fi,
+                  std::set<char32_t>* used_codepoints = nullptr);
 
 // Ellipsizes the text to fit within max_width.
-std::string ellipsize_text(const char* text, font_info* fi, double max_width,
+std::string ellipsize_text(SatoruContext* ctx, const char* text, font_info* fi, double max_width,
                            std::set<char32_t>* used_codepoints = nullptr);
+
+int get_bidi_level(const char* text, int base_level, int* last_level = nullptr);
 
 }  // namespace satoru
 

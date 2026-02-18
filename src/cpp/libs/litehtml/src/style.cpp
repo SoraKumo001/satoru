@@ -26,6 +26,7 @@ namespace litehtml
   std::map<string_id, string> style::m_valid_values =
       {
           {_display_, style_display_strings},
+          {_direction_, direction_strings},
           {_visibility_, visibility_strings},
           {_position_, element_position_strings},
           {_float_, element_float_strings},
@@ -202,6 +203,7 @@ namespace litehtml
       break;
 
     case _display_:
+    case _direction_:
     case _visibility_:
     case _position_:
     case _float_:
@@ -279,100 +281,33 @@ namespace litehtml
       return add_length_property(name, val, font_size_strings, f_length_percentage | f_positive, important);
 
     case _margin_inline_:
-      add_property(_margin_left_, value, baseurl, important, container, layer, specificity);
-      add_property(_margin_right_, value, baseurl, important, container, layer, specificity);
-      return;
     case _margin_inline_start_:
-      add_property(_margin_left_, value, baseurl, important, container, layer, specificity);
-      return;
     case _margin_inline_end_:
-      add_property(_margin_right_, value, baseurl, important, container, layer, specificity);
-      return;
     case _margin_block_:
-      add_property(_margin_top_, value, baseurl, important, container, layer, specificity);
-      add_property(_margin_bottom_, value, baseurl, important, container, layer, specificity);
-      return;
     case _margin_block_start_:
-      add_property(_margin_top_, value, baseurl, important, container, layer, specificity);
-      return;
     case _margin_block_end_:
-      add_property(_margin_bottom_, value, baseurl, important, container, layer, specificity);
-      return;
-
     case _padding_inline_:
-      add_property(_padding_left_, value, baseurl, important, container, layer, specificity);
-      add_property(_padding_right_, value, baseurl, important, container, layer, specificity);
-      return;
     case _padding_inline_start_:
-      add_property(_padding_left_, value, baseurl, important, container, layer, specificity);
-      return;
     case _padding_inline_end_:
-      add_property(_padding_right_, value, baseurl, important, container, layer, specificity);
-      return;
     case _padding_block_:
-      add_property(_padding_top_, value, baseurl, important, container, layer, specificity);
-      add_property(_padding_bottom_, value, baseurl, important, container, layer, specificity);
-      return;
     case _padding_block_start_:
-      add_property(_padding_top_, value, baseurl, important, container, layer, specificity);
-      return;
     case _padding_block_end_:
-      add_property(_padding_bottom_, value, baseurl, important, container, layer, specificity);
-      return;
-
     case _inset_inline_:
-      add_property(_left_, value, baseurl, important, container, layer, specificity);
-      add_property(_right_, value, baseurl, important, container, layer, specificity);
-      return;
     case _inset_inline_start_:
-      add_property(_left_, value, baseurl, important, container, layer, specificity);
-      return;
     case _inset_inline_end_:
-      add_property(_right_, value, baseurl, important, container, layer, specificity);
-      return;
     case _inset_block_:
-      add_property(_top_, value, baseurl, important, container, layer, specificity);
-      add_property(_bottom_, value, baseurl, important, container, layer, specificity);
-      return;
     case _inset_block_start_:
-      add_property(_top_, value, baseurl, important, container, layer, specificity);
-      return;
     case _inset_block_end_:
-      add_property(_bottom_, value, baseurl, important, container, layer, specificity);
-      return;
-
     case _border_inline_:
-      add_property(_border_left_, value, baseurl, important, container, layer, specificity);
-      add_property(_border_right_, value, baseurl, important, container, layer, specificity);
-      return;
     case _border_inline_width_:
-      add_property(_border_left_width_, value, baseurl, important, container, layer, specificity);
-      add_property(_border_right_width_, value, baseurl, important, container, layer, specificity);
-      return;
     case _border_inline_style_:
-      add_property(_border_left_style_, value, baseurl, important, container, layer, specificity);
-      add_property(_border_right_style_, value, baseurl, important, container, layer, specificity);
-      return;
     case _border_inline_color_:
-      add_property(_border_left_color_, value, baseurl, important, container, layer, specificity);
-      add_property(_border_right_color_, value, baseurl, important, container, layer, specificity);
-      return;
     case _border_block_:
-      add_property(_border_top_, value, baseurl, important, container, layer, specificity);
-      add_property(_border_bottom_, value, baseurl, important, container, layer, specificity);
-      return;
     case _border_block_width_:
-      add_property(_border_top_width_, value, baseurl, important, container, layer, specificity);
-      add_property(_border_bottom_width_, value, baseurl, important, container, layer, specificity);
-      return;
     case _border_block_style_:
-      add_property(_border_top_style_, value, baseurl, important, container, layer, specificity);
-      add_property(_border_bottom_style_, value, baseurl, important, container, layer, specificity);
-      return;
     case _border_block_color_:
-      add_property(_border_top_color_, value, baseurl, important, container, layer, specificity);
-      add_property(_border_bottom_color_, value, baseurl, important, container, layer, specificity);
-      return;
+      add_parsed_property(name, property_value(value, important, false, m_layer, m_specificity));
+      break;
 
     case _border_start_start_radius_:
       add_property(_border_top_left_radius_, value, baseurl, important, container, layer, specificity);

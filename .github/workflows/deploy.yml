@@ -34,13 +34,23 @@ jobs:
           restore-keys: |
             vcpkg-${{ runner.os }}-
 
-      - name: Cache pnpm modules
+      - name: Install Ninja & ccache
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-wasm
+
+      - name: Cache Emscripten
         uses: actions/cache@v4
         with:
-          path: ~/.local/share/pnpm/store
-          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: emsdk-cache
+          key: ${{ runner.os }}-emsdk-${{ hashFiles('package.json') }}
           restore-keys: |
-            pnpm-${{ runner.os }}-
+            ${{ runner.os }}-emsdk-
 
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
@@ -53,21 +63,19 @@ jobs:
         with:
           version: 10
 
+      - name: Cache Skia Source
+        uses: actions/cache@v4
+        with:
+          path: external/skia
+          key: skia-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            skia-
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Install Ninja & ccache
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build ccache
-
-      - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          key: ${{ runner.os }}-wasm
-          max-size: "500M"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

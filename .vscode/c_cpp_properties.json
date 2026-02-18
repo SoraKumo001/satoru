@@ -3,7 +3,7 @@
     {
       "name": "Emscripten",
       "compilerPath": "${env:EMSDK}/upstream/emscripten/em++.bat",
-      "compileCommands": "${workspaceFolder}/build-wasm/compile_commands.json",
+      "compileCommands": "${workspaceFolder}/build/compile_commands.json",
       "intelliSenseMode": "windows-clang-x64",
       "cStandard": "c17",
       "cppStandard": "c++17"

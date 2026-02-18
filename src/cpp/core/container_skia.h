@@ -45,6 +45,7 @@ class container_skia : public litehtml::document_container {
     std::vector<float> m_opacity_stack;
 
     bool m_tagging;
+    bool m_textToPaths = false;
 
     std::vector<std::string> m_usedInlineSvgs;
     std::vector<litehtml::position> m_inlineSvgPositions;
@@ -65,6 +66,7 @@ class container_skia : public litehtml::document_container {
     void set_canvas(SkCanvas *canvas) { m_canvas = canvas; }
     void set_height(int h) { m_height = h; }
     void set_tagging(bool t) { m_tagging = t; }
+    void set_text_to_paths(bool to_paths) { m_textToPaths = to_paths; }
     void reset();
 
     SkCanvas *get_canvas() const { return m_canvas; }

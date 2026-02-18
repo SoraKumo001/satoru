@@ -2,7 +2,14 @@
   "name": "satoru-wasm",
   "version-string": "1.0.0",
   "dependencies": [
-    "freetype",
+    {
+      "name": "freetype",
+      "features": [
+        "png",
+        "brotli",
+        "zlib"
+      ]
+    },
     "libpng",
     "libjpeg-turbo",
     "libwebp",
@@ -15,6 +22,11 @@
     "ctre",
     "utf8proc",
     "libunibreak",
-    "harfbuzz"
+    {
+      "name": "harfbuzz",
+      "features": [
+        "freetype"
+      ]
+    }
   ]
 }

@@ -1,122 +1,125 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-    <meta charset="UTF-8">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Serif+JP:wght@400;700&display=swap');
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&family=Noto+Sans+JP:wght@400;700&family=Noto+Serif+JP:wght@400;700&display=swap');
 
-        body {
-            font-family: 'Noto Sans JP', sans-serif;
-            background-color: #f0f0f0;
-            margin: 0;
-            padding: 40px;
-            color: #333;
-        }
+    body {
+      font-family: 'Noto Sans JP', 'Noto Color Emoji', sans-serif;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 40px;
+      color: #333;
+    }
 
-        .test-section {
-            background: white;
-            padding: 20px;
-            margin-bottom: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+    .test-section {
+      background: white;
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
 
-        h2 {
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
-            margin-top: 0;
-            font-size: 24px;
-        }
+    h2 {
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+      margin-top: 0;
+      font-size: 24px;
+    }
 
-        /* 1. Mixed Scripts & Punctuation */
-        .mixed-scripts {
-            font-size: 20px;
-            line-height: 1.6;
-        }
+    /* 1. Mixed Scripts & Punctuation */
+    .mixed-scripts {
+      font-size: 20px;
+      line-height: 1.6;
+    }
 
-        /* 2. Complex Shaping (Combining characters) */
-        .combining {
-            font-size: 32px;
-        }
+    /* 2. Complex Shaping (Combining characters) */
+    .combining {
+      font-size: 32px;
+    }
 
-        /* 3. Extreme Wrapping & Styles */
-        .extreme-wrap {
-            width: 250px;
-            border: 1px dashed #ccc;
-            padding: 10px;
-            font-size: 18px;
-        }
+    /* 3. Extreme Wrapping & Styles */
+    .extreme-wrap {
+      width: 250px;
+      border: 1px dashed #ccc;
+      padding: 10px;
+      font-size: 18px;
+    }
 
-        .highlight {
-            color: white;
-            background: #e83e8c;
-            padding: 2px 4px;
-            border-radius: 3px;
-            font-weight: bold;
-        }
+    .highlight {
+      color: white;
+      background: #e83e8c;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
 
-        /* 4. Ruby (though litehtml might not support it perfectly, let's see) */
-        ruby rt {
-            font-size: 0.6em;
-            color: #666;
-        }
+    /* 4. Ruby (though litehtml might not support it perfectly, let's see) */
+    ruby rt {
+      font-size: 0.6em;
+      color: #666;
+    }
 
-        /* 5. Flexbox with text constraints */
-        .flex-container {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
+    /* 5. Flexbox with text constraints */
+    .flex-container {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
 
-        .flex-item {
-            flex: 1;
-            padding: 10px;
-            background: #e9ecef;
-        }
-    </style>
+    .flex-item {
+      flex: 1;
+      padding: 10px;
+      background: #e9ecef;
+    }
+  </style>
 </head>
+
 <body>
 
-    <div class="test-section">
-        <h2>1. Mixed Scripts & Kerning</h2>
-        <div class="mixed-scripts">
-            <strong>日本語</strong>とEnglishの混在。
-            "P.A.T.O.R.U" (Kerning check: AV, WA, To). 
-            カッコ（「『』」）や句読点。！？
-            <em>Italic Japanese?</em> 通常、日本語にイタリックはありませんが、合成フォントとしてどう扱われるか。
-        </div>
+  <div class="test-section">
+    <h2>1. Mixed Scripts & Kerning</h2>
+    <div class="mixed-scripts">
+      <strong>日本語</strong>とEnglishの混在。
+      "P.A.T.O.R.U" (Kerning check: AV, WA, To).
+      カッコ（「『』」）や句読点。！？
+      <em>Italic Japanese?</em> 通常、日本語にイタリックはありませんが、合成フォントとしてどう扱われるか。
     </div>
+  </div>
 
-    <div class="test-section">
-        <h2>2. Combining Characters & Symbols</h2>
-        <div class="combining">
-            A&#x0301; (A with acute), n&#x0303; (n with tilde).
-            &#x263A; &#x1F600; (Emoji check).
-            &copy; &reg; &trade; &sum; &int; &prod;
-        </div>
+  <div class="test-section">
+    <h2>2. Combining Characters & Symbols</h2>
+    <div class="combining">
+      A&#x0301; (A with acute), n&#x0303; (n with tilde).
+      &#x263A; &#x1F600; (Emoji check).
+      &copy; &reg; &trade; &sum; &int; &prod;
     </div>
+  </div>
 
-    <div class="test-section">
-        <h2>3. Extreme Wrapping & Inline Styles</h2>
-        <div class="extreme-wrap">
-            この文章は非常に狭い幅で<span class="highlight">折り返される</span>必要があります。
-            English_Long_Word_Without_Spaces_Should_Wrap_Or_Overflow.
-            日本語の長い単語（熟語：四字熟語「温故知新」）の途中で改行されるか。
-        </div>
+  <div class="test-section">
+    <h2>3. Extreme Wrapping & Inline Styles</h2>
+    <div class="extreme-wrap">
+      この文章は非常に狭い幅で<span class="highlight">折り返される</span>必要があります。
+      English_Long_Word_Without_Spaces_Should_Wrap_Or_Overflow.
+      日本語の長い単語（熟語：四字熟語「温故知新」）の途中で改行されるか。
     </div>
+  </div>
 
-    <div class="test-section">
-        <h2>4. Flexbox Layout Strategy</h2>
-        <div class="flex-container">
-            <div class="flex-item">
-                左側のアイテム。短いテキスト。
-            </div>
-            <div class="flex-item" style="font-size: 12px;">
-                右側のアイテム。フォントサイズが小さく、より多くのテキストが含まれています。
-                Shaping should work correctly even at small scales.
-            </div>
-        </div>
+  <div class="test-section">
+    <h2>4. Flexbox Layout Strategy</h2>
+    <div class="flex-container">
+      <div class="flex-item">
+        左側のアイテム。短いテキスト。
+      </div>
+      <div class="flex-item" style="font-size: 12px;">
+        右側のアイテム。フォントサイズが小さく、より多くのテキストが含まれています。
+        Shaping should work correctly even at small scales.
+      </div>
     </div>
+  </div>
 
 </body>
+
 </html>

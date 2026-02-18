@@ -107,27 +107,55 @@ MeasureResult measure_text(const char *text, font_info *fi, double max_width,
     // 1. 各文字の使用フォントを判定
     std::vector<SatoruFontRunIterator::CharFont> charFonts;
     const char *p = text;
+    SkFont *last_selected_font = nullptr;
+
     while (*p) {
         const char *prev_p = p;
         char32_t u = decode_utf8_char(&p);
         if (used_codepoints) used_codepoints->insert(u);
 
         SkFont *selected_font = nullptr;
-        for (auto f : fi->fonts) {
-            SkGlyphID glyph = 0;
-            SkUnichar sc = (SkUnichar)u;
-            f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
-                                               SkSpan<SkGlyphID>(&glyph, 1));
-            if (glyph != 0) {
-                selected_font = f;
-                break;
+
+        // 結合文字の場合は、直前のフォントを優先的に使用する
+        auto category = utf8proc_category(u);
+        bool is_mark = (category == UTF8PROC_CATEGORY_MN || category == UTF8PROC_CATEGORY_MC ||
+                        category == UTF8PROC_CATEGORY_ME);
+
+        if (is_mark && last_selected_font) {
+            selected_font = last_selected_font;
+        } else {
+            for (auto f : fi->fonts) {
+                SkGlyphID glyph = 0;
+                SkUnichar sc = (SkUnichar)u;
+                f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
+                                                   SkSpan<SkGlyphID>(&glyph, 1));
+                if (glyph != 0) {
+                    selected_font = f;
+                    break;
+                }
             }
+            if (!selected_font) selected_font = fi->fonts[0];
         }
-        if (!selected_font) selected_font = fi->fonts[0];
+
+        last_selected_font = selected_font;
 
         SkFont font = *selected_font;
         if (fi->fake_bold) font.setEmbolden(true);
-        charFonts.push_back({(size_t)(p - prev_p), font});
+
+        if ((u >= 0x1F300 && u <= 0x1F9FF) || (u >= 0x2600 && u <= 0x26FF)) {
+            font.setEmbeddedBitmaps(true);
+            font.setHinting(SkFontHinting::kNone);
+        }
+
+        size_t char_len = (size_t)(p - prev_p);
+        if (!charFonts.empty() && charFonts.back().font.getTypeface() == font.getTypeface() &&
+            charFonts.back().font.getSize() == font.getSize() &&
+            charFonts.back().font.isEmbolden() == font.isEmbolden() &&
+            charFonts.back().font.isEmbeddedBitmaps() == font.isEmbeddedBitmaps()) {
+            charFonts.back().len += char_len;
+        } else {
+            charFonts.push_back({char_len, font});
+        }
     }
 
     size_t total_len = p - text;

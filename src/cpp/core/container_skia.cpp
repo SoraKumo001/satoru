@@ -19,6 +19,8 @@
 #include "include/core/SkRRect.h"
 #include "include/core/SkShader.h"
 #include "include/core/SkString.h"
+#include "include/core/SkSurface.h"
+#include "include/core/SkTextBlob.h"
 #include "include/core/SkTileMode.h"
 #include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkGradient.h"
@@ -286,52 +288,118 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     }
 
-    auto draw_text_internal = [&](const char *str, size_t len, double x, double y,
+    auto draw_text_internal = [&](const char *str, size_t strLen, double tx, double ty,
                                   const SkPaint &p) {
-        if (len == 0) return 0.0;
+        if (strLen == 0) return 0.0;
         auto unicode = satoru::MakeUnicode();
         auto shaper = SkShapers::HB::ShapeDontWrapOrReorder(unicode, nullptr);
         if (!shaper) return 0.0;
 
-        // 1. 各文字の使用フォントを判定 (measure_text と同一ロジック)
         std::vector<SatoruFontRunIterator::CharFont> charFonts;
         const char *p_walk = str;
-        const char *p_end = str + len;
+        const char *p_end = str + strLen;
+        SkFont *last_selected_font = nullptr;
+
         while (p_walk < p_end) {
             const char *prev_walk = p_walk;
             char32_t u = satoru::decode_utf8_char(&p_walk);
             if (m_resourceManager) m_usedCodepoints.insert(u);
 
             SkFont *selected_font = nullptr;
-            for (auto f : fi->fonts) {
-                SkGlyphID glyph = 0;
-                SkUnichar sc = (SkUnichar)u;
-                f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
-                                                   SkSpan<SkGlyphID>(&glyph, 1));
-                if (glyph != 0) {
-                    selected_font = f;
-                    break;
+
+            // 結合文字の場合は、直前のフォントを優先的に使用する
+            auto category = utf8proc_category(u);
+            bool is_mark = (category == UTF8PROC_CATEGORY_MN || category == UTF8PROC_CATEGORY_MC ||
+                            category == UTF8PROC_CATEGORY_ME);
+
+            if (is_mark && last_selected_font) {
+                selected_font = last_selected_font;
+            } else {
+                for (auto f : fi->fonts) {
+                    SkGlyphID glyph = 0;
+                    SkUnichar sc = (SkUnichar)u;
+                    f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
+                                                       SkSpan<SkGlyphID>(&glyph, 1));
+                    if (glyph != 0) {
+                        selected_font = f;
+                        break;
+                    }
                 }
+                if (!selected_font) selected_font = fi->fonts[0];
             }
-            if (!selected_font) selected_font = fi->fonts[0];
+
+            last_selected_font = selected_font;
 
             SkFont font = *selected_font;
             if (fi->fake_bold) font.setEmbolden(true);
-            charFonts.push_back({prev_walk, (size_t)(p_walk - prev_walk), font});
+
+            if ((u >= 0x1F300 && u <= 0x1F9FF) || (u >= 0x2600 && u <= 0x26FF)) {
+                font.setEmbeddedBitmaps(true);
+                font.setHinting(SkFontHinting::kNone);
+            }
+
+            size_t char_len = (size_t)(p_walk - prev_walk);
+            if (!charFonts.empty() && charFonts.back().font.getTypeface() == font.getTypeface() &&
+                charFonts.back().font.getSize() == font.getSize() &&
+                charFonts.back().font.isEmbolden() == font.isEmbolden() &&
+                charFonts.back().font.isEmbeddedBitmaps() == font.isEmbeddedBitmaps()) {
+                charFonts.back().len += char_len;
+            } else {
+                charFonts.push_back({prev_walk, char_len, font});
+            }
         }
 
-        // 2. カスタムイテレータを使用してまとめて整形・描画
         SkTextBlobBuilderRunHandler handler(str, {0, 0});
-        SatoruFontRunIterator fontRuns(charFonts, len);
-        SkShaper::TrivialBiDiRunIterator bidi(0, len);
-        SkShaper::TrivialScriptRunIterator script(SkSetFourByteTag('Z', 'y', 'y', 'y'), len);
-        SkShaper::TrivialLanguageRunIterator lang("en", len);
+        SatoruFontRunIterator fontRuns(charFonts, strLen);
+        SkShaper::TrivialBiDiRunIterator bidi(0, strLen);
+        SkShaper::TrivialScriptRunIterator script(SkSetFourByteTag('Z', 'y', 'y', 'y'), strLen);
+        SkShaper::TrivialLanguageRunIterator lang("en", strLen);
 
-        shaper->shape(str, len, fontRuns, bidi, script, lang, nullptr, 0, 1000000, &handler);
+        shaper->shape(str, strLen, fontRuns, bidi, script, lang, nullptr, 0, 1000000, &handler);
 
         sk_sp<SkTextBlob> blob = handler.makeBlob();
         if (blob) {
-            m_canvas->drawTextBlob(blob, (float)x, (float)y, p);
+            if (m_textToPaths) {
+                SkTextBlob::Iter it(*blob);
+                SkTextBlob::Iter::ExperimentalRun run;
+                while (it.experimentalNext(&run)) {
+                    for (int i = 0; i < run.count; ++i) {
+                        auto pathOpt = run.font.getPath(run.glyphs[i]);
+                        float gx = run.positions[i].fX + (float)tx;
+                        float gy = run.positions[i].fY + (float)ty;
+
+                        if (pathOpt.has_value()) {
+                            m_canvas->save();
+                            m_canvas->translate(gx, gy);
+                            m_canvas->drawPath(pathOpt.value(), p);
+                            m_canvas->restore();
+                        } else {
+                            SkRect bounds = run.font.getBounds(run.glyphs[i], nullptr);
+                            int w = (int)ceilf(bounds.width());
+                            int h = (int)ceilf(bounds.height());
+                            if (w > 0 && h > 0) {
+                                SkImageInfo info = SkImageInfo::MakeN32Premul(w, h);
+                                auto surface = SkSurfaces::Raster(info);
+                                if (surface) {
+                                    auto canvas = surface->getCanvas();
+                                    canvas->clear(SK_ColorTRANSPARENT);
+                                    canvas->drawSimpleText(&run.glyphs[i], sizeof(uint16_t),
+                                                           SkTextEncoding::kGlyphID, -bounds.fLeft,
+                                                           -bounds.fTop, run.font, p);
+                                    auto img = surface->makeImageSnapshot();
+
+                                    SkRect dst = SkRect::MakeXYWH(
+                                        gx + bounds.fLeft, gy + bounds.fTop, (float)w, (float)h);
+                                    m_canvas->drawImageRect(
+                                        img, dst, SkSamplingOptions(SkFilterMode::kLinear));
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                m_canvas->drawTextBlob(blob, (float)tx, (float)ty, p);
+            }
         }
 
         return (double)handler.endPoint().fX;
@@ -403,7 +471,6 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         }
     }
 }
-
 void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::shadow_vector &shadows,
                                      const litehtml::position &pos,
                                      const litehtml::border_radiuses &radius, bool inset) {

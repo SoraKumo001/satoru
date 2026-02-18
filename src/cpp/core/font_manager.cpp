@@ -52,6 +52,11 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
     }
 
     if (typeface) {
+        std::stringstream ss;
+        ss << "loadFont: SUCCESS loaded font '" << cleaned << "' (" << size << " bytes) from "
+           << (url ? url : "memory");
+        satoru_log(LogLevel::Info, ss.str().c_str());
+
         bool duplicate = false;
         for (const auto &existing : m_typefaceCache[cleaned]) {
             if (existing.get() == typeface.get()) {
@@ -320,6 +325,8 @@ SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, 
                 SkFont *font = new SkFont(varTypeface, size);
                 font->setSubpixel(true);
                 font->setLinearMetrics(true);
+                font->setEmbeddedBitmaps(true);
+                font->setHinting(SkFontHinting::kNone);
                 font->setEdging(SkFont::Edging::kAntiAlias);
                 return font;
             }
@@ -329,6 +336,8 @@ SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, 
     SkFont *font = new SkFont(typeface, size);
     font->setSubpixel(true);
     font->setLinearMetrics(true);
+    font->setEmbeddedBitmaps(true);
+    font->setHinting(SkFontHinting::kNone);
     font->setEdging(SkFont::Edging::kAntiAlias);
     return font;
 }

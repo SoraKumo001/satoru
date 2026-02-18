@@ -712,6 +712,7 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height,
     inst->render_container->set_canvas(canvas.get());
     inst->render_container->set_height(content_height);
     inst->render_container->set_tagging(true);
+    inst->render_container->set_text_to_paths(options.svgTextToPaths);
 
     litehtml::position clip(0, 0, width, content_height);
     inst->doc->draw(0, 0, 0, &clip);
@@ -729,7 +730,11 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height,
         if (endPos != std::string::npos) {
             std::string tag = svg.substr(imgPos, endPos - imgPos);
             if (tag.find("preserveAspectRatio") == std::string::npos) {
-                svg.insert(endPos, " preserveAspectRatio=\"none\"");
+                size_t insertPos = endPos;
+                if (endPos > 0 && svg[endPos - 1] == '/') {
+                    insertPos--;
+                }
+                svg.insert(insertPos, " preserveAspectRatio=\"none\" ");
             }
         }
         imgPos = endPos;
@@ -768,6 +773,7 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     container.set_canvas(canvas.get());
     container.set_height(content_height);
     container.set_tagging(true);
+    container.set_text_to_paths(options.svgTextToPaths);
     container.reset();  // Clear any state from measurement if necessary
 
     litehtml::position clip(0, 0, width, content_height);
@@ -786,7 +792,11 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
         if (endPos != std::string::npos) {
             std::string tag = svg.substr(imgPos, endPos - imgPos);
             if (tag.find("preserveAspectRatio") == std::string::npos) {
-                svg.insert(endPos, " preserveAspectRatio=\"none\"");
+                size_t insertPos = endPos;
+                if (endPos > 0 && svg[endPos - 1] == '/') {
+                    insertPos--;
+                }
+                svg.insert(insertPos, " preserveAspectRatio=\"none\" ");
             }
         }
         imgPos = endPos;

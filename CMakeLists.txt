@@ -115,14 +115,14 @@ set(SATORU_LIBS
 )
 
     set(COMMON_COMPILE_OPTIONS
-        -O3
+        -Oz
         -g0
         -fexceptions
         -msimd128
     )
     set(COMMON_LINK_OPTIONS
         "--bind"
-        "-O1"
+        "-Oz"
         "-g0"
         -fexceptions
         -msimd128

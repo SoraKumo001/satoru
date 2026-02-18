@@ -193,22 +193,22 @@ const png = await render({
 
 #### Render Options
 
-| Option            | Type                                | Description                                                              |
-| ----------------- | ----------------------------------- | ------------------------------------------------------------------------ |
+| Option            | Type                                | Description                                                                 |
+| ----------------- | ----------------------------------- | --------------------------------------------------------------------------- |
 | `value`           | `string \| string[]`                | HTML string or array of HTML strings. (One of `value` or `url` is required) |
-| `url`             | `string`                            | URL to fetch HTML from. (One of `value` or `url` is required)            |
-| `width`           | `number`                            | **Required.** Width of the output in pixels.                             |
-| `height`          | `number`                            | Height of the output in pixels. Default is `0` (automatic height).       |
-| `format`          | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default is `"svg"`.                                       |
-| `textToPaths`     | `boolean`                           | Whether to convert SVG text to paths. Default is `true`.                 |
-| `resolveResource` | `ResourceResolver`                  | Async callback to fetch missing fonts, images, or CSS.                   |
-| `fonts`           | `Object[]`                          | Array of `{ name, data: Uint8Array }` to pre-load fonts.                 |
-| `images`          | `Object[]`                          | Array of `{ name, url, width?, height? }` to pre-load images.            |
-| `css`             | `string`                            | Extra CSS to inject into the rendering process.                          |
-| `baseUrl`         | `string`                            | Base URL used to resolve relative URLs in fonts, images, and links.      |
-| `userAgent`       | `string`                            | User-Agent header for fetching resources (Node.js environment).          |
-| `logLevel`        | `LogLevel`                          | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`).         |
-| `onLog`           | `(level, msg) => void`              | Custom callback for receiving log messages.                              |
+| `url`             | `string`                            | URL to fetch HTML from. (One of `value` or `url` is required)               |
+| `width`           | `number`                            | **Required.** Width of the output in pixels.                                |
+| `height`          | `number`                            | Height of the output in pixels. Default is `0` (automatic height).          |
+| `format`          | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default is `"svg"`.                                          |
+| `textToPaths`     | `boolean`                           | Whether to convert SVG text to paths. Default is `true`.                    |
+| `resolveResource` | `ResourceResolver`                  | Async callback to fetch missing fonts, images, or CSS.                      |
+| `fonts`           | `Object[]`                          | Array of `{ name, data: Uint8Array }` to pre-load fonts.                    |
+| `images`          | `Object[]`                          | Array of `{ name, url, width?, height? }` to pre-load images.               |
+| `css`             | `string`                            | Extra CSS to inject into the rendering process.                             |
+| `baseUrl`         | `string`                            | Base URL used to resolve relative URLs in fonts, images, and links.         |
+| `userAgent`       | `string`                            | User-Agent header for fetching resources (Node.js environment).             |
+| `logLevel`        | `LogLevel`                          | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`).            |
+| `onLog`           | `(level, msg) => void`              | Custom callback for receiving log messages.                                 |
 
 ### ☁️ Cloudflare Workers (Edge)
 
@@ -424,7 +424,7 @@ pnpm --filter visual-test test:update
 #### Generate Reference Images
 
 ```bash
-pnpm --filter visual-test gen-ref
+pnpm --filter visual-test generate-reference
 ```
 
 #### Batch Convert Assets (Multithreaded)

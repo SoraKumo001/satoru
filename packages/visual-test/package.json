@@ -5,7 +5,7 @@
   "scripts": {
     "test": "vitest run",
     "test:update": "cross-env UPDATE_SNAPSHOTS=1 vitest run",
-    "gen-ref": "tsx tools/generate-reference.ts",
+    "generate-reference": "tsx tools/generate-reference.ts",
     "convert-assets": "tsx tools/convert_assets.ts",
     "convert-assets:log": "tsx tools/convert_assets.ts --verbose"
   },

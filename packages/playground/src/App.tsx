@@ -29,15 +29,90 @@ const App: React.FC = () => {
       import: "default",
     });
     setAssetList(Object.keys(assetFiles).map((path) => path.split("/").pop()!));
-    const initialWidth = new URLSearchParams(window.location.search).get(
-      "width",
-    );
-    setWidth(initialWidth ? parseInt(initialWidth) : 588);
+    
+    const params = new URLSearchParams(window.location.search);
+    const initialWidth = params.get("width");
+    if (initialWidth) setWidth(parseInt(initialWidth));
+    
+    const initialFormat = params.get("format");
+    if (initialFormat && ["svg", "png", "webp", "pdf"].includes(initialFormat)) {
+      setFormat(initialFormat as any);
+    }
+
+    const initialTextToPaths = params.get("textToPaths");
+    if (initialTextToPaths !== null) {
+      setTextToPaths(initialTextToPaths === "true");
+    }
+
+    // Handle browser back/forward
+    const handlePopState = () => {
+      const p = new URLSearchParams(window.location.search);
+      const asset = p.get("asset");
+      const w = p.get("width");
+      const f = p.get("format");
+      const t = p.get("textToPaths");
+
+      if (w) setWidth(parseInt(w));
+      else setWidth(588); // Default
+
+      if (f && ["svg", "png", "webp", "pdf"].includes(f)) {
+        setFormat(f as any);
+      } else {
+        setFormat("svg"); // Default
+      }
+
+      if (t !== null) {
+        setTextToPaths(t === "true");
+      } else {
+        setTextToPaths(true); // Default
+      }
+
+      if (asset && asset !== selectedAsset) {
+        loadAsset(asset);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
 
     return () => {
       satoru.close();
+      window.removeEventListener("popstate", handlePopState);
     };
   }, []);
+
+  // Update URL when parameters change
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    let changed = false;
+
+    const syncParam = (key: string, value: string) => {
+      if (url.searchParams.get(key) !== value) {
+        url.searchParams.set(key, value);
+        changed = true;
+      }
+    };
+
+    syncParam("width", width.toString());
+    syncParam("format", format);
+    
+    if (format === "svg") {
+      syncParam("textToPaths", textToPaths.toString());
+    } else if (url.searchParams.has("textToPaths")) {
+      url.searchParams.delete("textToPaths");
+      changed = true;
+    }
+
+    if (selectedAsset) syncParam("asset", selectedAsset);
+
+    if (changed) {
+      window.history.replaceState({}, "", url.toString());
+    }
+
+    // Auto-generate when parameters change (if HTML is loaded)
+    if (html) {
+      handleConvert(html);
+    }
+  }, [width, format, textToPaths, selectedAsset]);
 
   // Update iframe preview
   useEffect(() => {
@@ -57,19 +132,21 @@ const App: React.FC = () => {
     }
   }, [html]);
 
-  // Handle asset selection
+  // Handle asset selection (Initial or when assetList is loaded)
   useEffect(() => {
-    const initialAsset =
-      new URLSearchParams(window.location.search).get("asset") ||
-      "01-layout.html";
-    if (assetList.length > 0) {
-      if (assetList.includes(initialAsset)) {
+    if (assetList.length === 0) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const initialAsset = params.get("asset") || "01-layout.html";
+    
+    if (assetList.includes(initialAsset)) {
+      if (selectedAsset !== initialAsset) {
         loadAsset(initialAsset);
-      } else if (!selectedAsset) {
-        loadAsset(assetList[0]);
       }
+    } else if (!selectedAsset) {
+      loadAsset(assetList[0]);
     }
-  }, [assetList, format]);
+  }, [assetList]);
 
   const loadAsset = async (name: string) => {
     try {
@@ -77,11 +154,6 @@ const App: React.FC = () => {
       const text = await resp.text();
       setHtml(text);
       setSelectedAsset(name);
-      handleConvert(text);
-
-      const url = new URL(window.location.href);
-      url.searchParams.set("asset", name);
-      window.history.replaceState({}, "", url.toString());
     } catch (e) {
       console.error("Failed to load asset", e);
     }
@@ -210,12 +282,7 @@ const App: React.FC = () => {
                 type="number"
                 value={width}
                 onChange={(e) => {
-                  const width = parseInt(e.target.value) || 0;
-                  setWidth(width);
-                  const url = new URL(window.location.href);
-                  url.searchParams.set("width", width.toString());
-                  window.history.replaceState({}, "", url.toString());
-                  handleConvert(html);
+                  setWidth(parseInt(e.target.value) || 0);
                 }}
                 style={{ width: "80px" }}
               />

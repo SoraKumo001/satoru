@@ -330,11 +330,10 @@ export class Satoru {
             if (
               typeof process !== "undefined" &&
               process.versions?.node &&
-              !options.resolveResource
+              !options.resolveResource &&
+              options.userAgent
             ) {
-              headers["User-Agent"] =
-                options.userAgent ||
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+              headers["User-Agent"] = options.userAgent;
             }
             const resp = await fetch(finalUrl, { headers });
             if (!resp.ok) return null;

@@ -31,11 +31,11 @@
     "fill": 1.9352078239608803,
     "outline": 1.8424511002444985
   },
-  "09-table.html": {
+  "07-table.html": {
     "fill": 5.33127962085308,
     "outline": 7.796327014218009
   },
-  "10-list-marker.html": {
+  "08-list-marker.html": {
     "fill": 1.062634698275862,
     "outline": 2.122844827586207
   },
@@ -43,7 +43,7 @@
     "fill": 1.341896186440678,
     "outline": 0.566207627118644
   },
-  "12-grid.html": {
+  "09-grid.html": {
     "fill": 1.9757217847769029,
     "outline": 4.547025371828521
   },
@@ -55,11 +55,11 @@
     "fill": 2.0030608459065053,
     "outline": 2.348070739549839
   },
-  "15-container-queries.html": {
+  "10-container-queries.html": {
     "fill": 4.761336515513126,
     "outline": 6.0146181384248205
   },
-  "16-complex-text.html": {
+  "11-complex-text.html": {
     "fill": 4.896495327102804,
     "outline": 10.940303738317757
   }

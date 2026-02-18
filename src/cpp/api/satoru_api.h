@@ -20,7 +20,6 @@ struct SatoruInstance {
     // Persisted state
     container_skia *render_container = nullptr;
     std::shared_ptr<litehtml::document> doc;
-    std::vector<float> layout_state;
 
     SatoruInstance() : resourceManager(context) { context.init(); }
     ~SatoruInstance() {
@@ -35,8 +34,6 @@ void api_destroy_instance(SatoruInstance *inst);
 // State Management API
 void api_init_document(SatoruInstance *inst, const char *html, int width);
 void api_layout_document(SatoruInstance *inst, int width);
-const float *api_serialize_layout(SatoruInstance *inst, int &out_size);
-void api_deserialize_layout(SatoruInstance *inst, const float *data, int size);
 const uint8_t *api_render_from_state(SatoruInstance *inst, int width, int height,
                                      RenderFormat format, const RenderOptions &options,
                                      int &out_size);

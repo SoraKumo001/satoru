@@ -13,7 +13,6 @@
 #include "renderers/png_renderer.h"
 #include "renderers/svg_renderer.h"
 #include "renderers/webp_renderer.h"
-#include "serializer.h"
 
 EM_JS(void, satoru_log_js, (int level, const char *message), {
     if (Module.onLog) {
@@ -224,33 +223,6 @@ void api_layout_document(SatoruInstance *inst, int width) {
         inst->doc->render(width);
         if (inst->render_container) {
             inst->render_container->set_height(inst->doc->height());
-        }
-    }
-}
-
-const float *api_serialize_layout(SatoruInstance *inst, int &out_size) {
-    if (!inst->doc || !inst->doc->root_render()) {
-        out_size = 0;
-        return nullptr;
-    }
-    inst->layout_state = Serializer::serialize_layout(inst->doc->root_render());
-    out_size = (int)inst->layout_state.size();
-    return inst->layout_state.data();
-}
-
-void api_deserialize_layout(SatoruInstance *inst, const float *data, int size) {
-    if (!inst->doc || !inst->doc->root_render()) return;
-
-    std::vector<float> data_vec(data, data + size);
-    if (Serializer::deserialize_layout(inst->doc->root_render(), data_vec)) {
-        Serializer::rebuild_stacking_contexts(inst->doc->root_render());
-
-        litehtml::size sz;
-        inst->doc->root_render()->calc_document_size(sz);
-        inst->doc->set_size(sz.width, sz.height);
-
-        if (inst->render_container) {
-            inst->render_container->set_height(sz.height);
         }
     }
 }

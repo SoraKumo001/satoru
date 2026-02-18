@@ -28,8 +28,6 @@ export interface SatoruModule {
   ) => void;
   init_document: (inst: number, html: string, width: number) => void;
   layout_document: (inst: number, width: number) => void;
-  serialize_layout: (inst: number) => Float32Array | null;
-  deserialize_layout: (inst: number, data: Float32Array) => void;
   render_from_state: (
     inst: number,
     width: number,
@@ -152,16 +150,6 @@ export class Satoru {
   async layoutDocument(inst: number, width: number): Promise<void> {
     const mod = await this.getModule();
     mod.layout_document(inst, width);
-  }
-
-  async serializeLayout(inst: number): Promise<Float32Array | null> {
-    const mod = await this.getModule();
-    return mod.serialize_layout(inst);
-  }
-
-  async deserializeLayout(inst: number, data: Float32Array): Promise<void> {
-    const mod = await this.getModule();
-    mod.deserialize_layout(inst, data);
   }
 
   async renderFromState(

@@ -87,20 +87,6 @@ void layout_document_val(size_t inst_ptr, int width) {
     api_layout_document(inst, width);
 }
 
-val serialize_layout_val(size_t inst_ptr) {
-    SatoruInstance *inst = (SatoruInstance *)inst_ptr;
-    int size = 0;
-    const float *data = api_serialize_layout(inst, size);
-    if (!data || size == 0) return val::null();
-    return val(typed_memory_view(size, data));
-}
-
-void deserialize_layout_val(size_t inst_ptr, val data) {
-    SatoruInstance *inst = (SatoruInstance *)inst_ptr;
-    std::vector<float> vec = convertJSArrayToNumberVector<float>(data);
-    api_deserialize_layout(inst, vec.data(), (int)vec.size());
-}
-
 val render_from_state_val(size_t inst_ptr, int width, int height, int format, bool svgTextToPaths) {
     SatoruInstance *inst = (SatoruInstance *)inst_ptr;
     RenderOptions options;
@@ -125,7 +111,5 @@ EMSCRIPTEN_BINDINGS(satoru) {
 
     function("init_document", &init_document_val);
     function("layout_document", &layout_document_val);
-    function("serialize_layout", &serialize_layout_val);
-    function("deserialize_layout", &deserialize_layout_val);
     function("render_from_state", &render_from_state_val);
 }

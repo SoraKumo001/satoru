@@ -152,6 +152,22 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
     if (self_size.height.type != containing_block_context::cbc_value_type_auto  && self_size.height > 0)
     {
         m_pos.height = self_size.height;
+        if(src_el()->css().get_display() == display_table_cell)
+        {
+            m_pos.height = std::max(m_pos.height, child_top);
+            if(collapse_bottom_margin())
+            {
+                m_pos.height -= last_margin;
+                if(m_margins.bottom < last_margin)
+                {
+                    m_margins.bottom = last_margin;
+                }
+                if(last_margin_el)
+                {
+                    last_margin_el->get_margins().bottom = 0;
+                }
+            }
+        }
     } else
     {
         m_pos.height = child_top;

@@ -268,7 +268,14 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
 	    (!(containing_block_size.size_mode & containing_block_context::size_mode_content) ||
          src_el()->css().get_display() == display_table_cell))
 	{
-		m_pos.height = self_size.render_height;
+		if (src_el()->css().get_display() == display_table_cell)
+		{
+			m_pos.height = std::max(m_pos.height, (pixel_t)self_size.render_height);
+		}
+		else
+		{
+			m_pos.height = self_size.render_height;
+		}
 	} else if(!css().get_aspect_ratio().is_auto())
 	{
 		aspect_ratio ar = css().get_aspect_ratio();

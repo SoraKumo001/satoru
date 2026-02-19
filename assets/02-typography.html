@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <title>Typography & Text Wrapping Test</title>
@@ -8,17 +9,27 @@
       font-family: 'Roboto';
       src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2') format('woff2');
     }
+
     @font-face {
       font-family: 'Noto Sans JP';
       font-style: normal;
       font-weight: 400;
       src: url(https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2) format('woff2');
     }
+
     @font-face {
       font-family: 'Pacifico';
       font-style: normal;
       font-weight: 400;
       src: url(https://fonts.gstatic.com/s/pacifico/v22/FwZY7-Qmy1X3869u8qc6IhuExA.woff2) format('woff2');
+    }
+
+    @font-face {
+      font-family: 'Pacifico';
+      font-style: normal;
+      font-weight: 400;
+      src: url(https://fonts.gstatic.com/s/pacifico/v23/FwZY7-Qmy14u9lezJ-6H6Mk.woff2) format('woff2');
+
     }
 
     body {
@@ -27,6 +38,7 @@
       line-height: 1.6;
       background: #f9fafb;
     }
+
     .section {
       margin-bottom: 30px;
       background: white;
@@ -34,11 +46,27 @@
       border-radius: 8px;
       border: 1px solid #e5e7eb;
     }
-    h1 { margin-top: 0; border-bottom: 2px solid #3b82f6; padding-bottom: 5px; }
-    h2 { font-size: 18px; color: #4b5563; margin-bottom: 15px; border-left: 4px solid #3b82f6; padding-left: 10px; }
 
-    .pacifico { font-family: 'Pacifico', cursive; font-size: 24px; color: #db2777; }
-    
+    h1 {
+      margin-top: 0;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 5px;
+    }
+
+    h2 {
+      font-size: 18px;
+      color: #4b5563;
+      margin-bottom: 15px;
+      border-left: 4px solid #3b82f6;
+      padding-left: 10px;
+    }
+
+    .pacifico {
+      font-family: 'Pacifico', cursive;
+      font-size: 24px;
+      color: #db2777;
+    }
+
     .text-wrap-box {
       width: 200px;
       border: 1px solid #ef4444;
@@ -46,9 +74,20 @@
       margin-bottom: 15px;
       font-size: 14px;
     }
-    .nowrap-ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .break-all { word-break: break-all; }
-    .overflow-wrap { overflow-wrap: break-word; }
+
+    .nowrap-ellipsis {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .break-all {
+      word-break: break-all;
+    }
+
+    .overflow-wrap {
+      overflow-wrap: break-word;
+    }
 
     .multi-column {
       column-count: 2;
@@ -57,6 +96,7 @@
     }
   </style>
 </head>
+
 <body>
   <h1>Typography & Text Test</h1>
 
@@ -96,8 +136,11 @@
   <div class="section">
     <h2>3. Multi-column Layout</h2>
     <div class="multi-column">
-      Typography is the art and technique of arranging type to make written language legible, readable and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and letter-spacing, and adjusting the space between pairs of letters.
+      Typography is the art and technique of arranging type to make written language legible, readable and appealing
+      when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and
+      letter-spacing, and adjusting the space between pairs of letters.
     </div>
   </div>
 </body>
+
 </html>

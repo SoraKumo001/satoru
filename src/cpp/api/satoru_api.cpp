@@ -83,6 +83,29 @@ void SatoruInstance::layout_document(int width) {
     }
 }
 
+static void scan_image_sizes(litehtml::element::ptr el, SatoruContext &context) {
+    if (!el) return;
+    const char *tag = el->get_tagName();
+    if (tag && strcmp(tag, "img") == 0) {
+        const char *src = el->get_attr("src");
+        const char *w_str = el->get_attr("width");
+        const char *h_str = el->get_attr("height");
+        if (src && w_str && h_str) {
+            int w = atoi(w_str);
+            int h = atoi(h_str);
+            if (w > 0 && h > 0) {
+                int curr_w, curr_h;
+                if (!context.get_image_size(src, curr_w, curr_h) || (curr_w == 0 && curr_h == 0)) {
+                    context.loadImage(src, nullptr, w, h);
+                }
+            }
+        }
+    }
+    for (auto &child : el->children()) {
+        scan_image_sizes(child, context);
+    }
+}
+
 void SatoruInstance::collect_resources(const std::string &html, int width) {
     discovery_container = std::make_unique<container_skia>(width, 32767, nullptr, context,
                                                           &resourceManager, false);
@@ -93,6 +116,7 @@ void SatoruInstance::collect_resources(const std::string &html, int width) {
                                                          get_full_master_css().c_str());
     if (temp_doc) {
         temp_doc->render(width);
+        scan_image_sizes(temp_doc->root(), context);
     }
 
     const auto &usedCodepoints = discovery_container->get_used_codepoints();

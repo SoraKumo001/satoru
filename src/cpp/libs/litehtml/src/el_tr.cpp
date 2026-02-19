@@ -8,6 +8,11 @@ litehtml::el_tr::el_tr(const std::shared_ptr<document>& doc) : html_tag(doc)
 
 void litehtml::el_tr::parse_attributes()
 {
+	html_tag::parse_attributes();
+}
+
+void litehtml::el_tr::parse_presentational_hints()
+{
 	// https://html.spec.whatwg.org/multipage/rendering.html#tables-2:attr-tr-height
 	const char* str = get_attr("height");
 	if (str)
@@ -28,5 +33,5 @@ void litehtml::el_tr::parse_attributes()
 	{
 		m_style.add_property(_background_color_, str, "", false, get_document()->container());
 	}
-	html_tag::parse_attributes();
+	html_tag::parse_presentational_hints();
 }

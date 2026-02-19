@@ -515,6 +515,7 @@ void element::draw_background(uint_ptr /*hdc*/, pixel_t /*x*/, pixel_t /*y*/, co
 void element::draw_borders(uint_ptr /*hdc*/, pixel_t /*x*/, pixel_t /*y*/, const position */*clip*/, const std::shared_ptr<render_item> &/*ri*/) LITEHTML_EMPTY_FUNC
 void element::get_text( string& /*text*/ ) const									LITEHTML_EMPTY_FUNC
 void element::parse_attributes()													LITEHTML_EMPTY_FUNC
+void element::parse_presentational_hints()											LITEHTML_EMPTY_FUNC
 int	element::select(const css_selector::vector& /*selector_list*/, bool /*apply_pseudo*/) LITEHTML_RETURN_FUNC(select_no_match)
 int element::select(const string& /*selector*/)										LITEHTML_RETURN_FUNC(select_no_match)
 int element::select(const css_selector& /*selector*/, bool /*apply_pseudo*/)		LITEHTML_RETURN_FUNC(select_no_match)

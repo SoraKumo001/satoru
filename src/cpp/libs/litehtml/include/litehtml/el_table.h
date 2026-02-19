@@ -12,6 +12,7 @@ namespace litehtml
 
 		bool appendChild(const litehtml::element::ptr& el) override;
 		void parse_attributes() override;
+		void parse_presentational_hints() override;
 	};
 }
 

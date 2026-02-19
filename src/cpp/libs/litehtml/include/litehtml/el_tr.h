@@ -11,6 +11,7 @@ namespace litehtml
 		explicit el_tr(const std::shared_ptr<litehtml::document>& doc);
 
 		void parse_attributes() override;
+		void parse_presentational_hints() override;
 	};
 }
 

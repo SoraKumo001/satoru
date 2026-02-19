@@ -100,6 +100,7 @@ namespace litehtml
 		element::ptr		find_sibling(const element::ptr& el, const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr) override;
 		void				get_text(string& text) const override;
 		void				parse_attributes() override;
+		void				parse_presentational_hints() override;
 
 		void				get_content_size(size& sz, pixel_t max_width) override;
 		void				add_style(const style& style, selector_specificity specificity = selector_specificity()) override;

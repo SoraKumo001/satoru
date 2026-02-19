@@ -1226,9 +1226,9 @@ void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity) {
                                       (uint8_t)(opacity * 255.0f)));
             SkRect rect;
             if (!m_clips.empty()) {
-                rect = SkRect::MakeXYWH((float)m_clips.back().first.x, (float)m_clips.back().first.y,
-                                        (float)m_clips.back().first.width,
-                                        (float)m_clips.back().first.height);
+                rect = SkRect::MakeXYWH(
+                    (float)m_clips.back().first.x, (float)m_clips.back().first.y,
+                    (float)m_clips.back().first.width, (float)m_clips.back().first.height);
             } else {
                 rect = SkRect::MakeWH((float)m_width, (float)m_height);
             }
@@ -1254,9 +1254,9 @@ void container_skia::pop_layer(litehtml::uint_ptr hdc) {
             p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::LayerPop, 0));
             SkRect rect;
             if (!m_clips.empty()) {
-                rect = SkRect::MakeXYWH((float)m_clips.back().first.x, (float)m_clips.back().first.y,
-                                        (float)m_clips.back().first.width,
-                                        (float)m_clips.back().first.height);
+                rect = SkRect::MakeXYWH(
+                    (float)m_clips.back().first.x, (float)m_clips.back().first.y,
+                    (float)m_clips.back().first.width, (float)m_clips.back().first.height);
             } else {
                 rect = SkRect::MakeWH((float)m_width, (float)m_height);
             }
@@ -1481,4 +1481,3 @@ litehtml::element::ptr container_skia::create_element(
     }
     return nullptr;
 }
-

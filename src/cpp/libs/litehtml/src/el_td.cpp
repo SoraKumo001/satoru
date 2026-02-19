@@ -10,6 +10,11 @@ el_td::el_td(const shared_ptr<document>& doc) : html_tag(doc)
 
 void el_td::parse_attributes()
 {
+	html_tag::parse_attributes();
+}
+
+void el_td::parse_presentational_hints()
+{
 	// https://html.spec.whatwg.org/multipage/rendering.html#tables-2:attr-tdth-width
 	const char* str = get_attr("width");
 	if (str)
@@ -48,7 +53,7 @@ void el_td::parse_attributes()
 		m_style.add_property(_vertical_align_, str);
 	}
 
-	html_tag::parse_attributes();
+	html_tag::parse_presentational_hints();
 }
 
 } // namespace litehtml

@@ -9,6 +9,11 @@ litehtml::el_font::el_font(const std::shared_ptr<document>& doc) : html_tag(doc)
 
 void litehtml::el_font::parse_attributes()
 {
+	html_tag::parse_attributes();
+}
+
+void litehtml::el_font::parse_presentational_hints()
+{
 	const char* str = get_attr("color");
 	if(str)
 	{
@@ -53,5 +58,5 @@ void litehtml::el_font::parse_attributes()
 		}
 	}
 
-	html_tag::parse_attributes();
+	html_tag::parse_presentational_hints();
 }

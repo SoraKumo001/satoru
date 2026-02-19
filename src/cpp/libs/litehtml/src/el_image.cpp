@@ -20,15 +20,23 @@ bool litehtml::el_image::is_replaced() const
 void litehtml::el_image::parse_attributes()
 {
 	m_src = get_attr("src", "");
+	html_tag::parse_attributes();
+}
 
+void litehtml::el_image::parse_presentational_hints()
+{
 	// https://html.spec.whatwg.org/multipage/rendering.html#attributes-for-embedded-content-and-images:the-img-element-5
 	const char* str = get_attr("width");
 	if (str)
+	{
 		map_to_dimension_property(_width_, str);
+	}
 
 	str = get_attr("height");
 	if (str)
+	{
 		map_to_dimension_property(_height_, str);
+	}
 }
 
 void litehtml::el_image::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position *clip, const std::shared_ptr<render_item> &ri)

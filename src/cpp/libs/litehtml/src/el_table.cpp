@@ -21,6 +21,11 @@ namespace litehtml
 
 	void el_table::parse_attributes()
 	{
+		html_tag::parse_attributes();
+	}
+
+	void el_table::parse_presentational_hints()
+	{
 		// https://html.spec.whatwg.org/multipage/rendering.html#tables-2:attr-table-width
 		const char* str = get_attr("width");
 		if(str) map_to_dimension_property_ignoring_zero(_width_, str);
@@ -41,7 +46,7 @@ namespace litehtml
 		str = get_attr("bgcolor");
 		if(str) { m_style.add_property(_background_color_, str, "", false, get_document()->container()); }
 
-		html_tag::parse_attributes();
+		html_tag::parse_presentational_hints();
 	}
 
 } // namespace litehtml

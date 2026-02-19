@@ -115,6 +115,7 @@ namespace litehtml
 		virtual void				get_text(string& text) const;
 		virtual void				set_text(const char* text);
 		virtual void				parse_attributes();
+		virtual void				parse_presentational_hints();
 		virtual int					select(const css_selector::vector& selector_list, bool apply_pseudo = true);
 		virtual int					select(const string& selector);
 		virtual int					select(const css_selector& selector, bool apply_pseudo = true);

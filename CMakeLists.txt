@@ -98,6 +98,7 @@ set(SATORU_LIBS
     WebP::webp
     WebP::webpdecoder
     WebP::webpdemux
+    WebP::libwebpmux
     WebP::sharpyuv
     avif
     dav1d::dav1d
@@ -136,8 +137,10 @@ set(SATORU_LIBS
         "-sEXPORT_NAME='createSatoruModule'"
         "-sENVIRONMENT=web,worker"
         "-sFILESYSTEM=0"
+        # Some Skia symbols (SkSL, RuntimeEffect) are undefined because we exclude their sources
+        # to keep the binary size small. They are not used in our current rendering path.
         "-sERROR_ON_UNDEFINED_SYMBOLS=0"
-        "-sWARN_ON_UNDEFINED_SYMBOLS=0"
+        "-sWARN_ON_UNDEFINED_SYMBOLS=1"
         "-sALLOW_MEMORY_GROWTH=1"
     )
 
@@ -166,6 +169,7 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/src/ports/SkFontMgr_custom.cpp"
     "${skia_SOURCE_DIR}/src/ports/SkFontMgr_custom_empty.cpp"
     "${skia_SOURCE_DIR}/src/ports/SkLog_stdio.cpp"
+    "${skia_SOURCE_DIR}/src/ports/SkGlobalInitialization_default.cpp"
     "${skia_SOURCE_DIR}/src/image/*.cpp"
     "${skia_SOURCE_DIR}/src/shaders/*.cpp"
     "${skia_SOURCE_DIR}/src/shaders/gradients/*.cpp"
@@ -176,6 +180,7 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/src/xml/*.cpp"
     "${skia_SOURCE_DIR}/src/text/*.cpp"
     "${skia_SOURCE_DIR}/modules/skcms/skcms.cc"
+    "${skia_SOURCE_DIR}/modules/skcms/src/skcms_TransformBaseline.cc"
     "${skia_SOURCE_DIR}/src/encode/SkEncoder.cpp"
     "${skia_SOURCE_DIR}/src/encode/SkPngEncoderImpl.cpp"
     "${skia_SOURCE_DIR}/src/encode/SkPngEncoderBase.cpp"
@@ -191,6 +196,9 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/src/codec/SkPngCodec.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkPngCodecBase.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkPngCompositeChunkReader.cpp"
+    "${skia_SOURCE_DIR}/src/codec/SkExif.cpp"
+    "${skia_SOURCE_DIR}/src/codec/SkTiffUtility.cpp"
+    "${skia_SOURCE_DIR}/src/codec/SkGainmapInfo.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkBmpBaseCodec.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkBmpCodec.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkBmpMaskCodec.cpp"
@@ -229,7 +237,7 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/modules/skunicode/src/SkUnicode_hardcoded.cpp"
 )
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
-list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkGPU.*|.*SkGpu.*|.*SkGraphite.*|.*SkDocument_PDF_None.cpp|.*src/gpu/.*|.*src/graphite/.*")
+list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkMesh.*|.*SkRuntimeBlender.*|.*SkSL.*|.*SkGPU.*|.*SkGpu.*|.*SkGraphite.*|.*SkDocument_PDF_None.cpp|.*src/gpu/.*|.*src/graphite/.*")
 
 target_sources(skia_lib PRIVATE ${SKIA_CORE_SRC})
 target_include_directories(skia_lib PUBLIC
@@ -240,7 +248,7 @@ target_include_directories(skia_lib PUBLIC
     "${skia_SOURCE_DIR}/modules/skshaper/include"
     "${skia_SOURCE_DIR}/modules/skunicode/include"
 )
-target_compile_definitions(skia_lib PUBLIC SK_USER_CONFIG_HEADER="SkUserConfig.h" SK_ENABLE_SVG SK_SHAPER_HARFBUZZ_AVAILABLE SK_SHAPER_UNICODE_AVAILABLE SK_DISABLE_FILESYSTEM)
+target_compile_definitions(skia_lib PUBLIC SK_USER_CONFIG_HEADER="SkUserConfig.h" SK_ENABLE_SVG SK_SHAPER_HARFBUZZ_AVAILABLE SK_SHAPER_UNICODE_AVAILABLE SK_DISABLE_FILESYSTEM SKCMS_PORTABLE)
 target_compile_options(skia_lib PRIVATE ${COMMON_COMPILE_OPTIONS})
 target_link_libraries(skia_lib PUBLIC ${SATORU_LIBS})
 

@@ -4,6 +4,7 @@
 #include <litehtml/document.h>
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -12,20 +13,31 @@
 #include "core/resource_manager.h"
 #include "core/satoru_context.h"
 
-struct SatoruInstance {
+class SatoruInstance {
+   public:
     SatoruContext context;
     ResourceManager resourceManager;
-    container_skia *discovery_container = nullptr;
+    std::unique_ptr<container_skia> discovery_container;
 
     // Persisted state
-    container_skia *render_container = nullptr;
+    std::unique_ptr<container_skia> render_container;
     std::shared_ptr<litehtml::document> doc;
 
-    SatoruInstance() : resourceManager(context) { context.init(); }
-    ~SatoruInstance() {
-        if (discovery_container) delete discovery_container;
-        if (render_container) delete render_container;
-    }
+    SatoruInstance();
+    ~SatoruInstance();
+
+    // Core Logic
+    void init_document(const char *html, int width);
+    void layout_document(int width);
+    void collect_resources(const std::string &html, int width);
+    std::string get_full_master_css() const;
+
+    // Resource Management
+    void add_resource(const std::string &url, ResourceType type, const std::vector<uint8_t> &data);
+    void scan_css(const std::string &css);
+    void load_font(const std::string &name, const std::vector<uint8_t> &data);
+    void load_image(const std::string &name, const std::string &data_url, int width, int height);
+    std::string get_pending_resources_json();
 };
 
 SatoruInstance *api_create_instance();

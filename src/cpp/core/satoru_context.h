@@ -70,15 +70,19 @@ class SatoruContext {
 
     void set_last_png(sk_sp<SkData> png) { m_lastPng = std::move(png); }
     const sk_sp<SkData> &get_last_png() const { return m_lastPng; }
+    size_t get_last_png_size() const { return m_lastPng ? m_lastPng->size() : 0; }
 
     void set_last_webp(sk_sp<SkData> webp) { m_lastWebp = std::move(webp); }
     const sk_sp<SkData> &get_last_webp() const { return m_lastWebp; }
+    size_t get_last_webp_size() const { return m_lastWebp ? m_lastWebp->size() : 0; }
 
     void set_last_pdf(sk_sp<SkData> pdf) { m_lastPdf = std::move(pdf); }
     const sk_sp<SkData> &get_last_pdf() const { return m_lastPdf; }
+    size_t get_last_pdf_size() const { return m_lastPdf ? m_lastPdf->size() : 0; }
 
     void set_last_svg(sk_sp<SkData> svg) { m_lastSvg = std::move(svg); }
     const sk_sp<SkData> &get_last_svg() const { return m_lastSvg; }
+    size_t get_last_svg_size() const { return m_lastSvg ? m_lastSvg->size() : 0; }
 };
 
 #endif

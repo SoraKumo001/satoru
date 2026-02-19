@@ -7,36 +7,36 @@ export enum LogLevel {
 }
 
 export interface SatoruModule {
-  _create_instance: () => number;
-  _destroy_instance: (ptr: number) => void;
-  collect_resources: (inst: number, html: string, width: number) => void;
-  get_pending_resources: (inst: number) => string;
+  create_instance: () => any;
+  destroy_instance: (inst: any) => void;
+  collect_resources: (inst: any, html: string, width: number) => void;
+  get_pending_resources: (inst: any) => string;
   add_resource: (
-    inst: number,
+    inst: any,
     url: string,
     type: number,
     data: Uint8Array,
   ) => void;
-  scan_css: (inst: number, css: string) => void;
-  load_font: (inst: number, name: string, data: Uint8Array) => void;
+  scan_css: (inst: any, css: string) => void;
+  load_font: (inst: any, name: string, data: Uint8Array) => void;
   load_image: (
-    inst: number,
+    inst: any,
     name: string,
     url: string,
     width: number,
     height: number,
   ) => void;
-  init_document: (inst: number, html: string, width: number) => void;
-  layout_document: (inst: number, width: number) => void;
+  init_document: (inst: any, html: string, width: number) => void;
+  layout_document: (inst: any, width: number) => void;
   render_from_state: (
-    inst: number,
+    inst: any,
     width: number,
     height: number,
     format: number,
     svgTextToPaths: boolean,
   ) => Uint8Array | null;
   render: (
-    inst: number,
+    inst: any,
     htmls: string | string[],
     width: number,
     height: number,
@@ -136,9 +136,9 @@ export class Satoru {
 
   async initDocument(
     options: Omit<RenderOptions, "value"> & { html: string },
-  ): Promise<number> {
+  ): Promise<any> {
     const mod = await this.getModule();
-    const inst = mod._create_instance();
+    const inst = mod.create_instance();
     // Load resources similar to render() ...
     // This part is tricky because resource loading logic is tied to render().
     // Ideally we reuse the resource loading logic.
@@ -147,13 +147,13 @@ export class Satoru {
     return inst;
   }
 
-  async layoutDocument(inst: number, width: number): Promise<void> {
+  async layoutDocument(inst: any, width: number): Promise<void> {
     const mod = await this.getModule();
     mod.layout_document(inst, width);
   }
 
   async renderFromState(
-    inst: number,
+    inst: any,
     options: {
       width: number;
       height?: number;
@@ -188,9 +188,9 @@ export class Satoru {
     return new Uint8Array(result);
   }
 
-  async destroyInstance(inst: number): Promise<void> {
+  async destroyInstance(inst: any): Promise<void> {
     const mod = await this.getModule();
-    mod._destroy_instance(inst);
+    mod.destroy_instance(inst);
   }
 
   async render(
@@ -247,7 +247,7 @@ export class Satoru {
     mod.logLevel = logLevel ?? LogLevel.None;
     mod.onLog = onLog;
 
-    const instancePtr = mod._create_instance();
+    const instancePtr = mod.create_instance();
 
     try {
       if (fonts) {
@@ -413,7 +413,7 @@ export class Satoru {
 
       return new Uint8Array(result);
     } finally {
-      mod._destroy_instance(instancePtr);
+      mod.destroy_instance(instancePtr);
       mod.logLevel = prevLogLevel;
       mod.onLog = prevOnLog;
     }

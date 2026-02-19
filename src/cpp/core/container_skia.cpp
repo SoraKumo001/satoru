@@ -581,6 +581,13 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
         draw.url = url;
         draw.layer = layer;
         draw.opacity = 1.0f;
+        if (!m_clips.empty()) {
+            draw.has_clip = true;
+            draw.clip_pos = m_clips.back().first;
+            draw.clip_radius = m_clips.back().second;
+        } else {
+            draw.has_clip = false;
+        }
         m_usedImageDraws.push_back(draw);
         int index = (int)m_usedImageDraws.size();
         SkPaint p;
@@ -1116,13 +1123,34 @@ void container_skia::import_css(litehtml::string &text, const litehtml::string &
 void container_skia::set_clip(const litehtml::position &pos,
                               const litehtml::border_radiuses &bdr_radius) {
     if (m_canvas) {
-        m_canvas->save();
-        m_canvas->clipRRect(make_rrect(pos, bdr_radius), true);
+        if (m_tagging) {
+            clip_info info;
+            info.pos = pos;
+            info.radius = bdr_radius;
+            m_usedClips.push_back(info);
+            int index = (int)m_usedClips.size();
+
+            SkPaint p;
+            p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::ClipPush, (index & 0xFF)));
+            // テキスト描画属性を流用してタグを埋め込む（drawRectより消えにくい）
+            m_canvas->drawRect(SkRect::MakeXYWH(0, 0, 0.001f, 0.001f), p);
+            m_canvas->save();
+        } else {
+            m_canvas->save();
+            m_canvas->clipRRect(make_rrect(pos, bdr_radius), true);
+        }
     }
     m_clips.push_back({pos, bdr_radius});
 }
 void container_skia::del_clip() {
-    if (m_canvas) m_canvas->restore();
+    if (m_canvas) {
+        m_canvas->restore();
+        if (m_tagging) {
+            SkPaint p;
+            p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::ClipPop, 0));
+            m_canvas->drawRect(SkRect::MakeXYWH(0, 0, 0.001f, 0.001f), p);
+        }
+    }
     if (!m_clips.empty()) m_clips.pop_back();
 }
 void container_skia::get_media_features(litehtml::media_features &features) const {
@@ -1454,23 +1482,3 @@ litehtml::element::ptr container_skia::create_element(
     return nullptr;
 }
 
-void container_skia::reset() {
-    m_usedShadows.clear();
-    m_usedTextShadows.clear();
-    m_usedImageDraws.clear();
-    m_usedConicGradients.clear();
-    m_usedRadialGradients.clear();
-    m_usedLinearGradients.clear();
-    m_usedTextDraws.clear();
-    m_usedFilters.clear();
-    m_usedInlineSvgs.clear();
-    m_inlineSvgPositions.clear();
-    m_clips.clear();
-    m_opacity_stack.clear();
-    m_usedCodepoints.clear();
-    std::fill(m_asciiUsed.begin(), m_asciiUsed.end(), false);
-    m_requestedFontAttributes.clear();
-    m_missingFonts.clear();
-    m_last_bidi_level = -1;
-    m_last_base_level = -1;
-}

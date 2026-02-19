@@ -838,7 +838,7 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
 
     document::ptr doc = src_el()->get_document();
 
-    if (src_el()->css().get_overflow() > overflow_visible)
+    if (src_el()->css().get_overflow() > overflow_visible || !src_el()->css().get_borders().radius.is_zero())
     {
         // TODO: Process overflow for inline elements
         if(src_el()->css().get_display() != display_inline)
@@ -1055,7 +1055,7 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
         }
     }
 
-    if (src_el()->css().get_overflow() > overflow_visible)
+    if (src_el()->css().get_overflow() > overflow_visible || !src_el()->css().get_borders().radius.is_zero())
     {
         doc->container()->del_clip();
     }

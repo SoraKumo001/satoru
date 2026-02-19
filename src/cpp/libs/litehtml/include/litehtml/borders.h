@@ -164,6 +164,14 @@ namespace litehtml
 				fix_one(bottom_left_x, bottom_left_y);
 			}
 		}
+
+		bool is_zero() const
+		{
+			return top_left_x == 0 && top_left_y == 0 &&
+				   top_right_x == 0 && top_right_y == 0 &&
+				   bottom_right_x == 0 && bottom_right_y == 0 &&
+				   bottom_left_x == 0 && bottom_left_y == 0;
+		}
 	};
 
 	struct css_border_radius
@@ -195,6 +203,14 @@ namespace litehtml
 		}
 
 		css_border_radius& operator=(const css_border_radius& val) = default;
+
+		bool is_zero() const
+		{
+			return top_left_x.is_predefined() && top_left_y.is_predefined() &&
+				   top_right_x.is_predefined() && top_right_y.is_predefined() &&
+				   bottom_left_x.is_predefined() && bottom_left_y.is_predefined() &&
+				   bottom_right_x.is_predefined() && bottom_right_y.is_predefined();
+		}
 
 		border_radiuses calc_percents(pixel_t width, pixel_t height) const
 		{

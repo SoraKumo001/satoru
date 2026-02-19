@@ -139,14 +139,13 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
 
         int r = -1, g = -1, b = -1;
         if (colorVal.size() >= 7 && colorVal[0] == '#') {
-            try {
-                r = std::stoi(colorVal.substr(1, 2), nullptr, 16);
-                g = std::stoi(colorVal.substr(3, 2), nullptr, 16);
-                b = std::stoi(colorVal.substr(5, 2), nullptr, 16);
-            } catch (...) {
-            }
+            r = std::stoi(colorVal.substr(1, 2), nullptr, 16);
+            g = std::stoi(colorVal.substr(3, 2), nullptr, 16);
+            b = std::stoi(colorVal.substr(5, 2), nullptr, 16);
         } else if (colorVal.find("rgb(") == 0) {
-            sscanf(colorVal.c_str(), "rgb(%d,%d,%d)", &r, &g, &b);
+            if (sscanf(colorVal.c_str(), "rgb(%d,%d,%d)", &r, &g, &b) != 3) {
+                sscanf(colorVal.c_str(), "rgb(%d, %d, %d)", &r, &g, &b);
+            }
         }
 
         if (r == 0) {
@@ -267,8 +266,9 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                << draw.layer.origin_box.height
                                << "\" preserveAspectRatio=\"none\" href=\"" << dataUrl << "\"";
                             if (draw.opacity < 1.0f) ss << " opacity=\"" << draw.opacity << "\"";
-                            if (has_radius(draw.layer.border_radius))
+                            if (draw.has_clip) {
                                 ss << " clip-path=\"url(#clip-img-" << b << ")\"";
+                            }
                             ss << " />";
                         } else {
                             ss << "<rect x=\"" << draw.layer.clip_box.x << "\" y=\""
@@ -277,8 +277,7 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                << draw.layer.clip_box.height << "\" fill=\"url(#pattern-img-" << b
                                << ")\"";
                             if (draw.opacity < 1.0f) ss << " opacity=\"" << draw.opacity << "\"";
-                            if (has_radius(draw.layer.border_radius))
-                                ss << " clip-path=\"url(#clip-img-" << b << ")\"";
+                            if (draw.has_clip) ss << " clip-path=\"url(#clip-img-" << b << ")\"";
                             ss << " />";
                         }
                         result.erase(result.size() - (pos - elementStart));
@@ -535,10 +534,9 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
     for (size_t i = 0; i < images.size(); ++i) {
         const auto &draw = images[i];
         int index = (int)(i + 1);
-        if (has_radius(draw.layer.border_radius)) {
+        if (draw.has_clip) {
             defs << "<clipPath id=\"clip-img-" << index << "\">";
-            defs << "<path d=\"" << path_from_rrect(draw.layer.border_box, draw.layer.border_radius)
-                 << "\" />";
+            defs << "<path d=\"" << path_from_rrect(draw.clip_pos, draw.clip_radius) << "\" />";
             defs << "</clipPath>";
         }
         if (draw.layer.repeat != litehtml::background_repeat_no_repeat) {
@@ -698,6 +696,15 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
             }
         }
         defs << "</filter>";
+    }
+
+    const auto &clips = render_container.get_used_clips();
+    for (size_t i = 0; i < clips.size(); ++i) {
+        const auto &c = clips[i];
+        int index = (int)(i + 1);
+        defs << "<clipPath id=\"clip-path-" << index << "\">";
+        defs << "<path d=\"" << path_from_rrect(c.pos, c.radius) << "\" />";
+        defs << "</clipPath>";
     }
 
     std::string defsStr = defs.str();

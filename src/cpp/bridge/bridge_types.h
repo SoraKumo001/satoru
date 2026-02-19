@@ -60,6 +60,9 @@ struct image_draw_info {
     std::string url;
     litehtml::background_layer layer;
     float opacity;
+    bool has_clip = false;
+    litehtml::position clip_pos;
+    litehtml::border_radiuses clip_radius;
 };
 
 struct conic_gradient_info {
@@ -125,6 +128,11 @@ struct text_draw_info {
 struct filter_info {
     litehtml::css_token_vector tokens;
     float opacity;
+};
+
+struct clip_info {
+    litehtml::position pos;
+    litehtml::border_radiuses radius;
 };
 
 #endif  // BRIDGE_TYPES_H

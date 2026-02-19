@@ -48,13 +48,37 @@ void litehtml::el_image::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position
 			border_box += ri->get_paddings();
 			border_box += ri->get_borders();
 
+			border_radiuses bdr_radius = css().get_borders().radius.calc_percents(border_box.width, border_box.height);
+
+			// 画像領域（content-box）に合わせたクリップを計算
+			border_radiuses content_radius = bdr_radius;
+			content_radius.top_left_x = std::max(0.0f, bdr_radius.top_left_x - (float)ri->get_paddings().left);
+			content_radius.top_left_y = std::max(0.0f, bdr_radius.top_left_y - (float)ri->get_paddings().top);
+			content_radius.top_right_x = std::max(0.0f, bdr_radius.top_right_x - (float)ri->get_paddings().right);
+			content_radius.top_right_y = std::max(0.0f, bdr_radius.top_right_y - (float)ri->get_paddings().top);
+			content_radius.bottom_right_x = std::max(0.0f, bdr_radius.bottom_right_x - (float)ri->get_paddings().right);
+			content_radius.bottom_right_y = std::max(0.0f, bdr_radius.bottom_right_y - (float)ri->get_paddings().bottom);
+			content_radius.bottom_left_x = std::max(0.0f, bdr_radius.bottom_left_x - (float)ri->get_paddings().left);
+			content_radius.bottom_left_y = std::max(0.0f, bdr_radius.bottom_left_y - (float)ri->get_paddings().bottom);
+
 			background_layer layer;
 			layer.clip_box = border_box;
 			layer.origin_box = pos;
 			layer.border_box = border_box;
 			layer.repeat = background_repeat_no_repeat;
-			layer.border_radius = css().get_borders().radius.calc_percents(border_box.width, border_box.height);
+			layer.border_radius = bdr_radius;
+
+			if (!content_radius.is_zero())
+			{
+				get_document()->container()->set_clip(pos, content_radius);
+			}
+
 			get_document()->container()->draw_image(hdc, layer, m_src, {});
+
+			if (!content_radius.is_zero())
+			{
+				get_document()->container()->del_clip();
+			}
 		}
 	}
 }

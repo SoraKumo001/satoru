@@ -51,6 +51,7 @@ class container_skia : public litehtml::document_container {
 
     std::vector<std::string> m_usedInlineSvgs;
     std::vector<litehtml::position> m_inlineSvgPositions;
+    std::vector<clip_info> m_usedClips;
 
     float get_current_opacity() const {
         float opacity = 1.0f;
@@ -69,7 +70,18 @@ class container_skia : public litehtml::document_container {
     void set_height(int h) { m_height = h; }
     void set_tagging(bool t) { m_tagging = t; }
     void set_text_to_paths(bool to_paths) { m_textToPaths = to_paths; }
-    void reset();
+    void reset() {
+        m_usedShadows.clear();
+        m_usedTextShadows.clear();
+        m_usedImageDraws.clear();
+        m_usedConicGradients.clear();
+        m_usedRadialGradients.clear();
+        m_usedLinearGradients.clear();
+        m_usedTextDraws.clear();
+        m_usedInlineSvgs.clear();
+        m_usedFilters.clear();
+        m_usedClips.clear();
+    }
 
     SkCanvas *get_canvas() const { return m_canvas; }
     bool is_tagging() const { return m_tagging; }
@@ -96,6 +108,7 @@ class container_skia : public litehtml::document_container {
     const std::vector<text_shadow_info> &get_used_text_shadows() const { return m_usedTextShadows; }
     const std::vector<text_draw_info> &get_used_text_draws() const { return m_usedTextDraws; }
     const std::vector<filter_info> &get_used_filters() const { return m_usedFilters; }
+    const std::vector<clip_info> &get_used_clips() const { return m_usedClips; }
 
     const std::set<char32_t> &get_used_codepoints() const { return m_usedCodepoints; }
     const std::set<font_request> &get_requested_font_attributes() const {

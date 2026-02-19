@@ -334,6 +334,12 @@ void litehtml::flex_item_row_direction::perform_render(litehtml::flex_line &ln,
 
 	child_cb.size_mode = containing_block_context::size_mode_exact_width;
 
+	bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
+	if (!stretch && el->css().get_height().is_predefined())
+	{
+		child_cb.size_mode |= containing_block_context::size_mode_content;
+	}
+
 	if (el->css().get_height().is_predefined())
 	{
 		// If height is auto - render with content size

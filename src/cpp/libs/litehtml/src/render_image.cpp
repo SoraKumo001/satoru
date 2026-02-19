@@ -1,6 +1,7 @@
 #include "render_image.h"
 #include "document.h"
 #include "types.h"
+#include <cstdio>
 
 litehtml::pixel_t litehtml::render_item_image::_render(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* /*fmt_ctx*/, bool /*second_pass*/)
 {
@@ -13,11 +14,13 @@ litehtml::pixel_t litehtml::render_item_image::_render(pixel_t x, pixel_t y, con
     m_pos.width = 0;
     m_pos.height = 0;
 
-    if(self_size.width.type != containing_block_context::cbc_value_type_auto)
+	bool is_content_size = (containing_block_size.size_mode & containing_block_context::size_mode_content) != 0;
+
+    if(self_size.width.type != containing_block_context::cbc_value_type_auto && !is_content_size)
     {
         m_pos.width = self_size.render_width;
     }
-    if(self_size.height.type != containing_block_context::cbc_value_type_auto)
+    if(self_size.height.type != containing_block_context::cbc_value_type_auto && !is_content_size)
     {
         m_pos.height = self_size.render_height;
     }

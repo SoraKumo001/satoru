@@ -1,114 +1,72 @@
 # GEMINI.md
 
-## System Context & Operational Guidelines
+## 1. Operational Guidelines (Agent Specific)
 
-This document defines the operational rules for Gemini when interacting with the local file system and shell environment.
+This section defines the core rules for an agent's behavior within this project.
 
-### 1. Shell Environment: Windows PowerShell
+### 1.1 Shell Environment: Windows PowerShell
+- **Command Chaining**: Use `;` for sequential execution (do NOT use `&&` or `||`).
+- **Constraint**: Do not execute multiple shell commands in parallel.
 
-You are operating in a **Windows PowerShell** environment.
+### 1.2 Communication & Troubleshooting
+- **Progress Reporting**: Always report your current status in the user's language concisely before and during each step.
+- **Hash Mismatch**: If encountered, immediately re-read the file with `get_text_file_contents` to synchronize. If the issue persists, overwrite the entire file using `write_file`.
 
-- **Constraint:** PowerShell does not support `&&` or `||` for command chaining.
-- **Instruction:** Use the semicolon `;` separator for sequential execution.
-- **Restriction:** Do not write multiple shell commands simultaneously.
-- ✅ **Correct:** `mkdir test_dir ; cd test_dir`
+### 1.3 Git Usage
+- **No Write Operations**: Do not perform `git add`, `commit`, `push`, etc., unless explicitly and specifically instructed by the user.
+- **Read-Only Access**: `status`, `diff`, and `log` are permitted and recommended for gathering context.
 
-### 2. Communication Protocol
+---
 
-- **Progress Reporting:** Always report what you are currently doing before and during each step of your work. Provide concise updates on your analysis, planning, and implementation progress to keep the user informed. **Progress reporting should be conducted in the user's language.**
+## 2. Project Overview: Satoru
 
-### 3. Troubleshooting
+A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscripten).
 
-- **Hash Mismatch Handling:** If a `Hash Mismatch` error occurs, immediately re-read the file using `get_text_file_contents` to synchronize. If the error persists or if the file has significant changes, rewrite the entire file using `write_file` to ensure consistency and resolve the conflict.
-
-### 4. Git Usage
-
-- **No Write Operations:** Do not perform any git write operations (e.g., `git add`, `git commit`, `git push`, `git branch`, `git checkout -b`, `git merge`) unless explicitly and specifically instructed by the user. Read-only operations for context (e.g., `git status`, `git diff`, `git log`) are permitted.
-
-## Project Context: Satoru
-
-### 1. Overview
-
-**Satoru** is a high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly.
-
-- **Monorepo:** Organized as pnpm workspaces.
-- **Core:** `litehtml` (Layout) + `Skia` (Rendering).
-- **Target:** WASM via Emscripten.
-- **Packages:**
-  - `packages/satoru`: Core library and TS wrappers.
-  - `packages/cloudflare-ogp`: OGP image generation using JSX and Cloudflare Workers.
+- **Core Technologies**: `litehtml` (Layout) + `Skia` (Rendering).
+- **Structure**: pnpm workspaces monorepo.
+  - `packages/satoru`: Core library & TS wrappers.
   - `packages/visual-test`: Visual regression testing suite.
   - `packages/playground`: Web-based demo application.
+  - `packages/cloudflare-ogp`: OGP image generation using Cloudflare Workers.
 
-### 2. Build System
+---
 
-- **Multi-Environment Support**: Optimized for local development (Windows/PowerShell) and CI (Ubuntu).
-- **Speed Optimizations**:
-  - **Ninja**: Uses Ninja as the primary CMake generator for faster parallel builds.
-  - **ccache**: Enabled by default to cache compiler objects.
-  - **Incremental Builds**: `pnpm wasm:configure` does not delete build directories by default (use `--force` to clean).
-- **Optimization Strategy**:
-  - **Selector Indexing**: Implemented map-based selector lookup (ID, Class, Tag) in `litehtml` to replace linear scanning.
-  - **Bottleneck Resolution**: `apply_stylesheet` now retrieves only relevant selectors, significantly reducing $O(N \times M)$ complexity.
-- **Directory Structure**:
-  - `build/`: Intermediate files for Release builds (`-Oz`).
-- **Commands**:
-  - `pnpm build`: Builds both WASM + TS wrappers.
-  - `pnpm wasm:configure`: Configures CMake via `scripts/build-wasm.ts`.
-  - `pnpm wasm:build`: Compiles C++ to WASM using Ninja.
-  - `pnpm wasm:docker:build`: Optimized Docker build using BuildKit cache mounts.
+## 3. Technical Specifications & Architecture
 
-### 3. Implementation Details
+### 3.1 Directory Structure
+- `src/cpp/api`: Emscripten API implementation (`satoru_api.cpp`).
+- `src/cpp/core`: Layout/Rendering core, resource management, and master CSS.
+- `src/cpp/renderers`: PNG, SVG, PDF, and WebP specific renderers.
+- `src/cpp/utils`: Skia utilities, Base64 helpers, and SkUnicode implementation.
+- `src/cpp/libs`: External libraries (`litehtml`, `skia`).
 
-- **C++ Directory Structure:**
-  - `src/cpp/api`: Emscripten API implementation (`satoru_api.cpp`). High-level logic and state management.
-  - `src/cpp/bridge`: Common types used across the project (`bridge_types.h`).
-  - `src/cpp/core`: Core rendering logic (`container_skia`), resource management, and master CSS.
-  - `src/cpp/renderers`: PNG/SVG/PDF specific rendering implementation.
-  - `src/cpp/utils`: Skia-specific utility functions and Base64 helpers.
+### 3.2 Rendering Pipelines
+- **SVG (2-Pass)**: Measurement -> Drawing to `SkSVGCanvas` -> Regex Post-Processing.
+  - **Text Handling**: Defaults to retaining `<text>` elements (`textToPaths: false`). Use `--outline` in CLI to force paths.
+- **PNG/WebP**: Render to `SkSurface` -> `SkImage` -> Encode.
+- **PDF (2-Pass)**: Measurement -> Drawing to `SkPDFDocument`.
 
-- **API Layer:**
-  - All functionality exported to WASM is defined in `src/cpp/api/satoru_api.h` and implemented in `satoru_api.cpp`.
-  - `main.cpp` serves as the Emscripten entry point and binding definition.
-  - Uses Embind (`--bind`) for C++/JS communication. Explicit exports (`EXPORTED_FUNCTIONS`) are minimal.
+### 3.3 CSS Engine (litehtml Customizations)
+- **Cascade Priority**: Correct W3C order (`Important` > `Layer` > `Specificity`).
+- **International Text**: Integrated `HarfBuzz`, `libunibreak`, and `utf8proc` for complex shaping and line breaking.
+- **Decoration**: Supports `wavy` style for underlines using `SkPathBuilder` and `quadTo` curves.
 
-- **Size Optimizations**:
-  - **GPU Disabled**: `SK_SUPPORT_GPU=0` and `SK_GANESH`/`SK_GRAPHITE` disabled to reduce Wasm size.
-  - **Filesystem Disabled**: `-s FILESYSTEM=0` and `SK_DISABLE_FILESYSTEM` enabled.
-  - **LTO**: `-flto=thin` (Not currently enabled).
-  - **Oz**: Aggressive size optimization (`-Oz`) used in Release mode.
+---
 
-- **Resource Management:**
-  - **Callback-Based Resolution:** WASM notifies JS of resource requests via the `satoru_request_resource_js` bridge.
-  - **JS Integration:** The `SatoruModule` interface includes an optional `onRequestResource` callback.
-  - **Worker Support:** `createSatoruWorker` provides a multi-threaded proxy using `worker-lib`.
+## 4. Development & Verification Workflow
 
-- **Logging Bridge:**
-  - Unified logging function `satoru_log(LogLevel level, const char *message)` is used in C++.
-  - Bridges to JS via `EM_JS` calling `Module.onLog`.
+### 4.1 Build Commands
+- `pnpm wasm:configure`: Configure CMake with Ninja generator.
+- `pnpm wasm:build`: Compile C++ to Wasm.
+- `pnpm build`: Full build of both WASM and TS wrappers.
 
-- **Rendering Pipelines:**
-  - **SVG (2-Pass):** Measurement -> Drawing to `SkSVGCanvas` -> Regex Post-Processing.
-  - **PDF (2-Pass):** Measurement -> Drawing to `SkPDFDocument`.
-  - **PNG/WEBP**: Render to `SkSurface` -> `SkImage` -> Encode.
+### 4.2 Verification Protocol (For Features & Fixes)
+1.  **Build Check**: Verify `pnpm wasm:build` completes without errors.
+2.  **Debug Logs**: Run `convert-assets --verbose` and inspect `satoru_log` outputs for internal state.
+3.  **SVG Inspection**: For rendering changes, check the generated SVG source for correct tag structure and attributes.
+4.  **Visual Audit**: Manually inspect generated images in `packages/visual-test/temp`.
 
-- **Font Handling:**
-  - **No Default Font:** All fonts must be explicitly loaded.
-  - **fallback:** Generic keywords trigger fallback to first available `@font-face`.
-
-- **CSS Engine (litehtml Customizations):**
-  - **Cascade Priority Logic:** Correct W3C cascade order: `Important` > `Layer` > `Specificity`.
-  - **International Text Support**: `HarfBuzz`, `libunibreak`, and `utf8proc` integrated for complex text shaping and line breaking.
-
-### 4. Testing & Validation
-
-- **Visual Regression Suite (`packages/visual-test`)**:
-  - Compares Skia outputs against Chromium references.
-  - **Read-Only Protocol:** `png.test.ts` and `svg.test.ts` do not modify references.
-  - **Output Validation**: `pnpm --filter visual-test convert-assets [file.html]`.
-    - Supports relative and absolute paths for the input file (e.g., `assets/01-layout.html`).
-
-### 5. Code Maintenance
-
-- **Formatting:** Always run `pnpm format` (`clang-format` for C++, Prettier for TS).
-- **Diagnostics**: Run visual tests with `--verbose` to see `satoru_log` output in the console.
+### 4.3 Maintenance
+- **Formatting**: Always run `pnpm format` (`clang-format` for C++, `Prettier` for TS).
+- **Asset Conversion**: `pnpm --filter visual-test convert-assets [file.html]`
+  - Flags: `--outline` (Force SVG paths), `--no-outline` (Disable paths), `--verbose` (Enable logs).

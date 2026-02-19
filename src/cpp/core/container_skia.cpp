@@ -490,6 +490,20 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                                    y - gap / 2, dec_paint);
                 m_canvas->drawLine((float)pos.x, y + gap / 2, (float)pos.x + x_offset_dec,
                                    y + gap / 2, dec_paint);
+            } else if (fi->desc.decoration_style == litehtml::text_decoration_style_wavy) {
+                SkPathBuilder builder;
+                float x_start = (float)pos.x;
+                float x_end = (float)pos.x + x_offset_dec;
+                float wave_height = thickness * 1.5f;
+                float wave_length = thickness * 3.0f;
+
+                builder.moveTo(x_start, y);
+                for (float x = x_start; x < x_end; x += wave_length) {
+                    builder.quadTo(x + wave_length / 4.0f, y - wave_height, x + wave_length / 2.0f, y);
+                    builder.quadTo(x + wave_length * 3.0f / 4.0f, y + wave_height,
+                                   std::min(x + wave_length, x_end), y);
+                }
+                m_canvas->drawPath(builder.detach(), dec_paint);
             } else {
                 m_canvas->drawLine((float)pos.x, y, (float)pos.x + x_offset_dec, y, dec_paint);
             }

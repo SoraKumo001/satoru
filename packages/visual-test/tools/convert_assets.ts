@@ -20,6 +20,7 @@ async function main() {
   const args = process.argv.slice(2);
   const verbose = args.includes("--verbose");
   const noOutline = args.includes("--no-outline");
+  const outline = args.includes("--outline");
 
   let width = 800;
   const widthIdx = args.findIndex((a) => a === "--width");
@@ -108,7 +109,7 @@ async function main() {
             format,
             baseUrl: fileDir,
             css: "body { margin: 8px; }",
-            textToPaths: !noOutline,
+            textToPaths: format === "svg" ? outline : !noOutline,
             onLog: verbose ? onLog : undefined,
             logLevel: verbose ? LogLevel.Debug : LogLevel.None,
           });

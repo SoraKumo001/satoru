@@ -17,6 +17,8 @@ enum class MagicTag : uint8_t {
     TextDraw = 3,    // r=0, g=3: テキスト描画属性（weight/italic等）
     FilterPush = 4,  // r=0, g=4: フィルタグループ開始
     FilterPop = 5,   // r=0, g=5: フィルタグループ終了
+    LayerPush = 6,   // r=0, g=6: 不透明度グループ開始
+    LayerPop = 7,    // r=0, g=7: 不透明度グループ終了
 };
 
 enum class MagicTagExtended : uint8_t {

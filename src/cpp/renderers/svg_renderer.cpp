@@ -175,6 +175,29 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                   ";fill-opacity:" + std::to_string(opacity));
                 lastPos = valEnd + (isAttr ? 1 : 0);
                 replaced = true;
+            } else if (tag == satoru::MagicTag::LayerPush) {
+                float opacity = (float)b / 255.0f;
+                size_t elementStart = svg.rfind('<', pos);
+                size_t elementEnd = svg.find('>', valEnd);
+                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                    elementStart >= lastPos) {
+                    result.erase(result.size() - (pos - elementStart));
+                    std::stringstream ss;
+                    ss << "<g opacity=\"" << opacity << "\">";
+                    result.append(ss.str());
+                    lastPos = elementEnd + 1;
+                    replaced = true;
+                }
+            } else if (tag == satoru::MagicTag::LayerPop) {
+                size_t elementStart = svg.rfind('<', pos);
+                size_t elementEnd = svg.find('>', valEnd);
+                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                    elementStart >= lastPos) {
+                    result.erase(result.size() - (pos - elementStart));
+                    result.append("</g>");
+                    lastPos = elementEnd + 1;
+                    replaced = true;
+                }
             } else if (tag == satoru::MagicTag::FilterPush && b > 0 && b <= (int)filters.size()) {
                 const auto &info = filters[b - 1];
                 size_t elementStart = svg.rfind('<', pos);

@@ -1,4 +1,5 @@
 #include <stdint.h>
+
 #include "include/private/base/SkSemaphore.h"
 
 // SkSemaphore
@@ -16,18 +17,31 @@ int64_t SkGetThreadID() { return 0; }
 
 extern "C" {
 // (i32, i32) -> i32
-int _ZNK15SkRuntimeEffect9findChildENSt3__217basic_string_viewIcNS0_11char_traitsIcEEEE(void* a, void* b) { return 0; }
-int _ZNK15SkRuntimeEffect11findUniformENSt3__217basic_string_viewIcNS0_11char_traitsIcEEEE(void* a, void* b) { return 0; }
+int _ZNK15SkRuntimeEffect9findChildENSt3__217basic_string_viewIcNS0_11char_traitsIcEEEE(void* a,
+                                                                                        void* b) {
+    return 0;
+}
+int _ZNK15SkRuntimeEffect11findUniformENSt3__217basic_string_viewIcNS0_11char_traitsIcEEEE(
+    void* a, void* b) {
+    return 0;
+}
 
 // (i32, f32) -> i32
 int _ZN11GrPathUtils15cubicPointCountEPK7SkPointf(void* a, float b) { return 0; }
 int _ZN11GrPathUtils19quadraticPointCountEPK7SkPointf(void* a, float b) { return 0; }
 
 // (i32, i32, i32, f32, i32, i32) -> i32
-int _ZN11GrPathUtils23generateQuadraticPointsERK7SkPointS2_S2_fPPS0_j(void* a, void* b, void* c, float d, void* e, int f) { return 0; }
+int _ZN11GrPathUtils23generateQuadraticPointsERK7SkPointS2_S2_fPPS0_j(void* a, void* b, void* c,
+                                                                      float d, void* e, int f) {
+    return 0;
+}
 
 // (i32, i32, i32, i32, f32, i32, i32) -> i32
-int _ZN11GrPathUtils19generateCubicPointsERK7SkPointS2_S2_S2_fPPS0_j(void* a, void* b, void* c, void* d, float e, void* f, int g) { return 0; }
+int _ZN11GrPathUtils19generateCubicPointsERK7SkPointS2_S2_S2_fPPS0_j(void* a, void* b, void* c,
+                                                                     void* d, float e, void* f,
+                                                                     int g) {
+    return 0;
+}
 
 // (i32) -> i32
 int _ZNK13GrStyledShape15unstyledKeySizeEv(void* a) { return 0; }
@@ -51,9 +65,10 @@ void _ZN13GrStyledShape8simplifyEv() {}
 void _ZNK13GrStyledShape16writeUnstyledKeyEPj() {}
 
 // SkOTUtils
-void _ZN9SkOTUtils26LocalizedStrings_NameTable18MakeForFamilyNamesERK10SkTypeface(void* result_ptr, const void* typeface) {
+void _ZN9SkOTUtils26LocalizedStrings_NameTable18MakeForFamilyNamesERK10SkTypeface(
+    void* result_ptr, const void* typeface) {
     if (result_ptr) {
-        *(void **)result_ptr = nullptr;
+        *(void**)result_ptr = nullptr;
     }
 }
 }
@@ -64,4 +79,4 @@ class DebugTracePriv {
     virtual ~DebugTracePriv() {}
 };
 }  // namespace SkSL
-SkSL::DebugTracePriv *force_vtable_sksl = nullptr;
+SkSL::DebugTracePriv* force_vtable_sksl = nullptr;

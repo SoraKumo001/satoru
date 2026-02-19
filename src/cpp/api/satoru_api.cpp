@@ -67,8 +67,8 @@ std::string SatoruInstance::get_full_master_css() const {
 }
 
 void SatoruInstance::init_document(const char *html, int width) {
-    render_container = std::make_unique<container_skia>(width, 32767, nullptr, context,
-                                                       &resourceManager, false);
+    render_container =
+        std::make_unique<container_skia>(width, 32767, nullptr, context, &resourceManager, false);
 
     std::string css = get_full_master_css() + "\nbr { display: -litehtml-br !important; }\n";
     doc = litehtml::document::createFromString(html, render_container.get(), css.c_str());
@@ -107,8 +107,8 @@ static void scan_image_sizes(litehtml::element::ptr el, SatoruContext &context) 
 }
 
 void SatoruInstance::collect_resources(const std::string &html, int width) {
-    discovery_container = std::make_unique<container_skia>(width, 32767, nullptr, context,
-                                                          &resourceManager, false);
+    discovery_container =
+        std::make_unique<container_skia>(width, 32767, nullptr, context, &resourceManager, false);
 
     context.fontManager.scanFontFaces(html.c_str());
 
@@ -165,8 +165,8 @@ std::string SatoruInstance::get_pending_resources_json() {
             typeStr = "css";
 
         ss << "{\"url\":\"" << json_escape(req.url) << "\",\"name\":\"" << json_escape(req.name)
-           << "\",\"type\":\"" << typeStr << "\",\"redraw_on_ready\":"
-           << (req.redraw_on_ready ? "true" : "false") << "}";
+           << "\",\"type\":\"" << typeStr
+           << "\",\"redraw_on_ready\":" << (req.redraw_on_ready ? "true" : "false") << "}";
         if (i < requests.size() - 1) ss << ",";
     }
     ss << "]";
@@ -181,8 +181,8 @@ void api_destroy_instance(SatoruInstance *inst) { delete inst; }
 
 std::string api_html_to_svg(SatoruInstance *inst, const char *html, int width, int height,
                             const RenderOptions &options) {
-    return renderHtmlToSvg(html, width, height, inst->context,
-                           inst->get_full_master_css().c_str(), options);
+    return renderHtmlToSvg(html, width, height, inst->context, inst->get_full_master_css().c_str(),
+                           options);
 }
 
 const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width, int height,
@@ -311,14 +311,17 @@ const uint8_t *api_render_from_state(SatoruInstance *inst, int width, int height
             return inst->context.get_last_svg()->bytes();
         }
         case RenderFormat::PNG:
-            return render_and_store(inst, [&]() { return renderDocumentToPng(inst, width, height, options); },
-                                    &SatoruContext::set_last_png, out_size);
+            return render_and_store(
+                inst, [&]() { return renderDocumentToPng(inst, width, height, options); },
+                &SatoruContext::set_last_png, out_size);
         case RenderFormat::WebP:
-            return render_and_store(inst, [&]() { return renderDocumentToWebp(inst, width, height, options); },
-                                    &SatoruContext::set_last_webp, out_size);
+            return render_and_store(
+                inst, [&]() { return renderDocumentToWebp(inst, width, height, options); },
+                &SatoruContext::set_last_webp, out_size);
         case RenderFormat::PDF:
-            return render_and_store(inst, [&]() { return renderDocumentToPdf(inst, width, height, options); },
-                                    &SatoruContext::set_last_pdf, out_size);
+            return render_and_store(
+                inst, [&]() { return renderDocumentToPdf(inst, width, height, options); },
+                &SatoruContext::set_last_pdf, out_size);
     }
     out_size = 0;
     return nullptr;

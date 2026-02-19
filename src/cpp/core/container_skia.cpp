@@ -537,9 +537,8 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
         const auto &s = *it;
         if (s.inset != inset) continue;
         SkRRect box_rrect = make_rrect(pos, radius);
-        float current_opacity = get_current_opacity();
-        SkColor shadow_color = SkColorSetARGB((uint8_t)(s.color.alpha * current_opacity),
-                                              s.color.red, s.color.green, s.color.blue);
+        SkColor shadow_color =
+            SkColorSetARGB(s.color.alpha, s.color.red, s.color.green, s.color.blue);
         float blur_std_dev = (float)s.blur.val() * 0.5f;
         m_canvas->save();
         if (inset) {
@@ -581,7 +580,7 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
         image_draw_info draw;
         draw.url = url;
         draw.layer = layer;
-        draw.opacity = get_current_opacity();
+        draw.opacity = 1.0f;
         m_usedImageDraws.push_back(draw);
         int index = (int)m_usedImageDraws.size();
         SkPaint p;
@@ -593,14 +592,13 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
         if (it != m_context.imageCache.end() && it->second.skImage) {
             SkPaint p;
             p.setAntiAlias(true);
-            p.setAlphaf(get_current_opacity());
 
             m_canvas->save();
             m_canvas->clipRRect(make_rrect(layer.border_box, layer.border_radius), true);
 
-            SkRect dst = SkRect::MakeXYWH((float)layer.origin_box.x, (float)layer.origin_box.y,
-                                          (float)layer.origin_box.width,
-                                          (float)layer.origin_box.height);
+            SkRect dst =
+                SkRect::MakeXYWH((float)layer.origin_box.x, (float)layer.origin_box.y,
+                                 (float)layer.origin_box.width, (float)layer.origin_box.height);
 
             if (layer.repeat == litehtml::background_repeat_no_repeat) {
                 m_canvas->drawImageRect(it->second.skImage, dst,
@@ -654,9 +652,6 @@ void container_skia::draw_solid_fill(litehtml::uint_ptr hdc,
     if (!m_canvas) return;
     SkPaint p;
     p.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
-    if (m_tagging && m_usedFilters.empty()) {
-        p.setAlphaf(p.getAlphaf() * get_current_opacity());
-    }
     p.setAntiAlias(true);
     m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
 }
@@ -669,7 +664,7 @@ void container_skia::draw_linear_gradient(
         linear_gradient_info info;
         info.layer = layer;
         info.gradient = gradient;
-        info.opacity = get_current_opacity();
+        info.opacity = 1.0f;
         m_usedLinearGradients.push_back(info);
         int index = (int)m_usedLinearGradients.size();
         SkPaint p;
@@ -681,11 +676,9 @@ void container_skia::draw_linear_gradient(
                           SkPoint::Make((float)gradient.end.x, (float)gradient.end.y)};
         std::vector<SkColor4f> colors;
         std::vector<float> pos;
-        float current_opacity = get_current_opacity();
         for (const auto &stop : gradient.color_points) {
             colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
-                              stop.color.blue / 255.0f,
-                              (stop.color.alpha / 255.0f) * current_opacity});
+                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
             pos.push_back(stop.offset);
         }
         SkGradient grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos), SkTileMode::kClamp),
@@ -705,7 +698,7 @@ void container_skia::draw_radial_gradient(
         radial_gradient_info info;
         info.layer = layer;
         info.gradient = gradient;
-        info.opacity = get_current_opacity();
+        info.opacity = 1.0f;
         m_usedRadialGradients.push_back(info);
         int index = (int)m_usedRadialGradients.size();
         SkPaint p;
@@ -718,11 +711,9 @@ void container_skia::draw_radial_gradient(
         if (rx <= 0 || ry <= 0) return;
         std::vector<SkColor4f> colors;
         std::vector<float> pos;
-        float current_opacity = get_current_opacity();
         for (const auto &stop : gradient.color_points) {
             colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
-                              stop.color.blue / 255.0f,
-                              (stop.color.alpha / 255.0f) * current_opacity});
+                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
             pos.push_back(stop.offset);
         }
         SkMatrix matrix;
@@ -744,7 +735,7 @@ void container_skia::draw_conic_gradient(
         conic_gradient_info info;
         info.layer = layer;
         info.gradient = gradient;
-        info.opacity = get_current_opacity();
+        info.opacity = 1.0f;
         m_usedConicGradients.push_back(info);
         int index = (int)m_usedConicGradients.size();
         SkPaint p;
@@ -755,12 +746,10 @@ void container_skia::draw_conic_gradient(
         SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
         std::vector<SkColor4f> colors;
         std::vector<float> pos;
-        float current_opacity = get_current_opacity();
         for (size_t i = 0; i < gradient.color_points.size(); ++i) {
             const auto &stop = gradient.color_points[i];
             colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
-                              stop.color.blue / 255.0f,
-                              (stop.color.alpha / 255.0f) * current_opacity});
+                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
             float offset = stop.offset;
             if (i > 0 && offset <= pos.back()) {
                 offset = pos.back() + 0.00001f;
@@ -809,9 +798,6 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
         SkPaint p;
         p.setColor(SkColorSetARGB(borders.top.color.alpha, borders.top.color.red,
                                   borders.top.color.green, borders.top.color.blue));
-        if (m_tagging) {
-            p.setAlphaf(p.getAlphaf() * get_current_opacity());
-        }
         p.setAntiAlias(true);
 
         SkRRect rr = make_rrect(draw_pos, borders.radius);
@@ -872,9 +858,6 @@ void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::border
             SkPaint p;
             p.setAntiAlias(true);
             p.setColor(SkColorSetARGB(b.color.alpha, b.color.red, b.color.green, b.color.blue));
-            if (m_tagging) {
-                p.setAlphaf(p.getAlphaf() * get_current_opacity());
-            }
 
             if (b.style == litehtml::border_style_dotted ||
                 b.style == litehtml::border_style_dashed) {
@@ -1056,9 +1039,6 @@ void container_skia::draw_list_marker(litehtml::uint_ptr hdc, const litehtml::li
     paint.setAntiAlias(true);
     litehtml::web_color color = marker.color;
     paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
-    if (m_tagging) {
-        paint.setAlphaf(paint.getAlphaf() * get_current_opacity());
-    }
 
     SkRect rect = SkRect::MakeXYWH((float)marker.pos.x, (float)marker.pos.y,
                                    (float)marker.pos.width, (float)marker.pos.height);
@@ -1212,7 +1192,21 @@ void container_skia::split_text(const char *text, const std::function<void(const
 void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity) {
     m_opacity_stack.push_back(opacity);
     if (m_canvas) {
-        if (opacity < 1.0f && !m_tagging) {
+        if (m_tagging) {
+            SkPaint p;
+            p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::LayerPush,
+                                      (uint8_t)(opacity * 255.0f)));
+            SkRect rect;
+            if (!m_clips.empty()) {
+                rect = SkRect::MakeXYWH((float)m_clips.back().first.x, (float)m_clips.back().first.y,
+                                        (float)m_clips.back().first.width,
+                                        (float)m_clips.back().first.height);
+            } else {
+                rect = SkRect::MakeWH((float)m_width, (float)m_height);
+            }
+            m_canvas->drawRect(rect, p);
+            m_canvas->save();
+        } else if (opacity < 1.0f) {
             SkPaint paint;
             paint.setAlphaf(opacity);
             m_canvas->saveLayer(nullptr, &paint);
@@ -1227,6 +1221,19 @@ void container_skia::pop_layer(litehtml::uint_ptr hdc) {
         m_opacity_stack.pop_back();
     }
     if (m_canvas) {
+        if (m_tagging) {
+            SkPaint p;
+            p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::LayerPop, 0));
+            SkRect rect;
+            if (!m_clips.empty()) {
+                rect = SkRect::MakeXYWH((float)m_clips.back().first.x, (float)m_clips.back().first.y,
+                                        (float)m_clips.back().first.width,
+                                        (float)m_clips.back().first.height);
+            } else {
+                rect = SkRect::MakeWH((float)m_width, (float)m_height);
+            }
+            m_canvas->drawRect(rect, p);
+        }
         m_canvas->restore();
     }
 }

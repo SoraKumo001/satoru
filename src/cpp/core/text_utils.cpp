@@ -330,19 +330,22 @@ int get_bidi_level(const char* text, int base_level, int* last_level) {
             cat == UTF8PROC_CATEGORY_PS || cat == UTF8PROC_CATEGORY_PE ||
             cat == UTF8PROC_CATEGORY_PI || cat == UTF8PROC_CATEGORY_PF ||
             cat == UTF8PROC_CATEGORY_PC || cat == UTF8PROC_CATEGORY_MN ||
-            cat == UTF8PROC_CATEGORY_MC || cat == UTF8PROC_CATEGORY_ME || cat == UTF8PROC_CATEGORY_ZS ||
-            (u <= 0x2F) || (u >= 0x3A && u <= 0x40) || (u >= 0x5B && u <= 0x60) || (u >= 0x7B && u <= 0x7F)) {
+            cat == UTF8PROC_CATEGORY_MC || cat == UTF8PROC_CATEGORY_ME ||
+            cat == UTF8PROC_CATEGORY_ZS || (u <= 0x2F) || (u >= 0x3A && u <= 0x40) ||
+            (u >= 0x5B && u <= 0x60) || (u >= 0x7B && u <= 0x7F)) {
             continue;
         }
 
         all_neutral = false;
 
         // Check if character is RTL (Arabic, Hebrew, Syriac, Thaana, N'Ko, etc.)
-        bool is_rtl = (u >= 0x0590 && u <= 0x08FF) ||   // Hebrew, Arabic, Syriac, Arabic Supplement, Thaana, Samaritan, Mandaic, Arabic Extended-A
-                      (u >= 0xFB50 && u <= 0xFDFF) ||   // Arabic Presentation Forms-A
-                      (u >= 0xFE70 && u <= 0xFEFF) ||   // Arabic Presentation Forms-B
-                      (u >= 0x10800 && u <= 0x10FFF) || // Various ancient RTL scripts
-                      (u >= 0x1E800 && u <= 0x1EFFF);   // More RTL scripts
+        bool is_rtl =
+            (u >= 0x0590 && u <= 0x08FF) ||    // Hebrew, Arabic, Syriac, Arabic Supplement, Thaana,
+                                               // Samaritan, Mandaic, Arabic Extended-A
+            (u >= 0xFB50 && u <= 0xFDFF) ||    // Arabic Presentation Forms-A
+            (u >= 0xFE70 && u <= 0xFEFF) ||    // Arabic Presentation Forms-B
+            (u >= 0x10800 && u <= 0x10FFF) ||  // Various ancient RTL scripts
+            (u >= 0x1E800 && u <= 0x1EFFF);    // More RTL scripts
 
         int level;
         if (is_rtl) {

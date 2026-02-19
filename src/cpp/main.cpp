@@ -32,9 +32,10 @@ std::vector<uint8_t> val_to_vector(val data) {
 }
 
 // EMSCRIPTEN_BINDINGS helper
-val render_val(SatoruInstance *inst, val htmls, int width, int height, int format, bool svgTextToPaths) {
+val render_val(SatoruInstance *inst, val htmls, int width, int height, int format,
+               bool svgTextToPaths) {
     if (!inst) return val::null();
-    
+
     std::vector<std::string> html_vector;
     if (htmls.isArray()) {
         auto l = htmls["length"].as<unsigned>();
@@ -99,7 +100,8 @@ void layout_document_val(SatoruInstance *inst, int width) {
     api_layout_document(inst, width);
 }
 
-val render_from_state_val(SatoruInstance *inst, int width, int height, int format, bool svgTextToPaths) {
+val render_from_state_val(SatoruInstance *inst, int width, int height, int format,
+                          bool svgTextToPaths) {
     if (!inst) return val::null();
     RenderOptions options;
     options.svgTextToPaths = svgTextToPaths;

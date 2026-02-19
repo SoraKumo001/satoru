@@ -164,6 +164,8 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/src/ports/SkFontHost_FreeType.cpp"
     "${skia_SOURCE_DIR}/src/ports/SkFontHost_FreeType_common.cpp"
     "${skia_SOURCE_DIR}/src/ports/SkOSFile_posix.cpp"
+    "${skia_SOURCE_DIR}/src/ports/SkOSFile_stdio.cpp"
+    "${skia_SOURCE_DIR}/src/ports/SkTime_Unix.cpp"
     "${skia_SOURCE_DIR}/src/ports/SkMemory_malloc.cpp"
     "${skia_SOURCE_DIR}/src/ports/SkDiscardableMemory_none.cpp"
     "${skia_SOURCE_DIR}/src/ports/SkFontMgr_custom.cpp"
@@ -199,6 +201,7 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/src/codec/SkExif.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkTiffUtility.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkGainmapInfo.cpp"
+    "${skia_SOURCE_DIR}/src/utils/SkOTUtils.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkBmpBaseCodec.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkBmpCodec.cpp"
     "${skia_SOURCE_DIR}/src/codec/SkBmpMaskCodec.cpp"
@@ -237,7 +240,7 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/modules/skunicode/src/SkUnicode_hardcoded.cpp"
 )
 list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*_win.cpp|.*_mac.cpp|.*_linux.cpp|.*_android.cpp|.*_ios.cpp")
-list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkTime.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkMesh.*|.*SkRuntimeBlender.*|.*SkSL.*|.*SkGPU.*|.*SkGpu.*|.*SkGraphite.*|.*SkDocument_PDF_None.cpp|.*src/gpu/.*|.*src/graphite/.*")
+list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*SkSemaphore.*|.*SkRuntimeEffect.*|.*SkMesh.*|.*SkRuntimeBlender.*|.*SkSL.*|.*SkGPU.*|.*SkGpu.*|.*SkGraphite.*|.*SkDocument_PDF_None.cpp|.*src/gpu/.*|.*src/graphite/.*")
 
 target_sources(skia_lib PRIVATE ${SKIA_CORE_SRC})
 target_include_directories(skia_lib PUBLIC

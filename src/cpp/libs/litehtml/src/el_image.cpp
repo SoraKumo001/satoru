@@ -45,15 +45,15 @@ void litehtml::el_image::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position
 		if (pos.width > 0 && pos.height > 0)
 		{
 			position border_box = pos;
-			border_box -= ri->get_paddings();
-			border_box -= ri->get_borders();
+			border_box += ri->get_paddings();
+			border_box += ri->get_borders();
 
 			background_layer layer;
-			layer.clip_box = pos;
+			layer.clip_box = border_box;
 			layer.origin_box = pos;
 			layer.border_box = border_box;
 			layer.repeat = background_repeat_no_repeat;
-			layer.border_radius = css().get_borders().radius.calc_percents(layer.border_box.width, layer.border_box.height);
+			layer.border_radius = css().get_borders().radius.calc_percents(border_box.width, border_box.height);
 			get_document()->container()->draw_image(hdc, layer, m_src, {});
 		}
 	}

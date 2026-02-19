@@ -196,7 +196,8 @@ namespace litehtml
 		return (css().get_position() > element_position_static || 
 				css().get_opacity() < 1.0f ||
 				!css().get_transform().empty() ||
-				!css().get_filter().empty());
+				!css().get_filter().empty() ||
+				!css().get_z_index_length().is_predefined());
 	}
 
 	inline bool litehtml::element::is_float()	const

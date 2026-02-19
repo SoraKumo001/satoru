@@ -91,7 +91,9 @@ void SatoruInstance::collect_resources(const std::string &html, int width) {
 
     auto temp_doc = litehtml::document::createFromString(html.c_str(), discovery_container.get(),
                                                          get_full_master_css().c_str());
-    if (temp_doc) temp_doc->render(width);
+    if (temp_doc) {
+        temp_doc->render(width);
+    }
 
     const auto &usedCodepoints = discovery_container->get_used_codepoints();
     const auto &requestedAttribs = discovery_container->get_requested_font_attributes();

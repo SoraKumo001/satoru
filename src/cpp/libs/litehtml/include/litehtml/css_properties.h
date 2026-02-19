@@ -244,6 +244,7 @@ namespace litehtml
 
     int get_z_index() const;
     void set_z_index(int mZIndex);
+    const css_length& get_z_index_length() const { return m_z_index; }
 
     vertical_align get_vertical_align() const;
     void set_vertical_align(vertical_align mVerticalAlign);

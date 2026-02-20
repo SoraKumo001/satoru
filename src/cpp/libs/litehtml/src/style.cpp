@@ -11,6 +11,7 @@
 namespace litehtml
 {
   bool evaluate_calc(css_token_vector &tokens, const html_tag *el);
+  bool evaluate_light_dark(css_token_vector &tokens, document_container *container);
 
   bool parse_bg_image(const css_token &token, image &bg_image, document_container *container);
   bool parse_bg_position_size(const css_token_vector &tokens, int &index, css_length &x, css_length &y, css_size &size);
@@ -177,6 +178,7 @@ namespace litehtml
 
     css_token_vector evaluated_value = value;
     evaluate_calc(evaluated_value, nullptr);
+    evaluate_light_dark(evaluated_value, container);
 
     if (has_var(evaluated_value))
       return add_parsed_property(name, property_value(evaluated_value, important, true, m_layer, m_specificity));
@@ -283,28 +285,56 @@ namespace litehtml
       return add_length_property(name, val, font_size_strings, f_length_percentage | f_positive, important);
 
     case _margin_inline_:
+      if (int n = parse_1234_lengths(value, len, f_length_percentage, "auto"))
+        add_two_properties(_margin_inline_start_, len, n, important);
+      break;
+    case _margin_block_:
+      if (int n = parse_1234_lengths(value, len, f_length_percentage, "auto"))
+        add_two_properties(_margin_block_start_, len, n, important);
+      break;
+    case _padding_inline_:
+      if (int n = parse_1234_lengths(value, len, f_length_percentage | f_positive))
+        add_two_properties(_padding_inline_start_, len, n, important);
+      break;
+    case _padding_block_:
+      if (int n = parse_1234_lengths(value, len, f_length_percentage | f_positive))
+        add_two_properties(_padding_block_start_, len, n, important);
+      break;
+    case _inset_inline_:
+      if (int n = parse_1234_lengths(value, len, f_length_percentage, "auto"))
+        add_two_properties(_inset_inline_start_, len, n, important);
+      break;
+    case _inset_block_:
+      if (int n = parse_1234_lengths(value, len, f_length_percentage, "auto"))
+        add_two_properties(_inset_block_start_, len, n, important);
+      break;
+
     case _margin_inline_start_:
     case _margin_inline_end_:
-    case _margin_block_:
     case _margin_block_start_:
     case _margin_block_end_:
-    case _padding_inline_:
     case _padding_inline_start_:
     case _padding_inline_end_:
-    case _padding_block_:
     case _padding_block_start_:
     case _padding_block_end_:
-    case _inset_inline_:
     case _inset_inline_start_:
     case _inset_inline_end_:
-    case _inset_block_:
     case _inset_block_start_:
     case _inset_block_end_:
+      return add_length_property(name, val, "auto", f_length_percentage, important);
+
     case _border_inline_:
+      parse_border_side(_border_inline_start_, value, important, container);
+      parse_border_side(_border_inline_end_, value, important, container);
+      break;
+    case _border_block_:
+      parse_border_side(_border_block_start_, value, important, container);
+      parse_border_side(_border_block_end_, value, important, container);
+      break;
+
     case _border_inline_width_:
     case _border_inline_style_:
     case _border_inline_color_:
-    case _border_block_:
     case _border_block_width_:
     case _border_block_style_:
     case _border_block_color_:
@@ -916,6 +946,16 @@ namespace litehtml
     add_parsed_property(right, property_value(val[n > 1], important, false, m_layer, m_specificity));
     add_parsed_property(bottom, property_value(val[n / 3 * 2], important, false, m_layer, m_specificity));
     add_parsed_property(left, property_value(val[n / 2 + n / 4], important, false, m_layer, m_specificity));
+  }
+
+  template <class T>
+  void style::add_two_properties(string_id start_name, T val[2], int n, bool important)
+  {
+    string_id start = start_name;
+    string_id end = string_id(start_name + 1);
+
+    add_parsed_property(start, property_value(val[0], important, false, m_layer, m_specificity));
+    add_parsed_property(end, property_value(val[n > 1], important, false, m_layer, m_specificity));
   }
 
   void style::parse_background(const css_token_vector &tokens, const string &baseurl, bool important, document_container *container)
@@ -1744,6 +1784,41 @@ namespace litehtml
         return true;
     }
     return false;
+  }
+
+  bool evaluate_light_dark(css_token_vector &tokens, document_container *container)
+  {
+    bool changed = false;
+    for (int i = 0; i < (int)tokens.size(); i++)
+    {
+      auto &tok = tokens[i];
+      if (tok.type == CV_FUNCTION && lowcase(tok.name) == "light-dark")
+      {
+        auto list = parse_comma_separated_list(tok.value);
+        if (list.size() == 2)
+        {
+          color_scheme scheme = color_scheme_light;
+          if (container)
+          {
+            media_features feat;
+            container->get_media_features(feat);
+            scheme = feat.scheme;
+          }
+          css_token_vector selected = (scheme == color_scheme_dark) ? list[1] : list[0];
+          remove(tokens, i);
+          insert(tokens, i, selected);
+          changed = true;
+          i--;
+          continue;
+        }
+      }
+      if (tok.is_component_value())
+      {
+        if (evaluate_light_dark(tok.value, container))
+          changed = true;
+      }
+    }
+    return changed;
   }
 
   bool evaluate_calc(css_token_vector &tokens, const html_tag *el)

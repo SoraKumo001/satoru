@@ -142,6 +142,7 @@ namespace litehtml
                 void add_parsed_property(string_id name, const property_value& propval);
                 void add_length_property(string_id name, css_token val, string keywords, int options, bool important);
                 template<class T> void add_four_properties(string_id top_name, T val[4], int n, bool important);
+                template<class T> void add_two_properties(string_id start_name, T val[2], int n, bool important);
                 void remove_property(string_id name, bool important);
         };
 

@@ -135,7 +135,8 @@ namespace litehtml
     void compute_flex(const html_tag *el, const std::shared_ptr<document> &doc);
     void compute_grid(const html_tag *el, const std::shared_ptr<document> &doc);
     web_color get_color_property(const html_tag *el, string_id name, bool inherited, web_color default_value, uint_ptr member_offset) const;
-    css_length get_logical_property(const html_tag *el, string_id logical_start, string_id logical_end, string_id physical_left, string_id physical_right, string_id logical_all, uint_ptr member_offset) const;
+    template <class T>
+    T get_logical_property(const html_tag *el, string_id logical_side, string_id physical_side, string_id logical_all, T default_value, bool inherited, uint_ptr member_offset) const;
     void snap_border_width(css_length &width, const std::shared_ptr<document> &doc);
 
   public:

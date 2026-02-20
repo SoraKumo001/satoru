@@ -186,26 +186,26 @@ const App: React.FC = () => {
         textToPaths,
         css: "body { margin: 8px; }",
         baseUrl: `${window.location.origin}${window.location.pathname}assets/`,
-        resolveResource: async (resource, defaultResolver) => {
-          console.log(
-            `[Playground] Resolving: ${resource.url} (${resource.type})`,
-          );
-          // Open Cache storage
-          const cache = await caches.open("satoru-resource-cache");
-          const cachedResponse = await cache.match(resource.url);
+        // resolveResource: async (resource, defaultResolver) => {
+        //   console.log(
+        //     `[Playground] Resolving: ${resource.url} (${resource.type})`,
+        //   );
+        //   // Open Cache storage
+        //   const cache = await caches.open("satoru-resource-cache");
+        //   const cachedResponse = await cache.match(resource.url);
 
-          if (cachedResponse) {
-            console.log(`[Satoru] Cache Hit: ${resource.url}`);
-            const buf = await cachedResponse.arrayBuffer();
-            return new Uint8Array(buf);
-          }
+        //   if (cachedResponse) {
+        //     console.log(`[Satoru] Cache Hit: ${resource.url}`);
+        //     const buf = await cachedResponse.arrayBuffer();
+        //     return new Uint8Array(buf);
+        //   }
 
-          // Fetch using default resolver (or manual fetch if in worker proxy)
-          const data = await defaultResolver(resource);
-          if (data)
-            await cache.put(resource.url, new Response(data as BodyInit));
-          return data;
-        },
+        //   // Fetch using default resolver (or manual fetch if in worker proxy)
+        //   const data = await defaultResolver(resource);
+        //   if (data)
+        //     await cache.put(resource.url, new Response(data as BodyInit));
+        //   return data;
+        // },
       });
 
       const endTime = performance.now();

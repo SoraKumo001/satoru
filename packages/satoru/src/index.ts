@@ -58,7 +58,7 @@ export interface RequiredResource {
 export type ResourceResolver = (
   resource: RequiredResource,
   defaultResolver: (resource: RequiredResource) => Promise<Uint8Array | null>,
-) => Promise<Uint8Array | null>;
+) => Promise<Uint8Array | ArrayBufferView | null>;
 
 export interface RenderOptions {
   value?: string | string[];
@@ -342,31 +342,11 @@ export class Satoru {
       const defaultResolver = (r: RequiredResource) =>
         Satoru.defaultResourceResolver(r, baseUrl, options.userAgent);
 
-      const isWorker =
-        typeof window === "undefined" && typeof self !== "undefined";
-
       const resolver: (
         resource: RequiredResource,
-      ) => Promise<Uint8Array | null> = options.resolveResource
+      ) => Promise<Uint8Array | ArrayBufferView | null> = options.resolveResource
         ? async (r) => {
-            try {
-              if (isWorker) {
-                // In worker environment, we don't pass defaultResolver to avoid DataCloneError.
-                // The main thread proxy (wrapped in workers.ts) will provide the actual defaultResolver.
-                return await (options.resolveResource as any)(r);
-              }
-              return await options.resolveResource!(r, defaultResolver);
-            } catch (e) {
-              if (
-                e instanceof Error &&
-                (e.name === "DataCloneError" ||
-                  e.message.includes("could not be cloned"))
-              ) {
-                // Fallback for older proxies or environments
-                return await (options.resolveResource as any)(r);
-              }
-              throw e;
-            }
+            return await options.resolveResource!(r, defaultResolver);
           }
         : defaultResolver;
 
@@ -395,11 +375,12 @@ export class Satoru {
                 }
                 resolvedUrls.add(r.url);
                 const data = await resolver({ ...r });
-                if (data instanceof Uint8Array) {
+                if (data && (data instanceof Uint8Array || ArrayBuffer.isView(data))) {
+                  const uint8 = data instanceof Uint8Array ? data : new Uint8Array((data as ArrayBufferView).buffer, (data as ArrayBufferView).byteOffset, (data as ArrayBufferView).byteLength);
                   let typeInt = 1;
                   if (r.type === "image") typeInt = 2;
                   if (r.type === "css") typeInt = 3;
-                  mod.add_resource(instancePtr, r.url, typeInt, data);
+                  mod.add_resource(instancePtr, r.url, typeInt, uint8);
                 }
               } catch (e) {
                 console.warn(`Failed to resolve resource: ${r.url}`, e);

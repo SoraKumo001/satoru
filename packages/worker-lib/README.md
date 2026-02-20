@@ -14,7 +14,8 @@
 - **🚀 Universal API**: Supports both Browser and Node.js with a single unified entry point.
 - **🛡️ Type-Safe**: Full TypeScript support with automatic type inference for worker functions.
 - **⚡ Parallelism**: Built-in worker pool management with configurable concurrency limits.
-- **🔄 Callback Support**: Pass functions as arguments to workers for progress updates or event handling.
+- **🔄 Deep Proxying**: Automatically converts functions within objects or arrays into bidirectional proxies. Binary data (`Uint8Array`, `ArrayBuffer`, `TypedArray`, etc.) are correctly identified and transferred as data. No more `DataCloneError`.
+- **🔄 Bidirectional Callbacks**: Supports passing callbacks from main to worker, and vice versa, with full `async/await` support.
 - **📦 Flexible Instantiation**: Pass a `Worker` instance, a file path (string), or a `URL`.
 - **📦 Zero Config**: Minimal setup required to get started.
 
@@ -30,21 +31,26 @@ pnpm add worker-lib
 
 ### 1. Define Worker (worker.ts)
 
-Register your functions using `initWorker`. This function is universal and works in both Browser and Node.js.
+Register your functions using `initWorker`. You can now pass complex objects containing functions.
 
 ```ts
 import { initWorker } from "worker-lib";
 
-const add = (a: number, b: number) => a + b;
+interface RenderOptions {
+  html: string;
+  resolveResource: (url: string, fallback: (url: string) => Promise<Uint8Array>) => Promise<Uint8Array>;
+}
 
-const heavyTask = async (data: string, onProgress: (percent: number, status: string) => void) => {
-  onProgress(10, "Starting...");
-  // ... heavy computation ...
-  onProgress(100, "Done");
-  return `Processed: ${data}`;
+const render = async (options: RenderOptions) => {
+  // options.resolveResource is a proxy to the main thread!
+  // It even receives a second argument 'fallback' which is a proxy back to the worker!
+  const data = await options.resolveResource("logo.png", async (url) => {
+    return new Uint8Array([1, 2, 3]); // Worker-side fallback logic
+  });
+  return `Rendered with ${data.length} bytes`;
 };
 
-const workerMap = initWorker({ add, heavyTask });
+const workerMap = initWorker({ render });
 export type MyWorker = typeof workerMap;
 ```
 
@@ -52,20 +58,26 @@ export type MyWorker = typeof workerMap;
 
 #### Unified Usage (Browser & Node.js)
 
-Since `worker-lib` uses conditional exports, you can use the same import for both environments. The library will automatically select the appropriate implementation.
+Since `worker-lib` uses deep proxying, you can pass nested functions directly.
 
 ```ts
 import { createWorker } from "worker-lib";
 import type { MyWorker } from "./worker";
 
-// You can pass a string path, a URL, or a Worker instance
-const { execute, close } = createWorker<MyWorker>(
-  () => new URL("./worker.ts", import.meta.url), // or "./worker.js" in Node
-  4 // Max parallel workers
+const { execute } = createWorker<MyWorker>(
+  () => new URL("./worker.ts", import.meta.url),
+  4
 );
 
-const result = await execute("add", 10, 20);
-console.log(result); // 30
+const result = await execute("render", {
+  html: "<div>Hello</div>",
+  resolveResource: async (url, fallback) => {
+    if (url === "special.png") return await fallback(url); // Call back to worker!
+    const resp = await fetch(url);
+    return new Uint8Array(await resp.arrayBuffer());
+  }
+});
+console.log(result);
 ```
 
 #### Node.js Specific (Optional)

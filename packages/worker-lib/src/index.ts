@@ -4,80 +4,215 @@ const w = Worker;
 export { w as Worker };
 
 type WorkerType = { [key: string]: (...args: any) => any };
-type CallbackValue<T extends WorkerType> = Parameters<
-  Extract<Parameters<T[keyof T]>[number], (...args: any) => any>
->;
+
 type WorkerRecvEvent<T extends WorkerType> =
   | {
       type: "function";
-      payload: { name: keyof T; callback: boolean[]; value: unknown[] };
+      payload: { id: number; name: keyof T; args: unknown };
     }
-  | { type: "callback_result"; payload: { id: number; result: unknown } };
+  | {
+      type: "callback_result";
+      payload: { id: string | number; result: unknown };
+    }
+  | {
+      type: "callback_call";
+      payload: { id: number; callbackId: string; args: unknown; callId: string };
+    };
+
 type WorkerSendEvent<T extends WorkerType> =
   | {
-      type: "callback";
-      payload: {
-        id: number;
-        result: unknown;
-        index: number;
-        value: CallbackValue<T>;
-      };
-    }
-  | {
       type: "result";
-      payload: ReturnType<T[keyof T]>;
+      payload: { id: number; result: unknown };
     }
   | {
       type: "error";
-      payload: unknown;
+      payload: { id: number; error: unknown };
+    }
+  | {
+      type: "callback_call";
+      payload: { id: number; callbackId: string; args: unknown; callId: string };
+    }
+  | {
+      type: "callback_result";
+      payload: { id: string | number; result: unknown };
     };
+
+const FUNCTION_PLACEHOLDER = "__worker_lib_function__";
+
+interface FunctionPlaceholder {
+  [FUNCTION_PLACEHOLDER]: string;
+}
+
+const isPlaceholder = (v: any): v is FunctionPlaceholder =>
+  v && typeof v === "object" && FUNCTION_PLACEHOLDER in v;
+
+const callbacks = new Map<string, Function>();
+const callbackProxies = new Map<string, Function>();
+
+const registerCallback = (requestId: number, fn: Function) => {
+  const id = `${requestId}:${Math.random().toString(36).slice(2)}`;
+  callbacks.set(id, fn);
+  return id;
+};
+
+const clearCallbacks = (requestId: number) => {
+  for (const key of callbacks.keys()) {
+    if (key.startsWith(`${requestId}:`)) {
+      callbacks.delete(key);
+    }
+  }
+  for (const key of callbackProxies.keys()) {
+    if (key.startsWith(`${requestId}:`)) {
+      callbackProxies.delete(key);
+    }
+  }
+};
+
+const isPlainObject = (v: any): boolean => {
+  return (
+    v &&
+    typeof v === "object" &&
+    Object.prototype.toString.call(v) === "[object Object]" &&
+    !(v instanceof Uint8Array) &&
+    !(v instanceof ArrayBuffer) &&
+    !ArrayBuffer.isView(v)
+  );
+};
+
+const transformArgs = (requestId: number, args: any): any => {
+  if (typeof args === "function") {
+    return { [FUNCTION_PLACEHOLDER]: registerCallback(requestId, args) };
+  }
+  if (Array.isArray(args)) {
+    return args.map((v) => transformArgs(requestId, v));
+  }
+  if (isPlainObject(args)) {
+    const result: any = {};
+    for (const key in args) {
+      result[key] = transformArgs(requestId, args[key]);
+    }
+    return result;
+  }
+  return args;
+};
+
+const resolveArgs = (
+  requestId: number,
+  args: any,
+  createProxy: (callbackId: string) => Function,
+): any => {
+  if (isPlaceholder(args)) {
+    return createProxy(args[FUNCTION_PLACEHOLDER]);
+  }
+  if (Array.isArray(args)) {
+    return args.map((v) => resolveArgs(requestId, v, createProxy));
+  }
+  if (isPlainObject(args)) {
+    const result: any = {};
+    for (const key in args) {
+      result[key] = resolveArgs(requestId, args[key], createProxy);
+    }
+    return result;
+  }
+  return args;
+};
 
 const init = (worker: Worker): Promise<Worker> => {
   return new Promise((resolve) => {
-    worker.addEventListener(
-      "message",
-      () => {
+    const handler = (e: MessageEvent) => {
+      if (e.data === "ready") {
+        worker.removeEventListener("message", handler);
         resolve(worker);
-      },
-      { once: true },
-    );
+      }
+    };
+    worker.addEventListener("message", handler);
   });
 };
+
+let requestIdCounter = 0;
+
 const exec = <T extends WorkerType>(
   worker: Worker,
   name: keyof T,
-  ...value: Parameters<T[keyof T]>
+  ...args: Parameters<T[keyof T]>
 ): Promise<ReturnType<T[keyof T]>> => {
+  const requestId = requestIdCounter++;
   return new Promise((resolve, reject) => {
-    const p = async (result: MessageEvent<WorkerSendEvent<T>>) => {
-      const { data } = result;
-      switch (data.type) {
-        case "callback":
-          const r = value[data.payload.index](...data.payload.value);
+    const createProxy = (callbackId: string): Function => {
+      const key = `${requestId}:${callbackId}`;
+      if (callbackProxies.has(key)) return callbackProxies.get(key)!;
+      const proxy = (...proxyArgs: any[]) => {
+        const callId = Math.random().toString(36).slice(2);
+        return new Promise((res) => {
+          const handler = (e: MessageEvent<WorkerSendEvent<T>>) => {
+            if (
+              e.data.type === "callback_result" &&
+              e.data.payload.id === callId
+            ) {
+              worker.removeEventListener("message", handler);
+              res(resolveArgs(requestId, e.data.payload.result, createProxy));
+            }
+          };
+          worker.addEventListener("message", handler);
           worker.postMessage({
-            type: "callback_result",
-            payload: { id: data.payload.id, result: await r },
+            type: "callback_call",
+            payload: {
+              id: requestId,
+              callbackId,
+              args: transformArgs(requestId, proxyArgs),
+              callId,
+            },
           });
-          break;
-        case "result":
-          worker.removeEventListener("message", p);
-          resolve(data.payload);
-          break;
-        case "error":
-          worker.removeEventListener("message", p);
-          reject(data.payload);
-          break;
+        });
+      };
+      callbackProxies.set(key, proxy);
+      return proxy;
+    };
+
+    const messageHandler = async (e: MessageEvent<WorkerSendEvent<T>>) => {
+      const data = e.data;
+      if (!data || typeof data !== "object") return;
+
+      const payload = (data as any).payload;
+      if (payload?.id !== requestId) return; // Ignore messages for other requests
+
+      if (data.type === "result") {
+        worker.removeEventListener("message", messageHandler);
+        const result = resolveArgs(requestId, payload.result, createProxy);
+        clearCallbacks(requestId);
+        resolve(result);
+      } else if (data.type === "error") {
+        worker.removeEventListener("message", messageHandler);
+        clearCallbacks(requestId);
+        reject(payload.error);
+      } else if (data.type === "callback_call") {
+        const { callbackId, args: callArgs, callId } = payload;
+        const fn = callbacks.get(callbackId);
+        if (fn) {
+          try {
+            const result = await fn(
+              ...resolveArgs(requestId, callArgs, createProxy),
+            );
+            worker.postMessage({
+              type: "callback_result",
+              payload: { id: callId, result: transformArgs(requestId, result) },
+            });
+          } catch (e) {
+            console.error("[worker-lib] Callback execution failed:", e);
+          }
+        }
       }
     };
-    worker.addEventListener("message", p);
+
+    worker.addEventListener("message", messageHandler);
     worker.postMessage({
       type: "function",
       payload: {
+        id: requestId,
         name,
-        value: value.map((v: unknown) => !(typeof v === "function") && v),
-        callback: value.map((v: unknown) => typeof v === "function"),
+        args: transformArgs(requestId, args),
       },
-    } as WorkerRecvEvent<T>);
+    });
   });
 };
 
@@ -216,8 +351,10 @@ export const createWorker = <T extends WorkerType>(
    * @method close - Terminates all workers in the pool.
    */
   const close = () => {
-    for (const { worker } of workers) {
-      worker?.terminate();
+    for (const target of workers) {
+      target.worker?.terminate();
+      target.worker = undefined;
+      target.resultResolver = undefined;
     }
   };
 
@@ -243,66 +380,147 @@ export const createWorker = <T extends WorkerType>(
  */
 export const initWorker = <T extends WorkerType>(WorkerProc: T) => {
   const worker = self as unknown as Worker;
+
+  const callbacks = new Map<string, Function>();
+  const callbackProxies = new Map<string, Function>();
+
+  const registerCallback = (requestId: number, fn: Function) => {
+    const id = `${requestId}:${Math.random().toString(36).slice(2)}`;
+    callbacks.set(id, fn);
+    return id;
+  };
+
+  const clearCallbacks = (requestId: number) => {
+    for (const key of callbacks.keys()) {
+      if (key.startsWith(`${requestId}:`)) {
+        callbacks.delete(key);
+      }
+    }
+    for (const key of callbackProxies.keys()) {
+      if (key.startsWith(`${requestId}:`)) {
+        callbackProxies.delete(key);
+      }
+    }
+  };
+
+  const transformArgs = (requestId: number, args: any): any => {
+    if (typeof args === "function") {
+      return { [FUNCTION_PLACEHOLDER]: registerCallback(requestId, args) };
+    }
+    if (Array.isArray(args)) {
+      return args.map((v) => transformArgs(requestId, v));
+    }
+    if (isPlainObject(args)) {
+      const result: any = {};
+      for (const key in args) {
+        result[key] = transformArgs(requestId, args[key]);
+      }
+      return result;
+    }
+    return args;
+  };
+
+  const resolveArgs = (
+    requestId: number,
+    args: any,
+    createProxy: (callbackId: string) => Function,
+  ): any => {
+    if (isPlaceholder(args)) {
+      return createProxy(args[FUNCTION_PLACEHOLDER]);
+    }
+    if (Array.isArray(args)) {
+      return args.map((v) => resolveArgs(requestId, v, createProxy));
+    }
+    if (isPlainObject(args)) {
+      const result: any = {};
+      for (const key in args) {
+        result[key] = resolveArgs(requestId, args[key], createProxy);
+      }
+      return result;
+    }
+    return args;
+  };
+
+  const createProxy = (callbackId: string, requestId: number): Function => {
+    const key = `${requestId}:${callbackId}`;
+    if (callbackProxies.has(key)) return callbackProxies.get(key)!;
+    const proxy = (...proxyArgs: any[]) => {
+      const callId = Math.random().toString(36).slice(2);
+      return new Promise((res) => {
+        const handler = (e: MessageEvent<WorkerRecvEvent<T>>) => {
+          if (
+            e.data.type === "callback_result" &&
+            e.data.payload.id === callId
+          ) {
+            worker.removeEventListener("message", handler);
+            res(
+              resolveArgs(requestId, e.data.payload.result, (cbId) =>
+                createProxy(cbId, requestId),
+              ),
+            );
+          }
+        };
+        worker.addEventListener("message", handler);
+        worker.postMessage({
+          type: "callback_call",
+          payload: {
+            id: requestId,
+            callbackId,
+            args: transformArgs(requestId, proxyArgs),
+            callId,
+          },
+        });
+      });
+    };
+    callbackProxies.set(key, proxy);
+    return proxy;
+  };
+
   worker.addEventListener("message", async (e: MessageEvent) => {
     const data = e.data as WorkerRecvEvent<T>;
+    if (!data) return;
+
     if (data.type === "function") {
-      const {
-        name,
-        value,
-        callback,
-      }: {
-        name: keyof T;
-        value: unknown[];
-        callback: boolean[];
-      } = data.payload;
+      const { id, name, args } = data.payload;
       const proc = WorkerProc[name];
       if (proc) {
         try {
-          const params = value.map((v, index) =>
-            callback[index]
-              ? (...params: CallbackValue<T>) =>
-                  callbackProc<T>(worker, index, params)
-              : v,
+          const resolvedArgs = resolveArgs(id, args, (cbId) =>
+            createProxy(cbId, id),
           );
+          const result = await proc(...resolvedArgs);
           worker.postMessage({
             type: "result",
-            payload: await proc(...params),
+            payload: { id, result: transformArgs(id, result) },
+          });
+          clearCallbacks(id);
+        } catch (error) {
+          worker.postMessage({
+            type: "error",
+            payload: { id, error: String(error) },
+          });
+          clearCallbacks(id);
+        }
+      }
+    } else if (data.type === "callback_call") {
+      const { id, callbackId, args, callId } = data.payload;
+      const fn = callbacks.get(callbackId);
+      if (fn) {
+        try {
+          const result = await fn(
+            ...resolveArgs(id, args, (cbId) => createProxy(cbId, id)),
+          );
+          worker.postMessage({
+            type: "callback_result",
+            payload: { id: callId, result: transformArgs(id, result) },
           });
         } catch (e) {
-          worker.postMessage({ type: "error", payload: String(e) });
+          console.error("[worker-lib] Worker-side callback failed:", e);
         }
       }
     }
   });
-  worker.postMessage(undefined);
+
+  worker.postMessage("ready");
   return WorkerProc;
-};
-
-const callbackProc = <T extends WorkerType>(
-  worker: Worker,
-  index: number,
-  params: CallbackValue<T>,
-) => {
-  const id = WorkerValue.id++;
-  return new Promise((resolve) => {
-    worker.addEventListener(
-      "message",
-      (e: MessageEvent) => {
-        const data = e.data as WorkerRecvEvent<T>;
-        if (data.type === "callback_result" && data.payload.id === id) {
-          resolve(data.payload.result);
-        }
-      },
-      { once: true },
-    );
-    worker.postMessage({
-      type: "callback",
-      payload: { id, index, value: params },
-    });
-  });
-};
-
-const WorkerValue = { id: 0, promises: {} } as {
-  id: number;
-  promises: { [key: number]: Promise<unknown> };
 };

@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [renderResult, setRenderResult] = useState<string | Uint8Array | null>(
     null,
   );
+  const [renderTime, setRenderTime] = useState<number | null>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -168,12 +169,14 @@ const App: React.FC = () => {
 
     setIsRendering(true);
     setError(null);
+    setRenderTime(null);
 
     if (objectUrl) {
       URL.revokeObjectURL(objectUrl);
       setObjectUrl(null);
     }
 
+    const startTime = performance.now();
     try {
       console.log("[Satoru] Rendering via Worker");
       const result = await satoru.render({
@@ -184,6 +187,9 @@ const App: React.FC = () => {
         css: "body { margin: 8px; }",
         baseUrl: `${window.location.origin}${window.location.pathname}assets/`,
         resolveResource: async (resource, defaultResolver) => {
+          console.log(
+            `[Playground] Resolving: ${resource.url} (${resource.type})`,
+          );
           // Open Cache storage
           const cache = await caches.open("satoru-resource-cache");
           const cachedResponse = await cache.match(resource.url);
@@ -195,37 +201,16 @@ const App: React.FC = () => {
           }
 
           // Fetch using default resolver (or manual fetch if in worker proxy)
-          let data: Uint8Array | null = null;
-          if (defaultResolver) {
-            data = await defaultResolver(resource);
-          } else {
-            const resp = await fetch(resource.url);
-            if (resp.ok) {
-              data = new Uint8Array(await resp.arrayBuffer());
-            }
-          }
-
-          if (data instanceof Uint8Array) {
-            console.log(`[Satoru] Cache Miss (Caching...): ${resource.url}`);
-            // Store into cache
-            // Response accepts Uint8Array as body
-            const response = new Response(data, {
-              headers: {
-                "Content-Type":
-                  resource.type === "image"
-                    ? "image/auto"
-                    : resource.type === "font"
-                      ? "font/auto"
-                      : "text/css",
-              },
-            });
-            await cache.put(resource.url, response);
-          }
-
+          const data = await defaultResolver(resource);
+          if (data)
+            await cache.put(resource.url, new Response(data as BodyInit));
           return data;
         },
       });
 
+      const endTime = performance.now();
+      setRenderTime(endTime - startTime);
+      console.log("[Satoru] Render Complete");
       setRenderResult(result);
 
       if (result instanceof Uint8Array) {
@@ -419,12 +404,29 @@ const App: React.FC = () => {
           borderRadius: "4px",
           width: "100%",
           fontWeight: "bold",
-          marginBottom: "20px",
+          marginBottom: "10px",
           boxShadow: "0 4px 6px rgba(33, 150, 243, 0.3)",
         }}
       >
         {isRendering ? "Processing..." : "Generate Output"}
       </button>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          fontSize: "14px",
+          color: "#666",
+          marginBottom: "20px",
+          minHeight: "20px",
+        }}
+      >
+        {renderTime !== null && (
+          <span>
+            Render Time: <strong>{renderTime.toFixed(2)}ms</strong>
+          </span>
+        )}
+      </div>
 
       {error && (
         <div

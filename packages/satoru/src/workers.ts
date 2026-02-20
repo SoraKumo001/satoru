@@ -50,27 +50,7 @@ export const createSatoruWorker = (params?: {
     get(target, prop, receiver) {
       if (prop === "render") {
         return async (options: RenderOptions) => {
-          const { onLog, resolveResource, ...workerOptions } = options;
-
-          // Wrap resolveResource to provide defaultResolver on the main thread
-          const wrappedResolveResource = resolveResource
-            ? async (resource: any) => {
-                const defaultResolver = (r: any) =>
-                  Satoru.defaultResourceResolver(
-                    r,
-                    options.baseUrl,
-                    options.userAgent,
-                  );
-                return await resolveResource(resource, defaultResolver);
-              }
-            : undefined;
-
-          return await target.execute(
-            "render",
-            workerOptions as any,
-            onLog,
-            wrappedResolveResource,
-          );
+          return await target.execute("render", options as any);
         };
       }
 

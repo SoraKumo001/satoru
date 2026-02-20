@@ -5,6 +5,7 @@
 #include "html_tag.h"
 #include "document_container.h"
 #include "types.h"
+#include "css_tokenizer.h"
 
 #define offset(member) ((uint_ptr) & this->member - (uint_ptr)this)
 // #define offset(func)  [](const css_properties& css) { return css.func; }
@@ -299,11 +300,35 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   {
     m_line_clamp = el->get_property<int>(__webkit_line_clamp_, false, 0, offset(m_line_clamp));
   }
+  m_column_count = el->get_property<int>(_column_count_, false, 0, offset(m_column_count));
+  if (m_column_count > 0) printf("Column count: %d\n", m_column_count);
+  m_column_gap = el->get_property<css_length>(_column_gap_, false, 0, offset(m_column_gap));
+  doc->cvt_units(m_column_gap, m_font_metrics, 0);
+
+  m_column_rule.width = el->get_property<css_length>(_column_rule_width_, false, border_width_medium_value, offset(m_column_rule.width));
+  m_column_rule.style = (border_style)el->get_property<int>(_column_rule_style_, false, border_style_none, offset(m_column_rule.style));
+  m_column_rule.color = get_color_property(el, _column_rule_color_, false, m_color, offset(m_column_rule.color));
+
+  if (m_column_rule.style == border_style_none || m_column_rule.style == border_style_hidden)
+    m_column_rule.width = 0;
+
+  snap_border_width(m_column_rule.width, doc);
+
   m_webkit_box_orient = (box_orient)el->get_property<int>(__webkit_box_orient_, false, box_orient_horizontal, offset(m_webkit_box_orient));
 
   compute_background(el, doc);
   compute_flex(el, doc);
   compute_grid(el, doc);
+
+  if (m_column_count > 0 && m_display != display_none)
+  {
+    m_display = display_grid;
+    m_grid_template_columns.clear();
+    for (int i = 0; i < m_column_count; i++)
+    {
+      m_grid_template_columns.push_back(css_length(1, css_units_fr));
+    }
+  }
 }
 
 // used for all color properties except `color` (color:currentcolor is converted to color:inherit during parsing)
@@ -633,6 +658,15 @@ void litehtml::css_properties::compute_grid(const html_tag *el, const document::
     doc->cvt_units(m_row_gap, m_font_metrics, 0);
     doc->cvt_units(m_column_gap, m_font_metrics, 0);
 
+    m_column_rule.width = el->get_property<css_length>(_column_rule_width_, false, border_width_medium_value, offset(m_column_rule.width));
+    m_column_rule.style = (border_style)el->get_property<int>(_column_rule_style_, false, border_style_none, offset(m_column_rule.style));
+    m_column_rule.color = get_color_property(el, _column_rule_color_, false, m_color, offset(m_column_rule.color));
+
+    if (m_column_rule.style == border_style_none || m_column_rule.style == border_style_hidden)
+      m_column_rule.width = 0;
+
+    snap_border_width(m_column_rule.width, doc);
+
     m_flex_justify_content = (flex_justify_content)el->get_property<int>(_justify_content_, false, flex_justify_content_flex_start, offset(m_flex_justify_content));
     m_flex_align_items = (flex_align_items)el->get_property<int>(_align_items_, false, flex_align_items_normal, offset(m_flex_align_items));
     m_flex_align_content = (flex_align_content)el->get_property<int>(_align_content_, false, flex_align_content_stretch, offset(m_flex_align_content));
@@ -740,3 +774,8 @@ std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_proper
 
   return ret;
 }
+
+void litehtml::css_properties::set_grid_column_start(const char* val) { m_grid_column_start = tokenize(val); }
+void litehtml::css_properties::set_grid_column_end(const char* val) { m_grid_column_end = tokenize(val); }
+void litehtml::css_properties::set_grid_row_start(const char* val) { m_grid_row_start = tokenize(val); }
+void litehtml::css_properties::set_grid_row_end(const char* val) { m_grid_row_end = tokenize(val); }

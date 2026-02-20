@@ -288,20 +288,14 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         info.color = color;
         info.opacity = get_current_opacity();
 
-        int index = -1;
-        for (size_t i = 0; i < m_usedTextDraws.size(); ++i) {
-            if (m_usedTextDraws[i] == info) {
-                index = (int)i + 1;
-                break;
-            }
-        }
+        m_usedTextDraws.push_back(info);
+        int index = (int)m_usedTextDraws.size();
 
-        if (index == -1) {
-            m_usedTextDraws.push_back(info);
-            index = (int)m_usedTextDraws.size();
-        }
-
-        paint.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::TextDraw, (index & 0xFF)));
+        // Use R and B channels for a larger index (up to 14 bits: 6 bits in R, 8 bits in B)
+        // R channel: 0-63 (0 and 1 are already used, so we use bits 2-7 for index high bits)
+        // R = (index >> 8) << 2 | (0 for MagicTag)
+        uint8_t r = ((index >> 8) & 0x3F) << 2; 
+        paint.setColor(SkColorSetARGB(255, r, (uint8_t)satoru::MagicTag::TextDraw, (index & 0xFF)));
     } else {
         paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     }
@@ -397,7 +391,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 
         sk_sp<SkTextBlob> blob = handler.makeBlob();
         if (blob) {
-            if (m_textToPaths) {
+            if (m_tagging) {
                 SkTextBlob::Iter it(*blob);
                 SkTextBlob::Iter::ExperimentalRun run;
                 while (it.experimentalNext(&run)) {
@@ -406,7 +400,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                         float gx = run.positions[i].fX + (float)tx;
                         float gy = run.positions[i].fY + (float)ty;
 
-                        if (pathOpt.has_value()) {
+                        if (pathOpt.has_value() && !pathOpt.value().isEmpty()) {
                             m_canvas->save();
                             m_canvas->translate(gx, gy);
                             m_canvas->drawPath(pathOpt.value(), p);
@@ -500,7 +494,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                 // 波線の場合は少し太めにする
                 dec_paint.setStrokeWidth(thickness * 1.5f);
                 // 描画範囲を現在のテキストフラグメントの幅に制限する
-                m_canvas->clipRect(SkRect::MakeXYWH((float)pos.x, y - wave_height - thickness * 2, x_offset_dec, wave_height * 2 + thickness * 4));
+                m_canvas->clipRect(SkRect::MakeXYWH((float)pos.x, y - wave_height - thickness * 2,
+                                                    x_offset_dec, wave_height * 2 + thickness * 4));
 
                 SkPathBuilder builder;
                 float x_start = (float)pos.x;
@@ -509,8 +504,10 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 
                 builder.moveTo(x_aligned, y);
                 for (float x = x_aligned; x < x_end; x += wave_length) {
-                    builder.quadTo(x + wave_length / 4.0f, y - wave_height, x + wave_length / 2.0f, y);
-                    builder.quadTo(x + wave_length * 3.0f / 4.0f, y + wave_height, x + wave_length, y);
+                    builder.quadTo(x + wave_length / 4.0f, y - wave_height, x + wave_length / 2.0f,
+                                   y);
+                    builder.quadTo(x + wave_length * 3.0f / 4.0f, y + wave_height, x + wave_length,
+                                   y);
                 }
                 m_canvas->drawPath(builder.detach(), dec_paint);
                 m_canvas->restore();
@@ -521,14 +518,16 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 
         if (fi->desc.decoration_line & litehtml::text_decoration_line_underline) {
             float base_y = (float)pos.y;
-            float underline_y = base_y + (float)fi->fm_ascent + (float)fi->desc.underline_offset.val();
-            
+            float underline_y =
+                base_y + (float)fi->fm_ascent + (float)fi->desc.underline_offset.val();
+
             if (fi->desc.decoration_style == litehtml::text_decoration_style_wavy) {
                 float wave_length = thickness * 8.0f;
                 float wave_height = wave_length / 3.0f;
-                underline_y += wave_height + thickness; // 振幅に太さ分のマージンを加えてベースラインから離す
+                underline_y +=
+                    wave_height + thickness;  // 振幅に太さ分のマージンを加えてベースラインから離す
             } else {
-                underline_y += thickness + 1.0f; // 通常の下線も少し下げる
+                underline_y += thickness + 1.0f;  // 通常の下線も少し下げる
             }
             draw_decoration_line(underline_y);
         }

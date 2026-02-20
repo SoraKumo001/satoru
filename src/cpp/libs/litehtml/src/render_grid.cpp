@@ -2,80 +2,64 @@
 #include "render_grid.h"
 #include "html_tag.h"
 #include "document.h"
+#include "el_text.h"
+#include "el_space.h"
+#include "el_div.h"
+#include "document_container.h"
 
 namespace litehtml
 {
 
 std::shared_ptr<render_item> render_item_grid::init()
 {
+    if (m_initialized) return shared_from_this();
+    m_initialized = true;
+
+    // Standard Grid/Flex item initialization: wrap inlines in anonymous blocks
     decltype(m_children) new_children;
-    decltype(m_children) inlines;
-
-    auto convert_inlines = [&]()
+    decltype(m_children) current_inlines;
+    auto flush_inlines = [&]()
     {
-        if(!inlines.empty())
+        if(!current_inlines.empty())
         {
-            // Find last not space
-            auto not_space = std::find_if(inlines.rbegin(), inlines.rend(), [&](const std::shared_ptr<render_item>& el)
+            auto anon_el = std::make_shared<el_div>(src_el()->get_document());
+            anon_el->parent(src_el());
+            anon_el->compute_styles(false);
+            auto anon_ri = std::make_shared<render_item_block>(anon_el);
+            for(const auto& inl : current_inlines)
             {
-                return !el->src_el()->is_space();
-            });
-            if(not_space != inlines.rend())
-            {
-                // Erase all spaces at the end
-                inlines.erase((not_space.base()), inlines.end());
+                anon_ri->add_child(inl);
+                inl->parent(anon_ri);
             }
-
-            if (!inlines.empty())
-            {
-                auto anon_el = std::make_shared<html_tag>(src_el());
-                auto anon_ri = std::make_shared<render_item_block>(anon_el);
-                for(const auto& inl : inlines)
-                {
-                    anon_ri->add_child(inl);
-                }
-                anon_ri->parent(shared_from_this());
-
-                new_children.push_back(anon_ri->init());
-            }
-            inlines.clear();
+            new_children.push_back(anon_ri->init());
+            current_inlines.clear();
         }
     };
 
     for (const auto& el : m_children)
     {
-        if(el->src_el()->css().get_display() == display_inline_text)
+        bool is_inline = (el->src_el()->css().get_display() == display_inline_text || el->src_el()->is_text());
+        
+        if(is_inline)
         {
-            if(!inlines.empty())
+            if(!current_inlines.empty() || !el->src_el()->is_white_space())
             {
-                inlines.push_back(el);
-            } else
-            {
-                if (!el->src_el()->is_white_space())
-                {
-                    inlines.push_back(el);
-                }
+                current_inlines.push_back(el);
             }
         } else
         {
-            convert_inlines();
-            if(el->src_el()->is_block_box())
-            {
-                el->parent(shared_from_this());
-                new_children.push_back(el->init());
-            } else
-            {
-                auto anon_el = std::make_shared<html_tag>(el->src_el());
-                auto anon_ri = std::make_shared<render_item_block>(anon_el);
-                anon_ri->add_child(el->init());
-                anon_ri->parent(shared_from_this());
-                new_children.push_back(anon_ri->init());
-            }
+            flush_inlines();
+            el->parent(shared_from_this());
+            new_children.push_back(el->init());
         }
     }
-    convert_inlines();
-    children() = new_children;
+    flush_inlines();
 
+    children().clear();
+    for(const auto& child : new_children)
+    {
+        children().push_back(child);
+    }
     return shared_from_this();
 }
 
@@ -124,11 +108,11 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
     int num_columns = (int)columns_template.size();
     if (num_columns == 0) num_columns = 1;
 
-    vector<pixel_t> column_widths(num_columns, 0);
+    m_column_widths.assign(num_columns, 0);
     float total_fr = 0;
     pixel_t fixed_width = 0;
 
-    pixel_t column_gap = css().get_column_gap().calc_percent(self_size.render_width);
+    m_column_gap = css().get_column_gap().calc_percent(self_size.render_width);
     pixel_t row_gap = css().get_row_gap().calc_percent(self_size.render_height);
 
     // Calculate fixed and percentage columns
@@ -141,12 +125,12 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
         }
         else
         {
-            column_widths[i] = len.calc_percent(self_size.render_width);
-            fixed_width += column_widths[i];
+            m_column_widths[i] = len.calc_percent(self_size.render_width);
+            fixed_width += m_column_widths[i];
         }
     }
     
-    fixed_width += column_gap * (num_columns - 1);
+    fixed_width += m_column_gap * (num_columns - 1);
 
     // Distribute remaining space to fr columns
     if (total_fr > 0)
@@ -158,13 +142,13 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
             const auto& len = columns_template[i];
             if (len.units() == css_units_fr)
             {
-                column_widths[i] = remaining_width * (len.val() / total_fr);
+                m_column_widths[i] = remaining_width * (len.val() / total_fr);
             }
         }
     }
     else if (columns_template.empty())
     {
-        column_widths[0] = self_size.render_width;
+        m_column_widths[0] = self_size.render_width;
     }
 
     // Determine placements and number of rows
@@ -395,8 +379,8 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
         pixel_t cell_width = 0;
         for (int i = p.pos.col_start; i < p.pos.col_end && i < num_columns; i++)
         {
-            cell_width += column_widths[i];
-            if (i > p.pos.col_start) cell_width += column_gap;
+            cell_width += m_column_widths[i];
+            if (i > p.pos.col_start) cell_width += m_column_gap;
         }
 
         containing_block_context cb = self_size;
@@ -445,20 +429,20 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
 
     // Calculate total grid size for justify-content/align-content
     pixel_t acc_x = 0;
-    for (int i = 0; i < num_columns; i++) { acc_x += column_widths[i] + column_gap; }
+    for (int i = 0; i < num_columns; i++) { acc_x += m_column_widths[i] + m_column_gap; }
     pixel_t acc_y = 0;
     for (int i = 0; i < num_rows; i++) { acc_y += row_heights[i] + row_gap; }
 
-    pixel_t total_grid_width = acc_x > 0 ? acc_x - column_gap : 0;
+    pixel_t total_grid_width = acc_x > 0 ? acc_x - m_column_gap : 0;
     pixel_t total_grid_height = acc_y > 0 ? acc_y - row_gap : 0;
 
     // Second pass: final placement with relative coordinates
-    vector<pixel_t> col_offsets(num_columns, 0);
+    m_col_offsets.assign(num_columns, 0);
     vector<pixel_t> row_offsets(num_rows, 0);
     
     pixel_t extra_x = 0;
     pixel_t extra_y = 0;
-    pixel_t justify_gap = column_gap;
+    pixel_t justify_gap = m_column_gap;
     pixel_t align_gap = row_gap;
 
     // justify-content
@@ -501,20 +485,20 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
     }
 
     acc_x = extra_x;
-    for (int i = 0; i < num_columns; i++) { col_offsets[i] = acc_x; acc_x += column_widths[i] + justify_gap; }
+    for (int i = 0; i < num_columns; i++) { m_col_offsets[i] = acc_x; acc_x += m_column_widths[i] + justify_gap; }
     acc_y = extra_y;
     for (int i = 0; i < num_rows; i++) { row_offsets[i] = acc_y; acc_y += row_heights[i] + align_gap; }
 
     for (auto& p : placements)
     {
-        pixel_t item_rel_x = col_offsets[p.pos.col_start];
+        pixel_t item_rel_x = m_col_offsets[p.pos.col_start];
         pixel_t item_rel_y = row_offsets[p.pos.row_start];
         
         pixel_t cell_width = 0;
         for (int i = p.pos.col_start; i < p.pos.col_end && i < num_columns; i++)
         {
-            cell_width += column_widths[i];
-            if (i > p.pos.col_start) cell_width += column_gap;
+            cell_width += m_column_widths[i];
+            if (i > p.pos.col_start) cell_width += m_column_gap;
         }
         pixel_t cell_height = 0;
         for (int i = p.pos.row_start; i < p.pos.row_end && i < num_rows; i++)
@@ -539,6 +523,61 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
     m_pos.width = self_size.render_width;
 
     return m_pos.height;
+}
+
+void render_item_grid::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, const position* clip, draw_flag flag, int zindex)
+{
+    render_item_block::draw_children(hdc, x, y, clip, flag, zindex);
+
+    if (flag == draw_block && zindex == 0)
+    {
+        const css_border& rule = src_el()->css().get_column_rule();
+        if (rule.style != border_style_none && rule.style != border_style_hidden && m_column_widths.size() > 1)
+        {
+            pixel_t rule_width = rule.width.val(); // Already converted to px
+            if (rule_width <= 0) rule_width = 1;
+
+            position pos = m_pos;
+            pos.x += x - get_scroll_left();
+            pos.y += y - get_scroll_top();
+
+            for (size_t i = 0; i < m_column_widths.size() - 1; i++)
+            {
+                // The gap is between column i and column i+1
+                pixel_t gap_start = m_col_offsets[i] + m_column_widths[i];
+                pixel_t gap_end = m_col_offsets[i + 1];
+                
+                // Position the rule in the center of the actual gap
+                pixel_t rule_x = pos.x + (gap_start + gap_end - rule_width) / 2;
+                
+                position rule_pos;
+                rule_pos.x = rule_x;
+                rule_pos.y = pos.y;
+                rule_pos.width = rule_width;
+                rule_pos.height = m_pos.height;
+
+                if (rule_pos.does_intersect(clip))
+                {
+                    if (rule.style == border_style_solid)
+                    {
+                        background_layer layer;
+                        layer.border_box = rule_pos;
+                        layer.clip_box = *clip;
+                        layer.origin_box = rule_pos;
+                        src_el()->get_document()->container()->draw_solid_fill(hdc, layer, rule.color);
+                    }
+                    else
+                    {
+                        borders rules;
+                        rules.left.width = rule_width;
+                        rules.left.style = rule.style;
+                        rules.left.color = rule.color;
+                        src_el()->get_document()->container()->draw_borders(hdc, rules, rule_pos, false);
+                    }
+                }
+            }
+        }
+    }
 }
 
 } // namespace litehtml

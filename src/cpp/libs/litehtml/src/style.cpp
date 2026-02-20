@@ -54,6 +54,7 @@ namespace litehtml
           {_border_right_style_, border_style_strings},
           {_border_top_style_, border_style_strings},
           {_border_bottom_style_, border_style_strings},
+          {_column_rule_style_, border_style_strings},
           {_border_collapse_, border_collapse_strings},
           {_table_layout_, table_layout_strings},
 
@@ -103,6 +104,7 @@ namespace litehtml
           {_gap_, {_row_gap_, _column_gap_}},
           {_grid_column_, {_grid_column_start_, _grid_column_end_}},
           {_grid_row_, {_grid_row_start_, _grid_row_end_}},
+          {_column_rule_, {_column_rule_width_, _column_rule_style_, _column_rule_color_}},
 
           {_text_decoration_, {_text_decoration_color_, _text_decoration_line_, _text_decoration_style_, _text_decoration_thickness_}},
           {_text_emphasis_, {_text_emphasis_style_, _text_emphasis_color_}},
@@ -445,6 +447,10 @@ namespace litehtml
       }
       break;
 
+    case _column_rule_:
+      parse_border_side(name, value, important, container);
+      break;
+
     case _list_style_:
       parse_list_style(value, baseurl, important);
       break;
@@ -551,6 +557,9 @@ namespace litehtml
     case _grid_column_end_:
     case _grid_row_start_:
     case _grid_row_end_:
+    case _column_rule_width_:
+    case _column_rule_style_:
+    case _column_rule_color_:
       add_parsed_property(name, property_value(value, important, false, m_layer, m_specificity));
       break;
 
@@ -602,11 +611,16 @@ namespace litehtml
       parse_shadow(name, value, important, container);
       break;
 
-    case _line_clamp_:
-    case __webkit_line_clamp_:
     case _order_:
       if (val.type == NUMBER && val.n.number_type == css_number_integer)
         add_parsed_property(name, property_value((int)val.n.number, important, false, m_layer, m_specificity));
+      break;
+
+    case _column_count_:
+      if (val.type == NUMBER && val.n.number_type == css_number_integer)
+        add_parsed_property(name, property_value((int)val.n.number, important, false, m_layer, m_specificity));
+      else if (ident == "auto")
+        add_parsed_property(name, property_value(0, important, false, m_layer, m_specificity));
       break;
 
     case _counter_increment_:

@@ -87,6 +87,7 @@ namespace litehtml
     float m_flex_grow;
     float m_flex_shrink;
     css_length m_flex_basis;
+    int m_column_count;
     flex_direction m_flex_direction;
     flex_wrap m_flex_wrap;
     flex_justify_content m_flex_justify_content;
@@ -107,6 +108,8 @@ namespace litehtml
 
     css_length m_row_gap;
     css_length m_column_gap;
+
+    css_border m_column_rule;
 
     caption_side m_caption_side;
     shadow_vector m_box_shadow;
@@ -175,6 +178,7 @@ namespace litehtml
                        m_css_border_spacing_y(),
                        m_flex_grow(0),
                        m_flex_shrink(1),
+                       m_column_count(0),
                        m_flex_direction(flex_direction_row),
                        m_flex_wrap(flex_wrap_nowrap),
                        m_flex_justify_content(flex_justify_content_flex_start),
@@ -189,6 +193,7 @@ namespace litehtml
                        m_grid_row_end(),
                        m_row_gap(0),
                        m_column_gap(0),
+                       m_column_rule(),
                        m_order(0),
                        m_line_clamp(0),
                        m_webkit_box_orient(box_orient_horizontal),
@@ -346,6 +351,8 @@ namespace litehtml
     float get_flex_grow() const;
     float get_flex_shrink() const;
     const css_length &get_flex_basis() const;
+    int get_column_count() const;
+    void set_column_count(int count);
     flex_direction get_flex_direction() const;
     flex_wrap get_flex_wrap() const;
     flex_justify_content get_flex_justify_content() const;
@@ -360,12 +367,18 @@ namespace litehtml
     const length_vector &get_grid_template_rows() const;
 
     const css_token_vector &get_grid_column_start() const;
+    void set_grid_column_start(const char* val);
     const css_token_vector &get_grid_column_end() const;
+    void set_grid_column_end(const char* val);
     const css_token_vector &get_grid_row_start() const;
+    void set_grid_row_start(const char* val);
     const css_token_vector &get_grid_row_end() const;
+    void set_grid_row_end(const char* val);
 
     const css_length &get_row_gap() const;
     const css_length &get_column_gap() const;
+
+    const css_border &get_column_rule() const;
 
     int get_order() const;
     void set_order(int order);
@@ -825,6 +838,16 @@ namespace litehtml
     return m_flex_basis;
   }
 
+  inline int css_properties::get_column_count() const
+  {
+    return m_column_count;
+  }
+
+  inline void css_properties::set_column_count(int count)
+  {
+    m_column_count = count;
+  }
+
   inline flex_direction css_properties::get_flex_direction() const
   {
     return m_flex_direction;
@@ -903,6 +926,11 @@ namespace litehtml
   inline const css_length &css_properties::get_column_gap() const
   {
     return m_column_gap;
+  }
+
+  inline const css_border &css_properties::get_column_rule() const
+  {
+    return m_column_rule;
   }
 
   inline caption_side css_properties::get_caption_side() const

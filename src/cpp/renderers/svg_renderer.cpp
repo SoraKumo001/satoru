@@ -148,288 +148,312 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
             }
         }
 
-        if (r == 0) {
-            auto tag = (satoru::MagicTag)g;
-            if (tag == satoru::MagicTag::Shadow && b > 0 && b <= (int)shadows.size()) {
-                std::string filterId = "shadow-" + std::to_string(b);
-                if (isAttr)
-                    result.append("filter=\"url(#" + filterId + ")\" fill=\"black\"");
-                else
-                    result.append("filter:url(#" + filterId + ");fill:black");
-                lastPos = valEnd + (isAttr ? 1 : 0);
-                replaced = true;
-            } else if (tag == satoru::MagicTag::TextShadow && b > 0 &&
-                       b <= (int)textShadows.size()) {
-                const auto &info = textShadows[b - 1];
-                std::string filterId = "text-shadow-" + std::to_string(b);
-                std::string textColor = "rgb(" + std::to_string((int)info.text_color.red) + "," +
-                                        std::to_string((int)info.text_color.green) + "," +
-                                        std::to_string((int)info.text_color.blue) + ")";
-                float opacity = ((float)info.text_color.alpha / 255.0f) * info.opacity;
-                if (isAttr)
-                    result.append("filter=\"url(#" + filterId + ")\" fill=\"" + textColor +
-                                  "\" fill-opacity=\"" + std::to_string(opacity) + "\"");
-                else
-                    result.append("filter:url(#" + filterId + ");fill:" + textColor +
-                                  ";fill-opacity:" + std::to_string(opacity));
-                lastPos = valEnd + (isAttr ? 1 : 0);
-                replaced = true;
-            } else if (tag == satoru::MagicTag::LayerPush) {
-                float opacity = (float)b / 255.0f;
-                size_t elementStart = svg.rfind('<', pos);
-                size_t elementEnd = svg.find('>', valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
-                    elementStart >= lastPos) {
-                    result.erase(result.size() - (pos - elementStart));
-                    std::stringstream ss;
-                    ss << "<g opacity=\"" << opacity << "\">";
-                    result.append(ss.str());
-                    lastPos = elementEnd + 1;
+        if (r >= 0) {
+            // Check if it's a magic tag. Tags use R bits 0 and 1 to distinguish between normal/extended.
+            // Bits 2-7 of R are used for index high bits.
+            int tagTypeBit = r & 0x03;
+            int indexHigh = (r >> 2) & 0x3F;
+            int fullIndex = (indexHigh << 8) | (b & 0xFF);
+
+            if (tagTypeBit == 0) {
+                auto tag = (satoru::MagicTag)g;
+                if (tag == satoru::MagicTag::Shadow && fullIndex > 0 && fullIndex <= (int)shadows.size()) {
+                    std::string filterId = "shadow-" + std::to_string(fullIndex);
+                    if (isAttr)
+                        result.append("filter=\"url(#" + filterId + ")\" fill=\"black\"");
+                    else
+                        result.append("filter:url(#" + filterId + ");fill:black");
+                    lastPos = valEnd + (isAttr ? 1 : 0);
                     replaced = true;
-                }
-            } else if (tag == satoru::MagicTag::LayerPop) {
-                size_t elementStart = svg.rfind('<', pos);
-                size_t elementEnd = svg.find('>', valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
-                    elementStart >= lastPos) {
-                    result.erase(result.size() - (pos - elementStart));
-                    result.append("</g>");
-                    lastPos = elementEnd + 1;
+                } else if (tag == satoru::MagicTag::TextShadow && fullIndex > 0 &&
+                           fullIndex <= (int)textShadows.size()) {
+                    const auto &info = textShadows[fullIndex - 1];
+                    std::string filterId = "text-shadow-" + std::to_string(fullIndex);
+                    std::string textColor = "rgb(" + std::to_string((int)info.text_color.red) + "," +
+                                            std::to_string((int)info.text_color.green) + "," +
+                                            std::to_string((int)info.text_color.blue) + ")";
+                    float opacity = ((float)info.text_color.alpha / 255.0f) * info.opacity;
+                    if (isAttr)
+                        result.append("filter=\"url(#" + filterId + ")\" fill=\"" + textColor +
+                                      "\" fill-opacity=\"" + std::to_string(opacity) + "\"");
+                    else
+                        result.append("filter:url(#" + filterId + ");fill:" + textColor +
+                                      ";fill-opacity:" + std::to_string(opacity));
+                    lastPos = valEnd + (isAttr ? 1 : 0);
                     replaced = true;
-                }
-            } else if (tag == satoru::MagicTag::FilterPush && b > 0 && b <= (int)filters.size()) {
-                const auto &info = filters[b - 1];
-                size_t elementStart = svg.rfind('<', pos);
-                size_t elementEnd = svg.find('>', valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
-                    elementStart >= lastPos) {
-                    result.erase(result.size() - (pos - elementStart));
-                    std::stringstream ss;
-                    ss << "<g filter=\"url(#filter-" << b << ")\"";
-                    if (info.opacity < 1.0f) ss << " opacity=\"" << info.opacity << "\"";
-                    ss << ">";
-                    result.append(ss.str());
-                    lastPos = elementEnd + 1;
-                    replaced = true;
-                }
-            } else if (tag == satoru::MagicTag::FilterPop) {
-                size_t elementStart = svg.rfind('<', pos);
-                size_t elementEnd = svg.find('>', valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
-                    elementStart >= lastPos) {
-                    result.erase(result.size() - (pos - elementStart));
-                    result.append("</g>");
-                    lastPos = elementEnd + 1;
-                    replaced = true;
-                }
-            } else if (tag == satoru::MagicTag::TextDraw && b > 0 && b <= (int)textDraws.size()) {
-                size_t elementStart = svg.rfind('<', pos);
-                size_t elementEnd = svg.find('>', valEnd);
-                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
-                    elementStart >= lastPos) {
-                    result.erase(result.size() - (pos - elementStart));
-                    std::string tagStr = svg.substr(elementStart, elementEnd - elementStart + 1);
-                    processTextDraw(tagStr, isAttr, colorVal, textDraws[b - 1]);
-                    result.append(tagStr);
-                    lastPos = elementEnd + 1;
-                    replaced = true;
-                }
-            }
-        } else if (r == 1) {
-            auto tag = (satoru::MagicTagExtended)g;
-            size_t elementStart = svg.rfind('<', pos);
-            size_t elementEnd = svg.find('>', valEnd);
-            if (elementStart != std::string::npos && elementEnd != std::string::npos &&
-                elementStart >= lastPos) {
-                if (tag == satoru::MagicTagExtended::ImageDraw && b > 0 &&
-                    b <= (int)images.size()) {
-                    const auto &draw = images[b - 1];
-                    auto it = context.imageCache.find(draw.url);
-                    if (it != context.imageCache.end() && it->second.skImage) {
-                        std::string dataUrl;
-                        if (!it->second.data_url.empty() &&
-                            it->second.data_url.substr(0, 5) == "data:") {
-                            dataUrl = it->second.data_url;
-                        } else {
-                            SkBitmap bitmap;
-                            bitmap.allocN32Pixels(it->second.skImage->width(),
-                                                  it->second.skImage->height());
-                            SkCanvas bitmapCanvas(bitmap);
-                            bitmapCanvas.drawImage(it->second.skImage, 0, 0);
-                            dataUrl = bitmapToDataUrl(bitmap);
-                        }
-                        std::stringstream ss;
-                        if (draw.layer.repeat == litehtml::background_repeat_no_repeat) {
-                            ss << "<image x=\"" << draw.layer.origin_box.x << "\" y=\""
-                               << draw.layer.origin_box.y << "\" width=\""
-                               << draw.layer.origin_box.width << "\" height=\""
-                               << draw.layer.origin_box.height
-                               << "\" preserveAspectRatio=\"none\" href=\"" << dataUrl << "\"";
-                            if (draw.opacity < 1.0f) ss << " opacity=\"" << draw.opacity << "\"";
-                            if (draw.has_clip) {
-                                ss << " clip-path=\"url(#clip-img-" << b << ")\"";
-                            }
-                            ss << " />";
-                        } else {
-                            ss << "<rect x=\"" << draw.layer.clip_box.x << "\" y=\""
-                               << draw.layer.clip_box.y << "\" width=\""
-                               << draw.layer.clip_box.width << "\" height=\""
-                               << draw.layer.clip_box.height << "\" fill=\"url(#pattern-img-" << b
-                               << ")\"";
-                            if (draw.opacity < 1.0f) ss << " opacity=\"" << draw.opacity << "\"";
-                            if (draw.has_clip) ss << " clip-path=\"url(#clip-img-" << b << ")\"";
-                            ss << " />";
-                        }
+                } else if (tag == satoru::MagicTag::LayerPush) {
+                    float opacity = (float)b / 255.0f;
+                    size_t elementStart = svg.rfind('<', pos);
+                    size_t elementEnd = svg.find('>', valEnd);
+                    if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                        elementStart >= lastPos) {
                         result.erase(result.size() - (pos - elementStart));
+                        std::stringstream ss;
+                        ss << "<g opacity=\"" << opacity << "\">";
                         result.append(ss.str());
                         lastPos = elementEnd + 1;
                         replaced = true;
                     }
-                } else if (tag == satoru::MagicTagExtended::InlineSvg && b > 0 &&
-                           b <= (int)container.get_used_inline_svgs().size()) {
-                    result.erase(result.size() - (pos - elementStart));
-                    result.append(container.get_used_inline_svgs()[b - 1]);
-                    lastPos = elementEnd + 1;
-                    replaced = true;
-                } else if (tag == satoru::MagicTagExtended::ConicGradient ||
-                           tag == satoru::MagicTagExtended::RadialGradient ||
-                           tag == satoru::MagicTagExtended::LinearGradient) {
-                    SkBitmap bitmap;
-                    litehtml::position border_box;
-                    litehtml::border_radiuses border_radius;
-                    float opacity = 1.0f;
-                    bool ok = false;
-
-                    if (tag == satoru::MagicTagExtended::ConicGradient && b > 0 &&
-                        b <= (int)conics.size()) {
-                        const auto &info = conics[b - 1];
-                        border_box = info.layer.border_box;
-                        border_radius = info.layer.border_radius;
-                        opacity = info.opacity;
-                        if (border_box.width > 0 && border_box.height > 0) {
-                            bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
-                            SkCanvas bitmapCanvas(bitmap);
-                            bitmapCanvas.clear(SK_ColorTRANSPARENT);
-                            SkPoint center = SkPoint::Make(
-                                (float)info.gradient.position.x - (float)border_box.x,
-                                (float)info.gradient.position.y - (float)border_box.y);
-                            std::vector<SkColor4f> colors;
-                            std::vector<float> pos_vec;
-                            for (size_t i = 0; i < info.gradient.color_points.size(); ++i) {
-                                const auto &stop = info.gradient.color_points[i];
-                                colors.push_back(
-                                    {stop.color.red / 255.0f, stop.color.green / 255.0f,
-                                     stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
-                                float offset = stop.offset;
-                                if (i > 0 && offset <= pos_vec.back())
-                                    offset = pos_vec.back() + 0.00001f;
-                                pos_vec.push_back(offset);
-                            }
-                            if (!pos_vec.empty() && pos_vec.back() > 1.0f) {
-                                float max_val = pos_vec.back();
-                                for (auto &p : pos_vec) p /= max_val;
-                                pos_vec.back() = 1.0f;
-                            }
-                            SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
-                                                                  SkTileMode::kClamp),
-                                               SkGradient::Interpolation());
-                            SkMatrix matrix;
-                            matrix.setRotate(info.gradient.angle - 90.0f, center.x(), center.y());
-                            SkPaint p;
-                            p.setShader(SkShaders::SweepGradient(center, sk_grad, &matrix));
-                            p.setAntiAlias(true);
-                            bitmapCanvas.drawRect(
-                                SkRect::MakeWH((float)border_box.width, (float)border_box.height),
-                                p);
-                            ok = true;
-                        }
-                    } else if (tag == satoru::MagicTagExtended::RadialGradient && b > 0 &&
-                               b <= (int)radials.size()) {
-                        const auto &info = radials[b - 1];
-                        border_box = info.layer.border_box;
-                        border_radius = info.layer.border_radius;
-                        opacity = info.opacity;
-                        if (border_box.width > 0 && border_box.height > 0) {
-                            bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
-                            SkCanvas bitmapCanvas(bitmap);
-                            bitmapCanvas.clear(SK_ColorTRANSPARENT);
-                            SkPoint center = SkPoint::Make(
-                                (float)info.gradient.position.x - (float)border_box.x,
-                                (float)info.gradient.position.y - (float)border_box.y);
-                            float rx = (float)info.gradient.radius.x,
-                                  ry = (float)info.gradient.radius.y;
-                            std::vector<SkColor4f> colors;
-                            std::vector<float> pos_vec;
-                            for (const auto &stop : info.gradient.color_points) {
-                                colors.push_back(
-                                    {stop.color.red / 255.0f, stop.color.green / 255.0f,
-                                     stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
-                                pos_vec.push_back(stop.offset);
-                            }
-                            SkMatrix matrix;
-                            matrix.setScale(1.0f, ry / rx, center.x(), center.y());
-                            SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
-                                                                  SkTileMode::kClamp),
-                                               SkGradient::Interpolation());
-                            SkPaint p;
-                            p.setShader(SkShaders::RadialGradient(center, rx, sk_grad, &matrix));
-                            p.setAntiAlias(true);
-                            bitmapCanvas.drawRect(
-                                SkRect::MakeWH((float)border_box.width, (float)border_box.height),
-                                p);
-                            ok = true;
-                        }
-                    } else if (tag == satoru::MagicTagExtended::LinearGradient && b > 0 &&
-                               b <= (int)linears.size()) {
-                        const auto &info = linears[b - 1];
-                        border_box = info.layer.border_box;
-                        border_radius = info.layer.border_radius;
-                        opacity = info.opacity;
-                        if (border_box.width > 0 && border_box.height > 0) {
-                            bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
-                            SkCanvas bitmapCanvas(bitmap);
-                            bitmapCanvas.clear(SK_ColorTRANSPARENT);
-                            SkPoint pts[2] = {
-                                SkPoint::Make((float)info.gradient.start.x - (float)border_box.x,
-                                              (float)info.gradient.start.y - (float)border_box.y),
-                                SkPoint::Make((float)info.gradient.end.x - (float)border_box.x,
-                                              (float)info.gradient.end.y - (float)border_box.y)};
-                            std::vector<SkColor4f> colors;
-                            std::vector<float> pos_vec;
-                            for (const auto &stop : info.gradient.color_points) {
-                                colors.push_back(
-                                    {stop.color.red / 255.0f, stop.color.green / 255.0f,
-                                     stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
-                                pos_vec.push_back(stop.offset);
-                            }
-                            SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
-                                                                  SkTileMode::kClamp),
-                                               SkGradient::Interpolation());
-                            SkPaint p;
-                            p.setShader(SkShaders::LinearGradient(pts, sk_grad));
-                            p.setAntiAlias(true);
-                            bitmapCanvas.drawRect(
-                                SkRect::MakeWH((float)border_box.width, (float)border_box.height),
-                                p);
-                            ok = true;
-                        }
-                    }
-
-                    if (ok) {
-                        std::stringstream ss;
-                        ss << "<image x=\"" << border_box.x << "\" y=\"" << border_box.y
-                           << "\" width=\"" << border_box.width << "\" height=\""
-                           << border_box.height << "\" preserveAspectRatio=\"none\" href=\""
-                           << bitmapToDataUrl(bitmap) << "\"";
-                        if (opacity < 1.0f) ss << " opacity=\"" << opacity << "\"";
-                        if (has_radius(border_radius))
-                            ss << " clip-path=\"url(#clip-gradient-" << (int)tag << "-" << b
-                               << ")\"";
-                        ss << " />";
+                } else if (tag == satoru::MagicTag::LayerPop) {
+                    size_t elementStart = svg.rfind('<', pos);
+                    size_t elementEnd = svg.find('>', valEnd);
+                    if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                        elementStart >= lastPos) {
                         result.erase(result.size() - (pos - elementStart));
+                        result.append("</g>");
+                        lastPos = elementEnd + 1;
+                        replaced = true;
+                    }
+                } else if (tag == satoru::MagicTag::FilterPush && fullIndex > 0 && fullIndex <= (int)filters.size()) {
+                    const auto &info = filters[fullIndex - 1];
+                    size_t elementStart = svg.rfind('<', pos);
+                    size_t elementEnd = svg.find('>', valEnd);
+                    if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                        elementStart >= lastPos) {
+                        result.erase(result.size() - (pos - elementStart));
+                        std::stringstream ss;
+                        ss << "<g filter=\"url(#filter-" << fullIndex << ")\"";
+                        if (info.opacity < 1.0f) ss << " opacity=\"" << info.opacity << "\"";
+                        ss << ">";
                         result.append(ss.str());
                         lastPos = elementEnd + 1;
                         replaced = true;
+                    }
+                } else if (tag == satoru::MagicTag::FilterPop) {
+                    size_t elementStart = svg.rfind('<', pos);
+                    size_t elementEnd = svg.find('>', valEnd);
+                    if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                        elementStart >= lastPos) {
+                        result.erase(result.size() - (pos - elementStart));
+                        result.append("</g>");
+                        lastPos = elementEnd + 1;
+                        replaced = true;
+                    }
+                } else if (tag == satoru::MagicTag::TextDraw && fullIndex > 0 && fullIndex <= (int)textDraws.size()) {
+                    size_t elementStart = svg.rfind('<', pos);
+                    size_t elementEnd = svg.find('>', valEnd);
+                    if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                        elementStart >= lastPos) {
+                        result.erase(result.size() - (pos - elementStart));
+                        std::string tagStr = svg.substr(elementStart, elementEnd - elementStart + 1);
+                        processTextDraw(tagStr, isAttr, colorVal, textDraws[fullIndex - 1]);
+
+                        // Also fix potential stroke if it was used for boldness or decoration
+                        size_t strokePos = tagStr.find("stroke=\"");
+                        if (strokePos != std::string::npos) {
+                            const auto &info = textDraws[fullIndex - 1];
+                            std::string textColor = "rgb(" + std::to_string((int)info.color.red) + "," +
+                                                    std::to_string((int)info.color.green) + "," +
+                                                    std::to_string((int)info.color.blue) + ")";
+                            size_t strokeValStart = strokePos + 8;
+                            size_t strokeValEnd = tagStr.find('"', strokeValStart);
+                            if (strokeValEnd != std::string::npos) {
+                                tagStr.replace(strokeValStart, strokeValEnd - strokeValStart,
+                                               textColor);
+                            }
+                        }
+
+                        result.append(tagStr);
+                        lastPos = elementEnd + 1;
+                        replaced = true;
+                    }
+                }
+            } else if (tagTypeBit == 1) {
+                auto tag = (satoru::MagicTagExtended)g;
+                size_t elementStart = svg.rfind('<', pos);
+                size_t elementEnd = svg.find('>', valEnd);
+                if (elementStart != std::string::npos && elementEnd != std::string::npos &&
+                    elementStart >= lastPos) {
+                    if (tag == satoru::MagicTagExtended::ImageDraw && fullIndex > 0 &&
+                        fullIndex <= (int)images.size()) {
+                        const auto &draw = images[fullIndex - 1];
+                        auto it = context.imageCache.find(draw.url);
+                        if (it != context.imageCache.end() && it->second.skImage) {
+                            std::string dataUrl;
+                            if (!it->second.data_url.empty() &&
+                                it->second.data_url.substr(0, 5) == "data:") {
+                                dataUrl = it->second.data_url;
+                            } else {
+                                SkBitmap bitmap;
+                                bitmap.allocN32Pixels(it->second.skImage->width(),
+                                                      it->second.skImage->height());
+                                SkCanvas bitmapCanvas(bitmap);
+                                bitmapCanvas.drawImage(it->second.skImage, 0, 0);
+                                dataUrl = bitmapToDataUrl(bitmap);
+                            }
+                            std::stringstream ss;
+                            if (draw.layer.repeat == litehtml::background_repeat_no_repeat) {
+                                ss << "<image x=\"" << draw.layer.origin_box.x << "\" y=\""
+                                   << draw.layer.origin_box.y << "\" width=\""
+                                   << draw.layer.origin_box.width << "\" height=\""
+                                   << draw.layer.origin_box.height
+                                   << "\" preserveAspectRatio=\"none\" href=\"" << dataUrl << "\"";
+                                if (draw.opacity < 1.0f) ss << " opacity=\"" << draw.opacity << "\"";
+                                if (draw.has_clip) {
+                                    ss << " clip-path=\"url(#clip-img-" << fullIndex << ")\"";
+                                }
+                                ss << " />";
+                            } else {
+                                ss << "<rect x=\"" << draw.layer.clip_box.x << "\" y=\""
+                                   << draw.layer.clip_box.y << "\" width=\""
+                                   << draw.layer.clip_box.width << "\" height=\""
+                                   << draw.layer.clip_box.height << "\" fill=\"url(#pattern-img-" << fullIndex
+                                   << ")\"";
+                                if (draw.opacity < 1.0f) ss << " opacity=\"" << draw.opacity << "\"";
+                                if (draw.has_clip) ss << " clip-path=\"url(#clip-img-" << fullIndex << ")\"";
+                                ss << " />";
+                            }
+                            result.erase(result.size() - (pos - elementStart));
+                            result.append(ss.str());
+                            lastPos = elementEnd + 1;
+                            replaced = true;
+                        }
+                    } else if (tag == satoru::MagicTagExtended::InlineSvg && fullIndex > 0 &&
+                               fullIndex <= (int)container.get_used_inline_svgs().size()) {
+                        result.erase(result.size() - (pos - elementStart));
+                        result.append(container.get_used_inline_svgs()[fullIndex - 1]);
+                        lastPos = elementEnd + 1;
+                        replaced = true;
+                    } else if (tag == satoru::MagicTagExtended::ConicGradient ||
+                               tag == satoru::MagicTagExtended::RadialGradient ||
+                               tag == satoru::MagicTagExtended::LinearGradient) {
+                        SkBitmap bitmap;
+                        litehtml::position border_box;
+                        litehtml::border_radiuses border_radius;
+                        float opacity = 1.0f;
+                        bool ok = false;
+
+                        if (tag == satoru::MagicTagExtended::ConicGradient && fullIndex > 0 &&
+                            fullIndex <= (int)conics.size()) {
+                            const auto &info = conics[fullIndex - 1];
+                            border_box = info.layer.border_box;
+                            border_radius = info.layer.border_radius;
+                            opacity = info.opacity;
+                            if (border_box.width > 0 && border_box.height > 0) {
+                                bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
+                                SkCanvas bitmapCanvas(bitmap);
+                                bitmapCanvas.clear(SK_ColorTRANSPARENT);
+                                SkPoint center = SkPoint::Make(
+                                    (float)info.gradient.position.x - (float)border_box.x,
+                                    (float)info.gradient.position.y - (float)border_box.y);
+                                std::vector<SkColor4f> colors;
+                                std::vector<float> pos_vec;
+                                for (size_t i = 0; i < info.gradient.color_points.size(); ++i) {
+                                    const auto &stop = info.gradient.color_points[i];
+                                    colors.push_back(
+                                        {stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                         stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                                    float offset = stop.offset;
+                                    if (i > 0 && offset <= pos_vec.back())
+                                        offset = pos_vec.back() + 0.00001f;
+                                    pos_vec.push_back(offset);
+                                }
+                                if (!pos_vec.empty() && pos_vec.back() > 1.0f) {
+                                    float max_val = pos_vec.back();
+                                    for (auto &p : pos_vec) p /= max_val;
+                                    pos_vec.back() = 1.0f;
+                                }
+                                SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
+                                                                      SkTileMode::kClamp),
+                                                   SkGradient::Interpolation());
+                                SkMatrix matrix;
+                                matrix.setRotate(info.gradient.angle - 90.0f, center.x(), center.y());
+                                SkPaint p;
+                                p.setShader(SkShaders::SweepGradient(center, sk_grad, &matrix));
+                                p.setAntiAlias(true);
+                                bitmapCanvas.drawRect(
+                                    SkRect::MakeWH((float)border_box.width, (float)border_box.height),
+                                    p);
+                                ok = true;
+                            }
+                        } else if (tag == satoru::MagicTagExtended::RadialGradient && fullIndex > 0 &&
+                                   fullIndex <= (int)radials.size()) {
+                            const auto &info = radials[fullIndex - 1];
+                            border_box = info.layer.border_box;
+                            border_radius = info.layer.border_radius;
+                            opacity = info.opacity;
+                            if (border_box.width > 0 && border_box.height > 0) {
+                                bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
+                                SkCanvas bitmapCanvas(bitmap);
+                                bitmapCanvas.clear(SK_ColorTRANSPARENT);
+                                SkPoint center = SkPoint::Make(
+                                    (float)info.gradient.position.x - (float)border_box.x,
+                                    (float)info.gradient.position.y - (float)border_box.y);
+                                float rx = (float)info.gradient.radius.x,
+                                      ry = (float)info.gradient.radius.y;
+                                std::vector<SkColor4f> colors;
+                                std::vector<float> pos_vec;
+                                for (const auto &stop : info.gradient.color_points) {
+                                    colors.push_back(
+                                        {stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                         stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                                    pos_vec.push_back(stop.offset);
+                                }
+                                SkMatrix matrix;
+                                matrix.setScale(1.0f, ry / rx, center.x(), center.y());
+                                SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
+                                                                      SkTileMode::kClamp),
+                                                   SkGradient::Interpolation());
+                                SkPaint p;
+                                p.setShader(SkShaders::RadialGradient(center, rx, sk_grad, &matrix));
+                                p.setAntiAlias(true);
+                                bitmapCanvas.drawRect(
+                                    SkRect::MakeWH((float)border_box.width, (float)border_box.height),
+                                    p);
+                                ok = true;
+                            }
+                        } else if (tag == satoru::MagicTagExtended::LinearGradient && fullIndex > 0 &&
+                                   fullIndex <= (int)linears.size()) {
+                            const auto &info = linears[fullIndex - 1];
+                            border_box = info.layer.border_box;
+                            border_radius = info.layer.border_radius;
+                            opacity = info.opacity;
+                            if (border_box.width > 0 && border_box.height > 0) {
+                                bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
+                                SkCanvas bitmapCanvas(bitmap);
+                                bitmapCanvas.clear(SK_ColorTRANSPARENT);
+                                SkPoint pts[2] = {
+                                    SkPoint::Make((float)info.gradient.start.x - (float)border_box.x,
+                                                  (float)info.gradient.start.y - (float)border_box.y),
+                                    SkPoint::Make((float)info.gradient.end.x - (float)border_box.x,
+                                                  (float)info.gradient.end.y - (float)border_box.y)};
+                                std::vector<SkColor4f> colors;
+                                std::vector<float> pos_vec;
+                                for (const auto &stop : info.gradient.color_points) {
+                                    colors.push_back(
+                                        {stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                         stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                                    pos_vec.push_back(stop.offset);
+                                }
+                                SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
+                                                                      SkTileMode::kClamp),
+                                                   SkGradient::Interpolation());
+                                SkPaint p;
+                                p.setShader(SkShaders::LinearGradient(pts, sk_grad));
+                                p.setAntiAlias(true);
+                                bitmapCanvas.drawRect(
+                                    SkRect::MakeWH((float)border_box.width, (float)border_box.height),
+                                    p);
+                                ok = true;
+                            }
+                        }
+
+                        if (ok) {
+                            std::stringstream ss;
+                            ss << "<image x=\"" << border_box.x << "\" y=\"" << border_box.y
+                               << "\" width=\"" << border_box.width << "\" height=\""
+                               << border_box.height << "\" preserveAspectRatio=\"none\" href=\""
+                               << bitmapToDataUrl(bitmap) << "\"";
+                            if (opacity < 1.0f) ss << " opacity=\"" << opacity << "\"";
+                            if (has_radius(border_radius))
+                                ss << " clip-path=\"url(#clip-gradient-" << (int)tag << "-" << fullIndex
+                                   << ")\"";
+                            ss << " />";
+                            result.erase(result.size() - (pos - elementStart));
+                            result.append(ss.str());
+                            lastPos = elementEnd + 1;
+                            replaced = true;
+                        }
                     }
                 }
             }
@@ -674,7 +698,7 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
                         if (currentIn != "SourceGraphic") {
                             defs
                                 << "<feColorMatrix in=\"" << currentIn << "\" type=\"matrix\" "
-                                << "values=\"0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0\" result=\""
+                                << "values=\"0 0 0 0 0  0 0 0 0 0  0 0 0 1 0\" result=\""
                                 << alphaIn << "\"/>";
                         }
 

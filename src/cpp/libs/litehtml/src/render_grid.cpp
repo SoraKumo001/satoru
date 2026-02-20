@@ -1,5 +1,6 @@
 #include "html.h"
 #include "render_grid.h"
+#include "render_inline.h"
 #include "html_tag.h"
 #include "document.h"
 #include "el_text.h"
@@ -15,51 +16,119 @@ std::shared_ptr<render_item> render_item_grid::init()
     if (m_initialized) return shared_from_this();
     m_initialized = true;
 
-    // Standard Grid/Flex item initialization: wrap inlines in anonymous blocks
-    decltype(m_children) new_children;
+    int column_count = src_el()->css().get_column_count();
+    if (column_count <= 0) column_count = 1;
+
+    std::vector<std::shared_ptr<render_item>> items;
     decltype(m_children) current_inlines;
+
     auto flush_inlines = [&]()
     {
         if(!current_inlines.empty())
         {
-            auto anon_el = std::make_shared<el_div>(src_el()->get_document());
-            anon_el->parent(src_el());
-            anon_el->compute_styles(false);
-            auto anon_ri = std::make_shared<render_item_block>(anon_el);
-            for(const auto& inl : current_inlines)
+            if (column_count > 1)
             {
-                anon_ri->add_child(inl);
-                inl->parent(anon_ri);
+                // Multi-column flow simulation: split text into flowable words
+                for (const auto& inl : current_inlines)
+                {
+                    if (inl->src_el()->is_text())
+                    {
+                        string text;
+                        inl->src_el()->get_text(text);
+                        std::vector<string> words = split_string(text, " \t\r\n", "", "");
+                        for (const auto& word : words)
+                        {
+                            if (word.empty()) continue;
+                            auto t_el = std::make_shared<el_text>((word + " ").c_str(), src_el()->get_document());
+                            t_el->parent(src_el());
+                            t_el->compute_styles(false);
+                            auto t_ri = std::make_shared<render_item_inline>(t_el);
+                            items.push_back(t_ri->init());
+                        }
+                    }
+                    else
+                    {
+                        items.push_back(inl->init());
+                    }
+                }
             }
-            new_children.push_back(anon_ri->init());
+            else
+            {
+                // Normal Grid: wrap inlines in a single anonymous block
+                auto anon_el = std::make_shared<el_div>(src_el()->get_document());
+                anon_el->parent(src_el());
+                anon_el->compute_styles(false);
+                auto anon_ri = std::make_shared<render_item_block>(anon_el);
+                for(const auto& inl : current_inlines)
+                {
+                    anon_ri->add_child(inl);
+                    inl->parent(anon_ri);
+                }
+                items.push_back(anon_ri->init());
+            }
             current_inlines.clear();
         }
     };
 
     for (const auto& el : m_children)
     {
-        bool is_inline = (el->src_el()->css().get_display() == display_inline_text || el->src_el()->is_text());
-        
-        if(is_inline)
+        if (el->src_el()->css().get_display() == display_inline_text || el->src_el()->is_text())
         {
-            if(!current_inlines.empty() || !el->src_el()->is_white_space())
+            if (!el->src_el()->is_white_space())
             {
                 current_inlines.push_back(el);
             }
-        } else
+        }
+        else
         {
             flush_inlines();
             el->parent(shared_from_this());
-            new_children.push_back(el->init());
+            items.push_back(el->init());
         }
     }
     flush_inlines();
 
-    children().clear();
-    for(const auto& child : new_children)
+    if (column_count > 1 && !items.empty())
     {
-        children().push_back(child);
+        // 2. Group items into column containers to simulate flow
+        std::vector<std::shared_ptr<render_item>> columns;
+        for (int i = 0; i < column_count; i++)
+        {
+            auto anon_el = std::make_shared<el_div>(src_el()->get_document());
+            anon_el->parent(src_el());
+            string style = "display: block; width: 100%; grid-column-start: " + std::to_string(i + 1);
+            anon_el->set_attr("style", style.c_str());
+            anon_el->compute_styles(false);
+            
+            auto anon_ri = std::make_shared<render_item_block>(anon_el);
+            anon_ri->parent(shared_from_this());
+            columns.push_back(anon_ri);
+        }
+
+        size_t items_per_col = (items.size() + column_count - 1) / column_count;
+        if (items_per_col == 0) items_per_col = 1;
+        for (size_t i = 0; i < items.size(); i++)
+        {
+            size_t col_idx = std::min((size_t)(i / items_per_col), (size_t)(column_count - 1));
+            columns[col_idx]->add_child(items[i]);
+            items[i]->parent(columns[col_idx]);
+        }
+
+        children().clear();
+        for (auto& col : columns)
+        {
+            children().push_back(col->init());
+        }
     }
+    else
+    {
+        children().clear();
+        for (const auto& item : items)
+        {
+            children().push_back(item);
+        }
+    }
+
     return shared_from_this();
 }
 
@@ -384,13 +453,13 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
         }
 
         containing_block_context cb = self_size;
-        // Correctly calculate available content width by subtracting margins AND padding/borders
+        // Available content width = cell_width - margins - borders - padding
         cb.render_width = cell_width - p.el->margin_left() - p.el->margin_right() - p.el->content_offset_width();
         cb.width = cb.render_width;
         cb.height = containing_block_context::cbc_value_type_auto;
 
-        // Render at relative coordinates. We add margins because litehtml's render(x, y) expects the border-box origin.
-        p.el->render(base_rel_x + p.el->margin_left(), base_rel_y + p.el->margin_top(), cb, fmt_ctx);
+        // Render at (0,0) relative to parent to measure content height.
+        p.el->render(0, 0, cb, fmt_ctx);
     }
 
     // Distribute heights: process 1-row items first, then spans
@@ -401,7 +470,8 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
             int item_span = p.pos.row_end - p.pos.row_start;
             if (item_span != span) continue;
 
-            pixel_t total_h = p.el->pos().height + p.el->margin_top() + p.el->margin_bottom();
+            // total_h should be the margin-box height
+            pixel_t total_h = p.el->height();
             
             // Heuristic: Ensure a minimum height based on font size and content offsets 
             // to handle cases where fonts are not yet loaded.
@@ -515,11 +585,11 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
         cb.size_mode |= containing_block_context::size_mode_exact_height;
         cb.size_mode |= containing_block_context::size_mode_exact_width;
 
-        // Render at relative coordinates + margins
-        p.el->render(base_rel_x + item_rel_x + p.el->margin_left(), base_rel_y + item_rel_y + p.el->margin_top(), cb, fmt_ctx);
+        // Render at relative coordinates. render() adds margins/offsets internally.
+        p.el->render(base_rel_x + item_rel_x, base_rel_y + item_rel_y, cb, fmt_ctx);
     }
 
-    m_pos.height = total_grid_height;
+    m_pos.height = (self_size.render_height.type != containing_block_context::cbc_value_type_auto) ? (pixel_t)self_size.render_height : total_grid_height;
     m_pos.width = self_size.render_width;
 
     return m_pos.height;

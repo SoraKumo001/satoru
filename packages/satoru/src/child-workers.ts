@@ -18,10 +18,14 @@ const actions = {
   async render(
     options: RenderOptions,
     onLog?: (level: LogLevel, message: string) => void,
+    resolveResource?: RenderOptions["resolveResource"],
   ) {
     const s = await getSatoru();
     if (onLog) {
       options.onLog = onLog;
+    }
+    if (resolveResource) {
+      options.resolveResource = resolveResource;
     }
     return await s.render(options);
   },

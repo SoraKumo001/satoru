@@ -29,13 +29,16 @@ const App: React.FC = () => {
       import: "default",
     });
     setAssetList(Object.keys(assetFiles).map((path) => path.split("/").pop()!));
-    
+
     const params = new URLSearchParams(window.location.search);
     const initialWidth = params.get("width");
     if (initialWidth) setWidth(parseInt(initialWidth));
-    
+
     const initialFormat = params.get("format");
-    if (initialFormat && ["svg", "png", "webp", "pdf"].includes(initialFormat)) {
+    if (
+      initialFormat &&
+      ["svg", "png", "webp", "pdf"].includes(initialFormat)
+    ) {
       setFormat(initialFormat as any);
     }
 
@@ -94,7 +97,7 @@ const App: React.FC = () => {
 
     syncParam("width", width.toString());
     syncParam("format", format);
-    
+
     if (format === "svg") {
       syncParam("textToPaths", textToPaths.toString());
     } else if (url.searchParams.has("textToPaths")) {
@@ -138,7 +141,7 @@ const App: React.FC = () => {
 
     const params = new URLSearchParams(window.location.search);
     const initialAsset = params.get("asset") || "01-layout.html";
-    
+
     if (assetList.includes(initialAsset)) {
       if (selectedAsset !== initialAsset) {
         loadAsset(initialAsset);
@@ -180,6 +183,47 @@ const App: React.FC = () => {
         textToPaths,
         css: "body { margin: 8px; }",
         baseUrl: `${window.location.origin}${window.location.pathname}assets/`,
+        resolveResource: async (resource, defaultResolver) => {
+          // Open Cache storage
+          const cache = await caches.open("satoru-resource-cache");
+          const cachedResponse = await cache.match(resource.url);
+
+          if (cachedResponse) {
+            console.log(`[Satoru] Cache Hit: ${resource.url}`);
+            const buf = await cachedResponse.arrayBuffer();
+            return new Uint8Array(buf);
+          }
+
+          // Fetch using default resolver (or manual fetch if in worker proxy)
+          let data: Uint8Array | null = null;
+          if (defaultResolver) {
+            data = await defaultResolver(resource);
+          } else {
+            const resp = await fetch(resource.url);
+            if (resp.ok) {
+              data = new Uint8Array(await resp.arrayBuffer());
+            }
+          }
+
+          if (data instanceof Uint8Array) {
+            console.log(`[Satoru] Cache Miss (Caching...): ${resource.url}`);
+            // Store into cache
+            // Response accepts Uint8Array as body
+            const response = new Response(data, {
+              headers: {
+                "Content-Type":
+                  resource.type === "image"
+                    ? "image/auto"
+                    : resource.type === "font"
+                      ? "font/auto"
+                      : "text/css",
+              },
+            });
+            await cache.put(resource.url, response);
+          }
+
+          return data;
+        },
       });
 
       setRenderResult(result);

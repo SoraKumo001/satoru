@@ -2,8 +2,8 @@ import { createWorker, Worker } from "worker-lib";
 import type { SatoruWorker } from "./child-workers.js";
 export type { SatoruWorker } from "./child-workers.js";
 
-import { LogLevel, type RenderOptions } from "./index.js";
-export { LogLevel } from "./index.js";
+import { Satoru, LogLevel, type RenderOptions } from "./index.js";
+export { Satoru, LogLevel } from "./index.js";
 export type {
   SatoruModule,
   RequiredResource,
@@ -50,8 +50,27 @@ export const createSatoruWorker = (params?: {
     get(target, prop, receiver) {
       if (prop === "render") {
         return async (options: RenderOptions) => {
-          const { onLog, ...workerOptions } = options;
-          return await target.execute("render", workerOptions as any, onLog);
+          const { onLog, resolveResource, ...workerOptions } = options;
+
+          // Wrap resolveResource to provide defaultResolver on the main thread
+          const wrappedResolveResource = resolveResource
+            ? async (resource: any) => {
+                const defaultResolver = (r: any) =>
+                  Satoru.defaultResourceResolver(
+                    r,
+                    options.baseUrl,
+                    options.userAgent,
+                  );
+                return await resolveResource(resource, defaultResolver);
+              }
+            : undefined;
+
+          return await target.execute(
+            "render",
+            workerOptions as any,
+            onLog,
+            wrappedResolveResource,
+          );
         };
       }
 

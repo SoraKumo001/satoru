@@ -195,6 +195,72 @@ export class Satoru {
     mod.destroy_instance(inst);
   }
 
+  /**
+   * Default resource resolver implementation.
+   */
+  static async defaultResourceResolver(
+    resource: RequiredResource,
+    baseUrl?: string,
+    userAgent?: string,
+  ): Promise<Uint8Array | null> {
+    try {
+      const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(resource.url);
+      if (typeof process !== "undefined" && process.versions?.node) {
+        try {
+          const path = await import("path");
+          const fs = await import("fs");
+          let baseDir = baseUrl
+            ? baseUrl.startsWith("file://")
+              ? baseUrl.slice(7)
+              : baseUrl
+            : process.cwd();
+
+          if (process.platform === "win32" && baseDir.startsWith("/")) {
+            baseDir = baseDir.slice(1);
+          }
+
+          if (
+            !isAbsolute &&
+            !/^[a-z][a-z0-9+.-]*:\/\//i.test(baseDir) &&
+            !baseDir.startsWith("data:")
+          ) {
+            const filePath = path.join(baseDir, resource.url);
+            if (fs.existsSync(filePath)) {
+              return new Uint8Array(fs.readFileSync(filePath));
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      let finalUrl: string | null = null;
+      if (isAbsolute) {
+        finalUrl = resource.url;
+      } else if (baseUrl && /^[a-z][a-z0-9+.-]*:/i.test(baseUrl)) {
+        finalUrl = new URL(resource.url, baseUrl).href;
+      }
+
+      if (!finalUrl) return null;
+
+      const headers: Record<string, string> = {};
+      if (
+        typeof process !== "undefined" &&
+        process.versions?.node &&
+        userAgent
+      ) {
+        headers["User-Agent"] = userAgent;
+      }
+      const resp = await fetch(finalUrl, { headers });
+      if (!resp.ok) return null;
+      const buf = await resp.arrayBuffer();
+      return new Uint8Array(buf);
+    } catch (e) {
+      console.warn(`[Satoru] Failed to resolve resource: ${resource.url}`, e);
+      return null;
+    }
+  }
+
   async render(
     options: RenderOptions & { format: "png" | "webp" | "pdf" },
   ): Promise<Uint8Array>;
@@ -273,69 +339,35 @@ export class Satoru {
         mod.scan_css(instancePtr, css);
       }
 
-      const defaultResolver = async (r: RequiredResource) => {
-        try {
-          const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(r.url);
-          if (typeof process !== "undefined" && process.versions?.node) {
-            try {
-              const path = await import("path");
-              const fs = await import("fs");
-              let baseDir = baseUrl
-                ? baseUrl.startsWith("file://")
-                  ? baseUrl.slice(7)
-                  : baseUrl
-                : process.cwd();
+      const defaultResolver = (r: RequiredResource) =>
+        Satoru.defaultResourceResolver(r, baseUrl, options.userAgent);
 
-              if (process.platform === "win32" && baseDir.startsWith("/")) {
-                baseDir = baseDir.slice(1);
-              }
-
-              if (
-                !isAbsolute &&
-                !/^[a-z][a-z0-9+.-]*:\/\//i.test(baseDir) &&
-                !baseDir.startsWith("data:")
-              ) {
-                const filePath = path.join(baseDir, r.url);
-                if (fs.existsSync(filePath)) {
-                  return new Uint8Array(fs.readFileSync(filePath));
-                }
-              }
-            } catch (e) {
-              // ignore
-            }
-          }
-
-          let finalUrl: string | null = null;
-          if (isAbsolute) {
-            finalUrl = r.url;
-          } else if (baseUrl && /^[a-z][a-z0-9+.-]*:/i.test(baseUrl)) {
-            finalUrl = new URL(r.url, baseUrl).href;
-          }
-
-          if (!finalUrl) return null;
-
-          const headers: Record<string, string> = {};
-          if (
-            typeof process !== "undefined" &&
-            process.versions?.node &&
-            options.userAgent
-          ) {
-            headers["User-Agent"] = options.userAgent;
-          }
-          const resp = await fetch(finalUrl, { headers });
-          if (!resp.ok) return null;
-          const buf = await resp.arrayBuffer();
-          return new Uint8Array(buf);
-        } catch (e) {
-          console.warn(`[Satoru] Failed to resolve resource: ${r.url}`, e);
-          return null;
-        }
-      };
+      const isWorker =
+        typeof window === "undefined" && typeof self !== "undefined";
 
       const resolver: (
         resource: RequiredResource,
       ) => Promise<Uint8Array | null> = options.resolveResource
-        ? (r) => options.resolveResource!(r, defaultResolver)
+        ? async (r) => {
+            try {
+              if (isWorker) {
+                // In worker environment, we don't pass defaultResolver to avoid DataCloneError.
+                // The main thread proxy (wrapped in workers.ts) will provide the actual defaultResolver.
+                return await (options.resolveResource as any)(r);
+              }
+              return await options.resolveResource!(r, defaultResolver);
+            } catch (e) {
+              if (
+                e instanceof Error &&
+                (e.name === "DataCloneError" ||
+                  e.message.includes("could not be cloned"))
+              ) {
+                // Fallback for older proxies or environments
+                return await (options.resolveResource as any)(r);
+              }
+              throw e;
+            }
+          }
         : defaultResolver;
 
       const inputHtmls = Array.isArray(value) ? value : [value];

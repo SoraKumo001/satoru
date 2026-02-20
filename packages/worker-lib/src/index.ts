@@ -170,17 +170,18 @@ const exec = <T extends WorkerType>(
             }
           };
           worker.addEventListener("message", handler);
+          const transformedProxyArgs = transformArgs(requestId, proxyArgs);
           worker.postMessage(
             {
               type: "callback_call",
               payload: {
                 id: requestId,
                 callbackId,
-                args: transformedArgs,
+                args: transformedProxyArgs,
                 callId,
               },
             },
-            getTransferables(transformedArgs),
+            getTransferables(transformedProxyArgs),
           );
         });
       };

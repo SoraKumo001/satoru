@@ -393,6 +393,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 
         shaper->shape(str, strLen, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000, &handler);
 
+        double width = satoru::text_width(&m_context, str, fi, nullptr);
+
         sk_sp<SkTextBlob> blob = handler.makeBlob();
         if (blob) {
             if (m_textToPaths) {
@@ -438,7 +440,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
             }
         }
 
-        return (double)handler.endPoint().fX;
+        return width;
     };
 
     if (!m_tagging && !fi->desc.text_shadow.empty()) {
@@ -494,8 +496,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                 SkPathBuilder builder;
                 float x_start = (float)pos.x;
                 float x_end = (float)pos.x + x_offset_dec;
-                float wave_height = thickness * 1.5f;
-                float wave_length = thickness * 3.0f;
+                float wave_height = thickness * 3.5f;
+                float wave_length = thickness * 7.0f;
 
                 builder.moveTo(x_start, y);
                 for (float x = x_start; x < x_end; x += wave_length) {
@@ -510,8 +512,15 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         };
 
         if (fi->desc.decoration_line & litehtml::text_decoration_line_underline) {
-            draw_decoration_line((float)pos.y + (float)fi->fm_ascent +
-                                 (float)fi->desc.underline_offset.val() + 1.0f);
+            float base_y = (float)pos.y;
+            float underline_y = base_y + (float)fi->fm_ascent + (float)fi->desc.underline_offset.val();
+            
+            if (fi->desc.decoration_style == litehtml::text_decoration_style_wavy) {
+                underline_y += thickness * 3.5f; // 波線はベースラインからさらに離す
+            } else {
+                underline_y += thickness + 1.0f; // 通常の下線も少し下げる
+            }
+            draw_decoration_line(underline_y);
         }
         if (fi->desc.decoration_line & litehtml::text_decoration_line_overline) {
             draw_decoration_line((float)pos.y);

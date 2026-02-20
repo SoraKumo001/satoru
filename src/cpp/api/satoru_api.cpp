@@ -1,6 +1,9 @@
 #include "satoru_api.h"
 
 #include <emscripten.h>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/sinks/base_sink.h>
+#include <spdlog/spdlog.h>
 
 #include <cstring>
 #include <iomanip>
@@ -17,12 +20,66 @@
 
 // --- Logging ---
 EM_JS(void, satoru_log_js, (int level, const char *message), {
-    if (Module.onLog) {
-        Module.onLog(level, UTF8ToString(message));
-    }
+if (Module.onLog) {
+Module.onLog(level, UTF8ToString(message));
+}
 });
 
-void satoru_log(LogLevel level, const char *message) { satoru_log_js((int)level, message); }
+static LogLevel spdlog_to_satoru_level(spdlog::level::level_enum level) {
+    switch (level) {
+        case spdlog::level::critical:
+    case spdlog::level::err:
+    return LogLevel::Error;
+case spdlog::level::warn:
+    return LogLevel::Warning;
+    case spdlog::level::info:
+            return LogLevel::Info;
+    case spdlog::level::debug:
+        case spdlog::level::trace:
+            return LogLevel::Debug;
+        default:
+            return LogLevel::None;
+    }
+}
+
+static spdlog::level::level_enum satoru_to_spdlog_level(LogLevel level) {
+    switch (level) {
+        case LogLevel::Error:
+            return spdlog::level::err;
+        case LogLevel::Warning:
+            return spdlog::level::warn;
+        case LogLevel::Info:
+            return spdlog::level::info;
+        case LogLevel::Debug:
+            return spdlog::level::debug;
+        default:
+            return spdlog::level::off;
+    }
+}
+
+template <typename Mutex>
+class emscripten_sink : public spdlog::sinks::base_sink<Mutex> {
+protected:
+    void sink_it_(const spdlog::details::log_msg &msg) override {
+        spdlog::memory_buf_t formatted;
+        spdlog::sinks::base_sink<Mutex>::formatter_->format(msg, formatted);
+        satoru_log_js((int)spdlog_to_satoru_level(msg.level), fmt::to_string(formatted).c_str());
+    }
+
+    void flush_() override {}
+};
+
+using emscripten_sink_mt = emscripten_sink<std::mutex>;
+using emscripten_sink_st = emscripten_sink<spdlog::details::null_mutex>;
+
+void satoru_log(LogLevel level, const char *message) {
+    auto logger = spdlog::get("satoru");
+    if (logger) {
+        logger->log(satoru_to_spdlog_level(level), message);
+    } else {
+        satoru_log_js((int)level, message);
+    }
+}
 
 // --- Helpers ---
 namespace {
@@ -57,7 +114,15 @@ const uint8_t *render_and_store(SatoruInstance *inst, F render_func,
 
 // --- SatoruInstance Implementation ---
 
-SatoruInstance::SatoruInstance() : resourceManager(context) { context.init(); }
+SatoruInstance::SatoruInstance() : resourceManager(context) {
+    if (!spdlog::get("satoru")) {
+        auto sink = std::make_shared<emscripten_sink_st>();
+        auto logger = std::make_shared<spdlog::logger>("satoru", sink);
+        logger->set_pattern("%v");  // Just the message, as satoru_log_js handles level
+        spdlog::register_logger(logger);
+    }
+    context.init();
+}
 
 SatoruInstance::~SatoruInstance() {}
 
@@ -282,6 +347,13 @@ void api_load_font(SatoruInstance *inst, const std::string &name,
 void api_load_image(SatoruInstance *inst, const std::string &name, const std::string &data_url,
                     int width, int height) {
     inst->load_image(name, data_url, width, height);
+}
+
+void api_set_log_level(int level) {
+    auto l = spdlog::get("satoru");
+    if (l) {
+        l->set_level(satoru_to_spdlog_level((LogLevel)level));
+    }
 }
 
 std::string api_get_pending_resources(SatoruInstance *inst) {

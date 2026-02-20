@@ -27,6 +27,7 @@
       "features": [
         "freetype"
       ]
-    }
+    },
+    "spdlog"
   ]
 }

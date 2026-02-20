@@ -124,6 +124,7 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("scan_css", &scan_css_val, allow_raw_pointers());
     function("load_font", &load_font_val, allow_raw_pointers());
     function("load_image", &load_image_val, allow_raw_pointers());
+    function("set_log_level", &api_set_log_level);
 
     function("init_document", &init_document_val, allow_raw_pointers());
     function("layout_document", &layout_document_val, allow_raw_pointers());

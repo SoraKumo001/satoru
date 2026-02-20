@@ -22,7 +22,7 @@ This section defines the core rules for an agent's behavior within this project.
 
 A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscripten).
 
-- **Core Technologies**: `litehtml` (Layout) + `Skia` (Rendering).
+- **Core Technologies**: `litehtml` (Layout) + `Skia` (Rendering) + `spdlog` (Logging).
 - **Structure**: pnpm workspaces monorepo.
   - `packages/satoru`: Core library & TS wrappers.
   - `packages/visual-test`: Visual regression testing suite.
@@ -37,7 +37,7 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - `src/cpp/api`: Emscripten API implementation (`satoru_api.cpp`).
 - `src/cpp/core`: Layout/Rendering core, resource management, and master CSS.
 - `src/cpp/renderers`: PNG, SVG, PDF, and WebP specific renderers.
-- `src/cpp/utils`: Skia utilities, Base64 helpers, and SkUnicode implementation.
+- `src/cpp/utils`: Skia utilities, Base64 helpers, SkUnicode implementation, and logging macros (`logging.h`).
 - `src/cpp/libs`: External libraries (`litehtml`, `skia`).
 
 ### 3.2 Rendering Pipelines
@@ -50,6 +50,12 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - **Cascade Priority**: Correct W3C order (`Important` > `Layer` > `Specificity`).
 - **International Text**: Integrated `HarfBuzz`, `libunibreak`, and `utf8proc` for complex shaping and line breaking.
 - **Decoration**: Supports `wavy` style for underlines using `SkPathBuilder` and `quadTo` curves.
+
+### 3.4 Logging Infrastructure
+- **Integration**: `spdlog` is used as the primary logging engine.
+- **Custom Sink**: `emscripten_sink` bridges `spdlog` logs to the JS `onLog` callback.
+- **Macros**: Use `SATORU_LOG_INFO`, `SATORU_LOG_ERROR`, etc., from `utils/logging.h` for formatted output.
+- **Control**: Log levels are controllable from JS via `Satoru.render({ logLevel: ... })` or `api_set_log_level`.
 
 ---
 

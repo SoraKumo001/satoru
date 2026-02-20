@@ -149,15 +149,16 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
         }
 
         if (r >= 0) {
-            // Check if it's a magic tag. Tags use R bits 0 and 1 to distinguish between normal/extended.
-            // Bits 2-7 of R are used for index high bits.
+            // Check if it's a magic tag. Tags use R bits 0 and 1 to distinguish between
+            // normal/extended. Bits 2-7 of R are used for index high bits.
             int tagTypeBit = r & 0x03;
             int indexHigh = (r >> 2) & 0x3F;
             int fullIndex = (indexHigh << 8) | (b & 0xFF);
 
             if (tagTypeBit == 0) {
                 auto tag = (satoru::MagicTag)g;
-                if (tag == satoru::MagicTag::Shadow && fullIndex > 0 && fullIndex <= (int)shadows.size()) {
+                if (tag == satoru::MagicTag::Shadow && fullIndex > 0 &&
+                    fullIndex <= (int)shadows.size()) {
                     std::string filterId = "shadow-" + std::to_string(fullIndex);
                     if (isAttr)
                         result.append("filter=\"url(#" + filterId + ")\" fill=\"black\"");
@@ -169,8 +170,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                            fullIndex <= (int)textShadows.size()) {
                     const auto &info = textShadows[fullIndex - 1];
                     std::string filterId = "text-shadow-" + std::to_string(fullIndex);
-                    std::string textColor = "rgb(" + std::to_string((int)info.text_color.red) + "," +
-                                            std::to_string((int)info.text_color.green) + "," +
+                    std::string textColor = "rgb(" + std::to_string((int)info.text_color.red) +
+                                            "," + std::to_string((int)info.text_color.green) + "," +
                                             std::to_string((int)info.text_color.blue) + ")";
                     float opacity = ((float)info.text_color.alpha / 255.0f) * info.opacity;
                     if (isAttr)
@@ -204,7 +205,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         lastPos = elementEnd + 1;
                         replaced = true;
                     }
-                } else if (tag == satoru::MagicTag::FilterPush && fullIndex > 0 && fullIndex <= (int)filters.size()) {
+                } else if (tag == satoru::MagicTag::FilterPush && fullIndex > 0 &&
+                           fullIndex <= (int)filters.size()) {
                     const auto &info = filters[fullIndex - 1];
                     size_t elementStart = svg.rfind('<', pos);
                     size_t elementEnd = svg.find('>', valEnd);
@@ -229,22 +231,25 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         lastPos = elementEnd + 1;
                         replaced = true;
                     }
-                } else if (tag == satoru::MagicTag::TextDraw && fullIndex > 0 && fullIndex <= (int)textDraws.size()) {
+                } else if (tag == satoru::MagicTag::TextDraw && fullIndex > 0 &&
+                           fullIndex <= (int)textDraws.size()) {
                     size_t elementStart = svg.rfind('<', pos);
                     size_t elementEnd = svg.find('>', valEnd);
                     if (elementStart != std::string::npos && elementEnd != std::string::npos &&
                         elementStart >= lastPos) {
                         result.erase(result.size() - (pos - elementStart));
-                        std::string tagStr = svg.substr(elementStart, elementEnd - elementStart + 1);
+                        std::string tagStr =
+                            svg.substr(elementStart, elementEnd - elementStart + 1);
                         processTextDraw(tagStr, isAttr, colorVal, textDraws[fullIndex - 1]);
 
                         // Also fix potential stroke if it was used for boldness or decoration
                         size_t strokePos = tagStr.find("stroke=\"");
                         if (strokePos != std::string::npos) {
                             const auto &info = textDraws[fullIndex - 1];
-                            std::string textColor = "rgb(" + std::to_string((int)info.color.red) + "," +
-                                                    std::to_string((int)info.color.green) + "," +
-                                                    std::to_string((int)info.color.blue) + ")";
+                            std::string textColor = "rgb(" + std::to_string((int)info.color.red) +
+                                                    "," + std::to_string((int)info.color.green) +
+                                                    "," + std::to_string((int)info.color.blue) +
+                                                    ")";
                             size_t strokeValStart = strokePos + 8;
                             size_t strokeValEnd = tagStr.find('"', strokeValStart);
                             if (strokeValEnd != std::string::npos) {
@@ -288,7 +293,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                    << draw.layer.origin_box.width << "\" height=\""
                                    << draw.layer.origin_box.height
                                    << "\" preserveAspectRatio=\"none\" href=\"" << dataUrl << "\"";
-                                if (draw.opacity < 1.0f) ss << " opacity=\"" << draw.opacity << "\"";
+                                if (draw.opacity < 1.0f)
+                                    ss << " opacity=\"" << draw.opacity << "\"";
                                 if (draw.has_clip) {
                                     ss << " clip-path=\"url(#clip-img-" << fullIndex << ")\"";
                                 }
@@ -297,10 +303,12 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                 ss << "<rect x=\"" << draw.layer.clip_box.x << "\" y=\""
                                    << draw.layer.clip_box.y << "\" width=\""
                                    << draw.layer.clip_box.width << "\" height=\""
-                                   << draw.layer.clip_box.height << "\" fill=\"url(#pattern-img-" << fullIndex
-                                   << ")\"";
-                                if (draw.opacity < 1.0f) ss << " opacity=\"" << draw.opacity << "\"";
-                                if (draw.has_clip) ss << " clip-path=\"url(#clip-img-" << fullIndex << ")\"";
+                                   << draw.layer.clip_box.height << "\" fill=\"url(#pattern-img-"
+                                   << fullIndex << ")\"";
+                                if (draw.opacity < 1.0f)
+                                    ss << " opacity=\"" << draw.opacity << "\"";
+                                if (draw.has_clip)
+                                    ss << " clip-path=\"url(#clip-img-" << fullIndex << ")\"";
                                 ss << " />";
                             }
                             result.erase(result.size() - (pos - elementStart));
@@ -330,7 +338,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                             border_radius = info.layer.border_radius;
                             opacity = info.opacity;
                             if (border_box.width > 0 && border_box.height > 0) {
-                                bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
+                                bitmap.allocN32Pixels((int)border_box.width,
+                                                      (int)border_box.height);
                                 SkCanvas bitmapCanvas(bitmap);
                                 bitmapCanvas.clear(SK_ColorTRANSPARENT);
                                 SkPoint center = SkPoint::Make(
@@ -353,27 +362,30 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                     for (auto &p : pos_vec) p /= max_val;
                                     pos_vec.back() = 1.0f;
                                 }
-                                SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
-                                                                      SkTileMode::kClamp),
-                                                   SkGradient::Interpolation());
+                                SkGradient sk_grad(
+                                    SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
+                                                       SkTileMode::kClamp),
+                                    SkGradient::Interpolation());
                                 SkMatrix matrix;
-                                matrix.setRotate(info.gradient.angle - 90.0f, center.x(), center.y());
+                                matrix.setRotate(info.gradient.angle - 90.0f, center.x(),
+                                                 center.y());
                                 SkPaint p;
                                 p.setShader(SkShaders::SweepGradient(center, sk_grad, &matrix));
                                 p.setAntiAlias(true);
-                                bitmapCanvas.drawRect(
-                                    SkRect::MakeWH((float)border_box.width, (float)border_box.height),
-                                    p);
+                                bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width,
+                                                                     (float)border_box.height),
+                                                      p);
                                 ok = true;
                             }
-                        } else if (tag == satoru::MagicTagExtended::RadialGradient && fullIndex > 0 &&
-                                   fullIndex <= (int)radials.size()) {
+                        } else if (tag == satoru::MagicTagExtended::RadialGradient &&
+                                   fullIndex > 0 && fullIndex <= (int)radials.size()) {
                             const auto &info = radials[fullIndex - 1];
                             border_box = info.layer.border_box;
                             border_radius = info.layer.border_radius;
                             opacity = info.opacity;
                             if (border_box.width > 0 && border_box.height > 0) {
-                                bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
+                                bitmap.allocN32Pixels((int)border_box.width,
+                                                      (int)border_box.height);
                                 SkCanvas bitmapCanvas(bitmap);
                                 bitmapCanvas.clear(SK_ColorTRANSPARENT);
                                 SkPoint center = SkPoint::Make(
@@ -391,32 +403,37 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                 }
                                 SkMatrix matrix;
                                 matrix.setScale(1.0f, ry / rx, center.x(), center.y());
-                                SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
-                                                                      SkTileMode::kClamp),
-                                                   SkGradient::Interpolation());
+                                SkGradient sk_grad(
+                                    SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
+                                                       SkTileMode::kClamp),
+                                    SkGradient::Interpolation());
                                 SkPaint p;
-                                p.setShader(SkShaders::RadialGradient(center, rx, sk_grad, &matrix));
+                                p.setShader(
+                                    SkShaders::RadialGradient(center, rx, sk_grad, &matrix));
                                 p.setAntiAlias(true);
-                                bitmapCanvas.drawRect(
-                                    SkRect::MakeWH((float)border_box.width, (float)border_box.height),
-                                    p);
+                                bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width,
+                                                                     (float)border_box.height),
+                                                      p);
                                 ok = true;
                             }
-                        } else if (tag == satoru::MagicTagExtended::LinearGradient && fullIndex > 0 &&
-                                   fullIndex <= (int)linears.size()) {
+                        } else if (tag == satoru::MagicTagExtended::LinearGradient &&
+                                   fullIndex > 0 && fullIndex <= (int)linears.size()) {
                             const auto &info = linears[fullIndex - 1];
                             border_box = info.layer.border_box;
                             border_radius = info.layer.border_radius;
                             opacity = info.opacity;
                             if (border_box.width > 0 && border_box.height > 0) {
-                                bitmap.allocN32Pixels((int)border_box.width, (int)border_box.height);
+                                bitmap.allocN32Pixels((int)border_box.width,
+                                                      (int)border_box.height);
                                 SkCanvas bitmapCanvas(bitmap);
                                 bitmapCanvas.clear(SK_ColorTRANSPARENT);
                                 SkPoint pts[2] = {
-                                    SkPoint::Make((float)info.gradient.start.x - (float)border_box.x,
-                                                  (float)info.gradient.start.y - (float)border_box.y),
-                                    SkPoint::Make((float)info.gradient.end.x - (float)border_box.x,
-                                                  (float)info.gradient.end.y - (float)border_box.y)};
+                                    SkPoint::Make(
+                                        (float)info.gradient.start.x - (float)border_box.x,
+                                        (float)info.gradient.start.y - (float)border_box.y),
+                                    SkPoint::Make(
+                                        (float)info.gradient.end.x - (float)border_box.x,
+                                        (float)info.gradient.end.y - (float)border_box.y)};
                                 std::vector<SkColor4f> colors;
                                 std::vector<float> pos_vec;
                                 for (const auto &stop : info.gradient.color_points) {
@@ -425,15 +442,16 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                          stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
                                     pos_vec.push_back(stop.offset);
                                 }
-                                SkGradient sk_grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
-                                                                      SkTileMode::kClamp),
-                                                   SkGradient::Interpolation());
+                                SkGradient sk_grad(
+                                    SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
+                                                       SkTileMode::kClamp),
+                                    SkGradient::Interpolation());
                                 SkPaint p;
                                 p.setShader(SkShaders::LinearGradient(pts, sk_grad));
                                 p.setAntiAlias(true);
-                                bitmapCanvas.drawRect(
-                                    SkRect::MakeWH((float)border_box.width, (float)border_box.height),
-                                    p);
+                                bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width,
+                                                                     (float)border_box.height),
+                                                      p);
                                 ok = true;
                             }
                         }
@@ -446,8 +464,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                << bitmapToDataUrl(bitmap) << "\"";
                             if (opacity < 1.0f) ss << " opacity=\"" << opacity << "\"";
                             if (has_radius(border_radius))
-                                ss << " clip-path=\"url(#clip-gradient-" << (int)tag << "-" << fullIndex
-                                   << ")\"";
+                                ss << " clip-path=\"url(#clip-gradient-" << (int)tag << "-"
+                                   << fullIndex << ")\"";
                             ss << " />";
                             result.erase(result.size() - (pos - elementStart));
                             result.append(ss.str());
@@ -696,10 +714,9 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
                                                   ? "SourceAlpha"
                                                   : "alpha-" + std::to_string(resIdx);
                         if (currentIn != "SourceGraphic") {
-                            defs
-                                << "<feColorMatrix in=\"" << currentIn << "\" type=\"matrix\" "
-                                << "values=\"0 0 0 0 0  0 0 0 0 0  0 0 0 1 0\" result=\""
-                                << alphaIn << "\"/>";
+                            defs << "<feColorMatrix in=\"" << currentIn << "\" type=\"matrix\" "
+                                 << "values=\"0 0 0 0 0  0 0 0 0 0  0 0 0 1 0\" result=\""
+                                 << alphaIn << "\"/>";
                         }
 
                         defs << "<feGaussianBlur in=\"" << alphaIn << "\" stdDeviation=\""

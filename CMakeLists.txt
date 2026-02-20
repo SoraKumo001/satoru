@@ -85,6 +85,7 @@ find_package(ctre CONFIG REQUIRED)
 find_package(utf8proc CONFIG REQUIRED)
 find_package(libunibreak CONFIG REQUIRED)
 find_package(harfbuzz REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 
 # Workaround for vcpkg harfbuzz path bug
 if(TARGET harfbuzz)
@@ -113,6 +114,7 @@ set(SATORU_LIBS
     utf8proc::utf8proc
     libunibreak::libunibreak
     harfbuzz::harfbuzz
+    spdlog::spdlog
 )
 
     set(COMMON_COMPILE_OPTIONS

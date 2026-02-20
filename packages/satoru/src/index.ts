@@ -26,6 +26,7 @@ export interface SatoruModule {
     width: number,
     height: number,
   ) => void;
+  set_log_level: (level: number) => void;
   init_document: (inst: any, html: string, width: number) => void;
   layout_document: (inst: any, width: number) => void;
   render_from_state: (
@@ -245,6 +246,7 @@ export class Satoru {
     const prevOnLog = mod.onLog;
 
     mod.logLevel = logLevel ?? LogLevel.None;
+    mod.set_log_level(mod.logLevel);
     mod.onLog = onLog;
 
     const instancePtr = mod.create_instance();

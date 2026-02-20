@@ -75,6 +75,8 @@ void api_load_font(SatoruInstance *inst, const std::string &name, const std::vec
 void api_load_image(SatoruInstance *inst, const std::string &name, const std::string &data_url,
                     int width, int height);
 
+void api_set_log_level(int level);
+
 std::string api_get_pending_resources(SatoruInstance *inst);
 
 #endif  // SATORU_API_H

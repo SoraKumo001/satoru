@@ -8,6 +8,7 @@
 #include "include/core/SkData.h"
 #include "include/core/SkFontArguments.h"
 #include "include/core/SkSpan.h"
+#include "utils/logging.h"
 #include "utils/skia_utils.h"
 
 // External declaration for the custom empty font manager
@@ -52,10 +53,8 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
     }
 
     if (typeface) {
-        std::stringstream ss;
-        ss << "loadFont: SUCCESS loaded font '" << cleaned << "' (" << size << " bytes) from "
-           << (url ? url : "memory");
-        satoru_log(LogLevel::Info, ss.str().c_str());
+        SATORU_LOG_INFO("loadFont: SUCCESS loaded font '{}' ({} bytes) from {}", cleaned, size,
+                        (url ? url : "memory"));
 
         bool duplicate = false;
         for (const auto &existing : m_typefaceCache[cleaned]) {
@@ -70,9 +69,7 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
             if (!m_defaultTypeface) m_defaultTypeface = typeface;
         }
     } else {
-        std::stringstream ss;
-        ss << "loadFont: FAILED to load font data (" << size << " bytes)";
-        satoru_log(LogLevel::Error, ss.str().c_str());
+        SATORU_LOG_ERROR("loadFont: FAILED to load font data ({} bytes)", size);
     }
 }
 

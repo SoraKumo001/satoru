@@ -294,7 +294,7 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         // Use R and B channels for a larger index (up to 14 bits: 6 bits in R, 8 bits in B)
         // R channel: 0-63 (0 and 1 are already used, so we use bits 2-7 for index high bits)
         // R = (index >> 8) << 2 | (0 for MagicTag)
-        uint8_t r = ((index >> 8) & 0x3F) << 2; 
+        uint8_t r = ((index >> 8) & 0x3F) << 2;
         paint.setColor(SkColorSetARGB(255, r, (uint8_t)satoru::MagicTag::TextDraw, (index & 0xFF)));
     } else {
         paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));

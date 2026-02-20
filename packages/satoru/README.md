@@ -144,9 +144,11 @@ const pdf = await render({
   format: "pdf",
   baseUrl: "https://example.com/assets/", // Optional: resolve relative URLs
   logLevel: LogLevel.Info,
-  resolveResource: async (resource) => {
-    const res = await fetch(resource.url);
-    return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
+  resolveResource: async (resource, defaultResolver) => {
+    if (resource.url.startsWith("custom://")) {
+      return myCustomData;
+    }
+    return defaultResolver(resource);
   },
 });
 
@@ -168,7 +170,7 @@ const png = await render({
 | `height`          | `number`                            | Height of the output in pixels. Default is `0` (automatic height).       |
 | `format`          | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default is `"svg"`.                                       |
 | `textToPaths`     | `boolean`                           | Whether to convert SVG text to paths. Default is `true`.                 |
-| `resolveResource` | `ResourceResolver`                  | Async callback to fetch missing fonts, images, or CSS.                   |
+| `resolveResource` | `ResourceResolver`                  | Async callback to fetch missing fonts, images, or CSS. It receives a second argument `defaultResolver` to fallback to the standard resolution logic. |
 | `fonts`           | `Object[]`                          | Array of `{ name, data: Uint8Array }` to pre-load fonts.                 |
 | `images`          | `Object[]`                          | Array of `{ name, url, width?, height? }` to pre-load images.            |
 | `css`             | `string`                            | Extra CSS to inject into the rendering process.                          |

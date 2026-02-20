@@ -57,6 +57,11 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - **Macros**: Use `SATORU_LOG_INFO`, `SATORU_LOG_ERROR`, etc., from `utils/logging.h` for formatted output.
 - **Control**: Log levels are controllable from JS via `Satoru.render({ logLevel: ... })` or `api_set_log_level`.
 
+### 3.5 Resource Management
+- **Resolution**: `render` options support `resolveResource` callback.
+- **Default Resolver**: The JS wrapper provides a default resource resolver that handles local file system (Node.js) and HTTP `fetch`.
+- **Interception**: Users can intercept resource requests and fallback to the default resolver via the second argument of the callback.
+
 ---
 
 ## 4. Development & Verification Workflow

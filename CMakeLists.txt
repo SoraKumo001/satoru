@@ -146,6 +146,12 @@ set(SATORU_LIBS
         "-sALLOW_MEMORY_GROWTH=1"
     )
 
+    if(DEFINED ENV{SATORU_EXTRA_LINK_OPTIONS})
+        string(REPLACE " " ";" SATORU_EXTRA_LINK_OPTIONS_LIST $ENV{SATORU_EXTRA_LINK_OPTIONS})
+        list(APPEND COMMON_LINK_OPTIONS ${SATORU_EXTRA_LINK_OPTIONS_LIST})
+        message(STATUS "Loaded extra link options from SATORU_EXTRA_LINK_OPTIONS")
+    endif()
+
 # --- Target: litehtml ---
 add_library(litehtml STATIC)
 file(GLOB LITEHTML_SRC "${LITEHTML_DIR}/src/*.cpp")

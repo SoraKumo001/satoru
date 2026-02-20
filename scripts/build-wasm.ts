@@ -2,6 +2,21 @@ import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 
+// Load .env file
+if (fs.existsSync(".env")) {
+  const envContent = fs.readFileSync(".env", "utf-8");
+  envContent.split(/\r?\n/).forEach((line) => {
+    const trimmedLine = line.trim();
+    if (trimmedLine && !trimmedLine.startsWith("#")) {
+      const [key, ...values] = trimmedLine.split("=");
+      if (key && values.length > 0) {
+        const value = values.join("=").trim().replace(/^["']|["']$/g, "");
+        process.env[key.trim()] = value;
+      }
+    }
+  });
+}
+
 const isWin = process.platform === "win32";
 const action = process.argv[2];
 

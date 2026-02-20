@@ -493,19 +493,27 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                 m_canvas->drawLine((float)pos.x, y + gap / 2, (float)pos.x + x_offset_dec,
                                    y + gap / 2, dec_paint);
             } else if (fi->desc.decoration_style == litehtml::text_decoration_style_wavy) {
+                float wave_length = thickness * 8.0f;
+                float wave_height = wave_length / 3.0f;
+
+                m_canvas->save();
+                // 波線の場合は少し太めにする
+                dec_paint.setStrokeWidth(thickness * 1.5f);
+                // 描画範囲を現在のテキストフラグメントの幅に制限する
+                m_canvas->clipRect(SkRect::MakeXYWH((float)pos.x, y - wave_height - thickness * 2, x_offset_dec, wave_height * 2 + thickness * 4));
+
                 SkPathBuilder builder;
                 float x_start = (float)pos.x;
                 float x_end = (float)pos.x + x_offset_dec;
-                float wave_height = thickness * 3.5f;
-                float wave_length = thickness * 7.0f;
+                float x_aligned = floorf(x_start / wave_length) * wave_length;
 
-                builder.moveTo(x_start, y);
-                for (float x = x_start; x < x_end; x += wave_length) {
+                builder.moveTo(x_aligned, y);
+                for (float x = x_aligned; x < x_end; x += wave_length) {
                     builder.quadTo(x + wave_length / 4.0f, y - wave_height, x + wave_length / 2.0f, y);
-                    builder.quadTo(x + wave_length * 3.0f / 4.0f, y + wave_height,
-                                   std::min(x + wave_length, x_end), y);
+                    builder.quadTo(x + wave_length * 3.0f / 4.0f, y + wave_height, x + wave_length, y);
                 }
                 m_canvas->drawPath(builder.detach(), dec_paint);
+                m_canvas->restore();
             } else {
                 m_canvas->drawLine((float)pos.x, y, (float)pos.x + x_offset_dec, y, dec_paint);
             }
@@ -516,7 +524,9 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
             float underline_y = base_y + (float)fi->fm_ascent + (float)fi->desc.underline_offset.val();
             
             if (fi->desc.decoration_style == litehtml::text_decoration_style_wavy) {
-                underline_y += thickness * 3.5f; // 波線はベースラインからさらに離す
+                float wave_length = thickness * 8.0f;
+                float wave_height = wave_length / 3.0f;
+                underline_y += wave_height + thickness; // 振幅に太さ分のマージンを加えてベースラインから離す
             } else {
                 underline_y += thickness + 1.0f; // 通常の下線も少し下げる
             }

@@ -79,9 +79,25 @@ const isPlainObject = (v: any): boolean => {
   );
 };
 
+const getTransferables = (v: any, result: ArrayBuffer[] = []): ArrayBuffer[] => {
+  if (v instanceof ArrayBuffer) {
+    result.push(v);
+  } else if (ArrayBuffer.isView(v)) {
+    result.push(v.buffer as ArrayBuffer);
+  } else if (Array.isArray(v)) {
+    for (const item of v) getTransferables(item, result);
+  } else if (v && typeof v === "object") {
+    for (const key in v) getTransferables(v[key], result);
+  }
+  return result;
+};
+
 const transformArgs = (requestId: number, args: any): any => {
   if (typeof args === "function") {
     return { [FUNCTION_PLACEHOLDER]: registerCallback(requestId, args) };
+  }
+  if (ArrayBuffer.isView(args) || args instanceof ArrayBuffer) {
+    return args;
   }
   if (Array.isArray(args)) {
     return args.map((v) => transformArgs(requestId, v));
@@ -154,15 +170,18 @@ const exec = <T extends WorkerType>(
             }
           };
           worker.addEventListener("message", handler);
-          worker.postMessage({
-            type: "callback_call",
-            payload: {
-              id: requestId,
-              callbackId,
-              args: transformArgs(requestId, proxyArgs),
-              callId,
+          worker.postMessage(
+            {
+              type: "callback_call",
+              payload: {
+                id: requestId,
+                callbackId,
+                args: transformedArgs,
+                callId,
+              },
             },
-          });
+            getTransferables(transformedArgs),
+          );
         });
       };
       callbackProxies.set(key, proxy);
@@ -193,10 +212,14 @@ const exec = <T extends WorkerType>(
             const result = await fn(
               ...resolveArgs(requestId, callArgs, createProxy),
             );
-            worker.postMessage({
-              type: "callback_result",
-              payload: { id: callId, result: transformArgs(requestId, result) },
-            });
+            const transformedResult = transformArgs(requestId, result);
+            worker.postMessage(
+              {
+                type: "callback_result",
+                payload: { id: callId, result: transformedResult },
+              },
+              getTransferables(transformedResult),
+            );
           } catch (e) {
             console.error("[worker-lib] Callback execution failed:", e);
           }
@@ -205,14 +228,18 @@ const exec = <T extends WorkerType>(
     };
 
     worker.addEventListener("message", messageHandler);
-    worker.postMessage({
-      type: "function",
-      payload: {
-        id: requestId,
-        name,
-        args: transformArgs(requestId, args),
+    const transformedArgs = transformArgs(requestId, args);
+    worker.postMessage(
+      {
+        type: "function",
+        payload: {
+          id: requestId,
+          name,
+          args: transformedArgs,
+        },
       },
-    });
+      getTransferables(transformedArgs),
+    );
   });
 };
 
@@ -461,15 +488,19 @@ export const initWorker = <T extends WorkerType>(WorkerProc: T) => {
           }
         };
         worker.addEventListener("message", handler);
-        worker.postMessage({
-          type: "callback_call",
-          payload: {
-            id: requestId,
-            callbackId,
-            args: transformArgs(requestId, proxyArgs),
-            callId,
+        const transformedArgs = transformArgs(requestId, proxyArgs);
+        worker.postMessage(
+          {
+            type: "callback_call",
+            payload: {
+              id: requestId,
+              callbackId,
+              args: transformedArgs,
+              callId,
+            },
           },
-        });
+          getTransferables(transformedArgs),
+        );
       });
     };
     callbackProxies.set(key, proxy);
@@ -489,10 +520,14 @@ export const initWorker = <T extends WorkerType>(WorkerProc: T) => {
             createProxy(cbId, id),
           );
           const result = await proc(...resolvedArgs);
-          worker.postMessage({
-            type: "result",
-            payload: { id, result: transformArgs(id, result) },
-          });
+          const transformedResult = transformArgs(id, result);
+          worker.postMessage(
+            {
+              type: "result",
+              payload: { id, result: transformedResult },
+            },
+            getTransferables(transformedResult),
+          );
           clearCallbacks(id);
         } catch (error) {
           worker.postMessage({
@@ -510,10 +545,14 @@ export const initWorker = <T extends WorkerType>(WorkerProc: T) => {
           const result = await fn(
             ...resolveArgs(id, args, (cbId) => createProxy(cbId, id)),
           );
-          worker.postMessage({
-            type: "callback_result",
-            payload: { id: callId, result: transformArgs(id, result) },
-          });
+          const transformedResult = transformArgs(id, result);
+          worker.postMessage(
+            {
+              type: "callback_result",
+              payload: { id: callId, result: transformedResult },
+            },
+            getTransferables(transformedResult),
+          );
         } catch (e) {
           console.error("[worker-lib] Worker-side callback failed:", e);
         }

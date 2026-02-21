@@ -4,11 +4,11 @@
 
 #include <algorithm>
 
+#include "core/satoru_context.h"
+#include "core/text/unicode_service.h"
 #include "include/core/SkFont.h"
 #include "include/core/SkTextBlob.h"
 #include "modules/skshaper/include/SkShaper.h"
-#include "core/satoru_context.h"
-#include "core/text/unicode_service.h"
 
 namespace satoru {
 

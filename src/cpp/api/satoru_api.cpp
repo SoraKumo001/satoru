@@ -20,21 +20,21 @@
 
 // --- Logging ---
 EM_JS(void, satoru_log_js, (int level, const char *message), {
-if (Module.onLog) {
-Module.onLog(level, UTF8ToString(message));
-}
+    if (Module.onLog) {
+        Module.onLog(level, UTF8ToString(message));
+    }
 });
 
 static LogLevel spdlog_to_satoru_level(spdlog::level::level_enum level) {
     switch (level) {
         case spdlog::level::critical:
-    case spdlog::level::err:
-    return LogLevel::Error;
-case spdlog::level::warn:
-    return LogLevel::Warning;
-    case spdlog::level::info:
+        case spdlog::level::err:
+            return LogLevel::Error;
+        case spdlog::level::warn:
+            return LogLevel::Warning;
+        case spdlog::level::info:
             return LogLevel::Info;
-    case spdlog::level::debug:
+        case spdlog::level::debug:
         case spdlog::level::trace:
             return LogLevel::Debug;
         default:
@@ -59,7 +59,7 @@ static spdlog::level::level_enum satoru_to_spdlog_level(LogLevel level) {
 
 template <typename Mutex>
 class emscripten_sink : public spdlog::sinks::base_sink<Mutex> {
-protected:
+   protected:
     void sink_it_(const spdlog::details::log_msg &msg) override {
         spdlog::memory_buf_t formatted;
         spdlog::sinks::base_sink<Mutex>::formatter_->format(msg, formatted);

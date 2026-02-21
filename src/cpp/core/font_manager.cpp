@@ -1,11 +1,11 @@
 #include "font_manager.h"
-#include "core/text/unicode_service.h"
 
 #include <algorithm>
 #include <ctre.hpp>
 #include <sstream>
 
 #include "../api/satoru_api.h"
+#include "core/text/unicode_service.h"
 #include "include/core/SkData.h"
 #include "include/core/SkFontArguments.h"
 #include "include/core/SkSpan.h"
@@ -424,9 +424,9 @@ std::string SatoruFontManager::generateFontFaceCSS() const {
     return ss.str();
 }
 
-SkFont SatoruFontManager::selectFont(char32_t u, font_info* fi, SkFont* lastSelectedFont,
-                                     const satoru::UnicodeService& unicode) {
-    SkFont* selected_font = nullptr;
+SkFont SatoruFontManager::selectFont(char32_t u, font_info *fi, SkFont *lastSelectedFont,
+                                     const satoru::UnicodeService &unicode) {
+    SkFont *selected_font = nullptr;
 
     if (unicode.isMark(u) && lastSelectedFont) {
         selected_font = lastSelectedFont;

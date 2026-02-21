@@ -1,4 +1,5 @@
 #include "text_utils.h"
+
 #include "core/text/text_layout.h"
 #include "core/text/unicode_service.h"
 #include "satoru_context.h"

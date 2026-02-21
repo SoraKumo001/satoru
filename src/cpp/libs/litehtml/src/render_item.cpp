@@ -77,40 +77,54 @@ void litehtml::render_item::calc_outlines( pixel_t parent_width )
 
 litehtml::pixel_t litehtml::render_item::calc_auto_margins(pixel_t parent_width)
 {
-    if ((src_el()->css().get_display() == display_block || src_el()->css().get_display() == display_table) &&
-            src_el()->css().get_position() != element_position_absolute &&
-            src_el()->css().get_float() == float_none)
+if ((src_el()->css().get_display() == display_block || src_el()->css().get_display() == display_table) &&
+src_el()->css().get_position() != element_position_absolute &&
+src_el()->css().get_float() == float_none)
+{
+pixel_t old_margin_left = m_margins.left;
+if (src_el()->css().get_margins().left.is_predefined() && src_el()->css().get_margins().right.is_predefined())
+{
+pixel_t el_width = m_pos.width + m_borders.left + m_borders.right + m_padding.left + m_padding.right;
+if (el_width <= parent_width)
+{
+m_margins.left = (parent_width - el_width) / 2;
+    m_margins.right = (parent_width - el_width) - m_margins.left;
+}
+else
+{
+m_margins.left = 0;
+    m_margins.right = 0;
+}
+}
+else if (src_el()->css().get_margins().left.is_predefined() && !src_el()->css().get_margins().right.is_predefined())
+{
+pixel_t el_width = m_pos.width + m_borders.left + m_borders.right + m_padding.left + m_padding.right + m_margins.right;
+m_margins.left = parent_width - el_width;
+if (m_margins.left < 0) m_margins.left = 0;
+}
+else if (!src_el()->css().get_margins().left.is_predefined() && src_el()->css().get_margins().right.is_predefined())
+{
+    pixel_t el_width = m_pos.width + m_borders.left + m_borders.right + m_padding.left + m_padding.right + m_margins.left;
+m_margins.right = parent_width - el_width;
+if (m_margins.right < 0) m_margins.right = 0;
+}
+else
     {
-        if (src_el()->css().get_margins().left.is_predefined() && src_el()->css().get_margins().right.is_predefined())
-        {
-            pixel_t el_width = m_pos.width + m_borders.left + m_borders.right + m_padding.left + m_padding.right;
-            if (el_width <= parent_width)
+    direction dir = direction_ltr;
+            if (src_el()->parent())
             {
-                m_margins.left = (parent_width - el_width) / 2;
-                m_margins.right = (parent_width - el_width) - m_margins.left;
+                dir = src_el()->parent()->get_direction();
             }
-            else
+            if (dir == direction_rtl)
             {
-                m_margins.left = 0;
-                m_margins.right = 0;
+                pixel_t el_width = m_pos.width + m_borders.left + m_borders.right + m_padding.left + m_padding.right + m_margins.right;
+                m_margins.left = parent_width - el_width;
+                if (m_margins.left < 0) m_margins.left = 0;
             }
-			return m_margins.left;
         }
-        else if (src_el()->css().get_margins().left.is_predefined() && !src_el()->css().get_margins().right.is_predefined())
-        {
-            pixel_t el_width = m_pos.width + m_borders.left + m_borders.right + m_padding.left + m_padding.right + m_margins.right;
-            m_margins.left = parent_width - el_width;
-            if (m_margins.left < 0) m_margins.left = 0;
-			return m_margins.left;
-        }
-        else if (!src_el()->css().get_margins().left.is_predefined() && src_el()->css().get_margins().right.is_predefined())
-        {
-            pixel_t el_width = m_pos.width + m_borders.left + m_borders.right + m_padding.left + m_padding.right + m_margins.left;
-            m_margins.right = parent_width - el_width;
-            if (m_margins.right < 0) m_margins.right = 0;
-        }
+        return m_margins.left - old_margin_left;
     }
-	return 0;
+    return 0;
 }
 
 void litehtml::render_item::apply_relative_shift(const containing_block_context &containing_block_size)

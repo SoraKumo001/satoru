@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "bridge/magic_tags.h"
 #include "core/satoru_context.h"
 #include "core/text/text_layout.h"
 #include "core/text/unicode_service.h"
@@ -14,7 +15,6 @@
 #include "include/core/SkTextBlob.h"
 #include "include/effects/SkDashPathEffect.h"
 #include "modules/skshaper/include/SkShaper.h"
-#include "bridge/magic_tags.h"
 
 namespace satoru {
 
@@ -70,8 +70,10 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
         bool forced = (pos.width < 1.0f);
         double margin = forced ? 0.0f : 2.0f;
 
-        if (forced || TextLayout::measureText(ctx, text, fi, -1.0, nullptr).width > available_width + margin) {
-            text_str = TextLayout::ellipsizeText(ctx, text, fi, (double)available_width, usedCodepoints);
+        if (forced || TextLayout::measureText(ctx, text, fi, -1.0, nullptr).width >
+                          available_width + margin) {
+            text_str =
+                TextLayout::ellipsizeText(ctx, text, fi, (double)available_width, usedCodepoints);
         }
     }
 
@@ -118,20 +120,22 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
         for (auto it = fi->desc.text_shadow.rbegin(); it != fi->desc.text_shadow.rend(); ++it) {
             const auto& s = *it;
             SkPaint shadow_paint = paint;
-            shadow_paint.setColor(SkColorSetARGB(s.color.alpha, s.color.red, s.color.green, s.color.blue));
+            shadow_paint.setColor(
+                SkColorSetARGB(s.color.alpha, s.color.red, s.color.green, s.color.blue));
             float blur_std_dev = (float)s.blur.val() * 0.5f;
             if (blur_std_dev > 0)
-                shadow_paint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, blur_std_dev));
+                shadow_paint.setMaskFilter(
+                    SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, blur_std_dev));
 
-            drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi, 
-                             (double)pos.x + s.x.val(), (double)pos.y + s.y.val(), 
-                             shadow_paint, false, usedTextDraws, usedCodepoints);
+            drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi,
+                             (double)pos.x + s.x.val(), (double)pos.y + s.y.val(), shadow_paint,
+                             false, usedTextDraws, usedCodepoints);
         }
     }
 
-    double final_width = drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi, 
-                                          (double)pos.x, (double)pos.y, paint, tagging, 
-                                          usedTextDraws, usedCodepoints);
+    double final_width =
+        drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi, (double)pos.x,
+                         (double)pos.y, paint, tagging, usedTextDraws, usedCodepoints);
 
     if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
         drawDecoration(canvas, fi, pos, color, final_width);
@@ -159,7 +163,8 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
         char32_t u = unicode.decodeUtf8(&p_walk);
         if (usedCodepoints) usedCodepoints->insert(u);
 
-        SkFont font = ctx->fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr, unicode);
+        SkFont font =
+            ctx->fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr, unicode);
         last_font = font;
         has_last_font = true;
 
@@ -230,14 +235,14 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                                 auto tmpCanvas = surface->getCanvas();
                                 tmpCanvas->clear(SK_ColorTRANSPARENT);
                                 tmpCanvas->drawSimpleText(&run.glyphs[i], sizeof(uint16_t),
-                                                       SkTextEncoding::kGlyphID, -bounds.fLeft,
-                                                       -bounds.fTop, run.font, paint);
+                                                          SkTextEncoding::kGlyphID, -bounds.fLeft,
+                                                          -bounds.fTop, run.font, paint);
                                 auto img = surface->makeImageSnapshot();
 
-                                SkRect dst = SkRect::MakeXYWH(
-                                    gx + bounds.fLeft, gy + bounds.fTop, (float)w, (float)h);
-                                canvas->drawImageRect(
-                                    img, dst, SkSamplingOptions(SkFilterMode::kLinear));
+                                SkRect dst = SkRect::MakeXYWH(gx + bounds.fLeft, gy + bounds.fTop,
+                                                              (float)w, (float)h);
+                                canvas->drawImageRect(img, dst,
+                                                      SkSamplingOptions(SkFilterMode::kLinear));
                             }
                         }
                     }
@@ -261,7 +266,8 @@ void TextRenderer::drawDecoration(SkCanvas* canvas, font_info* fi, const litehtm
     if (dec_color == litehtml::web_color::current_color) dec_color = color;
 
     SkPaint dec_paint;
-    dec_paint.setColor(SkColorSetARGB(dec_color.alpha, dec_color.red, dec_color.green, dec_color.blue));
+    dec_paint.setColor(
+        SkColorSetARGB(dec_color.alpha, dec_color.red, dec_color.green, dec_color.blue));
     dec_paint.setAntiAlias(true);
     dec_paint.setStrokeWidth(thickness);
     dec_paint.setStyle(SkPaint::kStroke_Style);
@@ -277,8 +283,10 @@ void TextRenderer::drawDecoration(SkCanvas* canvas, font_info* fi, const litehtm
     auto draw_decoration_line = [&](float y) {
         if (fi->desc.decoration_style == litehtml::text_decoration_style_double) {
             float gap = thickness + 1.0f;
-            canvas->drawLine((float)pos.x, y - gap / 2, (float)pos.x + x_offset_dec, y - gap / 2, dec_paint);
-            canvas->drawLine((float)pos.x, y + gap / 2, (float)pos.x + x_offset_dec, y + gap / 2, dec_paint);
+            canvas->drawLine((float)pos.x, y - gap / 2, (float)pos.x + x_offset_dec, y - gap / 2,
+                             dec_paint);
+            canvas->drawLine((float)pos.x, y + gap / 2, (float)pos.x + x_offset_dec, y + gap / 2,
+                             dec_paint);
         } else if (fi->desc.decoration_style == litehtml::text_decoration_style_wavy) {
             float wave_length = thickness * 8.0f;
             float wave_height = wave_length / 3.0f;
@@ -286,7 +294,7 @@ void TextRenderer::drawDecoration(SkCanvas* canvas, font_info* fi, const litehtm
             canvas->save();
             dec_paint.setStrokeWidth(thickness * 1.5f);
             canvas->clipRect(SkRect::MakeXYWH((float)pos.x, y - wave_height - thickness * 2,
-                                                x_offset_dec, wave_height * 2 + thickness * 4));
+                                              x_offset_dec, wave_height * 2 + thickness * 4));
 
             SkPathBuilder builder;
             float x_start = (float)pos.x;

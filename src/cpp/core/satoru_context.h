@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "font_manager.h"
 #include "core/text/unicode_service.h"
+#include "font_manager.h"
 #include "include/core/SkData.h"
 #include "include/core/SkFontStyle.h"
 #include "modules/skshaper/include/SkShaper.h"

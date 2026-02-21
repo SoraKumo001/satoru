@@ -1,13 +1,12 @@
 #include "container_skia.h"
 
-#include "core/text/text_layout.h"
-#include "core/text/text_renderer.h"
-
 #include <algorithm>
 #include <iostream>
 #include <sstream>
 
 #include "bridge/magic_tags.h"
+#include "core/text/text_layout.h"
+#include "core/text/text_renderer.h"
 #include "el_svg.h"
 #include "include/core/SkBlurTypes.h"
 #include "include/core/SkClipOp.h"
@@ -179,8 +178,8 @@ litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_pt
     if (fi) {
         fi->is_rtl = (dir == litehtml::direction_rtl);
     }
-    return (litehtml::pixel_t)satoru::TextLayout::measureText(&m_context, text, fi, -1.0,
-                                                              m_resourceManager ? &m_usedCodepoints : nullptr)
+    return (litehtml::pixel_t)satoru::TextLayout::measureText(
+               &m_context, text, fi, -1.0, m_resourceManager ? &m_usedCodepoints : nullptr)
         .width;
 }
 
@@ -193,7 +192,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 
     litehtml::position actual_pos = pos;
     if (overflow == litehtml::text_overflow_ellipsis && !m_clips.empty()) {
-        actual_pos.width = std::min(pos.width, (litehtml::pixel_t)(m_clips.back().first.right() - pos.x));
+        actual_pos.width =
+            std::min(pos.width, (litehtml::pixel_t)(m_clips.back().first.right() - pos.x));
     }
 
     satoru::TextRenderer::drawText(&m_context, m_canvas, text, fi, color, actual_pos, overflow, dir,

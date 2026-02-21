@@ -89,6 +89,55 @@ struct TagInfo {
                                    }),
                     attrs.end());
     }
+
+    struct MagicResult {
+        satoru::DecodedMagicTag tag;
+        bool isAttr = true;
+    };
+
+    MagicResult getMagicTag() const {
+        std::string colorVal = getAttr("fill");
+        bool isAttr = true;
+
+        if (colorVal.empty()) {
+            std::string style = getAttr("style");
+            size_t f = style.find("fill:");
+            if (f != std::string::npos) {
+                size_t vStart = f + 5;
+                size_t vEnd = style.find_first_of(";\"", vStart);
+                colorVal = style.substr(
+                    vStart, (vEnd == std::string::npos ? std::string::npos : vEnd - vStart));
+                isAttr = false;
+            }
+        }
+
+        if (colorVal.empty()) return {};
+
+        // マジックカラー候補の高速チェック (# または rgb)
+        if (colorVal.empty() || (colorVal[0] != '#' && colorVal.find("rgb") == std::string::npos)) {
+            return {};
+        }
+
+        int r = -1, g = -1, b = -1;
+        if (colorVal.size() >= 7 && colorVal[0] == '#') {
+            try {
+                r = std::stoi(colorVal.substr(1, 2), nullptr, 16);
+                g = std::stoi(colorVal.substr(3, 2), nullptr, 16);
+                b = std::stoi(colorVal.substr(5, 2), nullptr, 16);
+            } catch (...) {
+                return {};
+            }
+        } else if (colorVal.find("rgb(") == 0) {
+            if (sscanf(colorVal.c_str(), "rgb(%d,%d,%d)", &r, &g, &b) != 3) {
+                sscanf(colorVal.c_str(), "rgb(%d, %d, %d)", &r, &g, &b);
+            }
+        }
+
+        if (r >= 0 && g >= 0 && b >= 0) {
+            return {satoru::decode_magic_color((uint8_t)r, (uint8_t)g, (uint8_t)b), isAttr};
+        }
+        return {};
+    }
 };
 
 static TagInfo parseTag(const std::string &content) {
@@ -213,160 +262,162 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
             continue;
         }
 
-        TagInfo info = parseTag(tagContent);
-        std::string colorVal = info.getAttr("fill");
-        bool isAttr = true;
-
-        if (colorVal.empty()) {
-            std::string style = info.getAttr("style");
-            size_t f = style.find("fill:");
-            if (f != std::string::npos) {
-                size_t vStart = f + 5;
-                size_t vEnd = style.find_first_of(";\"", vStart);
-                colorVal = style.substr(
-                    vStart, (vEnd == std::string::npos ? std::string::npos : vEnd - vStart));
-                isAttr = false;
-            }
+        // 高速フィルタ: fill または style 属性がないタグはマジックタグではないためスキップ
+        if (tagContent.find("fill") == std::string::npos &&
+            tagContent.find("style") == std::string::npos) {
+            result.append(svg.substr(tagStart, tagEnd - tagStart + 1));
+            lastPos = tagEnd + 1;
+            continue;
         }
 
+        TagInfo info = parseTag(tagContent);
+        auto magic = info.getMagicTag();
         bool replaced = false;
-        if (!colorVal.empty()) {
-            int r = -1, g = -1, b = -1;
-            if (colorVal.size() >= 7 && colorVal[0] == '#') {
-                r = std::stoi(colorVal.substr(1, 2), nullptr, 16);
-                g = std::stoi(colorVal.substr(3, 2), nullptr, 16);
-                b = std::stoi(colorVal.substr(5, 2), nullptr, 16);
-            } else if (colorVal.find("rgb(") == 0) {
-                if (sscanf(colorVal.c_str(), "rgb(%d,%d,%d)", &r, &g, &b) != 3) {
-                    sscanf(colorVal.c_str(), "rgb(%d, %d, %d)", &r, &g, &b);
-                }
-            }
 
-            if (r >= 0) {
-                int tagTypeBit = r & 0x03;
-                int indexHigh = (r >> 2) & 0x3F;
-                int fullIndex = (indexHigh << 8) | (b & 0xFF);
+        if (magic.tag.is_magic) {
+            int fullIndex = magic.tag.index;
+            bool isAttr = magic.isAttr;
 
-                if (tagTypeBit == 0) {
-                    auto tag = (satoru::MagicTag)g;
-                    if (tag == satoru::MagicTag::Shadow && fullIndex > 0 &&
-                        fullIndex <= (int)shadows.size()) {
-                        std::string filterId = "shadow-" + std::to_string(fullIndex);
-                        if (isAttr) {
-                            info.setAttr("filter", "url(#" + filterId + ")");
-                            info.setAttr("fill", "black");
-                        } else {
-                            std::string style = info.getAttr("style");
-                            size_t f = style.find("fill:");
-                            if (f != std::string::npos) {
-                                size_t vEnd = style.find_first_of(";\"", f + 5);
-                                style.replace(
-                                    f, (vEnd == std::string::npos ? std::string::npos : vEnd - f),
-                                    "fill:black");
+            if (!magic.tag.is_extended) {
+                auto tag = (satoru::MagicTag)magic.tag.tag_value;
+                switch (tag) {
+                    case satoru::MagicTag::Shadow:
+                        if (fullIndex > 0 && fullIndex <= (int)shadows.size()) {
+                            std::string filterId = "shadow-" + std::to_string(fullIndex);
+                            if (isAttr) {
+                                info.setAttr("filter", "url(#" + filterId + ")");
+                                info.setAttr("fill", "black");
+                            } else {
+                                std::string style = info.getAttr("style");
+                                size_t f = style.find("fill:");
+                                if (f != std::string::npos) {
+                                    size_t vEnd = style.find_first_of(";\"", f + 5);
+                                    style.replace(
+                                        f, (vEnd == std::string::npos ? std::string::npos : vEnd - f),
+                                        "fill:black");
+                                }
+                                info.setAttr("style", style + ";filter:url(#" + filterId + ")");
                             }
-                            info.setAttr("style", style + ";filter:url(#" + filterId + ")");
+                            result.append(serializeTag(info));
+                            replaced = true;
                         }
-                        result.append(serializeTag(info));
-                        replaced = true;
-                    } else if (tag == satoru::MagicTag::TextShadow && fullIndex > 0 &&
-                               fullIndex <= (int)textShadows.size()) {
-                        const auto &tsh = textShadows[fullIndex - 1];
-                        std::string filterId = "text-shadow-" + std::to_string(fullIndex);
-                        std::string textColor = "rgb(" + std::to_string((int)tsh.text_color.red) +
-                                                "," + std::to_string((int)tsh.text_color.green) +
-                                                "," + std::to_string((int)tsh.text_color.blue) +
-                                                ")";
-                        float opacity = ((float)tsh.text_color.alpha / 255.0f) * tsh.opacity;
-                        if (isAttr) {
-                            info.setAttr("filter", "url(#" + filterId + ")");
-                            info.setAttr("fill", textColor);
-                            info.setAttr("fill-opacity", std::to_string(opacity));
-                        } else {
-                            info.setAttr("style", "filter:url(#" + filterId + ");fill:" +
-                                                      textColor +
-                                                      ";fill-opacity:" + std::to_string(opacity));
+                        break;
+                    case satoru::MagicTag::TextShadow:
+                        if (fullIndex > 0 && fullIndex <= (int)textShadows.size()) {
+                            const auto &tsh = textShadows[fullIndex - 1];
+                            std::string filterId = "text-shadow-" + std::to_string(fullIndex);
+                            std::string textColor = "rgb(" + std::to_string((int)tsh.text_color.red) +
+                                                    "," + std::to_string((int)tsh.text_color.green) +
+                                                    "," + std::to_string((int)tsh.text_color.blue) +
+                                                    ")";
+                            float opacity = ((float)tsh.text_color.alpha / 255.0f) * tsh.opacity;
+                            if (isAttr) {
+                                info.setAttr("filter", "url(#" + filterId + ")");
+                                info.setAttr("fill", textColor);
+                                info.setAttr("fill-opacity", std::to_string(opacity));
+                            } else {
+                                info.setAttr("style", "filter:url(#" + filterId + ");fill:" +
+                                                          textColor +
+                                                          ";fill-opacity:" + std::to_string(opacity));
+                            }
+                            result.append(serializeTag(info));
+                            replaced = true;
                         }
-                        result.append(serializeTag(info));
-                        replaced = true;
-                    } else if (tag == satoru::MagicTag::LayerPush) {
-                        float opacity = (float)b / 255.0f;
+                        break;
+                    case satoru::MagicTag::LayerPush: {
+                        float opacity = (float)(fullIndex & 0xFF) / 255.0f;
                         result.append("<g opacity=\"" + std::to_string(opacity) + "\">");
                         replaced = true;
-                    } else if (tag == satoru::MagicTag::LayerPop) {
-                        result.append("</g>");
-                        replaced = true;
-                    } else if (tag == satoru::MagicTag::FilterPush && fullIndex > 0 &&
-                               fullIndex <= (int)filters.size()) {
-                        const auto &finfo = filters[fullIndex - 1];
-                        std::stringstream ss;
-                        ss << "<g filter=\"url(#filter-" << fullIndex << ")\"";
-                        if (finfo.opacity < 1.0f) ss << " opacity=\"" << finfo.opacity << "\"";
-                        ss << ">";
-                        result.append(ss.str());
-                        replaced = true;
-                    } else if (tag == satoru::MagicTag::FilterPop) {
-                        result.append("</g>");
-                        replaced = true;
-                    } else if (tag == satoru::MagicTag::TextDraw && fullIndex > 0 &&
-                               fullIndex <= (int)textDraws.size()) {
-                        processTextDraw(info, textDraws[fullIndex - 1]);
-                        result.append(serializeTag(info));
-                        replaced = true;
+                        break;
                     }
-                } else if (tagTypeBit == 1) {
-                    auto tag = (satoru::MagicTagExtended)g;
-                    if (tag == satoru::MagicTagExtended::ImageDraw && fullIndex > 0 &&
-                        fullIndex <= (int)images.size()) {
-                        const auto &draw = images[fullIndex - 1];
-                        auto it = context.imageCache.find(draw.url);
-                        if (it != context.imageCache.end() && it->second.skImage) {
-                            std::string dataUrl;
-                            if (!it->second.data_url.empty() &&
-                                it->second.data_url.substr(0, 5) == "data:") {
-                                dataUrl = it->second.data_url;
-                            } else {
-                                SkBitmap bitmap;
-                                bitmap.allocN32Pixels(it->second.skImage->width(),
-                                                      it->second.skImage->height());
-                                SkCanvas bitmapCanvas(bitmap);
-                                bitmapCanvas.drawImage(it->second.skImage, 0, 0);
-                                dataUrl = bitmapToDataUrl(bitmap);
-                            }
+                    case satoru::MagicTag::LayerPop:
+                        result.append("</g>");
+                        replaced = true;
+                        break;
+                    case satoru::MagicTag::FilterPush:
+                        if (fullIndex > 0 && fullIndex <= (int)filters.size()) {
+                            const auto &finfo = filters[fullIndex - 1];
                             std::stringstream ss;
-                            if (draw.layer.repeat == litehtml::background_repeat_no_repeat) {
-                                ss << "<image x=\"" << draw.layer.origin_box.x << "\" y=\""
-                                   << draw.layer.origin_box.y << "\" width=\""
-                                   << draw.layer.origin_box.width << "\" height=\""
-                                   << draw.layer.origin_box.height
-                                   << "\" preserveAspectRatio=\"none\" href=\"" << dataUrl << "\"";
-                                if (draw.opacity < 1.0f)
-                                    ss << " opacity=\"" << draw.opacity << "\"";
-                                if (draw.has_clip) {
-                                    ss << " clip-path=\"url(#clip-img-" << fullIndex << ")\"";
-                                }
-                                ss << " />";
-                            } else {
-                                ss << "<rect x=\"" << draw.layer.clip_box.x << "\" y=\""
-                                   << draw.layer.clip_box.y << "\" width=\""
-                                   << draw.layer.clip_box.width << "\" height=\""
-                                   << draw.layer.clip_box.height << "\" fill=\"url(#pattern-img-"
-                                   << fullIndex << ")\"";
-                                if (draw.opacity < 1.0f)
-                                    ss << " opacity=\"" << draw.opacity << "\"";
-                                if (draw.has_clip)
-                                    ss << " clip-path=\"url(#clip-img-" << fullIndex << ")\"";
-                                ss << " />";
-                            }
+                            ss << "<g filter=\"url(#filter-" << fullIndex << ")\"";
+                            if (finfo.opacity < 1.0f) ss << " opacity=\"" << finfo.opacity << "\"";
+                            ss << ">";
                             result.append(ss.str());
                             replaced = true;
                         }
-                    } else if (tag == satoru::MagicTagExtended::InlineSvg && fullIndex > 0 &&
-                               fullIndex <= (int)container.get_used_inline_svgs().size()) {
-                        result.append(container.get_used_inline_svgs()[fullIndex - 1]);
+                        break;
+                    case satoru::MagicTag::FilterPop:
+                        result.append("</g>");
                         replaced = true;
-                    } else if (tag == satoru::MagicTagExtended::ConicGradient ||
-                               tag == satoru::MagicTagExtended::RadialGradient ||
-                               tag == satoru::MagicTagExtended::LinearGradient) {
+                        break;
+                    case satoru::MagicTag::TextDraw:
+                        if (fullIndex > 0 && fullIndex <= (int)textDraws.size()) {
+                            processTextDraw(info, textDraws[fullIndex - 1]);
+                            result.append(serializeTag(info));
+                            replaced = true;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            } else {
+                auto tag = (satoru::MagicTagExtended)magic.tag.tag_value;
+                switch (tag) {
+                    case satoru::MagicTagExtended::ImageDraw:
+                        if (fullIndex > 0 && fullIndex <= (int)images.size()) {
+                            const auto &draw = images[fullIndex - 1];
+                            auto it = context.imageCache.find(draw.url);
+                            if (it != context.imageCache.end() && it->second.skImage) {
+                                std::string dataUrl;
+                                if (!it->second.data_url.empty() &&
+                                    it->second.data_url.substr(0, 5) == "data:") {
+                                    dataUrl = it->second.data_url;
+                                } else {
+                                    SkBitmap bitmap;
+                                    bitmap.allocN32Pixels(it->second.skImage->width(),
+                                                          it->second.skImage->height());
+                                    SkCanvas bitmapCanvas(bitmap);
+                                    bitmapCanvas.drawImage(it->second.skImage, 0, 0);
+                                    dataUrl = bitmapToDataUrl(bitmap);
+                                }
+                                std::stringstream ss;
+                                if (draw.layer.repeat == litehtml::background_repeat_no_repeat) {
+                                    ss << "<image x=\"" << draw.layer.origin_box.x << "\" y=\""
+                                       << draw.layer.origin_box.y << "\" width=\""
+                                       << draw.layer.origin_box.width << "\" height=\""
+                                       << draw.layer.origin_box.height
+                                       << "\" preserveAspectRatio=\"none\" href=\"" << dataUrl << "\"";
+                                    if (draw.opacity < 1.0f)
+                                        ss << " opacity=\"" << draw.opacity << "\"";
+                                    if (draw.has_clip) {
+                                        ss << " clip-path=\"url(#clip-img-" << fullIndex << ")\"";
+                                    }
+                                    ss << " />";
+                                } else {
+                                    ss << "<rect x=\"" << draw.layer.clip_box.x << "\" y=\""
+                                       << draw.layer.clip_box.y << "\" width=\""
+                                       << draw.layer.clip_box.width << "\" height=\""
+                                       << draw.layer.clip_box.height << "\" fill=\"url(#pattern-img-"
+                                       << fullIndex << ")\"";
+                                    if (draw.opacity < 1.0f)
+                                        ss << " opacity=\"" << draw.opacity << "\"";
+                                    if (draw.has_clip)
+                                        ss << " clip-path=\"url(#clip-img-" << fullIndex << ")\"";
+                                    ss << " />";
+                                }
+                                result.append(ss.str());
+                                replaced = true;
+                            }
+                        }
+                        break;
+                    case satoru::MagicTagExtended::InlineSvg:
+                        if (fullIndex > 0 && fullIndex <= (int)container.get_used_inline_svgs().size()) {
+                            result.append(container.get_used_inline_svgs()[fullIndex - 1]);
+                            replaced = true;
+                        }
+                        break;
+                    case satoru::MagicTagExtended::ConicGradient:
+                    case satoru::MagicTagExtended::RadialGradient:
+                    case satoru::MagicTagExtended::LinearGradient: {
                         SkBitmap bitmap;
                         litehtml::position border_box;
                         litehtml::border_radiuses border_radius;
@@ -512,14 +563,15 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                             result.append(ss.str());
                             replaced = true;
                         }
+                        break;
                     }
+                    default:
+                        break;
                 }
             }
+        }
 
-            if (!replaced) {
-                result.append(svg.substr(tagStart, tagEnd - tagStart + 1));
-            }
-        } else {
+        if (!replaced) {
             result.append(svg.substr(tagStart, tagEnd - tagStart + 1));
         }
         lastPos = tagEnd + 1;

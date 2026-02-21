@@ -232,7 +232,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
             m_usedShadows.push_back(info);
             int index = (int)m_usedShadows.size();
             SkPaint p;
-            p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::Shadow, (index & 0xFF)));
+            p.setColor(make_magic_color(satoru::MagicTag::Shadow, index));
             m_canvas->drawRRect(make_rrect(pos, radius), p);
         }
         return;
@@ -296,8 +296,7 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
         m_usedImageDraws.push_back(draw);
         int index = (int)m_usedImageDraws.size();
         SkPaint p;
-        p.setColor(
-            SkColorSetARGB(255, 1, (uint8_t)satoru::MagicTagExtended::ImageDraw, (index & 0xFF)));
+        p.setColor(make_magic_color(satoru::MagicTagExtended::ImageDraw, index));
         m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     } else {
         auto it = m_context.imageCache.find(url);
@@ -382,8 +381,7 @@ void container_skia::draw_linear_gradient(
         m_usedLinearGradients.push_back(info);
         int index = (int)m_usedLinearGradients.size();
         SkPaint p;
-        p.setColor(SkColorSetARGB(255, 1, (uint8_t)satoru::MagicTagExtended::LinearGradient,
-                                  (index & 0xFF)));
+        p.setColor(make_magic_color(satoru::MagicTagExtended::LinearGradient, index));
         m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     } else {
         SkPoint pts[2] = {SkPoint::Make((float)gradient.start.x, (float)gradient.start.y),
@@ -417,8 +415,7 @@ void container_skia::draw_radial_gradient(
         m_usedRadialGradients.push_back(info);
         int index = (int)m_usedRadialGradients.size();
         SkPaint p;
-        p.setColor(SkColorSetARGB(255, 1, (uint8_t)satoru::MagicTagExtended::RadialGradient,
-                                  (index & 0xFF)));
+        p.setColor(make_magic_color(satoru::MagicTagExtended::RadialGradient, index));
         m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     } else {
         SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
@@ -455,8 +452,7 @@ void container_skia::draw_conic_gradient(
         m_usedConicGradients.push_back(info);
         int index = (int)m_usedConicGradients.size();
         SkPaint p;
-        p.setColor(SkColorSetARGB(255, 1, (uint8_t)satoru::MagicTagExtended::ConicGradient,
-                                  (index & 0xFF)));
+        p.setColor(make_magic_color(satoru::MagicTagExtended::ConicGradient, index));
         m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     } else {
         SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
@@ -742,8 +738,7 @@ void container_skia::draw_list_marker(litehtml::uint_ptr hdc, const litehtml::li
                 draw.opacity = get_current_opacity();
                 m_usedImageDraws.push_back(draw);
                 int index = (int)m_usedImageDraws.size();
-                p.setColor(SkColorSetARGB(255, 1, (uint8_t)satoru::MagicTagExtended::ImageDraw,
-                                          (index & 0xFF)));
+                p.setColor(make_magic_color(satoru::MagicTagExtended::ImageDraw, index));
                 m_canvas->drawRect(dst, p);
             } else {
                 m_canvas->drawImageRect(it->second.skImage, dst,
@@ -843,7 +838,7 @@ void container_skia::set_clip(const litehtml::position &pos,
             int index = (int)m_usedClips.size();
 
             SkPaint p;
-            p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::ClipPush, (index & 0xFF)));
+            p.setColor(make_magic_color(satoru::MagicTag::ClipPush, index));
             m_canvas->drawRect(SkRect::MakeXYWH(0, 0, 0.001f, 0.001f), p);
             m_canvas->save();
         } else {
@@ -859,7 +854,7 @@ void container_skia::del_clip() {
         m_canvas->restore();
         if (m_tagging) {
             SkPaint p;
-            p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::ClipPop, 0));
+            p.setColor(make_magic_color(satoru::MagicTag::ClipPop));
             m_canvas->drawRect(SkRect::MakeXYWH(0, 0, 0.001f, 0.001f), p);
         }
     }
@@ -892,8 +887,7 @@ void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity) {
         flush();
         if (m_tagging) {
             SkPaint p;
-            p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::LayerPush,
-                                      (uint8_t)(opacity * 255.0f)));
+            p.setColor(make_magic_color(satoru::MagicTag::LayerPush, (int)(opacity * 255.0f)));
             SkRect rect;
             if (!m_clips.empty()) {
                 rect = SkRect::MakeXYWH(
@@ -922,7 +916,7 @@ void container_skia::pop_layer(litehtml::uint_ptr hdc) {
         flush();
         if (m_tagging) {
             SkPaint p;
-            p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::LayerPop, 0));
+            p.setColor(make_magic_color(satoru::MagicTag::LayerPop));
             SkRect rect;
             if (!m_clips.empty()) {
                 rect = SkRect::MakeXYWH(
@@ -1042,7 +1036,7 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
         int index = (int)m_usedFilters.size();
 
         SkPaint p;
-        p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::FilterPush, (index & 0xFF)));
+        p.setColor(make_magic_color(satoru::MagicTag::FilterPush, index));
 
         SkRect rect;
         if (!m_clips.empty()) {
@@ -1123,7 +1117,7 @@ void container_skia::pop_filter(litehtml::uint_ptr hdc) {
         flush();
         if (m_tagging) {
             SkPaint p;
-            p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::FilterPop, 0));
+            p.setColor(make_magic_color(satoru::MagicTag::FilterPop));
             SkRect rect;
             if (!m_clips.empty()) {
                 rect = SkRect::MakeXYWH(

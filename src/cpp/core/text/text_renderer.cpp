@@ -121,7 +121,7 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
             index = (int)usedTextShadows.size();
         }
 
-        paint.setColor(SkColorSetARGB(255, 0, (uint8_t)MagicTag::TextShadow, (index & 0xFF)));
+        paint.setColor(make_magic_color(MagicTag::TextShadow, index));
     } else if (tagging) {
         text_draw_info info;
         info.weight = fi->desc.weight;
@@ -132,8 +132,7 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
         usedTextDraws.push_back(info);
         int index = (int)usedTextDraws.size();
 
-        uint8_t r = ((index >> 8) & 0x3F) << 2;
-        paint.setColor(SkColorSetARGB(255, r, (uint8_t)MagicTag::TextDraw, (index & 0xFF)));
+        paint.setColor(make_magic_color(MagicTag::TextDraw, index));
     } else {
         paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     }

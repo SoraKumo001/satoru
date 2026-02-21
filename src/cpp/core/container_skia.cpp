@@ -206,8 +206,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 
     satoru::TextRenderer::drawText(&m_context, m_canvas, text, fi, color, actual_pos, overflow, dir,
                                    m_tagging, get_current_opacity(), m_usedTextShadows,
-                                   m_usedTextDraws, m_resourceManager ? &m_usedCodepoints : nullptr,
-                                   m_textBatcher);
+                                   m_usedTextDraws, m_usedGlyphs, m_usedGlyphDraws,
+                                   m_resourceManager ? &m_usedCodepoints : nullptr, m_textBatcher);
 }
 
 void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::shadow_vector &shadows,

@@ -70,7 +70,7 @@ graph TD
 - **Pure Wasm Pipeline**: Performs all layout and drawing operations inside Wasm. Zero dependencies on browser DOM or `<canvas>`.
 - **Edge Native**: Optimized for **Cloudflare Workers (workerd)**, ensuring smooth execution in restricted environments.
 - **Triple Output Modes**:
-  - **SVG**: Lean, vector-based SVG strings with post-processed filters/gradients.
+  - **SVG**: Lean, vector-based SVG strings with post-processed filters/gradients. Includes **Glyph Path Optimization** using `<defs>` and `<use>` to minimize file size when converting text to paths.
   - **Raster (PNG/WebP)**: High-quality images via Skia with hardware-accelerated encoding.
   - **PDF**: Vector documents via Skia's PDF backend, including **multi-page output**.
 - **State Persistence**: Supports a **Layout-Once, Render-Anywhere** pattern. Serialize layout state to binary and restore it later to skip reflow.
@@ -245,7 +245,7 @@ pnpm --filter visual-test test
   - [x] **`SkTextBlob` Optimization**: Reuse and batch `SkTextBlob` objects for efficient Skia rendering.
   - [x] **Font Preloading & Persistence**: Minimize instantiation overhead by keeping `SkTypeface` in memory across rendering instances using a global cache (URL and data hash based).
   - [ ] **Parallel Layout Engine**: Enhance multi-threaded layout capabilities using Web Workers.
-  - [ ] **SVG Glyph Reuse**: Optimize SVG output using `<defs>` and `<use>` for text paths.
+  - [x] **SVG Glyph Reuse**: Optimize SVG output using `<defs>` and `<use>` for text paths.
   - [ ] **Line Breaking Optimization**: Cache and reuse `libunibreak` analysis results.
   - [ ] **Smart Dirty Checking**: Avoid unnecessary re-renders for unchanged text/layout state.
 

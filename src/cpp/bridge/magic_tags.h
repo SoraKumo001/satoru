@@ -1,8 +1,9 @@
 #ifndef SATORU_MAGIC_TAGS_H
 #define SATORU_MAGIC_TAGS_H
 
-#include <cstdint>
 #include <include/core/SkColor.h>
+
+#include <cstdint>
 
 namespace satoru {
 
@@ -22,10 +23,11 @@ enum class MagicTag : uint8_t {
     LayerPop = 7,    // 不透明度グループ終了
     ClipPush = 8,    // クリップ開始
     ClipPop = 9,     // クリップ終了
+    GlyphPath = 10,  // グリフパス（defs/use最適化用）
 };
 
 enum class MagicTagExtended : uint8_t {
-    ImageDraw = 0,       // 画像描画
+    ImageDraw = 0,  // 画像描画
     ConicGradient = 1,
     RadialGradient = 2,
     LinearGradient = 3,
@@ -40,14 +42,14 @@ enum class MagicTagExtended : uint8_t {
  * B: [Index Low(8)]
  */
 inline SkColor make_magic_color(MagicTag tag, int index = 0) {
-    uint8_t r = ((index >> 8) & 0x3F) << 2; // Type 0
+    uint8_t r = ((index >> 8) & 0x3F) << 2;  // Type 0
     uint8_t g = (uint8_t)tag;
     uint8_t b = (uint8_t)(index & 0xFF);
     return SkColorSetARGB(255, r, g, b);
 }
 
 inline SkColor make_magic_color(MagicTagExtended tag, int index = 0) {
-    uint8_t r = (((index >> 8) & 0x3F) << 2) | 1; // Type 1
+    uint8_t r = (((index >> 8) & 0x3F) << 2) | 1;  // Type 1
     uint8_t g = (uint8_t)tag;
     uint8_t b = (uint8_t)(index & 0xFF);
     return SkColorSetARGB(255, r, g, b);
@@ -66,13 +68,13 @@ struct DecodedMagicTag {
 inline DecodedMagicTag decode_magic_color(uint8_t r, uint8_t g, uint8_t b) {
     DecodedMagicTag result;
     uint8_t typeBit = r & 0x03;
-    if (typeBit > 1) return result; // 2,3 はマジックカラーではない
+    if (typeBit > 1) return result;  // 2,3 はマジックカラーではない
 
     result.is_magic = true;
     result.is_extended = (typeBit == 1);
     result.tag_value = g;
     result.index = ((r >> 2) << 8) | b;
-    
+
     return result;
 }
 

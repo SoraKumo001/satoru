@@ -81,6 +81,8 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
                             litehtml::text_overflow overflow, litehtml::direction dir, bool tagging,
                             float currentOpacity, std::vector<text_shadow_info>& usedTextShadows,
                             std::vector<text_draw_info>& usedTextDraws,
+                            std::vector<SkPath>& usedGlyphs,
+                            std::vector<glyph_draw_info>& usedGlyphDraws,
                             std::set<char32_t>* usedCodepoints, TextBatcher* batcher) {
     if (!canvas || !fi || fi->fonts.empty()) return;
 
@@ -102,26 +104,29 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
     SkPaint paint;
     paint.setAntiAlias(true);
 
+    int styleIndex = -1;
+    MagicTag styleTag = MagicTag::TextDraw;
+
     if (tagging && !fi->desc.text_shadow.empty()) {
         text_shadow_info info;
         info.shadows = fi->desc.text_shadow;
         info.text_color = color;
         info.opacity = currentOpacity;
 
-        int index = -1;
+        styleTag = MagicTag::TextShadow;
         for (size_t i = 0; i < usedTextShadows.size(); ++i) {
             if (usedTextShadows[i] == info) {
-                index = (int)i + 1;
+                styleIndex = (int)i + 1;
                 break;
             }
         }
 
-        if (index == -1) {
+        if (styleIndex == -1) {
             usedTextShadows.push_back(info);
-            index = (int)usedTextShadows.size();
+            styleIndex = (int)usedTextShadows.size();
         }
 
-        paint.setColor(make_magic_color(MagicTag::TextShadow, index));
+        paint.setColor(make_magic_color(MagicTag::TextShadow, styleIndex));
     } else if (tagging) {
         text_draw_info info;
         info.weight = fi->desc.weight;
@@ -129,10 +134,11 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
         info.color = color;
         info.opacity = currentOpacity;
 
+        styleTag = MagicTag::TextDraw;
         usedTextDraws.push_back(info);
-        int index = (int)usedTextDraws.size();
+        styleIndex = (int)usedTextDraws.size();
 
-        paint.setColor(make_magic_color(MagicTag::TextDraw, index));
+        paint.setColor(make_magic_color(MagicTag::TextDraw, styleIndex));
     } else {
         paint.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     }
@@ -150,24 +156,26 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
 
             drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi,
                              (double)pos.x + s.x.val(), (double)pos.y + s.y.val(), shadow_paint,
-                             false, usedTextDraws, usedCodepoints, batcher);
+                             false, usedTextDraws, usedGlyphs, usedGlyphDraws, usedCodepoints,
+                             batcher);
         }
     }
 
     double final_width =
         drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi, (double)pos.x,
-                         (double)pos.y, paint, tagging, usedTextDraws, usedCodepoints, batcher);
+                         (double)pos.y, paint, tagging, usedTextDraws, usedGlyphs, usedGlyphDraws,
+                         usedCodepoints, batcher, (int)styleTag, styleIndex);
 
     if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
         drawDecoration(canvas, fi, pos, color, final_width);
     }
 }
 
-double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, const char* str,
-                                      size_t strLen, font_info* fi, double tx, double ty,
-                                      const SkPaint& paint, bool tagging,
-                                      std::vector<text_draw_info>& usedTextDraws,
-                                      std::set<char32_t>* usedCodepoints, TextBatcher* batcher) {
+double TextRenderer::drawTextInternal(
+    SatoruContext* ctx, SkCanvas* canvas, const char* str, size_t strLen, font_info* fi, double tx,
+    double ty, const SkPaint& paint, bool tagging, std::vector<text_draw_info>& usedTextDraws,
+    std::vector<SkPath>& usedGlyphs, std::vector<glyph_draw_info>& usedGlyphDraws,
+    std::set<char32_t>* usedCodepoints, TextBatcher* batcher, int styleTag, int styleIndex) {
     if (strLen == 0) return 0.0;
 
     ShapedResult shaped = TextLayout::shapeText(ctx, str, strLen, fi, usedCodepoints);
@@ -184,9 +192,33 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 float gy = run.positions[i].fY + (float)ty;
 
                 if (pathOpt.has_value() && !pathOpt.value().isEmpty()) {
+                    int glyphIdx = -1;
+                    const SkPath& path = pathOpt.value();
+                    for (size_t gi = 0; gi < usedGlyphs.size(); ++gi) {
+                        if (usedGlyphs[gi] == path) {
+                            glyphIdx = (int)gi + 1;
+                            break;
+                        }
+                    }
+                    if (glyphIdx == -1) {
+                        usedGlyphs.push_back(path);
+                        glyphIdx = (int)usedGlyphs.size();
+                    }
+
+                    glyph_draw_info drawInfo;
+                    drawInfo.glyph_index = glyphIdx;
+                    drawInfo.style_tag = styleTag;
+                    drawInfo.style_index = styleIndex;
+
+                    usedGlyphDraws.push_back(drawInfo);
+                    int drawIdx = (int)usedGlyphDraws.size();
+
+                    SkPaint glyphPaint = paint;
+                    glyphPaint.setColor(make_magic_color(MagicTag::GlyphPath, drawIdx));
+
                     canvas->save();
                     canvas->translate(gx, gy);
-                    canvas->drawPath(pathOpt.value(), paint);
+                    canvas->drawPath(path, glyphPaint);
                     canvas->restore();
                 } else {
                     SkRect bounds = run.font.getBounds(run.glyphs[i], nullptr);

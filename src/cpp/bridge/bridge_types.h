@@ -135,4 +135,10 @@ struct clip_info {
     litehtml::border_radiuses radius;
 };
 
+struct glyph_draw_info {
+    int glyph_index;
+    int style_tag;
+    int style_index;
+};
+
 #endif  // BRIDGE_TYPES_H

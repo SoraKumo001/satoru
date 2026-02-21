@@ -48,6 +48,8 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 ### 3.2 Rendering Pipelines
 - **SVG (2-Pass)**: Measurement -> Drawing to `SkSVGCanvas` -> Regex Post-Processing.
   - **Text Handling**: Defaults to retaining `<text>` elements (`textToPaths: false`). Use `--outline` in CLI to force paths.
+  - **Glyph Reuse**: When `textToPaths` is enabled, common glyph shapes are stored in `container_skia` and emitted as `<path>` elements in `<defs>`. Individual glyphs are rendered via `<use xlink:href="#glyph-N">`.
+  - **Style Recovery**: Since Skia's SVG backend doesn't support complex CSS effects, styles (color, weight, italic, shadow) are encoded into "Magic Colors" during drawing and restored during regex post-processing using `glyph_draw_info`.
 - **PNG/WebP**: Render to `SkSurface` -> `SkImage` -> Encode.
 - **PDF (2-Pass)**: Measurement -> Drawing to `SkPDFDocument`.
 
@@ -89,3 +91,4 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - **Formatting**: Always run `pnpm format` (`clang-format` for C++, `Prettier` for TS).
 - **Asset Conversion**: `pnpm --filter visual-test convert-assets [file.html]`
   - Flags: `--outline` (Force SVG paths), `--no-outline` (Disable paths), `--verbose` (Enable logs).
+

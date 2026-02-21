@@ -6,6 +6,7 @@
 
 #include "bridge/bridge_types.h"
 #include "include/core/SkCanvas.h"
+#include "include/core/SkPath.h"
 #include "include/core/SkTextBlob.h"
 #include "libs/litehtml/include/litehtml.h"
 
@@ -58,16 +59,18 @@ class TextRenderer {
                          litehtml::text_overflow overflow, litehtml::direction dir, bool tagging,
                          float currentOpacity, std::vector<text_shadow_info>& usedTextShadows,
                          std::vector<text_draw_info>& usedTextDraws,
+                         std::vector<SkPath>& usedGlyphs,
+                         std::vector<glyph_draw_info>& usedGlyphDraws,
                          std::set<char32_t>* usedCodepoints, TextBatcher* batcher = nullptr);
 
    private:
     // Internal helper for shaping and drawing a single run of text
-    static double drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, const char* str,
-                                   size_t strLen, font_info* fi, double tx, double ty,
-                                   const SkPaint& paint, bool tagging,
-                                   std::vector<text_draw_info>& usedTextDraws,
-                                   std::set<char32_t>* usedCodepoints,
-                                   TextBatcher* batcher = nullptr);
+    static double drawTextInternal(
+        SatoruContext* ctx, SkCanvas* canvas, const char* str, size_t strLen, font_info* fi,
+        double tx, double ty, const SkPaint& paint, bool tagging,
+        std::vector<text_draw_info>& usedTextDraws, std::vector<SkPath>& usedGlyphs,
+        std::vector<glyph_draw_info>& usedGlyphDraws, std::set<char32_t>* usedCodepoints,
+        TextBatcher* batcher = nullptr, int styleTag = -1, int styleIndex = -1);
 
     static void drawDecoration(SkCanvas* canvas, font_info* fi, const litehtml::position& pos,
                                const litehtml::web_color& color, double finalWidth);

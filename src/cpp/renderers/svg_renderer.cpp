@@ -293,7 +293,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                 if (f != std::string::npos) {
                                     size_t vEnd = style.find_first_of(";\"", f + 5);
                                     style.replace(
-                                        f, (vEnd == std::string::npos ? std::string::npos : vEnd - f),
+                                        f,
+                                        (vEnd == std::string::npos ? std::string::npos : vEnd - f),
                                         "fill:black");
                                 }
                                 info.setAttr("style", style + ";filter:url(#" + filterId + ")");
@@ -306,19 +307,19 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         if (fullIndex > 0 && fullIndex <= (int)textShadows.size()) {
                             const auto &tsh = textShadows[fullIndex - 1];
                             std::string filterId = "text-shadow-" + std::to_string(fullIndex);
-                            std::string textColor = "rgb(" + std::to_string((int)tsh.text_color.red) +
-                                                    "," + std::to_string((int)tsh.text_color.green) +
-                                                    "," + std::to_string((int)tsh.text_color.blue) +
-                                                    ")";
+                            std::string textColor =
+                                "rgb(" + std::to_string((int)tsh.text_color.red) + "," +
+                                std::to_string((int)tsh.text_color.green) + "," +
+                                std::to_string((int)tsh.text_color.blue) + ")";
                             float opacity = ((float)tsh.text_color.alpha / 255.0f) * tsh.opacity;
                             if (isAttr) {
                                 info.setAttr("filter", "url(#" + filterId + ")");
                                 info.setAttr("fill", textColor);
                                 info.setAttr("fill-opacity", std::to_string(opacity));
                             } else {
-                                info.setAttr("style", "filter:url(#" + filterId + ");fill:" +
-                                                          textColor +
-                                                          ";fill-opacity:" + std::to_string(opacity));
+                                info.setAttr("style",
+                                             "filter:url(#" + filterId + ");fill:" + textColor +
+                                                 ";fill-opacity:" + std::to_string(opacity));
                             }
                             result.append(serializeTag(info));
                             replaced = true;
@@ -356,6 +357,39 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                             replaced = true;
                         }
                         break;
+                    case satoru::MagicTag::GlyphPath:
+                        if (fullIndex > 0 &&
+                            fullIndex <= (int)container.get_used_glyph_draws().size()) {
+                            const auto &drawInfo = container.get_used_glyph_draws()[fullIndex - 1];
+                            info.name = "use";
+                            info.setAttr("href", "#glyph-" + std::to_string(drawInfo.glyph_index));
+                            info.removeAttr("d");
+
+                            if (drawInfo.style_tag == (int)satoru::MagicTag::TextDraw &&
+                                drawInfo.style_index > 0 &&
+                                drawInfo.style_index <= (int)textDraws.size()) {
+                                processTextDraw(info, textDraws[drawInfo.style_index - 1]);
+                            } else if (drawInfo.style_tag == (int)satoru::MagicTag::TextShadow &&
+                                       drawInfo.style_index > 0 &&
+                                       drawInfo.style_index <= (int)textShadows.size()) {
+                                const auto &tsh = textShadows[drawInfo.style_index - 1];
+                                std::string filterId =
+                                    "text-shadow-" + std::to_string(drawInfo.style_index);
+                                std::string textColor =
+                                    "rgb(" + std::to_string((int)tsh.text_color.red) + "," +
+                                    std::to_string((int)tsh.text_color.green) + "," +
+                                    std::to_string((int)tsh.text_color.blue) + ")";
+                                float opacity =
+                                    ((float)tsh.text_color.alpha / 255.0f) * tsh.opacity;
+                                info.setAttr("filter", "url(#" + filterId + ")");
+                                info.setAttr("fill", textColor);
+                                info.setAttr("fill-opacity", std::to_string(opacity));
+                            }
+
+                            result.append(serializeTag(info));
+                            replaced = true;
+                        }
+                        break;
                     default:
                         break;
                 }
@@ -385,7 +419,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                        << draw.layer.origin_box.y << "\" width=\""
                                        << draw.layer.origin_box.width << "\" height=\""
                                        << draw.layer.origin_box.height
-                                       << "\" preserveAspectRatio=\"none\" href=\"" << dataUrl << "\"";
+                                       << "\" preserveAspectRatio=\"none\" href=\"" << dataUrl
+                                       << "\"";
                                     if (draw.opacity < 1.0f)
                                         ss << " opacity=\"" << draw.opacity << "\"";
                                     if (draw.has_clip) {
@@ -396,8 +431,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                                     ss << "<rect x=\"" << draw.layer.clip_box.x << "\" y=\""
                                        << draw.layer.clip_box.y << "\" width=\""
                                        << draw.layer.clip_box.width << "\" height=\""
-                                       << draw.layer.clip_box.height << "\" fill=\"url(#pattern-img-"
-                                       << fullIndex << ")\"";
+                                       << draw.layer.clip_box.height
+                                       << "\" fill=\"url(#pattern-img-" << fullIndex << ")\"";
                                     if (draw.opacity < 1.0f)
                                         ss << " opacity=\"" << draw.opacity << "\"";
                                     if (draw.has_clip)
@@ -410,7 +445,8 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         }
                         break;
                     case satoru::MagicTagExtended::InlineSvg:
-                        if (fullIndex > 0 && fullIndex <= (int)container.get_used_inline_svgs().size()) {
+                        if (fullIndex > 0 &&
+                            fullIndex <= (int)container.get_used_inline_svgs().size()) {
                             result.append(container.get_used_inline_svgs()[fullIndex - 1]);
                             replaced = true;
                         }
@@ -579,7 +615,6 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
 
     svg = std::move(result);
 }
-
 
 static void appendDefs(std::string &svg, const container_skia &render_container,
                        const SatoruContext &context, const RenderOptions &options) {
@@ -840,6 +875,12 @@ static void appendDefs(std::string &svg, const container_skia &render_container,
         defs << "<clipPath id=\"clip-path-" << index << "\">";
         defs << "<path d=\"" << path_from_rrect(c.pos, c.radius) << "\" />";
         defs << "</clipPath>";
+    }
+
+    const auto &glyphs = render_container.get_used_glyphs();
+    for (size_t i = 0; i < glyphs.size(); ++i) {
+        defs << "<path id=\"glyph-" << (i + 1) << "\" d=\""
+             << SkParsePath::ToSVGString(glyphs[i]).c_str() << "\" />";
     }
 
     std::string defsStr = defs.str();

@@ -54,6 +54,8 @@ class container_skia : public litehtml::document_container {
     std::vector<std::string> m_usedInlineSvgs;
     std::vector<litehtml::position> m_inlineSvgPositions;
     std::vector<clip_info> m_usedClips;
+    std::vector<SkPath> m_usedGlyphs;
+    std::vector<glyph_draw_info> m_usedGlyphDraws;
 
     satoru::TextBatcher *m_textBatcher = nullptr;
 
@@ -98,6 +100,8 @@ class container_skia : public litehtml::document_container {
         m_usedInlineSvgs.clear();
         m_usedFilters.clear();
         m_usedClips.clear();
+        m_usedGlyphs.clear();
+        m_usedGlyphDraws.clear();
     }
 
     SkCanvas *get_canvas() const { return m_canvas; }
@@ -126,6 +130,21 @@ class container_skia : public litehtml::document_container {
     const std::vector<text_draw_info> &get_used_text_draws() const { return m_usedTextDraws; }
     const std::vector<filter_info> &get_used_filters() const { return m_usedFilters; }
     const std::vector<clip_info> &get_used_clips() const { return m_usedClips; }
+    const std::vector<SkPath> &get_used_glyphs() const { return m_usedGlyphs; }
+    const std::vector<glyph_draw_info> &get_used_glyph_draws() const { return m_usedGlyphDraws; }
+
+    int add_glyph(const SkPath &path) {
+        for (size_t i = 0; i < m_usedGlyphs.size(); ++i) {
+            if (m_usedGlyphs[i] == path) return (int)i + 1;
+        }
+        m_usedGlyphs.push_back(path);
+        return (int)m_usedGlyphs.size();
+    }
+
+    int add_glyph_draw(const glyph_draw_info &info) {
+        m_usedGlyphDraws.push_back(info);
+        return (int)m_usedGlyphDraws.size();
+    }
 
     const std::set<char32_t> &get_used_codepoints() const { return m_usedCodepoints; }
     const std::set<font_request> &get_requested_font_attributes() const {

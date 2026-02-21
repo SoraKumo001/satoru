@@ -37,7 +37,7 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - `src/cpp/api`: Emscripten API implementation (`satoru_api.cpp`).
 - `src/cpp/core`: Layout/Rendering core, resource management, and master CSS.
 - `src/cpp/core/text`: Modular text processing stack.
-  - `UnicodeService`: Encapsulates Unicode logic (utf8proc, libunibreak, BiDi).
+  - `UnicodeService`: Encapsulates Unicode logic (utf8proc, libunibreak, BiDi). Now includes caching for `libunibreak` analysis results.
   - `TextLayout`: High-level layout logic (measurement, ellipsizing, splitting, shaping cache).
   - `TextRenderer`: Skia-based rendering, decorations, and tagging.
   - `TextBatcher`: Batches consecutive text runs with the same style into a single `SkTextBlob` to minimize draw calls.

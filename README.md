@@ -238,15 +238,13 @@ pnpm --filter visual-test test
 - [x] **CSS Container Queries**
 - [x] **State Persistence (Serialization)**
 - [x] **Structured Logging (spdlog)**
-- [ ] **WASM Binary Optimization**
 - [ ] **Backdrop Filter support**
 - [ ] **Text Rendering Optimizations**
   - [x] **Text Shaping Cache**: Cache HarfBuzz results for recurring text/font combinations.
   - [x] **`SkTextBlob` Optimization**: Reuse and batch `SkTextBlob` objects for efficient Skia rendering.
   - [x] **Font Preloading & Persistence**: Minimize instantiation overhead by keeping `SkTypeface` in memory across rendering instances using a global cache (URL and data hash based).
-  - [ ] **Parallel Layout Engine**: Enhance multi-threaded layout capabilities using Web Workers.
   - [x] **SVG Glyph Reuse**: Optimize SVG output using `<defs>` and `<use>` for text paths.
-  - [ ] **Line Breaking Optimization**: Cache and reuse `libunibreak` analysis results.
+  - [x] **Line Breaking Optimization**: Cache and reuse `libunibreak` analysis results, supporting language-specific rules.
   - [ ] **Smart Dirty Checking**: Avoid unnecessary re-renders for unchanged text/layout state.
 
 ---

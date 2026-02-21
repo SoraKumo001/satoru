@@ -66,6 +66,9 @@ class SatoruContext {
         clearImages();
         clearCss();
         shapingCache.clear();
+        if (m_unicodeService) {
+            m_unicodeService->clearCache();
+        }
     }
 
     sk_sp<SkTypeface> get_typeface(const std::string &family, int weight, SkFontStyle::Slant slant,

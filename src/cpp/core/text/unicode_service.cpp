@@ -106,9 +106,31 @@ bool UnicodeService::shouldBreakGrapheme(char32_t u1, char32_t u2, int* state) c
     return utf8proc_grapheme_break_stateful(u1, u2, state);
 }
 
-void UnicodeService::getLineBreaks(const char* text, size_t len, std::vector<char>& breaks) const {
+void UnicodeService::getLineBreaks(const char* text, size_t len, const char* lang,
+                                   std::vector<char>& breaks) const {
+    if (!text || len == 0) {
+        breaks.clear();
+        return;
+    }
+
+    std::string key;
+    if (lang && *lang) {
+        key = std::string(lang) + ":" + std::string(text, len);
+    } else {
+        key = std::string(text, len);
+    }
+
+    auto it = m_lineBreakCache.find(key);
+    if (it != m_lineBreakCache.end()) {
+        breaks = it->second;
+        return;
+    }
+
     breaks.resize(len);
-    set_linebreaks_utf8((const unsigned char*)text, len, nullptr, breaks.data());
+    set_linebreaks_utf8((const unsigned char*)text, len, lang, breaks.data());
+    m_lineBreakCache[key] = breaks;
 }
+
+void UnicodeService::clearCache() { m_lineBreakCache.clear(); }
 
 }  // namespace satoru

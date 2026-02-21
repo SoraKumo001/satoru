@@ -292,7 +292,7 @@ void TextLayout::splitText(SatoruContext* ctx, const char* text,
     UnicodeService& unicode = ctx->getUnicodeService();
     size_t len = strlen(text);
     std::vector<char> brks;
-    unicode.getLineBreaks(text, len, brks);
+    unicode.getLineBreaks(text, len, nullptr, brks);
 
     const char* p = text;
     const char* last_p = text;

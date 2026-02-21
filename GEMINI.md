@@ -62,7 +62,10 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - **Macros**: Use `SATORU_LOG_INFO`, `SATORU_LOG_ERROR`, etc., from `utils/logging.h` for formatted output.
 - **Control**: Log levels are controllable from JS via `Satoru.render({ logLevel: ... })` or `api_set_log_level`.
 
-### 3.5 Resource Management
+### 3.5 Resource Management & Global Caching
+- **Font Caching (Global)**: `SkTypeface` and `SkFontMgr` are managed globally to minimize instantiation overhead across `SatoruInstance` objects.
+  - **Strategy**: 2-level lookup using URL and data hash (FNV-1a).
+  - **Variable Fonts**: Cloned `SkTypeface` instances (e.g., specific weights) are also cached globally.
 - **Resolution**: `render` options support `resolveResource` callback.
 - **Default Resolver**: The JS wrapper provides a default resource resolver that handles local file system (Node.js) and HTTP `fetch`.
 - **Interception**: Users can intercept resource requests and fallback to the default resolver via the second argument of the callback.

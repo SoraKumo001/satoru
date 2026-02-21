@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <ctre.hpp>
+#include <mutex>
 #include <sstream>
 
 #include "../api/satoru_api.h"
@@ -27,35 +28,87 @@ std::string trim(const std::string &s) {
     auto end = s.find_last_not_of(" \t\r\n'\"");
     return s.substr(start, end - start + 1);
 }
+
+// Global font registries to minimize instantiation overhead
+std::mutex g_font_mutex;
+std::map<std::string, sk_sp<SkTypeface>> g_url_to_typeface;
+std::map<uint64_t, sk_sp<SkTypeface>> g_hash_to_typeface;
+
+struct global_typeface_clone_key {
+    SkTypeface *base;
+    int weight;
+    bool operator<(const global_typeface_clone_key &other) const {
+        if (base != other.base) return base < other.base;
+        return weight < other.weight;
+    }
+};
+std::map<global_typeface_clone_key, sk_sp<SkTypeface>> g_variable_clone_cache;
+
+uint64_t compute_data_hash(const uint8_t *data, size_t size) {
+    uint64_t h = 14695981039346656037ULL;
+    for (size_t i = 0; i < size; ++i) {
+        h ^= static_cast<uint64_t>(data[i]);
+        h *= 1099511628211ULL;
+    }
+    return h;
+}
+
+sk_sp<SkFontMgr> get_global_font_mgr() {
+    static sk_sp<SkFontMgr> mgr = SkFontMgr_New_Custom_Empty();
+    return mgr;
+}
 }  // namespace
 
-SatoruFontManager::SatoruFontManager() { m_fontMgr = SkFontMgr_New_Custom_Empty(); }
+SatoruFontManager::SatoruFontManager() { m_fontMgr = get_global_font_mgr(); }
 
 void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size, const char *url) {
     std::string cleaned = cleanName(name);
-    if (!m_fontMgr) m_fontMgr = SkFontMgr_New_Custom_Empty();
+    if (!m_fontMgr) m_fontMgr = get_global_font_mgr();
 
     sk_sp<SkTypeface> typeface;
+    uint64_t data_hash = 0;
 
-    // Check URL cache first to share typeface objects
-    if (url && *url) {
-        auto it = m_urlToTypeface.find(url);
-        if (it != m_urlToTypeface.end()) {
-            typeface = it->second;
+    bool from_cache = false;
+
+    // Check global caches first
+    {
+        std::lock_guard<std::mutex> lock(g_font_mutex);
+        if (url && *url) {
+            auto it = g_url_to_typeface.find(url);
+            if (it != g_url_to_typeface.end()) {
+                typeface = it->second;
+                from_cache = true;
+            }
+        }
+        if (!typeface && data && size > 0) {
+            data_hash = compute_data_hash(data, size);
+            auto it = g_hash_to_typeface.find(data_hash);
+            if (it != g_hash_to_typeface.end()) {
+                typeface = it->second;
+                from_cache = true;
+            }
         }
     }
 
     if (!typeface) {
         auto data_ptr = SkData::MakeWithCopy(data, size);
         typeface = m_fontMgr->makeFromData(std::move(data_ptr));
-        if (url && *url && typeface) {
-            m_urlToTypeface[url] = typeface;
+
+        if (typeface) {
+            std::lock_guard<std::mutex> lock(g_font_mutex);
+            if (url && *url) {
+                g_url_to_typeface[url] = typeface;
+            }
+            if (data && size > 0) {
+                if (data_hash == 0) data_hash = compute_data_hash(data, size);
+                g_hash_to_typeface[data_hash] = typeface;
+            }
         }
     }
 
     if (typeface) {
-        SATORU_LOG_INFO("loadFont: SUCCESS loaded font '{}' ({} bytes) from {}", cleaned, size,
-                        (url ? url : "memory"));
+        SATORU_LOG_INFO("loadFont: SUCCESS loaded font '{}' ({} bytes) from {}{}", cleaned, size,
+                        (url ? url : "memory"), (from_cache ? " (cache)" : ""));
 
         bool duplicate = false;
         for (const auto &existing : m_typefaceCache[cleaned]) {
@@ -76,10 +129,8 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
 
 void SatoruFontManager::clear() {
     m_typefaceCache.clear();
-    m_urlToTypeface.clear();
     m_fontFaces.clear();
     m_fallbackTypefaces.clear();
-    m_variableCloneCache.clear();
     m_defaultTypeface = nullptr;
 }
 
@@ -294,11 +345,25 @@ SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, 
     int count = typeface->getVariationDesignPosition(
         SkSpan<SkFontArguments::VariationPosition::Coordinate>());
     if (count > 0) {
-        // Check cache first
-        typeface_clone_key key = {typeface.get(), weight};
-        auto it = m_variableCloneCache.find(key);
-        if (it != m_variableCloneCache.end()) {
-            return new SkFont(it->second, size);
+        // Check global cache first for variable font clones
+        sk_sp<SkTypeface> varTypeface = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(g_font_mutex);
+            global_typeface_clone_key key = {typeface.get(), weight};
+            auto it = g_variable_clone_cache.find(key);
+            if (it != g_variable_clone_cache.end()) {
+                varTypeface = it->second;
+            }
+        }
+
+        if (varTypeface) {
+            SkFont *font = new SkFont(varTypeface, size);
+            font->setSubpixel(true);
+            font->setLinearMetrics(true);
+            font->setEmbeddedBitmaps(true);
+            font->setHinting(SkFontHinting::kNone);
+            font->setEdging(SkFont::Edging::kAntiAlias);
+            return font;
         }
 
         std::vector<SkFontArguments::VariationPosition::Coordinate> coords(count);
@@ -317,9 +382,12 @@ SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, 
             SkFontArguments args;
             SkFontArguments::VariationPosition pos = {coords.data(), (int)coords.size()};
             args.setVariationDesignPosition(pos);
-            sk_sp<SkTypeface> varTypeface = typeface->makeClone(args);
+            varTypeface = typeface->makeClone(args);
             if (varTypeface) {
-                m_variableCloneCache[key] = varTypeface;
+                std::lock_guard<std::mutex> lock(g_font_mutex);
+                global_typeface_clone_key key = {typeface.get(), weight};
+                g_variable_clone_cache[key] = varTypeface;
+
                 SkFont *font = new SkFont(varTypeface, size);
                 font->setSubpixel(true);
                 font->setLinearMetrics(true);

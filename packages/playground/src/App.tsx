@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { createSatoruWorker } from "satoru";
+import { createSatoruWorker, LogLevel } from "satoru";
 
 const satoru = createSatoruWorker({
   maxParallel: 1,
@@ -184,6 +184,24 @@ const App: React.FC = () => {
         width,
         format,
         textToPaths,
+        logLevel: LogLevel.Info,
+        onLog: (level, message) => {
+          const prefix = "[Satoru Worker]";
+          switch (level) {
+            case LogLevel.Debug:
+              console.debug(`${prefix} DEBUG: ${message}`);
+              break;
+            case LogLevel.Info:
+              console.info(`${prefix} INFO: ${message}`);
+              break;
+            case LogLevel.Warning:
+              console.warn(`${prefix} WARNING: ${message}`);
+              break;
+            case LogLevel.Error:
+              console.error(`${prefix} ERROR: ${message}`);
+              break;
+          }
+        },
         css: "body { margin: 8px; }",
         baseUrl: `${window.location.origin}${window.location.pathname}assets/`,
         resolveResource: async (resource, defaultResolver) => {

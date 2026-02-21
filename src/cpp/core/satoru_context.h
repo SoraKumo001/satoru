@@ -5,7 +5,9 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
+#include "core/text/text_types.h"
 #include "core/text/unicode_service.h"
 #include "font_manager.h"
 #include "include/core/SkData.h"
@@ -27,6 +29,7 @@ class SatoruContext {
    public:
     SatoruFontManager fontManager;
     std::map<std::string, image_info> imageCache;
+    std::unordered_map<satoru::ShapingKey, satoru::ShapedResult, satoru::ShapingKeyHash> shapingCache;
 
     void init();
 
@@ -61,6 +64,7 @@ class SatoruContext {
         clearFonts();
         clearImages();
         clearCss();
+        shapingCache.clear();
     }
 
     sk_sp<SkTypeface> get_typeface(const std::string &family, int weight, SkFontStyle::Slant slant,

@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "core/satoru_context.h"
+#include "core/text/text_types.h"
 #include "core/text/unicode_service.h"
 #include "include/core/SkFont.h"
 #include "include/core/SkTextBlob.h"
@@ -13,49 +14,37 @@
 namespace satoru {
 
 namespace {
-class SatoruFontRunIterator : public SkShaper::FontRunIterator {
+// Records total width while delegating to another handler
+class WidthProxyRunHandler : public SkShaper::RunHandler {
    public:
-    struct CharFont {
-        size_t len;
-        SkFont font;
-    };
-
-    SatoruFontRunIterator(const std::vector<CharFont>& charFonts)
-        : m_charFonts(charFonts), m_currentPos(0), m_currentIndex(0) {}
-
-    void consume() override {
-        if (m_currentIndex < m_charFonts.size()) {
-            m_currentPos += m_charFonts[m_currentIndex].len;
-            m_currentIndex++;
-        }
+    WidthProxyRunHandler(SkShaper::RunHandler* inner, ShapedResult& result)
+        : fInner(inner), fResult(result) {
+        fResult.width = 0;
     }
-
-    size_t endOfCurrentRun() const override {
-        return m_currentPos +
-               (m_currentIndex < m_charFonts.size() ? m_charFonts[m_currentIndex].len : 0);
+    void beginLine() override { fInner->beginLine(); }
+    void runInfo(const SkShaper::RunHandler::RunInfo& info) override {
+        fResult.width += info.fAdvance.fX;
+        fInner->runInfo(info);
     }
-
-    bool atEnd() const override { return m_currentIndex >= m_charFonts.size(); }
-
-    const SkFont& currentFont() const override {
-        return m_charFonts[std::min(m_currentIndex, m_charFonts.size() - 1)].font;
-    }
+    void commitRunInfo() override { fInner->commitRunInfo(); }
+    Buffer runBuffer(const SkShaper::RunHandler::RunInfo& info) override { return fInner->runBuffer(info); }
+    void commitRunBuffer(const SkShaper::RunHandler::RunInfo& info) override { fInner->commitRunBuffer(info); }
+    void commitLine() override { fInner->commitLine(); }
 
    private:
-    const std::vector<CharFont>& m_charFonts;
-    size_t m_currentPos;
-    size_t m_currentIndex;
+    SkShaper::RunHandler* fInner;
+    ShapedResult& fResult;
 };
 
-// Records glyph positions and their corresponding UTF-8 offsets
-class DetailedWidthRunHandler : public SkShaper::RunHandler {
+// Original DetailedWidthRunHandler logic for measureText widthAtOffset
+class OffsetWidthRunHandler : public SkShaper::RunHandler {
    public:
     struct GlyphInfo {
         size_t utf8_offset;
         float advance;
     };
 
-    DetailedWidthRunHandler(size_t total_len) : fWidth(0), fTotalLen(total_len) {}
+    OffsetWidthRunHandler() : fWidth(0) {}
     void beginLine() override {}
     void runInfo(const RunInfo& info) override { fWidth += info.fAdvance.fX; }
     void commitRunInfo() override {}
@@ -73,21 +62,16 @@ class DetailedWidthRunHandler : public SkShaper::RunHandler {
     void commitLine() override {}
 
     double width() const { return fWidth; }
-
-    // Returns the width of text up to the given UTF-8 offset
     double widthAtOffset(size_t offset) const {
         double w = 0;
         for (const auto& g : fGlyphs) {
-            if (g.utf8_offset < offset) {
-                w += g.advance;
-            }
+            if (g.utf8_offset < offset) w += g.advance;
         }
         return w;
     }
 
    private:
     double fWidth;
-    size_t fTotalLen;
     std::vector<uint32_t> fCurrentRunOffsets;
     std::vector<SkPoint> fCurrentRunPositions;
     std::vector<GlyphInfo> fGlyphs;
@@ -99,65 +83,44 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     MeasureResult result = {0.0, 0, true, text};
     if (!text || !*text || !fi || fi->fonts.empty() || !ctx) return result;
 
-    SkShaper* shaper = ctx->getShaper();
+    size_t total_len = strlen(text);
+    bool limit_width = maxWidth >= 0;
+
+    // Use OffsetWidthRunHandler directly for measureText to support widthAtOffset
     UnicodeService& unicode = ctx->getUnicodeService();
+    SkShaper* shaper = ctx->getShaper();
     if (!shaper) return result;
 
-    // 1. 各文字の使用フォントを判定 (Font Selection Logic)
-    std::vector<SatoruFontRunIterator::CharFont> charFonts;
-    const char* p = text;
+    std::vector<CharFont> charFonts;
+    const char* walk_p = text;
+    const char* walk_end = text + total_len;
     SkFont last_font;
     bool has_last_font = false;
-
-    while (*p) {
-        const char* prev_p = p;
-        char32_t u = unicode.decodeUtf8(&p);
+    while (walk_p < walk_end) {
+        const char* prev_walk = walk_p;
+        char32_t u = unicode.decodeUtf8(&walk_p);
         if (usedCodepoints) usedCodepoints->insert(u);
-
-        SkFont font =
-            ctx->fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr, unicode);
+        SkFont font = ctx->fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr, unicode);
         last_font = font;
         has_last_font = true;
-
-        size_t char_len = (size_t)(p - prev_p);
-        if (!charFonts.empty() && charFonts.back().font.getTypeface() == font.getTypeface() &&
-            charFonts.back().font.getSize() == font.getSize() &&
-            charFonts.back().font.isEmbolden() == font.isEmbolden() &&
-            charFonts.back().font.isEmbeddedBitmaps() == font.isEmbeddedBitmaps()) {
+        size_t char_len = (size_t)(walk_p - prev_walk);
+        if (!charFonts.empty() && charFonts.back().font == font) {
             charFonts.back().len += char_len;
         } else {
             charFonts.push_back({char_len, font});
         }
     }
 
-    size_t total_len = p - text;
-    bool limit_width = maxWidth >= 0;
-
-    DetailedWidthRunHandler handler(total_len);
+    OffsetWidthRunHandler handler;
     SatoruFontRunIterator fontRuns(charFonts);
-
-    // BiDi and Script detection using UnicodeService
     int baseLevel = fi->is_rtl ? 1 : 0;
     uint8_t itemLevel = (uint8_t)unicode.getBidiLevel(text, baseLevel, nullptr);
-
-    std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
-        SkShaper::MakeBiDiRunIterator(text, total_len, itemLevel);
-    if (!bidi) {
-        bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, total_len);
-    }
-
-    std::unique_ptr<SkShaper::ScriptRunIterator> script =
-        SkShaper::MakeSkUnicodeHbScriptRunIterator(text, total_len);
-    if (!script) {
-        script = std::make_unique<SkShaper::TrivialScriptRunIterator>(
-            SkSetFourByteTag('Z', 'y', 'y', 'y'), total_len);
-    }
-
-    std::unique_ptr<SkShaper::LanguageRunIterator> lang =
-        SkShaper::MakeStdLanguageRunIterator(text, total_len);
-    if (!lang) {
-        lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", total_len);
-    }
+    std::unique_ptr<SkShaper::BiDiRunIterator> bidi = SkShaper::MakeBiDiRunIterator(text, total_len, itemLevel);
+    if (!bidi) bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, total_len);
+    std::unique_ptr<SkShaper::ScriptRunIterator> script = SkShaper::MakeSkUnicodeHbScriptRunIterator(text, total_len);
+    if (!script) script = std::make_unique<SkShaper::TrivialScriptRunIterator>(SkSetFourByteTag('Z', 'y', 'y', 'y'), total_len);
+    std::unique_ptr<SkShaper::LanguageRunIterator> lang = SkShaper::MakeStdLanguageRunIterator(text, total_len);
+    if (!lang) lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", total_len);
 
     shaper->shape(text, total_len, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000, &handler);
 
@@ -170,7 +133,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
 
     // Width limit handling (grapheme break aware)
     result.fits = false;
-    const char* walk_p = text;
+    walk_p = text;
     double last_w = 0;
     int state = 0;
 
@@ -178,19 +141,16 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         const char* prev_p = walk_p;
         char32_t u1 = unicode.decodeUtf8(&walk_p);
         const char* next_p = walk_p;
-
         bool is_break = true;
         if (*next_p) {
             const char* temp_p = next_p;
             char32_t u2 = unicode.decodeUtf8(&temp_p);
             is_break = unicode.shouldBreakGrapheme(u1, u2, &state);
         }
-
         if (is_break) {
             size_t offset = next_p - text;
             double w = handler.widthAtOffset(offset);
             if (w > maxWidth + 0.01) {
-                result.fits = false;
                 result.width = last_w;
                 result.length = prev_p - text;
                 result.last_safe_pos = prev_p;
@@ -203,6 +163,78 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     result.width = last_w;
     result.length = walk_p - text;
     result.last_safe_pos = walk_p;
+    return result;
+}
+
+ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
+                                  std::set<char32_t>* usedCodepoints) {
+    if (!text || !len || !fi || fi->fonts.empty() || !ctx) return {0.0, nullptr};
+
+    ShapingKey key;
+    key.text.assign(text, len);
+    key.font_family = fi->desc.family;
+    key.font_size = (float)fi->desc.size;
+    key.font_weight = fi->desc.weight;
+    key.italic = (fi->desc.style == litehtml::font_style_italic);
+    key.is_rtl = fi->is_rtl;
+
+    auto it = ctx->shapingCache.find(key);
+    if (it != ctx->shapingCache.end()) {
+        if (usedCodepoints) {
+            // キャッシュヒット時も使用コードポイントを収集する必要がある
+            UnicodeService& unicode = ctx->getUnicodeService();
+            const char* p = text;
+            const char* p_end = text + len;
+            while (p < p_end) {
+                usedCodepoints->insert(unicode.decodeUtf8(&p));
+            }
+        }
+        return it->second;
+    }
+
+    ShapedResult result = {0.0, nullptr};
+    SkShaper* shaper = ctx->getShaper();
+    UnicodeService& unicode = ctx->getUnicodeService();
+    if (!shaper) return {0.0, nullptr};
+
+    std::vector<CharFont> charFonts;
+    const char* walk_p = text;
+    const char* walk_end = text + len;
+    SkFont last_font;
+    bool has_last_font = false;
+    while (walk_p < walk_end) {
+        const char* prev_walk = walk_p;
+        char32_t u = unicode.decodeUtf8(&walk_p);
+        if (usedCodepoints) usedCodepoints->insert(u);
+        SkFont font = ctx->fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr, unicode);
+        last_font = font;
+        has_last_font = true;
+        size_t char_len = (size_t)(walk_p - prev_walk);
+        if (!charFonts.empty() && charFonts.back().font == font) {
+            charFonts.back().len += char_len;
+        } else {
+            charFonts.push_back({char_len, font});
+        }
+    }
+
+    SkTextBlobBuilderRunHandler blobHandler(text, {0, 0});
+    WidthProxyRunHandler handler(&blobHandler, result);
+    SatoruFontRunIterator fontRuns(charFonts);
+
+    int baseLevel = fi->is_rtl ? 1 : 0;
+    uint8_t itemLevel = (uint8_t)unicode.getBidiLevel(text, baseLevel, nullptr);
+    std::unique_ptr<SkShaper::BiDiRunIterator> bidi = SkShaper::MakeBiDiRunIterator(text, len, itemLevel);
+    if (!bidi) bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, len);
+    std::unique_ptr<SkShaper::ScriptRunIterator> script = SkShaper::MakeSkUnicodeHbScriptRunIterator(text, len);
+    if (!script) script = std::make_unique<SkShaper::TrivialScriptRunIterator>(SkSetFourByteTag('Z', 'y', 'y', 'y'), len);
+    std::unique_ptr<SkShaper::LanguageRunIterator> lang = SkShaper::MakeStdLanguageRunIterator(text, len);
+    if (!lang) lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", len);
+
+    shaper->shape(text, len, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000, &handler);
+
+    result.blob = blobHandler.makeBlob();
+    
+    ctx->shapingCache[key] = result;
     return result;
 }
 

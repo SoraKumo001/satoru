@@ -79,6 +79,7 @@ graph TD
 
 - **Modular Text Stack**: A structured text processing pipeline consisting of `UnicodeService` (encapsulation of utf8proc/libunibreak), `TextLayout` (measurement & shaping), and `TextRenderer` (Skia drawing & decorations).
 - **International Text Support**: Robust BiDi handling, script detection, and line-breaking (UAX #14) for CJK and mixed-script text.
+- **Performance-Optimized Typography**: Implements a **Shaping Cache** that stores HarfBuzz results and `SkTextBlob` objects, significantly reducing CPU overhead for recurring text/font combinations.
 - **Dynamic Font Loading**: Runtime loading of `.ttf`, `.woff2`, and `.ttc` with automatic style inference.
 - **Image Format Support**: Native support for PNG, JPEG, WebP, AVIF, GIF, BMP, and ICO.
 
@@ -240,7 +241,7 @@ pnpm --filter visual-test test
 - [ ] **WASM Binary Optimization**
 - [ ] **Backdrop Filter support**
 - [ ] **Text Rendering Optimizations**
-  - [ ] **Text Shaping Cache**: Cache HarfBuzz results for recurring text/font combinations.
+  - [x] **Text Shaping Cache**: Cache HarfBuzz results for recurring text/font combinations.
   - [ ] **`SkTextBlob` Optimization**: Reuse and batch `SkTextBlob` objects for efficient Skia rendering.
   - [ ] **Font Preloading & Persistence**: Minimize instantiation overhead by keeping `SkTypeface` in memory.
   - [ ] **Parallel Layout Engine**: Enhance multi-threaded layout capabilities using Web Workers.

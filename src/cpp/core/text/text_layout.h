@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "bridge/bridge_types.h"
+#include "core/text/text_types.h"
 
 class SatoruContext;
 
@@ -28,6 +29,10 @@ class TextLayout {
     // Ellipsizes the text to fit within maxWidth.
     static std::string ellipsizeText(SatoruContext* ctx, const char* text, font_info* fi,
                                      double maxWidth, std::set<char32_t>* usedCodepoints = nullptr);
+
+    // Core shaping logic that produces a ShapedResult.
+    static ShapedResult shapeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
+                                  std::set<char32_t>* usedCodepoints = nullptr);
 
     // Splits text into words and spaces (for litehtml's split_text)
     static void splitText(SatoruContext* ctx, const char* text,

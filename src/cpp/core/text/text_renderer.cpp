@@ -5,6 +5,7 @@
 #include "bridge/magic_tags.h"
 #include "core/satoru_context.h"
 #include "core/text/text_layout.h"
+#include "core/text/text_types.h"
 #include "core/text/unicode_service.h"
 #include "include/core/SkBlurTypes.h"
 #include "include/core/SkFont.h"
@@ -19,39 +20,6 @@
 namespace satoru {
 
 namespace {
-class SatoruFontRunIterator : public SkShaper::FontRunIterator {
-   public:
-    struct CharFont {
-        size_t len;
-        SkFont font;
-    };
-
-    SatoruFontRunIterator(const std::vector<CharFont>& charFonts)
-        : m_charFonts(charFonts), m_currentPos(0), m_currentIndex(0) {}
-
-    void consume() override {
-        if (m_currentIndex < m_charFonts.size()) {
-            m_currentPos += m_charFonts[m_currentIndex].len;
-            m_currentIndex++;
-        }
-    }
-
-    size_t endOfCurrentRun() const override {
-        return m_currentPos +
-               (m_currentIndex < m_charFonts.size() ? m_charFonts[m_currentIndex].len : 0);
-    }
-
-    bool atEnd() const override { return m_currentIndex >= m_charFonts.size(); }
-
-    const SkFont& currentFont() const override {
-        return m_charFonts[std::min(m_currentIndex, m_charFonts.size() - 1)].font;
-    }
-
-   private:
-    const std::vector<CharFont>& m_charFonts;
-    size_t m_currentPos;
-    size_t m_currentIndex;
-};
 }  // namespace
 
 void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* text, font_info* fi,
@@ -148,112 +116,53 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                                       std::vector<text_draw_info>& usedTextDraws,
                                       std::set<char32_t>* usedCodepoints) {
     if (strLen == 0) return 0.0;
-    SkShaper* shaper = ctx->getShaper();
-    UnicodeService& unicode = ctx->getUnicodeService();
-    if (!shaper) return 0.0;
+    
+    ShapedResult shaped = TextLayout::shapeText(ctx, str, strLen, fi, usedCodepoints);
+    if (!shaped.blob) return 0.0;
 
-    std::vector<SatoruFontRunIterator::CharFont> charFonts;
-    const char* p_walk = str;
-    const char* p_end = str + strLen;
-    SkFont last_font;
-    bool has_last_font = false;
+    if (tagging) {
+        SkTextBlob::Iter it(*shaped.blob);
+        SkTextBlob::Iter::ExperimentalRun run;
+        while (it.experimentalNext(&run)) {
+            for (int i = 0; i < run.count; ++i) {
+                auto pathOpt = run.font.getPath(run.glyphs[i]);
+                float gx = run.positions[i].fX + (float)tx;
+                float gy = run.positions[i].fY + (float)ty;
 
-    while (p_walk < p_end) {
-        const char* prev_walk = p_walk;
-        char32_t u = unicode.decodeUtf8(&p_walk);
-        if (usedCodepoints) usedCodepoints->insert(u);
+                if (pathOpt.has_value() && !pathOpt.value().isEmpty()) {
+                    canvas->save();
+                    canvas->translate(gx, gy);
+                    canvas->drawPath(pathOpt.value(), paint);
+                    canvas->restore();
+                } else {
+                    SkRect bounds = run.font.getBounds(run.glyphs[i], nullptr);
+                    int w = (int)ceilf(bounds.width());
+                    int h = (int)ceilf(bounds.height());
+                    if (w > 0 && h > 0) {
+                        SkImageInfo info = SkImageInfo::MakeN32Premul(w, h);
+                        auto surface = SkSurfaces::Raster(info);
+                        if (surface) {
+                            auto tmpCanvas = surface->getCanvas();
+                            tmpCanvas->clear(SK_ColorTRANSPARENT);
+                            tmpCanvas->drawSimpleText(&run.glyphs[i], sizeof(uint16_t),
+                                                      SkTextEncoding::kGlyphID, -bounds.fLeft,
+                                                      -bounds.fTop, run.font, paint);
+                            auto img = surface->makeImageSnapshot();
 
-        SkFont font =
-            ctx->fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr, unicode);
-        last_font = font;
-        has_last_font = true;
-
-        size_t char_len = (size_t)(p_walk - prev_walk);
-        if (!charFonts.empty() && charFonts.back().font.getTypeface() == font.getTypeface() &&
-            charFonts.back().font.getSize() == font.getSize() &&
-            charFonts.back().font.isEmbolden() == font.isEmbolden() &&
-            charFonts.back().font.isEmbeddedBitmaps() == font.isEmbeddedBitmaps()) {
-            charFonts.back().len += char_len;
-        } else {
-            charFonts.push_back({char_len, font});
-        }
-    }
-
-    SkTextBlobBuilderRunHandler handler(str, {0, 0});
-    SatoruFontRunIterator fontRuns(charFonts);
-
-    int baseLevel = fi->is_rtl ? 1 : 0;
-    uint8_t itemLevel = (uint8_t)unicode.getBidiLevel(str, (int)baseLevel, nullptr);
-
-    std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
-        SkShaper::MakeBiDiRunIterator(str, strLen, itemLevel);
-    if (!bidi) {
-        bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, strLen);
-    }
-
-    std::unique_ptr<SkShaper::ScriptRunIterator> script =
-        SkShaper::MakeSkUnicodeHbScriptRunIterator(str, strLen);
-    if (!script) {
-        script = std::make_unique<SkShaper::TrivialScriptRunIterator>(
-            SkSetFourByteTag('Z', 'y', 'y', 'y'), strLen);
-    }
-
-    std::unique_ptr<SkShaper::LanguageRunIterator> lang =
-        SkShaper::MakeStdLanguageRunIterator(str, strLen);
-    if (!lang) {
-        lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", strLen);
-    }
-
-    shaper->shape(str, strLen, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000, &handler);
-
-    double width = TextLayout::measureText(ctx, str, fi, -1.0, nullptr).width;
-
-    sk_sp<SkTextBlob> blob = handler.makeBlob();
-    if (blob) {
-        if (tagging) {
-            SkTextBlob::Iter it(*blob);
-            SkTextBlob::Iter::ExperimentalRun run;
-            while (it.experimentalNext(&run)) {
-                for (int i = 0; i < run.count; ++i) {
-                    auto pathOpt = run.font.getPath(run.glyphs[i]);
-                    float gx = run.positions[i].fX + (float)tx;
-                    float gy = run.positions[i].fY + (float)ty;
-
-                    if (pathOpt.has_value() && !pathOpt.value().isEmpty()) {
-                        canvas->save();
-                        canvas->translate(gx, gy);
-                        canvas->drawPath(pathOpt.value(), paint);
-                        canvas->restore();
-                    } else {
-                        SkRect bounds = run.font.getBounds(run.glyphs[i], nullptr);
-                        int w = (int)ceilf(bounds.width());
-                        int h = (int)ceilf(bounds.height());
-                        if (w > 0 && h > 0) {
-                            SkImageInfo info = SkImageInfo::MakeN32Premul(w, h);
-                            auto surface = SkSurfaces::Raster(info);
-                            if (surface) {
-                                auto tmpCanvas = surface->getCanvas();
-                                tmpCanvas->clear(SK_ColorTRANSPARENT);
-                                tmpCanvas->drawSimpleText(&run.glyphs[i], sizeof(uint16_t),
-                                                          SkTextEncoding::kGlyphID, -bounds.fLeft,
-                                                          -bounds.fTop, run.font, paint);
-                                auto img = surface->makeImageSnapshot();
-
-                                SkRect dst = SkRect::MakeXYWH(gx + bounds.fLeft, gy + bounds.fTop,
-                                                              (float)w, (float)h);
-                                canvas->drawImageRect(img, dst,
-                                                      SkSamplingOptions(SkFilterMode::kLinear));
-                            }
+                            SkRect dst = SkRect::MakeXYWH(gx + bounds.fLeft, gy + bounds.fTop,
+                                                          (float)w, (float)h);
+                            canvas->drawImageRect(img, dst,
+                                                  SkSamplingOptions(SkFilterMode::kLinear));
                         }
                     }
                 }
             }
-        } else {
-            canvas->drawTextBlob(blob, (float)tx, (float)ty, paint);
         }
+    } else {
+        canvas->drawTextBlob(shaped.blob, (float)tx, (float)ty, paint);
     }
 
-    return width;
+    return shaped.width;
 }
 
 void TextRenderer::drawDecoration(SkCanvas* canvas, font_info* fi, const litehtml::position& pos,

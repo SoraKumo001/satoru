@@ -88,40 +88,73 @@ export class Satoru {
   private async getModule(): Promise<SatoruModule> {
     if (!this.modPromise) {
       this.modPromise = (async () => {
-        var mod: SatoruModule = (await this.factory({
+        let currentLogLevel = LogLevel.None;
+        let currentUserOnLog: ((level: LogLevel, message: string) => void) | undefined;
+
+        const initialModule: any = {
           onLog: (level: LogLevel, message: string) => {
             if (
-              mod &&
-              mod.logLevel !== LogLevel.None &&
-              level <= mod.logLevel &&
-              mod.onLog
+              currentLogLevel !== LogLevel.None &&
+              level <= currentLogLevel &&
+              currentUserOnLog
             ) {
-              mod.onLog(level, message);
+              currentUserOnLog(level, message);
             }
           },
           print: (text: string) => {
             if (
-              mod &&
-              mod.logLevel !== LogLevel.None &&
-              LogLevel.Info <= mod.logLevel &&
-              mod.onLog
+              currentLogLevel !== LogLevel.None &&
+              LogLevel.Info <= currentLogLevel &&
+              currentUserOnLog
             ) {
-              mod.onLog(LogLevel.Info, text);
+              currentUserOnLog(LogLevel.Info, text);
             }
           },
           printErr: (text: string) => {
             if (
-              mod &&
-              mod.logLevel !== LogLevel.None &&
-              LogLevel.Error <= mod.logLevel &&
-              mod.onLog
+              currentLogLevel !== LogLevel.None &&
+              LogLevel.Error <= currentLogLevel &&
+              currentUserOnLog
             ) {
-              mod.onLog(LogLevel.Error, text);
+              currentUserOnLog(LogLevel.Error, text);
             }
           },
-        })) as SatoruModule;
+        };
+
+        const mod: SatoruModule = (await this.factory(
+          initialModule,
+        )) as SatoruModule;
 
         mod.logLevel = LogLevel.None;
+
+        // Sync mod state to our local variables
+        const originalSetLogLevel = mod.set_log_level;
+        mod.set_log_level = (level: number) => {
+          currentLogLevel = level;
+          originalSetLogLevel(level);
+        };
+
+        // We need to intercept mod.onLog and mod.logLevel updates
+        // In render(), these are set directly.
+        // So we use getters/setters on mod itself.
+        let internalOnLog = mod.onLog;
+        Object.defineProperty(mod, "onLog", {
+          get: () => internalOnLog,
+          set: (val) => {
+            internalOnLog = val;
+            currentUserOnLog = val;
+          },
+        });
+
+        let internalLogLevel = mod.logLevel;
+        Object.defineProperty(mod, "logLevel", {
+          get: () => internalLogLevel,
+          set: (val) => {
+            internalLogLevel = val;
+            currentLogLevel = val;
+          },
+        });
+
         return mod;
       })();
     }

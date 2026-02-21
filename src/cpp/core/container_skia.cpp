@@ -69,6 +69,14 @@ container_skia::container_skia(int w, int h, SkCanvas *canvas, SatoruContext &co
       m_last_bidi_level(-1),
       m_last_base_level(-1) {
     m_asciiUsed.resize(128, false);
+    m_textBatcher = new satoru::TextBatcher(&m_context, m_canvas);
+}
+
+container_skia::~container_skia() {
+    if (m_textBatcher) {
+        m_textBatcher->flush();
+        delete m_textBatcher;
+    }
 }
 
 litehtml::uint_ptr container_skia::create_font(const litehtml::font_description &desc,
@@ -198,14 +206,15 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
 
     satoru::TextRenderer::drawText(&m_context, m_canvas, text, fi, color, actual_pos, overflow, dir,
                                    m_tagging, get_current_opacity(), m_usedTextShadows,
-                                   m_usedTextDraws,
-                                   m_resourceManager ? &m_usedCodepoints : nullptr);
+                                   m_usedTextDraws, m_resourceManager ? &m_usedCodepoints : nullptr,
+                                   m_textBatcher);
 }
 
 void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::shadow_vector &shadows,
                                      const litehtml::position &pos,
                                      const litehtml::border_radiuses &radius, bool inset) {
     if (!m_canvas) return;
+    flush();
     if (m_tagging) {
         for (auto it = shadows.rbegin(); it != shadows.rend(); ++it) {
             const auto &s = *it;
@@ -271,6 +280,7 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
 void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
                                 const std::string &url, const std::string &base_url) {
     if (!m_canvas) return;
+    flush();
     if (m_tagging) {
         image_draw_info draw;
         draw.url = url;
@@ -352,6 +362,7 @@ void container_skia::draw_solid_fill(litehtml::uint_ptr hdc,
                                      const litehtml::background_layer &layer,
                                      const litehtml::web_color &color) {
     if (!m_canvas) return;
+    flush();
     SkPaint p;
     p.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     p.setAntiAlias(true);
@@ -362,6 +373,7 @@ void container_skia::draw_linear_gradient(
     litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
     const litehtml::background_layer::linear_gradient &gradient) {
     if (!m_canvas) return;
+    flush();
     if (m_tagging) {
         linear_gradient_info info;
         info.layer = layer;
@@ -396,6 +408,7 @@ void container_skia::draw_radial_gradient(
     litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
     const litehtml::background_layer::radial_gradient &gradient) {
     if (!m_canvas) return;
+    flush();
     if (m_tagging) {
         radial_gradient_info info;
         info.layer = layer;
@@ -433,6 +446,7 @@ void container_skia::draw_conic_gradient(
     litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
     const litehtml::background_layer::conic_gradient &gradient) {
     if (!m_canvas) return;
+    flush();
     if (m_tagging) {
         conic_gradient_info info;
         info.layer = layer;
@@ -480,6 +494,7 @@ void container_skia::draw_conic_gradient(
 void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::borders &borders,
                                   const litehtml::position &draw_pos, bool root) {
     if (!m_canvas) return;
+    flush();
 
     bool uniform =
         borders.top.width == borders.bottom.width && borders.top.width == borders.left.width &&
@@ -706,6 +721,7 @@ int container_skia::get_bidi_level(const char *text, int base_level) {
 
 void container_skia::draw_list_marker(litehtml::uint_ptr hdc, const litehtml::list_marker &marker) {
     if (!m_canvas) return;
+    flush();
 
     if (!marker.image.empty()) {
         std::string url = marker.image;
@@ -818,6 +834,7 @@ void container_skia::import_css(litehtml::string &text, const litehtml::string &
 void container_skia::set_clip(const litehtml::position &pos,
                               const litehtml::border_radiuses &bdr_radius) {
     if (m_canvas) {
+        flush();
         if (m_tagging) {
             clip_info info;
             info.pos = pos;
@@ -838,6 +855,7 @@ void container_skia::set_clip(const litehtml::position &pos,
 }
 void container_skia::del_clip() {
     if (m_canvas) {
+        flush();
         m_canvas->restore();
         if (m_tagging) {
             SkPaint p;
@@ -871,6 +889,7 @@ void container_skia::split_text(const char *text, const std::function<void(const
 void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity) {
     m_opacity_stack.push_back(opacity);
     if (m_canvas) {
+        flush();
         if (m_tagging) {
             SkPaint p;
             p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::LayerPush,
@@ -900,6 +919,7 @@ void container_skia::pop_layer(litehtml::uint_ptr hdc) {
         m_opacity_stack.pop_back();
     }
     if (m_canvas) {
+        flush();
         if (m_tagging) {
             SkPaint p;
             p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::LayerPop, 0));
@@ -922,6 +942,7 @@ void container_skia::push_transform(litehtml::uint_ptr hdc,
                                     const litehtml::css_token_vector &origin,
                                     const litehtml::position &pos) {
     if (!m_canvas) return;
+    flush();
 
     m_canvas->save();
 
@@ -1004,12 +1025,14 @@ void container_skia::push_transform(litehtml::uint_ptr hdc,
 
 void container_skia::pop_transform(litehtml::uint_ptr hdc) {
     if (m_canvas) {
+        flush();
         m_canvas->restore();
     }
 }
 
 void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_token_vector &filter) {
     if (!m_canvas || filter.empty()) return;
+    flush();
 
     if (m_tagging) {
         filter_info info;
@@ -1097,6 +1120,7 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
 
 void container_skia::pop_filter(litehtml::uint_ptr hdc) {
     if (m_canvas) {
+        flush();
         if (m_tagging) {
             SkPaint p;
             p.setColor(SkColorSetARGB(255, 0, (uint8_t)satoru::MagicTag::FilterPop, 0));

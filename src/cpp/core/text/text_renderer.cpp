@@ -16,18 +16,72 @@
 #include "include/core/SkTextBlob.h"
 #include "include/effects/SkDashPathEffect.h"
 #include "modules/skshaper/include/SkShaper.h"
+#include "utils/logging.h"
 
 namespace satoru {
 
-namespace {
-}  // namespace
+void TextBatcher::addText(const sk_sp<SkTextBlob>& blob, double tx, double ty, const Style& style) {
+    if (m_active && m_currentStyle != style) {
+        flush();
+    }
+    if (!m_active) {
+        m_currentStyle = style;
+        m_firstBlob = blob;
+        m_firstTx = tx;
+        m_firstTy = ty;
+        m_active = true;
+        return;
+    }
+
+    if (m_firstBlob) {
+        addBlobToBuilder(m_firstBlob, m_firstTx, m_firstTy);
+        m_firstBlob = nullptr;
+    }
+    addBlobToBuilder(blob, tx, ty);
+}
+
+void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, double ty) {
+    SkTextBlob::Iter it(*blob);
+    SkTextBlob::Iter::ExperimentalRun run;
+    while (it.experimentalNext(&run)) {
+        auto builder_run = m_builder.allocRunPos(run.font, run.count);
+        memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
+        for (int i = 0; i < run.count; ++i) {
+            builder_run.pos[i * 2] = run.positions[i].fX + (float)tx;
+            builder_run.pos[i * 2 + 1] = run.positions[i].fY + (float)ty;
+        }
+    }
+}
+
+void TextBatcher::flush() {
+    if (!m_active) return;
+
+    SkPaint paint;
+    paint.setAntiAlias(true);
+    paint.setColor(SkColorSetARGB(m_currentStyle.color.alpha, m_currentStyle.color.red,
+                                  m_currentStyle.color.green, m_currentStyle.color.blue));
+    if (m_currentStyle.opacity < 1.0f) {
+        paint.setAlphaf(paint.getAlphaf() * m_currentStyle.opacity);
+    }
+
+    if (m_firstBlob) {
+        m_canvas->drawTextBlob(m_firstBlob, (float)m_firstTx, (float)m_firstTy, paint);
+        m_firstBlob = nullptr;
+    } else {
+        sk_sp<SkTextBlob> blob = m_builder.make();
+        if (blob) {
+            m_canvas->drawTextBlob(blob, 0, 0, paint);
+        }
+    }
+    m_active = false;
+}
 
 void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* text, font_info* fi,
                             const litehtml::web_color& color, const litehtml::position& pos,
                             litehtml::text_overflow overflow, litehtml::direction dir, bool tagging,
                             float currentOpacity, std::vector<text_shadow_info>& usedTextShadows,
                             std::vector<text_draw_info>& usedTextDraws,
-                            std::set<char32_t>* usedCodepoints) {
+                            std::set<char32_t>* usedCodepoints, TextBatcher* batcher) {
     if (!canvas || !fi || fi->fonts.empty()) return;
 
     fi->is_rtl = (dir == litehtml::direction_rtl);
@@ -97,13 +151,13 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
 
             drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi,
                              (double)pos.x + s.x.val(), (double)pos.y + s.y.val(), shadow_paint,
-                             false, usedTextDraws, usedCodepoints);
+                             false, usedTextDraws, usedCodepoints, batcher);
         }
     }
 
     double final_width =
         drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi, (double)pos.x,
-                         (double)pos.y, paint, tagging, usedTextDraws, usedCodepoints);
+                         (double)pos.y, paint, tagging, usedTextDraws, usedCodepoints, batcher);
 
     if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
         drawDecoration(canvas, fi, pos, color, final_width);
@@ -114,13 +168,14 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                                       size_t strLen, font_info* fi, double tx, double ty,
                                       const SkPaint& paint, bool tagging,
                                       std::vector<text_draw_info>& usedTextDraws,
-                                      std::set<char32_t>* usedCodepoints) {
+                                      std::set<char32_t>* usedCodepoints, TextBatcher* batcher) {
     if (strLen == 0) return 0.0;
-    
+
     ShapedResult shaped = TextLayout::shapeText(ctx, str, strLen, fi, usedCodepoints);
     if (!shaped.blob) return 0.0;
 
     if (tagging) {
+        if (batcher) batcher->flush();
         SkTextBlob::Iter it(*shaped.blob);
         SkTextBlob::Iter::ExperimentalRun run;
         while (it.experimentalNext(&run)) {
@@ -159,7 +214,20 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             }
         }
     } else {
-        canvas->drawTextBlob(shaped.blob, (float)tx, (float)ty, paint);
+        if (batcher && fi->desc.text_shadow.empty() &&
+            fi->desc.decoration_line == litehtml::text_decoration_line_none) {
+            TextBatcher::Style style;
+            style.fi = fi;
+            SkColor c = paint.getColor();
+            style.color = {(uint8_t)SkColorGetR(c), (uint8_t)SkColorGetG(c),
+                           (uint8_t)SkColorGetB(c), (uint8_t)SkColorGetA(c)};
+            style.opacity = 1.0f;  // Opacity is already in paint color or handled by layers
+            style.tagging = false;
+            batcher->addText(shaped.blob, tx, ty, style);
+        } else {
+            if (batcher) batcher->flush();
+            canvas->drawTextBlob(shaped.blob, (float)tx, (float)ty, paint);
+        }
     }
 
     return shaped.width;

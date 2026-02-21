@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "bridge/bridge_types.h"
+#include "core/text/text_renderer.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkFont.h"
 #include "include/core/SkRRect.h"
@@ -17,6 +18,7 @@
 #include "libs/litehtml/include/litehtml.h"
 #include "resource_manager.h"
 #include "satoru_context.h"
+#include "utils/logging.h"
 
 class container_skia : public litehtml::document_container {
     SkCanvas *m_canvas;
@@ -53,6 +55,8 @@ class container_skia : public litehtml::document_container {
     std::vector<litehtml::position> m_inlineSvgPositions;
     std::vector<clip_info> m_usedClips;
 
+    satoru::TextBatcher *m_textBatcher = nullptr;
+
     float get_current_opacity() const {
         float opacity = 1.0f;
         for (float o : m_opacity_stack) {
@@ -64,13 +68,26 @@ class container_skia : public litehtml::document_container {
    public:
     container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context, ResourceManager *rm,
                    bool tagging = false);
-    virtual ~container_skia() {}
+    virtual ~container_skia();
 
-    void set_canvas(SkCanvas *canvas) { m_canvas = canvas; }
+    void set_canvas(SkCanvas *canvas) {
+        m_canvas = canvas;
+        if (m_textBatcher) {
+            m_textBatcher->flush();
+            delete m_textBatcher;
+        }
+        m_textBatcher = new satoru::TextBatcher(&m_context, m_canvas);
+    }
     void set_height(int h) { m_height = h; }
     void set_tagging(bool t) { m_tagging = t; }
     void set_text_to_paths(bool to_paths) { m_textToPaths = to_paths; }
+    void flush() {
+        if (m_textBatcher && m_textBatcher->isActive()) {
+            m_textBatcher->flush();
+        }
+    }
     void reset() {
+        if (m_textBatcher) m_textBatcher->flush();
         m_usedShadows.clear();
         m_usedTextShadows.clear();
         m_usedImageDraws.clear();

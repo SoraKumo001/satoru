@@ -31,6 +31,7 @@ sk_sp<SkData> renderDocumentToPng(SatoruInstance *inst, int width, int height,
 
     litehtml::position clip(0, 0, width, content_height);
     inst->doc->draw(0, 0, 0, &clip);
+    inst->render_container->flush();
 
     SkDynamicMemoryWStream stream;
     if (SkPngEncoder::Encode(&stream, bitmap.pixmap(), {})) {
@@ -67,6 +68,7 @@ sk_sp<SkData> renderHtmlToPng(const char *html, int width, int height, SatoruCon
 
     litehtml::position clip(0, 0, width, content_height);
     doc->draw(0, 0, 0, &clip);
+    container.flush();
 
     SkDynamicMemoryWStream stream;
     if (SkPngEncoder::Encode(&stream, bitmap.pixmap(), {})) {

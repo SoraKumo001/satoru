@@ -1,9 +1,10 @@
 #ifndef SATORU_TEXT_TYPES_H
 #define SATORU_TEXT_TYPES_H
 
-#include <vector>
 #include <algorithm>
 #include <string>
+#include <vector>
+
 #include "include/core/SkFont.h"
 #include "include/core/SkTextBlob.h"
 #include "modules/skshaper/include/SkShaper.h"
@@ -16,7 +17,7 @@ struct CharFont {
 };
 
 class SatoruFontRunIterator : public SkShaper::FontRunIterator {
-public:
+   public:
     SatoruFontRunIterator(const std::vector<CharFont>& charFonts)
         : m_charFonts(charFonts), m_currentPos(0), m_currentIndex(0) {}
 
@@ -38,7 +39,7 @@ public:
         return m_charFonts[std::min(m_currentIndex, m_charFonts.size() - 1)].font;
     }
 
-private:
+   private:
     const std::vector<CharFont>& m_charFonts;
     size_t m_currentPos;
     size_t m_currentIndex;
@@ -58,12 +59,9 @@ struct ShapingKey {
     bool is_rtl;
 
     bool operator==(const ShapingKey& other) const {
-        return font_size == other.font_size &&
-               font_weight == other.font_weight &&
-               italic == other.italic &&
-               is_rtl == other.is_rtl &&
-               font_family == other.font_family &&
-               text == other.text;
+        return font_size == other.font_size && font_weight == other.font_weight &&
+               italic == other.italic && is_rtl == other.is_rtl &&
+               font_family == other.font_family && text == other.text;
     }
 };
 
@@ -79,6 +77,6 @@ struct ShapingKeyHash {
     }
 };
 
-} // namespace satoru
+}  // namespace satoru
 
-#endif // SATORU_TEXT_TYPES_H
+#endif  // SATORU_TEXT_TYPES_H

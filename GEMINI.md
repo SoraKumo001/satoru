@@ -38,8 +38,9 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - `src/cpp/core`: Layout/Rendering core, resource management, and master CSS.
 - `src/cpp/core/text`: Modular text processing stack.
   - `UnicodeService`: Encapsulates Unicode logic (utf8proc, libunibreak, BiDi).
-  - `TextLayout`: High-level layout logic (measurement, ellipsizing, splitting).
+  - `TextLayout`: High-level layout logic (measurement, ellipsizing, splitting, shaping cache).
   - `TextRenderer`: Skia-based rendering, decorations, and tagging.
+  - `TextBatcher`: Batches consecutive text runs with the same style into a single `SkTextBlob` to minimize draw calls.
 - `src/cpp/renderers`: PNG, SVG, PDF, and WebP specific renderers.
 - `src/cpp/utils`: Skia utilities, Base64 helpers, SkUnicode implementation, and logging macros (`logging.h`).
 - `src/cpp/libs`: External libraries (`litehtml`, `skia`).

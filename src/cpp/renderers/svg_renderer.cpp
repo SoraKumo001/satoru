@@ -787,6 +787,7 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height,
 
     litehtml::position clip(0, 0, width, content_height);
     inst->doc->draw(0, 0, 0, &clip);
+    inst->render_container->flush();
 
     canvas.reset();  // Flush
     sk_sp<SkData> data = stream.detachAsData();
@@ -849,6 +850,7 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
 
     litehtml::position clip(0, 0, width, content_height);
     doc->draw(0, 0, 0, &clip);
+    container.flush();
 
     canvas.reset();
     sk_sp<SkData> data = stream.detachAsData();

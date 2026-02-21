@@ -53,6 +53,7 @@ sk_sp<SkData> renderDocumentToPdf(SatoruInstance *inst, int width, int height,
 
         litehtml::position clip(0, 0, width, content_height);
         inst->doc->draw(0, 0, 0, &clip);
+        inst->render_container->flush();
 
         pdf_doc->endPage();
     }
@@ -101,6 +102,7 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string> &htmls, int width,
 
         litehtml::position clip(0, 0, width, content_height);
         render_doc->draw(0, 0, 0, &clip);
+        render_container.flush();
 
         pdf_doc->endPage();
     }

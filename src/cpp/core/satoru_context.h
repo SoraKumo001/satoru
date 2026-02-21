@@ -4,8 +4,8 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include "core/text/text_types.h"
 #include "core/text/unicode_service.h"
@@ -29,7 +29,8 @@ class SatoruContext {
    public:
     SatoruFontManager fontManager;
     std::map<std::string, image_info> imageCache;
-    std::unordered_map<satoru::ShapingKey, satoru::ShapedResult, satoru::ShapingKeyHash> shapingCache;
+    std::unordered_map<satoru::ShapingKey, satoru::ShapedResult, satoru::ShapingKeyHash>
+        shapingCache;
 
     void init();
 

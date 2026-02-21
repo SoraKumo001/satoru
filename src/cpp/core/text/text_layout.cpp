@@ -27,8 +27,12 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
         fInner->runInfo(info);
     }
     void commitRunInfo() override { fInner->commitRunInfo(); }
-    Buffer runBuffer(const SkShaper::RunHandler::RunInfo& info) override { return fInner->runBuffer(info); }
-    void commitRunBuffer(const SkShaper::RunHandler::RunInfo& info) override { fInner->commitRunBuffer(info); }
+    Buffer runBuffer(const SkShaper::RunHandler::RunInfo& info) override {
+        return fInner->runBuffer(info);
+    }
+    void commitRunBuffer(const SkShaper::RunHandler::RunInfo& info) override {
+        fInner->commitRunBuffer(info);
+    }
     void commitLine() override { fInner->commitLine(); }
 
    private:
@@ -100,7 +104,8 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         const char* prev_walk = walk_p;
         char32_t u = unicode.decodeUtf8(&walk_p);
         if (usedCodepoints) usedCodepoints->insert(u);
-        SkFont font = ctx->fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr, unicode);
+        SkFont font =
+            ctx->fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr, unicode);
         last_font = font;
         has_last_font = true;
         size_t char_len = (size_t)(walk_p - prev_walk);
@@ -115,11 +120,16 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     SatoruFontRunIterator fontRuns(charFonts);
     int baseLevel = fi->is_rtl ? 1 : 0;
     uint8_t itemLevel = (uint8_t)unicode.getBidiLevel(text, baseLevel, nullptr);
-    std::unique_ptr<SkShaper::BiDiRunIterator> bidi = SkShaper::MakeBiDiRunIterator(text, total_len, itemLevel);
+    std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
+        SkShaper::MakeBiDiRunIterator(text, total_len, itemLevel);
     if (!bidi) bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, total_len);
-    std::unique_ptr<SkShaper::ScriptRunIterator> script = SkShaper::MakeSkUnicodeHbScriptRunIterator(text, total_len);
-    if (!script) script = std::make_unique<SkShaper::TrivialScriptRunIterator>(SkSetFourByteTag('Z', 'y', 'y', 'y'), total_len);
-    std::unique_ptr<SkShaper::LanguageRunIterator> lang = SkShaper::MakeStdLanguageRunIterator(text, total_len);
+    std::unique_ptr<SkShaper::ScriptRunIterator> script =
+        SkShaper::MakeSkUnicodeHbScriptRunIterator(text, total_len);
+    if (!script)
+        script = std::make_unique<SkShaper::TrivialScriptRunIterator>(
+            SkSetFourByteTag('Z', 'y', 'y', 'y'), total_len);
+    std::unique_ptr<SkShaper::LanguageRunIterator> lang =
+        SkShaper::MakeStdLanguageRunIterator(text, total_len);
     if (!lang) lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", total_len);
 
     shaper->shape(text, total_len, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000, &handler);
@@ -167,7 +177,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
 }
 
 ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
-                                  std::set<char32_t>* usedCodepoints) {
+                                   std::set<char32_t>* usedCodepoints) {
     if (!text || !len || !fi || fi->fonts.empty() || !ctx) return {0.0, nullptr};
 
     ShapingKey key;
@@ -206,7 +216,8 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
         const char* prev_walk = walk_p;
         char32_t u = unicode.decodeUtf8(&walk_p);
         if (usedCodepoints) usedCodepoints->insert(u);
-        SkFont font = ctx->fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr, unicode);
+        SkFont font =
+            ctx->fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr, unicode);
         last_font = font;
         has_last_font = true;
         size_t char_len = (size_t)(walk_p - prev_walk);
@@ -223,17 +234,22 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
 
     int baseLevel = fi->is_rtl ? 1 : 0;
     uint8_t itemLevel = (uint8_t)unicode.getBidiLevel(text, baseLevel, nullptr);
-    std::unique_ptr<SkShaper::BiDiRunIterator> bidi = SkShaper::MakeBiDiRunIterator(text, len, itemLevel);
+    std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
+        SkShaper::MakeBiDiRunIterator(text, len, itemLevel);
     if (!bidi) bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, len);
-    std::unique_ptr<SkShaper::ScriptRunIterator> script = SkShaper::MakeSkUnicodeHbScriptRunIterator(text, len);
-    if (!script) script = std::make_unique<SkShaper::TrivialScriptRunIterator>(SkSetFourByteTag('Z', 'y', 'y', 'y'), len);
-    std::unique_ptr<SkShaper::LanguageRunIterator> lang = SkShaper::MakeStdLanguageRunIterator(text, len);
+    std::unique_ptr<SkShaper::ScriptRunIterator> script =
+        SkShaper::MakeSkUnicodeHbScriptRunIterator(text, len);
+    if (!script)
+        script = std::make_unique<SkShaper::TrivialScriptRunIterator>(
+            SkSetFourByteTag('Z', 'y', 'y', 'y'), len);
+    std::unique_ptr<SkShaper::LanguageRunIterator> lang =
+        SkShaper::MakeStdLanguageRunIterator(text, len);
     if (!lang) lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", len);
 
     shaper->shape(text, len, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000, &handler);
 
     result.blob = blobHandler.makeBlob();
-    
+
     ctx->shapingCache[key] = result;
     return result;
 }

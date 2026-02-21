@@ -31,6 +31,7 @@ sk_sp<SkData> renderDocumentToWebp(SatoruInstance *inst, int width, int height,
 
     litehtml::position clip(0, 0, width, content_height);
     inst->doc->draw(0, 0, 0, &clip);
+    inst->render_container->flush();
 
     SkDynamicMemoryWStream stream;
     SkWebpEncoder::Options options;
@@ -71,6 +72,7 @@ sk_sp<SkData> renderHtmlToWebp(const char *html, int width, int height, SatoruCo
 
     litehtml::position clip(0, 0, width, content_height);
     doc->draw(0, 0, 0, &clip);
+    container.flush();
 
     SkDynamicMemoryWStream stream;
     SkWebpEncoder::Options options;

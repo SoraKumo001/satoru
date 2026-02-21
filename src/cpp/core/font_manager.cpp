@@ -1,4 +1,5 @@
 #include "font_manager.h"
+#include "core/text/unicode_service.h"
 
 #include <algorithm>
 #include <ctre.hpp>
@@ -421,4 +422,34 @@ std::string SatoruFontManager::generateFontFaceCSS() const {
         }
     }
     return ss.str();
+}
+
+SkFont SatoruFontManager::selectFont(char32_t u, font_info* fi, SkFont* lastSelectedFont,
+                                     const satoru::UnicodeService& unicode) {
+    SkFont* selected_font = nullptr;
+
+    if (unicode.isMark(u) && lastSelectedFont) {
+        selected_font = lastSelectedFont;
+    } else {
+        for (auto f : fi->fonts) {
+            SkGlyphID glyph = 0;
+            SkUnichar sc = (SkUnichar)u;
+            f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
+                                               SkSpan<SkGlyphID>(&glyph, 1));
+            if (glyph != 0) {
+                selected_font = f;
+                break;
+            }
+        }
+        if (!selected_font) selected_font = fi->fonts[0];
+    }
+
+    SkFont font = *selected_font;
+    if (fi->fake_bold) font.setEmbolden(true);
+
+    if (unicode.isEmoji(u)) {
+        font.setEmbeddedBitmaps(true);
+        font.setHinting(SkFontHinting::kNone);
+    }
+    return font;
 }

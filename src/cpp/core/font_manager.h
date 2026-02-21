@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "bridge/bridge_types.h"
+#include "core/text/unicode_service.h"
 #include "include/core/SkFont.h"
 #include "include/core/SkFontMgr.h"
 #include "include/core/SkFontStyle.h"
@@ -43,6 +44,10 @@ class SatoruFontManager {
     }
 
     sk_sp<SkTypeface> getDefaultTypeface() const { return m_defaultTypeface; }
+
+    // 特定の文字(u)に最適な SkFont を fi->fonts から選択する
+    SkFont selectFont(char32_t u, font_info* fi, SkFont* lastSelectedFont,
+                      const satoru::UnicodeService& unicode);
 
     // 全ての @font-face 定義を CSS 形式で取得
     std::string generateFontFaceCSS() const;

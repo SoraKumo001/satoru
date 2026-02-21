@@ -1,7 +1,7 @@
 #include "container_skia.h"
 
-#include <linebreak.h>
-#include <utf8proc.h>
+#include "core/text/text_layout.h"
+#include "core/text/unicode_service.h"
 
 #include <algorithm>
 #include <iostream>
@@ -309,45 +309,18 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
         std::vector<SatoruFontRunIterator::CharFont> charFonts;
         const char *p_walk = str;
         const char *p_end = str + strLen;
-        SkFont *last_selected_font = nullptr;
+        SkFont last_font;
+        bool has_last_font = false;
 
         while (p_walk < p_end) {
             const char *prev_walk = p_walk;
-            char32_t u = satoru::decode_utf8_char(&p_walk);
+            char32_t u = m_context.getUnicodeService().decodeUtf8(&p_walk);
             if (m_resourceManager) m_usedCodepoints.insert(u);
 
-            SkFont *selected_font = nullptr;
-
-            // 結合文字の場合は、直前のフォントを優先的に使用する
-            auto category = utf8proc_category(u);
-            bool is_mark = (category == UTF8PROC_CATEGORY_MN || category == UTF8PROC_CATEGORY_MC ||
-                            category == UTF8PROC_CATEGORY_ME);
-
-            if (is_mark && last_selected_font) {
-                selected_font = last_selected_font;
-            } else {
-                for (auto f : fi->fonts) {
-                    SkGlyphID glyph = 0;
-                    SkUnichar sc = (SkUnichar)u;
-                    f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
-                                                       SkSpan<SkGlyphID>(&glyph, 1));
-                    if (glyph != 0) {
-                        selected_font = f;
-                        break;
-                    }
-                }
-                if (!selected_font) selected_font = fi->fonts[0];
-            }
-
-            last_selected_font = selected_font;
-
-            SkFont font = *selected_font;
-            if (fi->fake_bold) font.setEmbolden(true);
-
-            if ((u >= 0x1F300 && u <= 0x1F9FF) || (u >= 0x2600 && u <= 0x26FF)) {
-                font.setEmbeddedBitmaps(true);
-                font.setHinting(SkFontHinting::kNone);
-            }
+            SkFont font = m_context.fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr,
+                                                           m_context.getUnicodeService());
+            last_font = font;
+            has_last_font = true;
 
             size_t char_len = (size_t)(p_walk - prev_walk);
             if (!charFonts.empty() && charFonts.back().font.getTypeface() == font.getTypeface() &&
@@ -1203,50 +1176,7 @@ void container_skia::get_language(litehtml::string &language, litehtml::string &
 
 void container_skia::split_text(const char *text, const std::function<void(const char *)> &on_word,
                                 const std::function<void(const char *)> &on_space) {
-    if (!text || !*text) return;
-
-    size_t len = strlen(text);
-    std::vector<char> brks(len);
-    set_linebreaks_utf8((const unsigned char *)text, len, nullptr, brks.data());
-
-    const char *p = text;
-    const char *last_p = text;
-    int prev_char_idx = -1;
-
-    while (*p) {
-        const char *next_p = p;
-        char32_t c = satoru::decode_utf8_char(&next_p);
-        size_t idx = p - text;
-
-        if (c <= ' ' && (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f')) {
-            if (p > last_p) {
-                on_word(std::string(last_p, p - last_p).c_str());
-            }
-            on_space(std::string(p, next_p - p).c_str());
-            last_p = next_p;
-            prev_char_idx = -1;
-        } else {
-            if (p > last_p && prev_char_idx != -1) {
-                bool can_break = false;
-                for (int i = prev_char_idx; i < (int)idx; ++i) {
-                    if (brks[i] == LINEBREAK_ALLOWBREAK || brks[i] == LINEBREAK_MUSTBREAK) {
-                        can_break = true;
-                        break;
-                    }
-                }
-                if (can_break) {
-                    on_word(std::string(last_p, p - last_p).c_str());
-                    last_p = p;
-                }
-            }
-            prev_char_idx = (int)idx;
-        }
-        p = next_p;
-    }
-
-    if (p > last_p) {
-        on_word(std::string(last_p, p - last_p).c_str());
-    }
+    satoru::TextLayout::splitText(&m_context, text, on_word, on_space);
 }
 
 void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity) {

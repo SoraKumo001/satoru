@@ -29,16 +29,17 @@ void SatoruContext::init() {
     SkCodecs::Register(SkGifDecoder::Decoder());
 }
 
-sk_sp<SkUnicode> SatoruContext::getUnicode() {
-    if (!m_unicode) {
-        m_unicode = satoru::MakeUnicode();
+satoru::UnicodeService &SatoruContext::getUnicodeService() {
+    if (!m_unicodeService) {
+        m_unicodeService = std::make_unique<satoru::UnicodeService>();
     }
-    return m_unicode;
+    return *m_unicodeService;
 }
 
 SkShaper *SatoruContext::getShaper() {
     if (!m_shaper) {
-        m_shaper = SkShapers::HB::ShapeDontWrapOrReorder(getUnicode(), nullptr);
+        m_shaper =
+            SkShapers::HB::ShapeDontWrapOrReorder(getUnicodeService().getSkUnicodeSp(), nullptr);
     }
     return m_shaper.get();
 }

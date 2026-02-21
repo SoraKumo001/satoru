@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "font_manager.h"
+#include "core/text/unicode_service.h"
 #include "include/core/SkData.h"
 #include "include/core/SkFontStyle.h"
 #include "modules/skshaper/include/SkShaper.h"
@@ -20,7 +21,7 @@ class SatoruContext {
     sk_sp<SkData> m_lastSvg;
     std::string m_extraCss;
 
-    sk_sp<SkUnicode> m_unicode;
+    std::unique_ptr<satoru::UnicodeService> m_unicodeService;
     std::unique_ptr<SkShaper> m_shaper;
 
    public:
@@ -29,7 +30,7 @@ class SatoruContext {
 
     void init();
 
-    sk_sp<SkUnicode> getUnicode();
+    satoru::UnicodeService &getUnicodeService();
     SkShaper *getShaper();
 
     void addCss(const std::string &css) { m_extraCss += css + "\n"; }

@@ -7,17 +7,11 @@
 
 #include "bridge/bridge_types.h"
 #include "include/core/SkFont.h"
+#include "text/text_layout.h"
 
 class SatoruContext;
 
 namespace satoru {
-
-struct MeasureResult {
-    double width;
-    size_t length;              // bytes processed that fit
-    bool fits;                  // true if all text fits within max_width
-    const char* last_safe_pos;  // pointer to the end of the last character that fits
-};
 
 // Decodes a UTF-8 character and advances the pointer.
 char32_t decode_utf8_char(const char** ptr);

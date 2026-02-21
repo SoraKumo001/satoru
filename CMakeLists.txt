@@ -270,6 +270,8 @@ target_sources(satoru_core PRIVATE
     src/cpp/api/satoru_api.cpp
     src/cpp/core/container_skia.cpp
     src/cpp/core/text_utils.cpp
+    src/cpp/core/text/unicode_service.cpp
+    src/cpp/core/text/text_layout.cpp
     src/cpp/core/el_svg.cpp
     src/cpp/core/satoru_context.cpp
     src/cpp/core/resource_manager.cpp

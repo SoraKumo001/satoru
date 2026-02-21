@@ -36,6 +36,10 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 ### 3.1 Directory Structure
 - `src/cpp/api`: Emscripten API implementation (`satoru_api.cpp`).
 - `src/cpp/core`: Layout/Rendering core, resource management, and master CSS.
+- `src/cpp/core/text`: Modular text processing stack.
+  - `UnicodeService`: Encapsulates Unicode logic (utf8proc, libunibreak, BiDi).
+  - `TextLayout`: High-level layout logic (measurement, ellipsizing, splitting).
+  - `TextRenderer`: Skia-based rendering, decorations, and tagging.
 - `src/cpp/renderers`: PNG, SVG, PDF, and WebP specific renderers.
 - `src/cpp/utils`: Skia utilities, Base64 helpers, SkUnicode implementation, and logging macros (`logging.h`).
 - `src/cpp/libs`: External libraries (`litehtml`, `skia`).

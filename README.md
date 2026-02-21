@@ -77,7 +77,8 @@ graph TD
 
 ### Typography & Resources
 
-- **International Text Support**: Robust line-breaking (UAX #14) and character-boundary handling for CJK and mixed-script text.
+- **Modular Text Stack**: A structured text processing pipeline consisting of `UnicodeService` (encapsulation of utf8proc/libunibreak), `TextLayout` (measurement & shaping), and `TextRenderer` (Skia drawing & decorations).
+- **International Text Support**: Robust BiDi handling, script detection, and line-breaking (UAX #14) for CJK and mixed-script text.
 - **Dynamic Font Loading**: Runtime loading of `.ttf`, `.woff2`, and `.ttc` with automatic style inference.
 - **Image Format Support**: Native support for PNG, JPEG, WebP, AVIF, GIF, BMP, and ICO.
 

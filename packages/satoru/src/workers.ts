@@ -1,15 +1,15 @@
 import { createWorker, Worker } from "worker-lib";
 import type { SatoruWorker } from "./child-workers.js";
 export type { SatoruWorker } from "./child-workers.js";
-
-import { Satoru, LogLevel, type RenderOptions } from "./index.js";
-export { Satoru, LogLevel } from "./index.js";
+import { type RenderOptions } from "./index.js";
+export { Satoru } from "./index.js";
 export type {
   SatoruModule,
   RequiredResource,
   ResourceResolver,
   RenderOptions,
 } from "./index.js";
+export * from "./log-level.js";
 
 /**
  * Create a Satoru worker proxy using worker-lib.

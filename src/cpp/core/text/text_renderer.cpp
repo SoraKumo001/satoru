@@ -226,7 +226,8 @@ double TextRenderer::drawTextInternal(
                     int w = (int)ceilf(bounds.width());
                     int h = (int)ceilf(bounds.height());
                     if (w > 0 && h > 0) {
-                        SkImageInfo info = SkImageInfo::MakeN32Premul(w, h, SkColorSpace::MakeSRGB());
+                        SkImageInfo info =
+                            SkImageInfo::MakeN32Premul(w, h, SkColorSpace::MakeSRGB());
                         auto surface = SkSurfaces::Raster(info);
                         if (surface) {
                             auto tmpCanvas = surface->getCanvas();

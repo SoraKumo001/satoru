@@ -2,6 +2,7 @@
 
 #include <ctre.hpp>
 #include <iostream>
+#include <regex>
 
 #include "../utils/skia_utils.h"
 #include "container_skia.h"
@@ -67,6 +68,35 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
     }
 
     if (type == ResourceType::Font) {
+        // Check if the data is actually a CSS file (e.g. from Google Fonts API)
+        if (size > 0 && size < 1024 * 1024) {  // Limit check to 1MB
+            // Simple heuristic: check for @font-face
+            std::string content((const char*)data, size);
+            if (content.find("@font-face") != std::string::npos) {
+                m_context.addCss(content);
+                m_context.fontManager.scanFontFaces(content);
+
+                // Add aliases for requested names (e.g. serif -> Noto Serif JP)
+                auto it = m_urlToNames.find(url);
+                if (it != m_urlToNames.end()) {
+                    std::regex re(R"(font-family:\s*['"]?([^'";\}]+)['"]?)");
+
+                    for (const auto& name : it->second) {
+                        // Check if the name is already in the CSS (simple check)
+                        if (content.find("'" + name + "'") != std::string::npos) continue;
+                        if (content.find("\"" + name + "\"") != std::string::npos) continue;
+
+                        std::string alias_css =
+                            std::regex_replace(content, re, "font-family: '" + name + "'");
+                        m_context.addCss(alias_css);
+                        m_context.fontManager.scanFontFaces(alias_css);
+                    }
+                }
+
+                return;
+            }
+        }
+
         // Attempt to register under all requested names associated with this URL
         bool registered = false;
         std::string primaryName = "";

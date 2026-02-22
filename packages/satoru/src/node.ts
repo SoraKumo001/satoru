@@ -3,6 +3,8 @@ import {
   RequiredResource,
   resolveGoogleFonts,
 } from "./core.js";
+import * as path from "path";
+import * as fs from "fs";
 
 export * from "./core.js";
 export * from "./log-level.js";
@@ -24,6 +26,28 @@ export class Satoru extends SatoruBase {
       }
 
       const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(resource.url);
+
+      let baseDir = baseUrl
+        ? baseUrl.startsWith("file://")
+          ? baseUrl.slice(7)
+          : baseUrl
+        : process.cwd();
+
+      if (process.platform === "win32" && baseDir.startsWith("/")) {
+        baseDir = baseDir.slice(1);
+      }
+
+      if (
+        !isAbsolute &&
+        !/^[a-z][a-z0-9+.-]*:\/\//i.test(baseDir) &&
+        !baseDir.startsWith("data:")
+      ) {
+        const filePath = path.join(baseDir, resource.url);
+        if (fs.existsSync(filePath)) {
+          return new Uint8Array(fs.readFileSync(filePath));
+        }
+      }
+
       let finalUrl: string | null = null;
       if (isAbsolute) {
         finalUrl = resource.url;

@@ -25,6 +25,11 @@
       "import": "./dist/single.js",
       "default": "./dist/single.js"
     },
+    "./index": {
+      "types": "./dist/index.d.ts",
+      "node": "./dist/node.js",
+      "default": "./dist/index.js"
+    },
     "./workerd": {
       "types": "./dist/workerd.d.ts",
       "import": "./dist/workerd.js"

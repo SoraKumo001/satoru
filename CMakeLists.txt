@@ -302,7 +302,7 @@ set_target_properties(satoru PROPERTIES
 
 add_executable(satoru_single $<TARGET_OBJECTS:satoru_core>)
 target_link_libraries(satoru_single PRIVATE litehtml skia_lib)
-target_link_options(satoru_single PRIVATE ${COMMON_LINK_OPTIONS} "-sSINGLE_FILE=1" "-sENVIRONMENT=web,worker,node")
+target_link_options(satoru_single PRIVATE ${COMMON_LINK_OPTIONS} "-sSINGLE_FILE=1" "-sENVIRONMENT=web,worker")
 set_target_properties(satoru_single PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/packages/satoru/dist"
     OUTPUT_NAME "satoru-single"

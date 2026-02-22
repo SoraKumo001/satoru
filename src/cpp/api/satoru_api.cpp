@@ -190,8 +190,19 @@ void SatoruInstance::collect_resources(const std::string &html, int width) {
     for (const auto &req : requestedAttribs) {
         std::vector<std::string> urls =
             context.fontManager.getFontUrls(req.family, req.weight, req.slant, &usedCodepoints);
-        for (const auto &url : urls) {
-            resourceManager.request(url, req.family, ResourceType::Font);
+
+        if (urls.empty()) {
+            auto loaded = context.fontManager.matchFonts(req.family, req.weight, req.slant);
+            if (loaded.empty()) {
+                std::string providerUrl = "provider:google-fonts?family=" + req.family +
+                                          "&weight=" + std::to_string(req.weight) + "&italic=" +
+                                          (req.slant == SkFontStyle::kItalic_Slant ? "1" : "0");
+                resourceManager.request(providerUrl, req.family, ResourceType::Font);
+            }
+        } else {
+            for (const auto &url : urls) {
+                resourceManager.request(url, req.family, ResourceType::Font);
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { createSatoruWorker, LogLevel } from "satoru";
+import { createSatoruWorker, LogLevel } from "satoru/workers";
 
 const satoru = createSatoruWorker({
   maxParallel: 1,
@@ -220,8 +220,13 @@ const App: React.FC = () => {
 
           // Fetch using default resolver (or manual fetch if in worker proxy)
           const data = await defaultResolver(resource);
-          if (data)
+          if (
+            data &&
+            (resource.url.startsWith("http://") ||
+              resource.url.startsWith("https://"))
+          ) {
             await cache.put(resource.url, new Response(data as BodyInit));
+          }
 
           return data;
         },

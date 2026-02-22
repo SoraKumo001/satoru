@@ -642,8 +642,12 @@ namespace litehtml
       break;
 
     case _order_:
+    case _line_clamp_:
+    case __webkit_line_clamp_:
       if (val.type == NUMBER && val.n.number_type == css_number_integer)
         add_parsed_property(name, property_value((int)val.n.number, important, false, m_layer, m_specificity));
+      else if (ident == "none")
+        add_parsed_property(name, property_value(0, important, false, m_layer, m_specificity));
       break;
 
     case _column_count_:

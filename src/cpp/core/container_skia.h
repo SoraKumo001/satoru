@@ -222,7 +222,8 @@ class container_skia : public litehtml::document_container {
     virtual void pop_filter(litehtml::uint_ptr hdc) override;
 
     virtual void pop_backdrop_filter(litehtml::uint_ptr hdc) override;
-    virtual void push_backdrop_filter(litehtml::uint_ptr hdc, const std::shared_ptr<litehtml::render_item>& el) override;
+    virtual void push_backdrop_filter(litehtml::uint_ptr hdc,
+                                      const std::shared_ptr<litehtml::render_item> &el) override;
 
     virtual litehtml::element::ptr create_element(
         const char *tag_name, const litehtml::string_map &attributes,

@@ -307,7 +307,6 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
     m_line_clamp = el->get_property<int>(__webkit_line_clamp_, false, 0, offset(m_line_clamp));
   }
   m_column_count = el->get_property<int>(_column_count_, false, 0, offset(m_column_count));
-  if (m_column_count > 0) printf("Column count: %d\n", m_column_count);
   m_column_gap = el->get_property<css_length>(_column_gap_, false, 0, offset(m_column_gap));
   doc->cvt_units(m_column_gap, m_font_metrics, 0);
 

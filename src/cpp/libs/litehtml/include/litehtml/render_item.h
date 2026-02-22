@@ -27,6 +27,7 @@ namespace litehtml
         margins                                                         m_borders;
         position                                                        m_pos;
         bool                                        m_skip;
+        bool                                        m_force_ellipsis;
         std::vector<std::shared_ptr<render_item>>   m_positioned;
         std::shared_ptr<scroll_view>                            m_scroll_view;
 
@@ -113,6 +114,16 @@ namespace litehtml
         void skip(bool val)
         {
             m_skip = val;
+        }
+
+        bool force_ellipsis() const
+        {
+            return m_force_ellipsis;
+        }
+
+        void force_ellipsis(bool val)
+        {
+            m_force_ellipsis = val;
         }
 
         pixel_t right() const

@@ -157,8 +157,6 @@ std::shared_ptr<render_item> element::create_render_item(const std::shared_ptr<r
 	{
 		if (css().get_column_count() > 0)
 		{
-			printf("Element %s has column count %d, creating render_item_grid instead of block\n", 
-				   get_tagName(), css().get_column_count());
 			ret = std::make_shared<render_item_grid>(shared_from_this());
 		}
 		else

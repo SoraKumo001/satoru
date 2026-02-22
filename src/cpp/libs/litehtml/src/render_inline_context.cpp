@@ -4,10 +4,13 @@
 #include "iterators.h"
 #include "types.h"
 
+#include <cstdio>
+
 litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t /*x*/, pixel_t /*y*/, bool /*second_pass*/, const containing_block_context &self_size, formatting_context* fmt_ctx)
 {
     m_line_boxes.clear();
 	m_max_line_width = 0;
+	m_is_clamped = false;
 
     white_space ws = src_el()->css().get_white_space();
     bool skip_spaces = false;
@@ -70,26 +73,6 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
         });
 
     finish_last_box(true, self_size);
-
-    int line_clamp = src_el()->css().get_line_clamp();
-    style_display display = src_el()->css().get_display();
-    box_orient orient = src_el()->css().get_webkit_box_orient();
-    if (line_clamp > 0 &&
-        (display == display_webkit_box || display == display_webkit_inline_box) &&
-        orient == box_orient_vertical &&
-        m_line_boxes.size() > (size_t)line_clamp)
-    {
-        auto& last_line = m_line_boxes[line_clamp - 1];
-        auto last_item = last_line->get_last_text_part();
-        if (last_item)
-        {
-            string text;
-            last_item->src_el()->get_text(text);
-            text += "...";
-            last_item->src_el()->set_text(text.c_str());
-        }
-        m_line_boxes.resize(line_clamp);
-    }
 
     if (!m_line_boxes.empty())
     {
@@ -263,7 +246,11 @@ litehtml::pixel_t litehtml::render_item_inline_context::new_box(const std::uniqu
 
 void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box_item> item, const containing_block_context &self_size, formatting_context* fmt_ctx)
 {
-    if(item->get_el()->src_el()->css().get_display() == display_none) return;
+    if(m_is_clamped || item->get_el()->src_el()->css().get_display() == display_none)
+	{
+		item->get_el()->skip(true);
+		return;
+	}
 
     if(item->get_el()->src_el()->is_float())
     {
@@ -316,13 +303,34 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
 
     bool add_box = true;
     if(!m_line_boxes.empty())
-    {        if(m_line_boxes.back()->can_hold(item, src_el()->css().get_white_space()))
+    {
+        if(m_line_boxes.back()->can_hold(item, src_el()->css().get_white_space()))
         {
             add_box = false;
         }
     }
     if(add_box)
     {
+        int line_clamp = src_el()->css().get_line_clamp();
+        style_display display = src_el()->css().get_display();
+        box_orient orient = src_el()->css().get_webkit_box_orient();
+
+        if (line_clamp > 0 &&
+            (display == display_webkit_box || display == display_webkit_inline_box) &&
+            orient == box_orient_vertical &&
+            m_line_boxes.size() >= (size_t)line_clamp)
+        {
+            // We reached the limit. Force ellipsis on the last allowed line.
+            m_is_clamped = true;
+            auto& last_line = m_line_boxes.back();
+            last_line->set_text_overflow(text_overflow_ellipsis);
+
+            // Add the item to the last line even if it doesn't fit,
+            // so that line_box::finish can perform the ellipsis.
+            last_line->add_item(std::move(item));
+            return;
+        }
+
         new_box(item, line_ctx, self_size, fmt_ctx);
     } else if(!m_line_boxes.empty())
     {

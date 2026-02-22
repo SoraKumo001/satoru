@@ -220,12 +220,11 @@ litehtml::pixel_t litehtml::line_box::calc_va_baseline(const va_context& current
 std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish(bool last_box, const containing_block_context &containing_block_size)
 {
 	if (m_text_overflow == text_overflow_ellipsis && 
-		!(containing_block_size.size_mode & containing_block_context::size_mode_content) &&
-		m_width > (m_right - m_left))
+		!(containing_block_size.size_mode & containing_block_context::size_mode_content))
 	{
 		pixel_t container_width = m_right - m_left;
 		
-		// Calculate ellipsis width
+		// 1. Calculate ellipsis width
 		pixel_t ellipsis_width = 0;
 		for (auto& item : m_items)
 		{
@@ -236,51 +235,49 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 			}
 		}
 
-		// 1. Find the first item that (with ellipsis) exceeds the container width
-		auto it_f = m_items.begin();
-		auto last_visible_it = m_items.end();
-		
-		while (it_f != m_items.end())
+		// 2. Determine if we NEED ellipsis. 
+		// We need it if physically overflowing OR if it's logically forced.
+		if (m_width > container_width || m_text_overflow == text_overflow_ellipsis)
 		{
-			if ((*it_f)->get_el()->skip()) 
+			auto it_f = m_items.begin();
+			auto last_visible_it = m_items.end();
+			
+			while (it_f != m_items.end())
 			{
+				if ((*it_f)->get_el()->skip()) 
+				{
+					it_f++;
+					continue;
+				}
+
+				if ((*it_f)->get_el()->pos().x + ellipsis_width > m_right + 0.01)
+				{
+					break;
+				}
+				
+				last_visible_it = it_f;
+				
+				if ((*it_f)->get_el()->pos().x + (*it_f)->width() + ellipsis_width > m_right + 0.01)
+				{
+					it_f++;
+					break;
+				}
+				
 				it_f++;
-				continue;
 			}
 
-			// If this item starts so late that even ellipsis wouldn't fit, 
-			// or if the item itself plus ellipsis exceeds the width.
-			if ((*it_f)->get_el()->pos().x + ellipsis_width > m_right + 0.01)
+			if (last_visible_it != m_items.end())
 			{
-				// This item and all subsequent items must be skipped.
-				break;
-			}
-			
-			last_visible_it = it_f;
-			
-			// If this item's end plus ellipsis exceeds the width, 
-			// this is the last visible item and it needs to be ellipsized.
-			if ((*it_f)->get_el()->pos().x + (*it_f)->width() + ellipsis_width > m_right + 0.01)
-			{
-				it_f++; // Point to the next item to start skipping
-				break;
-			}
-			
-			it_f++;
-		}
-
-		if (last_visible_it != m_items.end())
-		{
-			// Force ellipsis by setting a near-zero width.
-			// The backend will see this doesn't fit and output "..."
-			(*last_visible_it)->get_el()->pos().width = 0.1f;
-			
-			// Skip and remove everything AFTER the last visible item
-			auto next_it = std::next(last_visible_it);
-			while (next_it != m_items.end())
-			{
-				(*next_it)->get_el()->skip(true);
-				next_it = m_items.erase(next_it);
+				// Mark for ellipsis
+				(*last_visible_it)->get_el()->force_ellipsis(true);
+				(*last_visible_it)->get_el()->pos().width = 0.1f;
+				
+				auto next_it = std::next(last_visible_it);
+				while (next_it != m_items.end())
+				{
+					(*next_it)->get_el()->skip(true);
+					next_it = m_items.erase(next_it);
+				}
 			}
 		}
 

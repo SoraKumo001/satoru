@@ -30,6 +30,7 @@ namespace litehtml
 	protected:
 		std::vector<std::unique_ptr<litehtml::line_box> > m_line_boxes;
 		pixel_t m_max_line_width;
+		bool m_is_clamped;
 
 		pixel_t _render_content(pixel_t x, pixel_t y, bool second_pass, const containing_block_context &self_size, formatting_context* fmt_ctx) override;
 		void fix_line_width(element_float flt,
@@ -40,7 +41,7 @@ namespace litehtml
 		pixel_t new_box(const std::unique_ptr<line_box_item>& el, line_context& line_ctx, const containing_block_context &self_size, formatting_context* fmt_ctx);
 		void apply_vertical_align() override;
 	public:
-		explicit render_item_inline_context(std::shared_ptr<element>  src_el) : render_item_block(std::move(src_el)), m_max_line_width(0)
+		explicit render_item_inline_context(std::shared_ptr<element>  src_el) : render_item_block(std::move(src_el)), m_max_line_width(0), m_is_clamped(false)
 		{}
 
 		std::shared_ptr<render_item> clone() override

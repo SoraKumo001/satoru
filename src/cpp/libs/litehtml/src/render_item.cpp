@@ -6,7 +6,8 @@
 
 litehtml::render_item::render_item(std::shared_ptr<element>  _src_el) :
         m_element(std::move(_src_el)),
-        m_skip(false)
+        m_skip(false),
+        m_force_ellipsis(false)
 {
     document::ptr doc = src_el()->get_document();
 	auto fm = css().get_font_metrics();
@@ -77,11 +78,11 @@ void litehtml::render_item::calc_outlines( pixel_t parent_width )
 
 litehtml::pixel_t litehtml::render_item::calc_auto_margins(pixel_t parent_width)
 {
-if ((src_el()->css().get_display() == display_block || src_el()->css().get_display() == display_table) &&
-src_el()->css().get_position() != element_position_absolute &&
-src_el()->css().get_float() == float_none)
-{
-pixel_t old_margin_left = m_margins.left;
+    if (src_el()->is_block_box() &&
+        src_el()->css().get_position() != element_position_absolute &&
+        src_el()->css().get_float() == float_none)
+    {
+        pixel_t old_margin_left = m_margins.left;
 if (src_el()->css().get_margins().left.is_predefined() && src_el()->css().get_margins().right.is_predefined())
 {
 pixel_t el_width = m_pos.width + m_borders.left + m_borders.right + m_padding.left + m_padding.right;

@@ -171,6 +171,7 @@ namespace litehtml
 		pixel_t	 	line_right() const	{ return m_right;			}
 		pixel_t	 	min_width() const	{ return m_min_width;		}
 
+        void				set_text_overflow(text_overflow overflow) { m_text_overflow = overflow; }
         void				add_item(std::unique_ptr<line_box_item> item);
         bool				can_hold(const std::unique_ptr<line_box_item>& item, white_space ws) const;
         bool				is_empty() const;

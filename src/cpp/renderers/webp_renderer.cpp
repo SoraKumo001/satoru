@@ -6,6 +6,8 @@
 #include "core/container_skia.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkCanvas.h"
+#include "include/core/SkColorSpace.h"
+#include "include/core/SkImageInfo.h"
 #include "include/core/SkStream.h"
 #include "include/encode/SkWebpEncoder.h"
 #include "litehtml.h"
@@ -18,8 +20,9 @@ sk_sp<SkData> renderDocumentToWebp(SatoruInstance *inst, int width, int height,
     int content_height = (height > 0) ? height : (int)inst->doc->height();
     if (content_height < 1) content_height = 1;
 
+    SkImageInfo info = SkImageInfo::MakeN32Premul(width, content_height, SkColorSpace::MakeSRGB());
     SkBitmap bitmap;
-    bitmap.allocN32Pixels(width, content_height);
+    bitmap.allocPixels(info);
     bitmap.eraseColor(SkColorSetARGB(0, 0, 0, 0));
 
     SkCanvas canvas(bitmap);
@@ -63,8 +66,9 @@ sk_sp<SkData> renderHtmlToWebp(const char *html, int width, int height, SatoruCo
 
     container.set_height(content_height);
 
+    SkImageInfo info = SkImageInfo::MakeN32Premul(width, content_height, SkColorSpace::MakeSRGB());
     SkBitmap bitmap;
-    bitmap.allocN32Pixels(width, content_height);
+    bitmap.allocPixels(info);
     bitmap.eraseColor(SkColorSetARGB(0, 0, 0, 0));  // Transparent background
 
     SkCanvas canvas(bitmap);

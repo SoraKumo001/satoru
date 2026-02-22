@@ -8,6 +8,7 @@
 #include "core/text/text_types.h"
 #include "core/text/unicode_service.h"
 #include "include/core/SkBlurTypes.h"
+#include "include/core/SkColorSpace.h"
 #include "include/core/SkFont.h"
 #include "include/core/SkMaskFilter.h"
 #include "include/core/SkPaint.h"
@@ -225,7 +226,7 @@ double TextRenderer::drawTextInternal(
                     int w = (int)ceilf(bounds.width());
                     int h = (int)ceilf(bounds.height());
                     if (w > 0 && h > 0) {
-                        SkImageInfo info = SkImageInfo::MakeN32Premul(w, h);
+                        SkImageInfo info = SkImageInfo::MakeN32Premul(w, h, SkColorSpace::MakeSRGB());
                         auto surface = SkSurfaces::Raster(info);
                         if (surface) {
                             auto tmpCanvas = surface->getCanvas();

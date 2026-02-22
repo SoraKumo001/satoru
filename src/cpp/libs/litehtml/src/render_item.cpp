@@ -889,9 +889,14 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
 
                         const auto& transform = el->src_el()->css().get_transform();
                         const auto& filter = el->src_el()->css().get_filter();
+                        const auto& backdrop_filter = el->src_el()->css().get_backdrop_filter();
 
                         if (el->src_el()->css().get_position() == element_position_fixed)
 						{
+                            if (!backdrop_filter.empty())
+                            {
+                                doc->container()->push_backdrop_filter(hdc, el);
+                            }
                             if (!transform.empty())
                             {
                                 doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el->pos());
@@ -913,6 +918,10 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                             {
                                 doc->container()->pop_transform(hdc);
                             }
+                            if (!backdrop_filter.empty())
+                            {
+                                doc->container()->pop_backdrop_filter(hdc);
+                            }
                         }
                         else
                         {
@@ -920,6 +929,10 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                             el_pos.x += pos.x;
                             el_pos.y += pos.y;
 
+                            if (!backdrop_filter.empty())
+                            {
+                                doc->container()->push_backdrop_filter(hdc, el);
+                            }
                             if (!transform.empty())
                             {
                                 doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
@@ -940,6 +953,10 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                             {
                                 doc->container()->pop_transform(hdc);
                             }
+                            if (!backdrop_filter.empty())
+                            {
+                                doc->container()->pop_backdrop_filter(hdc);
+                            }
                         }
 
                         if (opacity < 1.0f) doc->container()->pop_layer(hdc);
@@ -951,12 +968,18 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                     {
                         const auto& transform = el->src_el()->css().get_transform();
                         const auto& filter = el->src_el()->css().get_filter();
+                        const auto& backdrop_filter = el->src_el()->css().get_backdrop_filter();
 
+                        position el_pos = el->pos();
+                        el_pos.x += pos.x;
+                        el_pos.y += pos.y;
+
+                        if (!backdrop_filter.empty())
+                        {
+                            doc->container()->push_backdrop_filter(hdc, el);
+                        }
                         if (!transform.empty())
                         {
-                            position el_pos = el->pos();
-                            el_pos.x += pos.x;
-                            el_pos.y += pos.y;
                             doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
                         }
                         if (!filter.empty())
@@ -974,6 +997,10 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         {
                             doc->container()->pop_transform(hdc);
                         }
+                        if (!backdrop_filter.empty())
+                        {
+                            doc->container()->pop_backdrop_filter(hdc);
+                        }
                     }
                     break;
                 case draw_floats:
@@ -981,12 +1008,18 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                     {
                         const auto& transform = el->src_el()->css().get_transform();
                         const auto& filter = el->src_el()->css().get_filter();
+                        const auto& backdrop_filter = el->src_el()->css().get_backdrop_filter();
 
+                        position el_pos = el->pos();
+                        el_pos.x += pos.x;
+                        el_pos.y += pos.y;
+
+                        if (!backdrop_filter.empty())
+                        {
+                            doc->container()->push_backdrop_filter(hdc, el);
+                        }
                         if (!transform.empty())
                         {
-                            position el_pos = el->pos();
-                            el_pos.x += pos.x;
-                            el_pos.y += pos.y;
                             doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
                         }
                         if (!filter.empty())
@@ -1005,6 +1038,10 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         {
                             doc->container()->pop_transform(hdc);
                         }
+                        if (!backdrop_filter.empty())
+                        {
+                            doc->container()->pop_backdrop_filter(hdc);
+                        }
                         process = false;
                     }
                     break;
@@ -1013,12 +1050,18 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                     {
                         const auto& transform = el->src_el()->css().get_transform();
                         const auto& filter = el->src_el()->css().get_filter();
+                        const auto& backdrop_filter = el->src_el()->css().get_backdrop_filter();
 
+                        position el_pos = el->pos();
+                        el_pos.x += pos.x;
+                        el_pos.y += pos.y;
+
+                        if (!backdrop_filter.empty())
+                        {
+                            doc->container()->push_backdrop_filter(hdc, el);
+                        }
                         if (!transform.empty())
                         {
-                            position el_pos = el->pos();
-                            el_pos.x += pos.x;
-                            el_pos.y += pos.y;
                             doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
                         }
                         if (!filter.empty())
@@ -1040,6 +1083,10 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         if (!transform.empty())
                         {
                             doc->container()->pop_transform(hdc);
+                        }
+                        if (!backdrop_filter.empty())
+                        {
+                            doc->container()->pop_backdrop_filter(hdc);
                         }
                     }
                     break;

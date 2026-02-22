@@ -47,6 +47,7 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
   m_transform = el->get_property<css_token_vector>(_transform_, false, css_token_vector(), offset(m_transform));
   m_transform_origin = el->get_property<css_token_vector>(_transform_origin_, false, css_token_vector(), offset(m_transform_origin));
   m_filter = el->get_property<css_token_vector>(_filter_, false, css_token_vector(), offset(m_filter));
+  m_backdrop_filter = el->get_property<css_token_vector>(_backdrop_filter_, false, css_token_vector(), offset(m_backdrop_filter));
 
   // https://www.w3.org/TR/CSS22/visuren.html#dis-pos-flo
   if (m_display == display_none)

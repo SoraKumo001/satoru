@@ -81,6 +81,9 @@ namespace litehtml
                 virtual void                            push_filter(uint_ptr hdc, const css_token_vector& filter) {}
                 virtual void                            pop_filter(uint_ptr hdc) {}
 
+                virtual void                            push_backdrop_filter(uint_ptr hdc, const std::shared_ptr<render_item>& el) {}
+                virtual void                            pop_backdrop_filter(uint_ptr hdc) {}
+
         protected:
                 virtual ~document_container() = default;
         };

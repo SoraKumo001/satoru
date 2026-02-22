@@ -30,10 +30,68 @@
 #include "text_utils.h"
 #include "utils/skia_utils.h"
 #include "utils/skunicode_satoru.h"
+#include "litehtml/render_item.h"
 
 namespace litehtml {
 vector<css_token_vector> parse_comma_separated_list(const css_token_vector &tokens);
 }
+
+void container_skia::push_backdrop_filter(litehtml::uint_ptr hdc, const std::shared_ptr<litehtml::render_item>& el) {
+    if (!m_canvas || el->src_el()->css().get_backdrop_filter().empty() || m_tagging) return;
+    flush();
+
+    sk_sp<SkImageFilter> last_filter = nullptr;
+
+    for (const auto &tok : el->src_el()->css().get_backdrop_filter()) {
+        if (tok.type == litehtml::CV_FUNCTION) {
+            std::string name = litehtml::lowcase(tok.name);
+            auto args = litehtml::parse_comma_separated_list(tok.value);
+            if (name == "blur") {
+                if (!args.empty() && !args[0].empty()) {
+                    litehtml::css_length len;
+                    len.from_token(args[0][0], litehtml::f_length | litehtml::f_positive);
+                    float sigma = len.val();
+                    if (sigma > 0) {
+                        last_filter = SkImageFilters::Blur(sigma, sigma, last_filter);
+                    }
+                }
+            }
+        }
+    }
+
+    if (last_filter) {
+        litehtml::position el_pos_abs = el->get_placement();
+        litehtml::position border_box;
+        border_box.x = (int)(el_pos_abs.x - el->padding_left() - el->border_left());
+        border_box.y = (int)(el_pos_abs.y - el->padding_top() - el->border_top());
+        border_box.width = (int)(el->pos().width + el->padding_left() + el->padding_right() + el->border_left() + el->border_right());
+        border_box.height = (int)(el->pos().height + el->padding_top() + el->padding_bottom() + el->border_top() + el->border_bottom());
+        
+        litehtml::border_radiuses bdr_radius = el->src_el()->css().get_borders().radius.calc_percents(border_box.width, border_box.height);
+
+        m_canvas->save(); 
+        m_canvas->clipRRect(make_rrect(border_box, bdr_radius), true);
+
+        SkCanvas::SaveLayerRec layer_rec(nullptr, nullptr, last_filter.get(), 0);
+        m_canvas->saveLayer(layer_rec);
+    } else {
+        // Save twice to balance the two restores in pop
+        m_canvas->save();
+        m_canvas->save();
+    }
+}
+
+void container_skia::pop_backdrop_filter(litehtml::uint_ptr hdc) {
+    if (m_canvas) {
+        if (m_tagging) {
+            return;
+        }
+        flush();
+        m_canvas->restore(); // for saveLayer
+        m_canvas->restore(); // for clip's save
+    }
+}
+
 
 namespace {
 static SkColor darken(litehtml::web_color c, float fraction) {

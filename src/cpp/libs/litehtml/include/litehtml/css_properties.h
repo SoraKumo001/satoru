@@ -123,6 +123,7 @@ namespace litehtml
     css_token_vector m_transform;
     css_token_vector m_transform_origin;
     css_token_vector m_filter;
+    css_token_vector m_backdrop_filter;
     word_break m_word_break;
     overflow_wrap m_overflow_wrap;
 
@@ -203,6 +204,7 @@ namespace litehtml
                        m_transform(),
                        m_transform_origin(),
                        m_filter(),
+                       m_backdrop_filter(),
                        m_word_break(word_break_normal),
                        m_overflow_wrap(overflow_wrap_normal),
                        m_container_type(container_type_none)
@@ -415,6 +417,7 @@ namespace litehtml
     const css_token_vector &get_transform() const;
     const css_token_vector &get_transform_origin() const;
     const css_token_vector &get_filter() const;
+    const css_token_vector &get_backdrop_filter() const;
   };
 
   inline element_position css_properties::get_position() const
@@ -1056,6 +1059,11 @@ namespace litehtml
   inline const css_token_vector &css_properties::get_filter() const
   {
     return m_filter;
+  }
+
+  inline const css_token_vector &css_properties::get_backdrop_filter() const
+  {
+    return m_backdrop_filter;
   }
 }
 

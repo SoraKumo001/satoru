@@ -66,5 +66,9 @@
   "12-bidi-text.html": {
     "fill": 2.4743470149253732,
     "outline": 4.593983208955224
+  },
+  "13-backdrop-filter.html": {
+    "fill": 4.19125,
+    "outline": 7.077500000000001
   }
 }

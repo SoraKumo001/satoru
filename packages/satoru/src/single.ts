@@ -1,6 +1,7 @@
 import { Satoru as BaseSatoru, RenderOptions } from "satoru/index";
 
 export * from "./log-level.js";
+export * from "./core.js";
 export type {
   SatoruModule,
   RequiredResource,

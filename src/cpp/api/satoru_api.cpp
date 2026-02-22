@@ -194,10 +194,21 @@ void SatoruInstance::collect_resources(const std::string &html, int width) {
         if (urls.empty()) {
             auto loaded = context.fontManager.matchFonts(req.family, req.weight, req.slant);
             if (loaded.empty()) {
-                std::string providerUrl = "provider:google-fonts?family=" + req.family +
-                                          "&weight=" + std::to_string(req.weight) + "&italic=" +
-                                          (req.slant == SkFontStyle::kItalic_Slant ? "1" : "0");
-                resourceManager.request(providerUrl, req.family, ResourceType::Font);
+                const auto &fontMap = context.getFontMap();
+                auto it = fontMap.find(req.family);
+                if (it != fontMap.end()) {
+                    const std::string &mapped = it->second;
+                    if (mapped.substr(0, 7) == "http://" || mapped.substr(0, 8) == "https://") {
+                        resourceManager.request(mapped, req.family, ResourceType::Font);
+                    } else {
+                        // Treat as font family name for Google Fonts
+                        std::string providerUrl =
+                            "provider:google-fonts?family=" + mapped +
+                            "&weight=" + std::to_string(req.weight) + "&italic=" +
+                            (req.slant == SkFontStyle::kItalic_Slant ? "1" : "0");
+                        resourceManager.request(providerUrl, req.family, ResourceType::Font);
+                    }
+                }
             }
         } else {
             for (const auto &url : urls) {
@@ -358,6 +369,10 @@ void api_load_font(SatoruInstance *inst, const std::string &name,
 void api_load_image(SatoruInstance *inst, const std::string &name, const std::string &data_url,
                     int width, int height) {
     inst->load_image(name, data_url, width, height);
+}
+
+void api_set_font_map(SatoruInstance *inst, const std::map<std::string, std::string> &fontMap) {
+    inst->context.setFontMap(fontMap);
 }
 
 void api_set_log_level(int level) {

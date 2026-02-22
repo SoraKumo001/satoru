@@ -112,6 +112,18 @@ val render_from_state_val(SatoruInstance *inst, int width, int height, int forma
     return val(typed_memory_view(size, data));
 }
 
+void set_font_map_val(SatoruInstance *inst, val fontMap) {
+    if (!inst) return;
+    std::map<std::string, std::string> map;
+    val keys = val::global("Object").call<val>("keys", fontMap);
+    unsigned len = keys["length"].as<unsigned>();
+    for (unsigned i = 0; i < len; ++i) {
+        std::string key = keys[i].as<std::string>();
+        map[key] = fontMap[key].as<std::string>();
+    }
+    api_set_font_map(inst, map);
+}
+
 EMSCRIPTEN_BINDINGS(satoru) {
     class_<SatoruInstance>("SatoruInstance");
 
@@ -124,6 +136,7 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("scan_css", &scan_css_val, allow_raw_pointers());
     function("load_font", &load_font_val, allow_raw_pointers());
     function("load_image", &load_image_val, allow_raw_pointers());
+    function("set_font_map", &set_font_map_val, allow_raw_pointers());
     function("set_log_level", &api_set_log_level);
 
     function("init_document", &init_document_val, allow_raw_pointers());

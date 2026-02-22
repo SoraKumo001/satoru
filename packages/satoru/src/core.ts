@@ -20,6 +20,7 @@ export interface SatoruModule {
     width: number,
     height: number,
   ) => void;
+  set_font_map: (inst: any, fontMap: Record<string, string>) => void;
   set_log_level: (level: number) => void;
   init_document: (inst: any, html: string, width: number) => void;
   layout_document: (inst: any, width: number) => void;
@@ -88,7 +89,6 @@ export const DEFAULT_FONT_MAP: Record<string, string> = {
 export async function resolveGoogleFonts(
   resource: RequiredResource,
   userAgent?: string,
-  fontMap: Record<string, string> = DEFAULT_FONT_MAP,
 ): Promise<Uint8Array | null> {
   if (!resource.url.startsWith("provider:google-fonts")) return null;
 
@@ -96,30 +96,10 @@ export async function resolveGoogleFonts(
   const family = urlObj.searchParams.get("family");
   if (!family) return null;
 
-  const mapped = fontMap[family] || family;
-
-  const headers: Record<string, string> = {};
-  if (userAgent) {
-    headers["User-Agent"] = userAgent;
-  }
-
-  // If it's already a URL, fetch it directly (could be CSS or font file)
-  if (mapped.startsWith("http://") || mapped.startsWith("https://")) {
-    try {
-      const resp = await fetch(mapped, { headers });
-      if (!resp.ok) return null;
-      const buf = await resp.arrayBuffer();
-      return new Uint8Array(buf);
-    } catch {
-      return null;
-    }
-  }
-
-  // Otherwise, construct a Google Fonts URL for the specific weight/italic
   const weight = urlObj.searchParams.get("weight") || "400";
   const italic = urlObj.searchParams.get("italic") === "1";
 
-  let targetFamily = mapped;
+  let targetFamily = family;
   let forceNormalStyle = false;
 
   if (
@@ -136,6 +116,10 @@ export async function resolveGoogleFonts(
     targetFamily,
   )}:ital,wght@${useItalic ? "1" : "0"},${weight}&display=swap`;
 
+  const headers: Record<string, string> = {};
+  if (userAgent) {
+    headers["User-Agent"] = userAgent;
+  }
   try {
     const resp = await fetch(googleFontUrl, { headers });
     if (!resp.ok) return null;
@@ -346,6 +330,7 @@ export abstract class SatoruBase {
     this.currentFontMap = options.fontMap ?? DEFAULT_FONT_MAP;
 
     const instancePtr = mod.create_instance();
+    mod.set_font_map(instancePtr, this.currentFontMap);
 
     try {
       if (fonts) {

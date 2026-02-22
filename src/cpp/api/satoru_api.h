@@ -74,6 +74,7 @@ void api_scan_css(SatoruInstance *inst, const std::string &css);
 void api_load_font(SatoruInstance *inst, const std::string &name, const std::vector<uint8_t> &data);
 void api_load_image(SatoruInstance *inst, const std::string &name, const std::string &data_url,
                     int width, int height);
+void api_set_font_map(SatoruInstance *inst, const std::map<std::string, std::string> &fontMap);
 
 void api_set_log_level(int level);
 

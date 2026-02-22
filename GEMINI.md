@@ -24,7 +24,7 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 
 - **Core Technologies**: `litehtml` (Layout) + `Skia` (Rendering) + `spdlog` (Logging).
 - **Structure**: pnpm workspaces monorepo.
-  - `packages/satoru`: Core library & TS wrappers.
+  - `packages/satoru`: Core library & TS wrappers. Uses a `core.ts` base class to share logic between `index.ts` (browser) and `node.ts` (Node.js).
   - `packages/visual-test`: Visual regression testing suite.
   - `packages/playground`: Web-based demo application.
   - `packages/cloudflare-ogp`: OGP image generation using Cloudflare Workers.
@@ -68,6 +68,8 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - **Font Caching (Global)**: `SkTypeface` and `SkFontMgr` are managed globally to minimize instantiation overhead across `SatoruInstance` objects.
   - **Strategy**: 2-level lookup using URL and data hash (FNV-1a).
   - **Variable Fonts**: Cloned `SkTypeface` instances (e.g., specific weights) are also cached globally.
+- **Automatic Font Resolution**: If a font is missing, the engine checks a `fontMap` (provided by JS). If matched, it either fetches a direct URL or constructs a `provider:google-fonts` request.
+- **Dynamic CSS Support**: `ResourceManager` can detect if a font resource is actually a CSS file (e.g., from Google Fonts API). It automatically parses the CSS, registers `@font-face` rules, and handles font name aliasing so that requested names (like `serif`) correctly map to fetched families (like `Noto Serif JP`).
 - **Resolution**: `render` options support `resolveResource` callback.
 - **Default Resolver**: The JS wrapper provides a default resource resolver that handles local file system (Node.js) and HTTP `fetch`.
 - **Interception**: Users can intercept resource requests and fallback to the default resolver via the second argument of the callback.

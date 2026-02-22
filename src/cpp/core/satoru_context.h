@@ -22,6 +22,7 @@ class SatoruContext {
     sk_sp<SkData> m_lastPdf;
     sk_sp<SkData> m_lastSvg;
     std::string m_extraCss;
+    std::map<std::string, std::string> m_fontMap;
 
     std::unique_ptr<satoru::UnicodeService> m_unicodeService;
     std::unique_ptr<SkShaper> m_shaper;
@@ -65,11 +66,15 @@ class SatoruContext {
         clearFonts();
         clearImages();
         clearCss();
+        m_fontMap.clear();
         shapingCache.clear();
         if (m_unicodeService) {
             m_unicodeService->clearCache();
         }
     }
+
+    void setFontMap(const std::map<std::string, std::string> &fontMap) { m_fontMap = fontMap; }
+    const std::map<std::string, std::string> &getFontMap() const { return m_fontMap; }
 
     sk_sp<SkTypeface> get_typeface(const std::string &family, int weight, SkFontStyle::Slant slant,
                                    bool &out_fake_bold);

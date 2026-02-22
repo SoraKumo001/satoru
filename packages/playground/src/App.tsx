@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { createSatoruWorker, LogLevel } from "satoru/workers";
+import { createSatoruWorker, LogLevel, DEFAULT_FONT_MAP } from "satoru";
 
 const satoru = createSatoruWorker({
   maxParallel: 1,
@@ -12,6 +12,9 @@ const App: React.FC = () => {
   const [textToPaths, setTextToPaths] = useState<boolean>(true);
   const [assetList, setAssetList] = useState<string[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<string>("");
+  const [fontMapJson, setFontMapJson] = useState<string>(
+    JSON.stringify(DEFAULT_FONT_MAP, null, 2),
+  );
   const [isRendering, setIsRendering] = useState<boolean>(false);
   const [renderResult, setRenderResult] = useState<string | Uint8Array | null>(
     null,
@@ -46,6 +49,16 @@ const App: React.FC = () => {
     const initialTextToPaths = params.get("textToPaths");
     if (initialTextToPaths !== null) {
       setTextToPaths(initialTextToPaths === "true");
+    }
+
+    const initialFontMap = params.get("fontMap");
+    if (initialFontMap) {
+      try {
+        const parsed = JSON.parse(initialFontMap);
+        setFontMapJson(JSON.stringify(parsed, null, 2));
+      } catch (e) {
+        // ignore
+      }
     }
 
     // Handle browser back/forward
@@ -107,6 +120,18 @@ const App: React.FC = () => {
     }
 
     if (selectedAsset) syncParam("asset", selectedAsset);
+
+    try {
+      const currentMap = JSON.parse(fontMapJson);
+      if (JSON.stringify(currentMap) !== JSON.stringify(DEFAULT_FONT_MAP)) {
+        syncParam("fontMap", JSON.stringify(currentMap));
+      } else {
+        url.searchParams.delete("fontMap");
+        changed = true;
+      }
+    } catch (e) {
+      // ignore invalid JSON
+    }
 
     if (changed) {
       window.history.replaceState({}, "", url.toString());
@@ -178,12 +203,20 @@ const App: React.FC = () => {
 
     const startTime = performance.now();
     try {
+      let fontMap = DEFAULT_FONT_MAP;
+      try {
+        fontMap = JSON.parse(fontMapJson);
+      } catch (e) {
+        console.warn("Invalid fontMap JSON, using default");
+      }
+
       console.log("[Satoru] Rendering via Worker");
       const result = await satoru.render({
         value: currentHtml,
         width,
         format,
         textToPaths,
+        fontMap,
         logLevel: LogLevel.Info,
         onLog: (level, message) => {
           const prefix = "[Satoru Worker]";
@@ -220,13 +253,7 @@ const App: React.FC = () => {
 
           // Fetch using default resolver (or manual fetch if in worker proxy)
           const data = await defaultResolver(resource);
-          if (
-            data &&
-            (resource.url.startsWith("http://") ||
-              resource.url.startsWith("https://"))
-          ) {
-            await cache.put(resource.url, new Response(data as BodyInit));
-          }
+          await cache.put(resource.url, new Response(data as BodyInit));
 
           return data;
         },
@@ -366,6 +393,32 @@ const App: React.FC = () => {
               </label>
             )}
           </div>
+        </fieldset>
+
+        <fieldset
+          style={{
+            flex: 1,
+            padding: "15px",
+            border: "1px solid #ddd",
+            borderRadius: "8px",
+            background: "white",
+          }}
+        >
+          <legend style={{ fontWeight: "bold" }}>Font Mapping (JSON)</legend>
+          <textarea
+            value={fontMapJson}
+            onChange={(e) => setFontMapJson(e.target.value)}
+            style={{
+              width: "100%",
+              height: "100px",
+              fontFamily: "monospace",
+              fontSize: "12px",
+              padding: "5px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              boxSizing: "border-box",
+            }}
+          />
         </fieldset>
 
         <fieldset

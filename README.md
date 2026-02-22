@@ -80,7 +80,7 @@ graph TD
 - **Modular Text Stack**: A structured text processing pipeline consisting of `UnicodeService` (encapsulation of utf8proc/libunibreak), `TextLayout` (measurement & shaping), and `TextRenderer` (Skia drawing & decorations).
 - **International Text Support**: Robust BiDi handling, script detection, and line-breaking (UAX #14) for CJK and mixed-script text.
 - **Performance-Optimized Typography**: Implements a **Shaping Cache** that stores HarfBuzz results and `SkTextBlob` objects, significantly reducing CPU overhead for recurring text/font combinations.
-- **Dynamic Font Loading**: Runtime loading of `.ttf`, `.woff2`, and `.ttc` with automatic style inference.
+- **Dynamic & Automatic Font Loading**: Supports runtime loading of `.ttf`, `.woff2`, and `.ttc`. Missing fonts can be **automatically resolved via Google Fonts** using a customizable `fontMap`.
 - **Image Format Support**: Native support for PNG, JPEG, WebP, AVIF, GIF, BMP, and ICO.
 
 ### Advanced CSS Support
@@ -154,6 +154,9 @@ const png = await render({
   value: html,
   width: 600,
   format: "png",
+  fontMap: {
+    "Roboto": "https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+  },
   resolveResource: async (r) => {
     const res = await fetch(r.url);
     return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
@@ -161,7 +164,24 @@ const png = await render({
 });
 ```
 
-### 2. Cloudflare Workers (Edge)
+### 2. Google Fonts Auto-Resolution
+
+If a font is missing from your local environment or `@font-face` definitions, Satoru can automatically fetch it from Google Fonts using the `fontMap` option. By default, it maps generic families:
+- `sans-serif` → Noto Sans JP
+- `serif` → Noto Serif JP
+- `monospace` → Noto Sans Mono
+- `cursive` → Klee One
+- `fantasy` → Mochiy Pop One
+
+```typescript
+// Uses default mappings (e.g. sans-serif becomes Noto Sans JP)
+const svg = await render({
+  value: '<div style="font-family: sans-serif;">Hello</div>',
+  width: 600
+});
+```
+
+### 3. Cloudflare Workers (Edge)
 
 Use the `workerd` specific export for restricted environments.
 
@@ -240,6 +260,8 @@ pnpm --filter visual-test test
 - [x] **Structured Logging (spdlog)**
 - [x] **Backdrop Filter support (raster only)**
 - [x] **Text Rendering Optimizations**
+- [x] **Automatic Google Fonts Resolution**
+- [ ] **Full CSS Grid Support**
 
 ---
 

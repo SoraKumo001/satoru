@@ -17,11 +17,10 @@ export class Satoru extends SatoruBase {
     resource: RequiredResource,
     baseUrl?: string,
     userAgent?: string,
-    fontMap?: Record<string, string>,
   ): Promise<Uint8Array | null> {
     try {
       if (resource.url.startsWith("provider:google-fonts")) {
-        return resolveGoogleFonts(resource, userAgent, fontMap);
+        return resolveGoogleFonts(resource, userAgent);
       }
 
       const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(resource.url);
@@ -53,12 +52,7 @@ export class Satoru extends SatoruBase {
     baseUrl?: string,
     userAgent?: string,
   ): Promise<Uint8Array | null> {
-    return Satoru.defaultResourceResolver(
-      resource,
-      baseUrl,
-      userAgent,
-      this.currentFontMap,
-    );
+    return Satoru.defaultResourceResolver(resource, baseUrl, userAgent);
   }
 
   protected async fetchHtml(url: string, userAgent?: string): Promise<string> {

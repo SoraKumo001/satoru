@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "pnpm wasm:build && pnpm --filter worker-lib build && pnpm --filter satoru build",
+    "build": "pnpm wasm:build && pnpm --filter satoru build",
     "build:js": "pnpm -r --if-present build",
     "dev:playground": "pnpm --filter playground dev",
     "dev:cloudflare": "pnpm --filter cloudflare-test dev",

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @font-face {
+      font-family: 'Noto Sans JP';
+      font-style: normal;
+      font-weight: 400;
+      src: url(https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2) format('woff2');
+    }
+
+    body {
+      font-family: sans-serif;
+      background-color: #f0f0f0;
+      padding: 20px;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 400px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #333;
+    }
+
+    .test-case {
+      border: 1px dashed #ccc;
+      padding: 10px;
+    }
+
+    .test-label {
+      font-weight: bold;
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 5px;
+    }
+
+    .clamped {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      background: #fff8f8;
+    }
+
+    .clamp-1 {
+      -webkit-line-clamp: 1;
+    }
+
+    .clamp-2 {
+      -webkit-line-clamp: 2;
+    }
+
+    .clamp-3 {
+      -webkit-line-clamp: 3;
+    }
+
+    .with-padding {
+      padding: 10px;
+    }
+
+    .long-text {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>line-clamp Test Cases</h1>
+
+    <div class="test-case">
+      <div class="test-label">line-clamp: 1</div>
+      <div class="clamped clamp-1 long-text">
+        これは1行で切り捨てられるはずのテキストです。非常に長いテキストを入力して、末尾に省略記号が表示されるかどうかを確認します。
+      </div>
+    </div>
+
+    <div class="test-case">
+      <div class="test-label">line-clamp: 2</div>
+      <div class="clamped clamp-2 long-text">
+        これは2行で切り捨てられるはずのテキストです。
+        2行目の末尾に省略記号が表示されるはずです。
+        3行目以降は表示されないようにする必要があります。
+      </div>
+    </div>
+
+    <div class="test-case">
+      <div class="test-label">line-clamp: 3 (English)</div>
+      <div class="clamped clamp-3 long-text">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+      </div>
+    </div>
+
+    <div class="test-case">
+      <div class="test-label">line-clamp: 2 with Padding</div>
+      <div class="clamped clamp-2 long-text with-padding">
+        パディングがある場合でも正しく動作するか確認します。
+        2行目の末尾で切り捨てられ、パディングが維持されている必要があります。
+        追加のテキスト...
+      </div>
+    </div>
+
+    <div class="test-case">
+      <div class="test-label">Short text (No clamp expected)</div>
+      <div class="clamped clamp-2 long-text">
+        短いテキスト。切り捨てられないはずです。
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

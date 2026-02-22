@@ -105,8 +105,8 @@ importers:
         specifier: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
         version: 19.2.4(react@19.2.4)
       worker-lib:
-        specifier: workspace:*
-        version: link:../worker-lib
+        specifier: 2.2.0
+        version: 2.2.0
     devDependencies:
       '@types/react':
         specifier: ^19.2.14
@@ -1539,6 +1539,9 @@ packages:
     engines: {node: '>=8'}
     hasBin: true
 
+  worker-lib@2.2.0:
+    resolution: {integrity: sha512-femfnzMFgw9Uvj9LUJ1bkIi/3PJavpZNCgq9OGsrcCzxmRp2+RGkq1d+kjsvOxC8JKIAI7K4+laeq8cMWT2AYQ==}
+
   workerd@1.20260219.0:
     resolution: {integrity: sha512-l4U4iT5H8jNV6+EK23ExnUV2z6JvqQtQPrT8XCm4G8RpwC9EPpYTOO9s/ImMPJKe1WSbQUQoJ4k8Nd83fz8skQ==}
     engines: {node: '>=16'}
@@ -2824,6 +2827,8 @@ snapshots:
     dependencies:
       siginfo: 2.0.0
       stackback: 0.0.2
+
+  worker-lib@2.2.0: {}
 
   workerd@1.20260219.0:
     optionalDependencies:

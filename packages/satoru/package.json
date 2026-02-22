@@ -96,7 +96,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "worker-lib": "workspace:*"
+    "worker-lib": "2.2.0"
   },
   "peerDependencies": {
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",

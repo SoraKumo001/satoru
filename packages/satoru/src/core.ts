@@ -67,45 +67,65 @@ export interface RenderOptions {
   css?: string;
   baseUrl?: string;
   userAgent?: string;
+  fontMap?: Record<string, string>;
   logLevel?: LogLevel;
   onLog?: (level: LogLevel, message: string) => void;
 }
 
+export const DEFAULT_FONT_MAP: Record<string, string> = {
+  "sans-serif":
+    "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2",
+  serif:
+    "https://cdn.jsdelivr.net/npm/@fontsource/noto-serif/files/noto-serif-latin-400-normal.woff2",
+  monospace:
+    "https://cdn.jsdelivr.net/npm/@fontsource/roboto-mono/files/roboto-mono-latin-400-normal.woff2",
+  cursive:
+    "https://cdn.jsdelivr.net/npm/@fontsource/dancing-script/files/dancing-script-latin-400-normal.woff2",
+  fantasy:
+    "https://cdn.jsdelivr.net/npm/@fontsource/cinzel/files/cinzel-latin-400-normal.woff2",
+};
+
 export async function resolveGoogleFonts(
   resource: RequiredResource,
   userAgent?: string,
+  fontMap: Record<string, string> = DEFAULT_FONT_MAP,
 ): Promise<Uint8Array | null> {
   if (!resource.url.startsWith("provider:google-fonts")) return null;
 
   const urlObj = new URL(resource.url);
   const family = urlObj.searchParams.get("family");
+  if (!family) return null;
+
+  const mapped = fontMap[family] || family;
+
+  const headers: Record<string, string> = {};
+  if (userAgent) {
+    headers["User-Agent"] = userAgent;
+  }
+
+  // If it's already a URL, fetch it directly (could be CSS or font file)
+  if (mapped.startsWith("http://") || mapped.startsWith("https://")) {
+    try {
+      const resp = await fetch(mapped, { headers });
+      if (!resp.ok) return null;
+      const buf = await resp.arrayBuffer();
+      return new Uint8Array(buf);
+    } catch {
+      return null;
+    }
+  }
+
+  // Otherwise, construct a Google Fonts URL for the specific weight/italic
   const weight = urlObj.searchParams.get("weight") || "400";
   const italic = urlObj.searchParams.get("italic") === "1";
 
-  if (!family) return null;
-
-  let targetFamily = family;
+  let targetFamily = mapped;
   let forceNormalStyle = false;
 
-  if (family === "sans-serif") {
-    targetFamily = "Noto Sans JP";
-    forceNormalStyle = true;
-  } else if (family === "serif") {
-    targetFamily = "Noto Serif JP";
-    forceNormalStyle = true;
-  } else if (family === "monospace") {
-    targetFamily = "Noto Sans Mono";
-    forceNormalStyle = true;
-  } else if (family === "cursive") {
-    targetFamily = "Klee One";
-    forceNormalStyle = true;
-  } else if (family === "fantasy") {
-    targetFamily = "Mochiy Pop One";
-    forceNormalStyle = true;
-  } else if (
-    family.includes("Noto Sans JP") ||
-    family.includes("Noto Serif JP") ||
-    family.includes("CJK")
+  if (
+    targetFamily.includes("Noto Sans JP") ||
+    targetFamily.includes("Noto Serif JP") ||
+    targetFamily.includes("CJK")
   ) {
     forceNormalStyle = true;
   }
@@ -116,10 +136,6 @@ export async function resolveGoogleFonts(
     targetFamily,
   )}:ital,wght@${useItalic ? "1" : "0"},${weight}&display=swap`;
 
-  const headers: Record<string, string> = {};
-  if (userAgent) {
-    headers["User-Agent"] = userAgent;
-  }
   try {
     const resp = await fetch(googleFontUrl, { headers });
     if (!resp.ok) return null;
@@ -133,6 +149,7 @@ export async function resolveGoogleFonts(
 export abstract class SatoruBase {
   private factory: any;
   private modPromise?: Promise<SatoruModule>;
+  protected currentFontMap: Record<string, string> = DEFAULT_FONT_MAP;
 
   protected constructor(factory: any) {
     this.factory = factory;
@@ -321,10 +338,12 @@ export abstract class SatoruBase {
 
     const prevLogLevel = mod.logLevel;
     const prevOnLog = mod.onLog;
+    const prevFontMap = this.currentFontMap;
 
     mod.logLevel = logLevel ?? LogLevel.None;
     mod.set_log_level(mod.logLevel);
     mod.onLog = onLog;
+    this.currentFontMap = options.fontMap ?? DEFAULT_FONT_MAP;
 
     const instancePtr = mod.create_instance();
 
@@ -451,6 +470,7 @@ export abstract class SatoruBase {
       mod.destroy_instance(instancePtr);
       mod.logLevel = prevLogLevel;
       mod.onLog = prevOnLog;
+      this.currentFontMap = prevFontMap;
     }
   }
 }

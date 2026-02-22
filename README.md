@@ -238,7 +238,7 @@ pnpm --filter visual-test test
 - [x] **CSS Container Queries**
 - [x] **State Persistence (Serialization)**
 - [x] **Structured Logging (spdlog)**
-- [ ] **Backdrop Filter support**
+- [x] **Backdrop Filter support (raster only)**
 - [ ] **Text Rendering Optimizations**
   - [x] **Text Shaping Cache**: Cache HarfBuzz results for recurring text/font combinations.
   - [x] **`SkTextBlob` Optimization**: Reuse and batch `SkTextBlob` objects for efficient Skia rendering.

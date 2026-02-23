@@ -20,8 +20,6 @@ void litehtml::flex_item::init(const litehtml::containing_block_context &self_si
 	el->calc_outlines(self_size.render_width);
 	order = el->css().get_order();
 
-	direction_specific_init(self_size, fmt_ctx);
-
 	if (el->css().get_flex_align_self() == flex_align_items_auto)
 	{
 		align = align_items;
@@ -29,6 +27,8 @@ void litehtml::flex_item::init(const litehtml::containing_block_context &self_si
 	{
 		align = el->css().get_flex_align_self();
 	}
+
+	direction_specific_init(self_size, fmt_ctx);
 
 	if (base_size < min_size)
 	{
@@ -144,9 +144,12 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 	def_value<pixel_t> content_size(0);
 	if (el->css().get_min_width().is_predefined())
 	{
+		formatting_context fmt_ctx_copy;
+		if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
 		min_size = el->render(0, 0,
 							  self_size.new_width(el->content_offset_width(),
-												  containing_block_context::size_mode_content), fmt_ctx);
+												  containing_block_context::size_mode_content | containing_block_context::size_mode_measure),
+							  fmt_ctx ? &fmt_ctx_copy : nullptr);
 		content_size = min_size;
 	} else
 	{
@@ -187,22 +190,33 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 				break;
 			case flex_basis_fit_content:
 			case flex_basis_content:
-				base_size = el->render(0, 0, self_size.new_width(self_size.render_width + el->content_offset_width()),
-									   fmt_ctx);
+				{
+					formatting_context fmt_ctx_copy;
+					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
+					base_size = el->render(0, 0, self_size.new_width(self_size.render_width + el->content_offset_width(),
+																	 containing_block_context::size_mode_measure),
+										   fmt_ctx ? &fmt_ctx_copy : nullptr);
+				}
 				break;
 			case flex_basis_min_content:
 				if(content_size.is_default())
 				{
+					formatting_context fmt_ctx_copy;
+					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
 					content_size = el->render(0, 0,
 											  self_size.new_width(el->content_offset_width(),
-																  containing_block_context::size_mode_content),
-											  fmt_ctx);
+																  containing_block_context::size_mode_content | containing_block_context::size_mode_measure),
+											  fmt_ctx ? &fmt_ctx_copy : nullptr);
 				}
 				base_size = content_size;
 				break;
 			case flex_basis_max_content:
-				el->render(0, 0, self_size, fmt_ctx);
-				base_size = el->width();
+				{
+					formatting_context fmt_ctx_copy;
+					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
+					el->render(0, 0, self_size.new_width(0, containing_block_context::size_mode_measure), fmt_ctx ? &fmt_ctx_copy : nullptr);
+					base_size = el->width();
+				}
 				break;
 			default:
 				base_size = 0;
@@ -411,7 +425,14 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 	
 	if (el->css().get_min_height().is_predefined())
 	{
-		el->render(0, 0, self_size.new_width(self_size.render_width, containing_block_context::size_mode_content), fmt_ctx);
+		formatting_context fmt_ctx_copy;
+		if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
+		int mode = containing_block_context::size_mode_measure;
+		bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
+		
+		// When measuring min-height, we must respect the available width to allow correct text wrapping.
+		// Use self_size.render_width as the constraint.
+		el->render(0, 0, self_size.new_width(self_size.render_width, mode), fmt_ctx ? &fmt_ctx_copy : nullptr);
 		min_size = el->height();
 	} else
 	{
@@ -456,7 +477,10 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 					measure_size.height.type = containing_block_context::cbc_value_type_auto;
 					measure_size.render_height.type = containing_block_context::cbc_value_type_auto;
 					measure_size.size_mode &= ~containing_block_context::size_mode_exact_height;
-					el->render(0, 0, measure_size, fmt_ctx);
+					measure_size.size_mode |= containing_block_context::size_mode_measure;
+					formatting_context fmt_ctx_copy;
+					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
+					el->render(0, 0, measure_size, fmt_ctx ? &fmt_ctx_copy : nullptr);
 					base_size = el->height();
 				}
 				break;

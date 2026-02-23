@@ -263,6 +263,11 @@ pnpm --filter visual-test test
 - [x] **Text Rendering Optimizations**
 - [x] **Automatic Google Fonts Resolution**
 - [ ] **Full CSS Grid Support**
+- [ ] **Architecture Refactoring: "Project Separation"**
+  - [x] **Phase 1**: Introduce `BoxConstraints` (via `size_mode_measure`) to replace mixed-context sizing.
+  - [ ] **Phase 2**: Decouple `Measure` (size calculation) and `Layout` (positioning) pipelines.
+  - [ ] **Phase 3**: Strict compliance with W3C Flexbox algorithm (Measure -> Flex -> Layout).
+  - [ ] **Phase 4**: Lightweight, non-inheriting anonymous boxes.
 
 ---
 

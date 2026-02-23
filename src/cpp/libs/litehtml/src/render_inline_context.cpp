@@ -74,6 +74,13 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
 
     finish_last_box(true, self_size);
 
+	if (self_size.size_mode & containing_block_context::size_mode_measure)
+	{
+		pixel_t ret = m_max_line_width;
+		m_line_boxes.clear();
+		return ret;
+	}
+
     if (!m_line_boxes.empty())
     {
         if (collapse_top_margin())

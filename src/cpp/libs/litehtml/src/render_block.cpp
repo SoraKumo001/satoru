@@ -190,11 +190,16 @@ std::shared_ptr<litehtml::render_item> litehtml::render_item_block::init()
 litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx, bool second_pass)
 {
 	containing_block_context self_size = calculate_containing_block_context(containing_block_size);
-	if (containing_block_size.size_mode & containing_block_context::size_mode_exact_width)
+	
+	// If the block has max-width, we should restrict the available width for children
+	if (self_size.max_width.type != containing_block_context::cbc_value_type_none)
 	{
-		if (!src_el()->is_replaced())
+		if (self_size.render_width > self_size.max_width)
 		{
-			self_size.size_mode |= containing_block_context::size_mode_exact_width;
+			self_size.render_width = self_size.max_width;
+			// Also restrict the outer width so that children's calculate_containing_block_context
+			// will use the restricted width as their base.
+			self_size.width = self_size.render_width;
 		}
 	}
 
@@ -248,6 +253,9 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
 			m_pos.width = self_size.max_width;
 		}
 	}
+	
+	// The returned width should not exceed the element's actual width
+	ret_width = std::min(ret_width, m_pos.width);
 
 	// Fix width with min-width attribute
 	if(self_size.min_width.type != containing_block_context::cbc_value_type_none)

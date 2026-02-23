@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "react": "^19.2.4",
-    "satoru": "workspace:*"
+    "satoru-render": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.2.14"

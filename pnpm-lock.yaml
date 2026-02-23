@@ -35,7 +35,7 @@ importers:
       react-dom:
         specifier: ^19.2.4
         version: 19.2.4(react@19.2.4)
-      satoru:
+      satoru-render:
         specifier: workspace:*
         version: link:../satoru
     devDependencies:
@@ -55,28 +55,12 @@ importers:
         specifier: ^4.67.0
         version: 4.67.0(@cloudflare/workers-types@4.20260228.0)
 
-  packages/cloudflare-test:
-    dependencies:
-      satoru:
-        specifier: workspace:*
-        version: link:../satoru
-    devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20260228.0
-        version: 4.20260228.0
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-      wrangler:
-        specifier: ^4.67.0
-        version: 4.67.0(@cloudflare/workers-types@4.20260228.0)
-
   packages/deno-ogp:
     dependencies:
       react:
         specifier: ^19.2.4
         version: 19.2.4
-      satoru:
+      satoru-render:
         specifier: workspace:*
         version: link:../satoru
     devDependencies:
@@ -92,7 +76,7 @@ importers:
       react-dom:
         specifier: ^19.2.4
         version: 19.2.4(react@19.2.4)
-      satoru:
+      satoru-render:
         specifier: workspace:*
         version: link:../satoru
     devDependencies:
@@ -163,7 +147,7 @@ importers:
       pngjs:
         specifier: 7.0.0
         version: 7.0.0
-      satoru:
+      satoru-render:
         specifier: workspace:*
         version: link:../satoru
       typescript:

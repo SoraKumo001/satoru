@@ -1,4 +1,4 @@
-import { Satoru as BaseSatoru, RenderOptions } from "satoru/index";
+import { Satoru as BaseSatoru, RenderOptions } from "satoru-render/index";
 
 export * from "./log-level.js";
 export * from "./core.js";

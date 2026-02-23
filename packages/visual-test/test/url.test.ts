@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Satoru } from "satoru";
+import { Satoru } from "satoru-render";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

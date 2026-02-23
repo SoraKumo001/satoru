@@ -39,7 +39,7 @@ Satoru provides a high-level `render` function for converting HTML to various fo
 The `render` function supports automated multi-pass resource resolution. It identifies missing fonts, images, and external CSS and requests them via the `resolveResource` callback.
 
 ```typescript
-import { render, LogLevel } from "satoru";
+import { render, LogLevel } from "satoru-render";
 
 const html = `
   <style>
@@ -102,13 +102,13 @@ Satoru includes a command-line interface for easy conversion.
 
 ```bash
 # Convert a local HTML file to PNG
-npx satoru input.html -o output.png
+npx satoru-render input.html -o output.png
 
 # Convert a URL to PDF
-npx satoru https://example.com -o example.pdf -w 1280
+npx satoru-render https://example.com -o example.pdf -w 1280
 
 # Convert with custom options
-npx satoru input.html -w 1024 -f webp --verbose
+npx satoru-render input.html -w 1024 -f webp --verbose
 ```
 
 #### CLI Options
@@ -142,7 +142,7 @@ const pdf = await satoru.render({
 Satoru is optimized for Cloudflare Workers. Use the `workerd` specific export which handles the specific WASM instantiation requirements of the environment.
 
 ```typescript
-import { render } from "satoru";
+import { render } from "satoru-render";
 
 export default {
   async fetch(request) {
@@ -179,7 +179,7 @@ const png = await render({
 For high-throughput applications, the Worker proxy distributes rendering tasks across multiple threads. You can configure all resources in a single `render` call for stateless operation.
 
 ```typescript
-import { createSatoruWorker, LogLevel } from "satoru/workers";
+import { createSatoruWorker, LogLevel } from "satoru-render/workers";
 
 // Create a worker proxy with up to 4 parallel instances
 const satoru = createSatoruWorker({ maxParallel: 4 });

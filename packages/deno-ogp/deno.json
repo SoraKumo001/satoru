@@ -6,9 +6,9 @@
     "hono": "npm:hono",
     "react": "npm:react",
     "react-dom/server": "npm:react-dom/server",
-    "satoru": "../satoru/dist/single.js",
-    "satoru/index": "../satoru/dist/index.js",
-    "satoru/react": "../satoru/dist/react.js"
+    "satoru-render": "../satoru/dist/single.js",
+    "satoru-render/index": "../satoru/dist/index.js",
+    "satoru-render/react": "../satoru/dist/react.js"
   },
   "nodeModulesDir": "auto"
 }

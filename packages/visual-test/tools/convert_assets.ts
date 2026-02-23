@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { fileURLToPath } from "url";
-import { createSatoruWorker, LogLevel } from "satoru/workers";
+import { createSatoruWorker, LogLevel } from "satoru-render/workers";
 
 const __filename = fileURLToPath(import.meta.url);
 

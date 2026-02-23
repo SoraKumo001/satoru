@@ -1,12 +1,12 @@
 {
-  "name": "satoru",
+  "name": "satoru-render",
   "version": "0.0.1",
   "description": "High-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "satoru": "./dist/cli.js"
+    "satoru-render": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc -b && rolldown -c rolldown.config.js"

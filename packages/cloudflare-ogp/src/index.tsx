@@ -39,7 +39,7 @@ app.get("/", async (c) => {
               style={{
                 borderRadius: "100%",
                 padding: "24px",
-                opacity: 0.4,
+                opacity: 0.8,
                 position: "absolute",
                 display: "flex",
                 alignItems: "center",
@@ -55,7 +55,9 @@ app.get("/", async (c) => {
                 fontSize: "80px",
                 fontWeight: "bold",
                 marginBottom: "20px",
-                textShadow: "0 4px 12px rgba(0,0,0,0.5)",
+                textShadow: "0 8px 16px rgba(0,0,0,0.6)",
+                filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.3))",
+                backdropFilter: "blur(5px)",
                 zIndex: 1,
               }}
             >
@@ -64,9 +66,13 @@ app.get("/", async (c) => {
             <div
               style={{
                 fontSize: "40px",
-                opacity: 0.9,
                 fontWeight: "normal",
                 zIndex: 1,
+                padding: "12px 12px",
+                borderRadius: 24,
+                textShadow: "0 8px 16px rgba(0,0,0,0.6)",
+                filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.3))",
+                backdropFilter: "blur(5px)",
               }}
             >
               {subtitle}

@@ -55,7 +55,6 @@ app.get("/", async (c) => {
               marginBottom: "20px",
               textShadow: "0 8px 16px rgba(0,0,0,0.6)",
               filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.3))",
-              textShadow: "0 4px 12px rgba(0,0,0,0.5)",
               backdropFilter: "blur(5px)",
               zIndex: 1,
             }}

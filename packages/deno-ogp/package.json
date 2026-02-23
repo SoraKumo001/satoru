@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "deno task dev"
+    "dev": "deno task dev",
+    "deploy": "npx next-exec -- deployctl deploy --project deno-ogp --include=./src --prod"
   },
   "dependencies": {
     "react": "^19.2.4",

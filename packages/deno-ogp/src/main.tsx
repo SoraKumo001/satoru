@@ -1,5 +1,3 @@
-/** @jsxImportSource npm:react */
-// deno-lint-ignore-file no-unversioned-import no-import-prefix
 import { Hono } from "hono";
 import { toHtml } from "satoru-render/react";
 import { render } from "satoru-render";

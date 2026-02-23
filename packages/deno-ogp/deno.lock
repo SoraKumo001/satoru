@@ -3,9 +3,12 @@
   "specifiers": {
     "npm:@types/react@^19.2.14": "19.2.14",
     "npm:hono@*": "4.12.1",
-    "npm:react-dom@*": "19.2.4_react@19.2.4",
+    "npm:hono@^4.12.1": "4.12.1",
+    "npm:react-dom@^19.2.4": "19.2.4_react@19.2.4",
     "npm:react@*": "19.2.4",
-    "npm:react@^19.2.4": "19.2.4"
+    "npm:react@^19.2.4": "19.2.4",
+    "npm:satoru-render@*": "0.0.1_react@19.2.4_react-dom@19.2.4__react@19.2.4",
+    "npm:satoru-render@^0.0.1": "0.0.1_react@19.2.4_react-dom@19.2.4__react@19.2.4"
   },
   "npm": {
     "@types/react@19.2.14": {
@@ -30,20 +33,40 @@
     "react@19.2.4": {
       "integrity": "sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ=="
     },
+    "satoru-render@0.0.1_react@19.2.4_react-dom@19.2.4__react@19.2.4": {
+      "integrity": "sha512-RUrwDxnDTWqs0eY8i4YPxaqNUtrHyZTvbE4LH4w/s4qbFWhpB7b0HJJsjlQZVmNLLNj9NM7ytBkVGM++LBmo/Q==",
+      "dependencies": [
+        "react",
+        "react-dom",
+        "worker-lib"
+      ],
+      "optionalPeers": [
+        "react",
+        "react-dom"
+      ],
+      "bin": true
+    },
     "scheduler@0.27.0": {
       "integrity": "sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q=="
+    },
+    "worker-lib@2.2.0": {
+      "integrity": "sha512-femfnzMFgw9Uvj9LUJ1bkIi/3PJavpZNCgq9OGsrcCzxmRp2+RGkq1d+kjsvOxC8JKIAI7K4+laeq8cMWT2AYQ=="
     }
   },
   "workspace": {
     "dependencies": [
       "npm:hono@*",
       "npm:react-dom@*",
-      "npm:react@*"
+      "npm:react@*",
+      "npm:satoru-render@*"
     ],
     "packageJson": {
       "dependencies": [
         "npm:@types/react@^19.2.14",
-        "npm:react@^19.2.4"
+        "npm:hono@^4.12.1",
+        "npm:react-dom@^19.2.4",
+        "npm:react@^19.2.4",
+        "npm:satoru-render@^0.0.1"
       ]
     }
   }

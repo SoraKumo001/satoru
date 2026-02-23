@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "deno task dev",
-    "deploy": "npx next-exec -- deployctl deploy --project deno-ogp --include=./src --prod"
+    "update": "deno cache --reload src/main.tsx",
+    "deploy": "npx next-exec -- deployctl deploy --project deno-ogp2 --prod"
   },
   "dependencies": {
+    "hono": "^4.12.1",
     "react": "^19.2.4",
-    "satoru-render": "workspace:*"
+    "react-dom": "^19.2.4",
+    "satoru-render": "^0.0.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.14"

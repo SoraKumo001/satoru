@@ -5,10 +5,21 @@
   "imports": {
     "hono": "npm:hono",
     "react": "npm:react",
-    "react-dom/server": "npm:react-dom/server",
-    "satoru-render": "../satoru/dist/single.js",
-    "satoru-render/index": "../satoru/dist/index.js",
-    "satoru-render/react": "../satoru/dist/react.js"
+    "react-dom": "npm:react-dom",
+    "satoru-render": "npm:satoru-render"
   },
-  "nodeModulesDir": "auto"
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  },
+  "entrypoint": "src/main.tsx",
+  "nodeModulesDir": "auto",
+  "deploy": {
+    "project": "ede0e70e-aba0-45ef-879e-2494f3b012dd",
+    "exclude": [
+      "**/node_modules"
+    ],
+    "include": [],
+    "entrypoint": "src\\main.tsx"
+  }
 }

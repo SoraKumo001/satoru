@@ -17,7 +17,7 @@ endif()
 
 set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "${EMSCRIPTEN_ROOT}/cmake/Modules/Platform/Emscripten.cmake")
 
-set(COMMON_FLAGS "-fexceptions -sSUPPORT_LONGJMP=emscripten -O3 -msimd128")
+set(COMMON_FLAGS "-fexceptions -sSUPPORT_LONGJMP=emscripten -g0 -O3 -msimd128")
 
 set(VCPKG_C_FLAGS "${COMMON_FLAGS}")
 set(VCPKG_CXX_FLAGS "${COMMON_FLAGS}")

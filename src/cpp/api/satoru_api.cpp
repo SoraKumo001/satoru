@@ -156,8 +156,8 @@ void SatoruInstance::collect_resources(const std::string &html, int width) {
                         // Treat as font family name for Google Fonts
                         std::string providerUrl =
                             "provider:google-fonts?family=" + mapped +
-                            "&weight=" + std::to_string(req.weight) + "&italic=" +
-                            (req.slant == SkFontStyle::kItalic_Slant ? "1" : "0");
+                            "&weight=" + std::to_string(req.weight) +
+                            "&italic=" + (req.slant == SkFontStyle::kItalic_Slant ? "1" : "0");
                         resourceManager.request(providerUrl, req.family, ResourceType::Font);
                     }
                 }

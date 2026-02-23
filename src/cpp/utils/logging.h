@@ -14,16 +14,12 @@ void satoru_log_printf(LogLevel level, const char* format, ...);
 }
 #endif
 
-#define SATORU_LOG_DEBUG(...) \
-    satoru_log_printf(LogLevel::Debug, __VA_ARGS__)
+#define SATORU_LOG_DEBUG(...) satoru_log_printf(LogLevel::Debug, __VA_ARGS__)
 
-#define SATORU_LOG_INFO(...) \
-    satoru_log_printf(LogLevel::Info, __VA_ARGS__)
+#define SATORU_LOG_INFO(...) satoru_log_printf(LogLevel::Info, __VA_ARGS__)
 
-#define SATORU_LOG_WARN(...) \
-    satoru_log_printf(LogLevel::Warning, __VA_ARGS__)
+#define SATORU_LOG_WARN(...) satoru_log_printf(LogLevel::Warning, __VA_ARGS__)
 
-#define SATORU_LOG_ERROR(...) \
-    satoru_log_printf(LogLevel::Error, __VA_ARGS__)
+#define SATORU_LOG_ERROR(...) satoru_log_printf(LogLevel::Error, __VA_ARGS__)
 
 #endif  // SATORU_UTILS_LOGGING_H

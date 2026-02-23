@@ -769,8 +769,27 @@ void litehtml::render_item::calc_document_size( litehtml::size& sz, pixel_t x /*
 		{
 			if(src_el()->css().get_position() != element_position_fixed)
 			{
-				sz.width  = std::max(sz.width, x + right());
-				sz.height = std::max(sz.height, y + bottom());
+			 sz.width  = std::max(sz.width, x + right());
+			 sz.height = std::max(sz.height, y + bottom());
+
+							// Account for box-shadow
+				const auto& shadows = css().get_box_shadow();
+				if (!shadows.empty())
+				{
+					for (const auto& s : shadows)
+					{
+						if (!s.inset)
+						{
+							pixel_t offset_x = src_el()->get_document()->to_pixels(s.x, css().get_font_metrics(), 0);
+							pixel_t offset_y = src_el()->get_document()->to_pixels(s.y, css().get_font_metrics(), 0);
+							pixel_t blur = src_el()->get_document()->to_pixels(s.blur, css().get_font_metrics(), 0);
+							pixel_t spread = src_el()->get_document()->to_pixels(s.spread, css().get_font_metrics(), 0);
+
+														sz.width = std::max(sz.width, x + right() + offset_x + spread + blur + 10);
+							sz.height = std::max(sz.height, y + bottom() + offset_y + spread + blur + 10);
+						}
+					}
+				}
 			}
 
 			if(is_one_of(src_el()->css().get_overflow(), overflow_scroll, overflow_auto))

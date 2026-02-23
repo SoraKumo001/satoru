@@ -95,26 +95,30 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 				pixel_t rw = 0;
 				if (self_size.size_mode & containing_block_context::size_mode_measure)
 				{
-				rw = el->measure(self_size.new_width(child_width), fmt_ctx);
+					rw = el->measure(self_size.new_width(child_width), fmt_ctx);
 				} else
 				{
-				// 配置パスでは再測定を避け、計算済みのサイズを利用して配置のみを行う
-				el->place(child_x, child_top, self_size.new_width(child_width), fmt_ctx);
-				rw = el->width();
+					// If width didn't change, we should be able to skip measure.
+					// However, litehtml often relies on JIT width calculation.
+					// To fix slowness, we MUST NOT use recursive measure+place here.
+					// el->place is recursive place only.
+					el->place(child_x, child_top, self_size.new_width(child_width), fmt_ctx);
+					rw = el->width();
 				}
 
 				// Render table with "width: auto" into returned width
 				if(el->src_el()->css().get_display() == display_table && rw < child_width && el->src_el()->css().get_width().is_predefined())
 				{
-				if (self_size.size_mode & containing_block_context::size_mode_measure)
-				{
-				rw = el->measure(self_size.new_width(rw), fmt_ctx);
-				} else
-				{
-				// テーブルの幅が確定したため、新しい幅で配置し直す
-				el->place(child_x, child_top, self_size.new_width(rw), fmt_ctx);
-				rw = el->width();
-				}
+					if (self_size.size_mode & containing_block_context::size_mode_measure)
+					{
+						rw = el->measure(self_size.new_width(rw), fmt_ctx);
+					} else
+					{
+						// If the table width was determined during this pass, we might need a re-measure.
+						// But to avoid O(2^N), el->measure must only do measure.
+						rw = el->measure(self_size.new_width(rw), fmt_ctx);
+						el->place(child_x, child_top, self_size.new_width(rw), fmt_ctx);
+					}
 				}
 
 				// Check if we need to move block to the next line

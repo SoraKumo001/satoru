@@ -36,7 +36,7 @@ void el_svg::get_content_size(size& sz, pixel_t max_width) {
         if (str_h) sz.height = (pixel_t)atof(str_h);
 
         if (sz.width == 0 || sz.height == 0) {
-            const char* str_vb = get_attr("viewBox");
+            const char* str_vb = get_attr("viewbox");
             if (str_vb) {
                 float vx, vy, vw, vh;
                 // Try space-separated first
@@ -135,6 +135,12 @@ std::string el_svg::reconstruct_xml(int x, int y) const {
     std::stringstream ss;
     ss << "<svg x=\"" << x << "\" y=\"" << y << "\" xmlns=\"http://www.w3.org/2000/svg\"";
 
+    for (auto const& attr : m_attrs) {
+        if (attr.first == "width" || attr.first == "height" || attr.first == "viewbox") {
+            ss << " " << (attr.first == "viewbox" ? "viewBox" : attr.first) << "=\"" << attr.second << "\"";
+        }
+    }
+
     bool stroke_width_is_zero = false;
     for (auto const& attr : m_attrs) {
         if (attr.first == "stroke-width" && (attr.second == "0" || attr.second == "0px")) {
@@ -145,7 +151,9 @@ std::string el_svg::reconstruct_xml(int x, int y) const {
 
     bool stroke_attr_written = false;
     for (auto const& attr : m_attrs) {
-        if (attr.first == "xmlns" || attr.first == "x" || attr.first == "y") continue;
+        if (attr.first == "xmlns" || attr.first == "x" || attr.first == "y" || attr.first == "width" ||
+            attr.first == "height" || attr.first == "viewbox")
+            continue;
         if (attr.first == "stroke") {
             if (stroke_width_is_zero) {
                 ss << " stroke=\"none\"";
@@ -181,8 +189,10 @@ void el_svg::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position* clip,
     pos.x += x;
     pos.y += y;
 
-    // XML should not have absolute coordinates if we use canvas->translate or if it's being inserted into another SVG
-    std::string xml = reconstruct_xml(0, 0);
+    // For tagging (SVG output), we need absolute coordinates in the reconstructed XML
+    // because svg_renderer will replace a magic-colored rect with this XML string.
+    std::string xml = reconstruct_xml(container->is_tagging() ? (int)pos.x : 0,
+                                      container->is_tagging() ? (int)pos.y : 0);
 
     // Replace "currentColor" with actual computed color
     litehtml::web_color color = css().get_color();

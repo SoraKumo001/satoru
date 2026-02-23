@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createSatoruWorker } from "satoru";
+import { createSatoruWorker } from "satoru/workers";
 import { PNG } from "pngjs";
 import { chromium, Browser, Page } from "playwright";
 import { compareImages, softExpect } from "../src/utils";

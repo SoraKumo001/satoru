@@ -1,6 +1,6 @@
 # Satoru Wasm: High-Performance HTML to SVG/PNG/PDF Engine
 
-https://sorakumo001.github.io/satoru/
+[![Playground](https://img.shields.io/badge/Demo-Playground-blueviolet)](https://sorakumo001.github.io/satoru/)
 
 **Satoru** is a portable, WebAssembly-powered HTML rendering engine. It combines the **Skia Graphics Engine** and **litehtml** to provide high-quality, pixel-perfect SVG, PNG, and PDF generation entirely within WebAssembly.
 
@@ -196,90 +196,6 @@ const png = await satoru.render({
 });
 ```
 
-## 🧪 Testing & Validation
-
-The project includes a robust **Visual Regression Suite** to ensure rendering fidelity.
-
-### Visual Regression Tests (`packages/visual-test`)
-
-This suite compares Satoru's outputs against Chromium's rendering.
-
-- **Triple Validation Pipeline**: Every test asset is verified through PNG, SVG, and PDF formats.
-- **Numerical Precision**: PNG tests report exact pixel difference percentages.
-- **Fast Execution**: Multi-threaded reference generation and batch conversion.
-
-#### Run Tests
-
-```bash
-pnpm --filter visual-test test
-```
-
-#### Generate Reference Images
-
-```bash
-pnpm --filter visual-test gen-ref
-```
-
-#### Batch Convert Assets (Multithreaded)
-
-```bash
-pnpm --filter visual-test convert-assets
-```
-
-## 🏗️ Build & Run
-
-### Local Environment
-
-Requires Emscripten SDK and vcpkg.
-
-```bash
-pnpm install
-pnpm wasm:configure
-pnpm wasm:build
-pnpm build
-pnpm dev
-```
-
-### Docker Environment (Recommended)
-
-Build Wasm artifacts inside a Docker container without local toolchains.
-
-```bash
-pnpm wasm:docker:build
-pnpm build
-```
-
-## 🗺️ Roadmap
-
-### Core Engine
-
-- [x] High-level TypeScript Wrapper API with automatic resource resolution.
-- [x] **Engine State Persistence (Serialize/Deserialize Layout).**
-- [x] Improved Font Fallback & Generic Family Mapping.
-- [x] **Advanced Table layout with `border-collapse` support.**
-- [x] Multi-threaded rendering via Worker Proxy.
-
-### Rendering Features
-
-- [x] Binary PNG & **WebP** export support.
-- [x] **High-fidelity PDF export via Skia's PDF backend (Single & Multi-page).**
-- [x] Linear, Elliptical Radial & Conic Gradient support.
-- [x] Border Radius & **Advanced Box Shadow (Outer/Inset)**.
-- [x] **Text Shadow (Multiple shadows, Blur, Offset).**
-- [x] **Optional SVG `<text>` element output.**
-- [ ] Support for CSS Masks & Filters.
-- [ ] Support for CSS Transforms (translate, rotate, scale).
-- [ ] Support for `aspect-ratio` property.
-
-### Platform & Integration
-
-- [x] **Cloudflare Workers (workerd) compatibility.**
-- [x] React Integration (JSX to HTML conversion).
-- [x] Japanese Language Rendering & Standard HTML Tag Support.
-- [x] **Command-line Interface (CLI) for batch conversion.**
-- [ ] Support for CSS Grid Layout.
-- [ ] Support for CSS Logical Properties (margin-inline, etc.).
-
 ## 📜 License
 
-MIT License - SoraKumo <info@croud.jp>
+MIT License

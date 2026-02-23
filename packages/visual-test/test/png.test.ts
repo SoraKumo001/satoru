@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createSatoruWorker, render } from "satoru";
+import { createSatoruWorker } from "satoru/workers";
 import { PNG } from "pngjs";
 import { compareImages, softExpect } from "../src/utils";
 
@@ -62,7 +62,7 @@ describe("PNG (Skia) Visual Tests", () => {
       const refPath = path.join(REFERENCE_DIR, file.replace(".html", ".png"));
       const html = fs.readFileSync(path.join(ASSETS_DIR, file), "utf8");
 
-      const pngData = (await render({
+      const pngData = (await satoru.render({
         value: html,
         width: 800,
         format: "png",

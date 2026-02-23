@@ -9,7 +9,7 @@ This package demonstrates how to use Satoru to generate dynamic social media ima
 ## 🚀 Features
 
 - **Edge-Side Rendering**: Generates PNG images directly on Cloudflare Workers using WebAssembly.
-- **React Integration**: Define your OGP layouts using familiar JSX syntax via `satoru/react`.
+- **React Integration**: Define your OGP layouts using familiar JSX syntax via `satoru-render/react`.
 - **Automatic Font Loading**: Uses Google Fonts (Noto Sans JP) with automatic resolution.
 - **High Performance**: Optimized Wasm binary for fast cold starts and execution.
 - **Dynamic Content**: Accepts query parameters to customize titles and subtitles.
@@ -53,10 +53,10 @@ pnpm deploy
 
 Generates an OGP image based on the provided query parameters.
 
-| Parameter | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `title` | `string` | `"こんにちは Satoru"` | The main title text. |
-| `subtitle` | `string` | `"Cloudflare Workersで爆速画像生成"` | The subtitle text. |
+| Parameter  | Type     | Default                              | Description          |
+| :--------- | :------- | :----------------------------------- | :------------------- |
+| `title`    | `string` | `"こんにちは Satoru"`                | The main title text. |
+| `subtitle` | `string` | `"Cloudflare Workersで爆速画像生成"` | The subtitle text.   |
 
 **Example Request:**
 `https://your-worker.workers.dev/?title=My+Awesome+Post&subtitle=Read+more+on+my+blog`
@@ -69,16 +69,16 @@ The generator uses a combination of **Hono**, **React**, and **Satoru**:
 
 1.  **Hono**: Handles the incoming HTTP request and query parameters.
 2.  **React (JSX)**: Defines the visual layout and styles.
-3.  **satoru/react**: Converts the JSX elements into a standard HTML string.
+3.  **satoru-render/react**: Converts the JSX elements into a standard HTML string.
 4.  **Satoru**: Renders the HTML string into a PNG buffer using the Skia graphics engine compiled to Wasm.
 5.  **Response**: Returns the PNG buffer with the correct `Content-Type: image/png` header.
 
 ```tsx
 // src/index.tsx snippet
 const html = toHtml(
-  <div style={{ display: 'flex', color: 'white', background: 'blue' }}>
+  <div style={{ display: "flex", color: "white", background: "blue" }}>
     {title}
-  </div>
+  </div>,
 );
 
 const png = await render({

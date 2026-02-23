@@ -165,7 +165,7 @@ export default {
 For environments where deploying a separate `.wasm` file is difficult, use the `single` export which includes the WASM binary embedded.
 
 ```typescript
-import { render } from "satoru";
+import { render } from "satoru-render";
 
 const png = await render({
   value: "<div>Embedded WASM!</div>",

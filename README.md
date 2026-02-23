@@ -136,7 +136,7 @@ graph TD
 Satoru provides a high-level `render` function that handles WASM instantiation and resource resolution.
 
 ```typescript
-import { render, LogLevel } from "satoru";
+import { render, LogLevel } from "satoru-render";
 
 const html = `
   <style>
@@ -155,7 +155,7 @@ const png = await render({
   width: 600,
   format: "png",
   fontMap: {
-    "Roboto": "https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+    Roboto: "https://fonts.googleapis.com/css2?family=Roboto&display=swap",
   },
   resolveResource: async (r) => {
     const res = await fetch(r.url);
@@ -167,6 +167,7 @@ const png = await render({
 ### 2. Google Fonts Auto-Resolution
 
 If a font is missing from your local environment or `@font-face` definitions, Satoru can automatically fetch it from Google Fonts using the `fontMap` option. By default, it maps generic families:
+
 - `sans-serif` → Noto Sans JP
 - `serif` → Noto Serif JP
 - `monospace` → Noto Sans Mono
@@ -177,7 +178,7 @@ If a font is missing from your local environment or `@font-face` definitions, Sa
 // Uses default mappings (e.g. sans-serif becomes Noto Sans JP)
 const svg = await render({
   value: '<div style="font-family: sans-serif;">Hello</div>',
-  width: 600
+  width: 600,
 });
 ```
 
@@ -186,7 +187,7 @@ const svg = await render({
 Use the `workerd` specific export for restricted environments.
 
 ```typescript
-import { render } from "satoru/workerd";
+import { render } from "satoru-render/workerd";
 // ... use as normal
 ```
 
@@ -195,7 +196,7 @@ import { render } from "satoru/workerd";
 Distribute rendering tasks across multiple threads for high-throughput apps.
 
 ```typescript
-import { createSatoruWorker } from "satoru";
+import { createSatoruWorker } from "satoru-render";
 const satoru = createSatoruWorker({ maxParallel: 4 });
 const png = await satoru.render({ ...options });
 ```
@@ -205,14 +206,14 @@ const png = await satoru.render({ ...options });
 Includes the WASM binary embedded in the JS bundle.
 
 ```typescript
-import { render } from "satoru/single";
+import { render } from "satoru-render/single";
 ```
 
 ### 5. React Integration
 
 ```typescript
-import { render } from "satoru";
-import { toHtml } from "satoru/react";
+import { render } from "satoru-render";
+import { toHtml } from "satoru-render/react";
 const html = toHtml(<div style={{ color: "red" }}>React Component</div>);
 const png = await render({ value: html, width: 600, format: "png" });
 ```

@@ -106,12 +106,6 @@ app.get("/", async (c) => {
     width: 1200,
     height: 630,
     format: "png",
-    resolveResource: async (resource) => {
-      console.log(`Fetching resource: ${resource.url}`);
-      const res = await fetch(resource.url);
-      if (!res.ok) return null;
-      return new Uint8Array(await res.arrayBuffer());
-    },
   });
 
   return c.body(png.buffer as ArrayBuffer, 200, {

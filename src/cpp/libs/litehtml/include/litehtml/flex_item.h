@@ -25,10 +25,11 @@ namespace litehtml
 		std::shared_ptr<render_item> el;
 
 		// All sizes should be interpreted as outer/margin-box sizes.
-		pixel_t base_size;
-		pixel_t min_size;
-		def_value<pixel_t> max_size;
-		pixel_t main_size; // Holds the outer hypothetical main size before distribute_free_space, and the used outer main size after.
+		pixel_t flex_base_size;
+		pixel_t hypothetical_main_size;
+		pixel_t main_size; // Used outer main size after resolving flexible lengths.
+		pixel_t min_main_size;
+		def_value<pixel_t> max_main_size;
 
 		int grow;
 		int shrink;
@@ -49,10 +50,11 @@ namespace litehtml
 
 		explicit flex_item(std::shared_ptr<render_item> &_el) :
 				el(_el),
-				base_size(0),
-				min_size(0),
-				max_size(0),
+				flex_base_size(0),
+				hypothetical_main_size(0),
 				main_size(0),
+				min_main_size(0),
+				max_main_size(0),
 				grow(0),
 				shrink(0),
 				scaled_flex_shrink_factor(0),

@@ -4,17 +4,27 @@
 
 void litehtml::flex_line::distribute_free_space(pixel_t container_main_size)
 {
-        // 1 Determine the used flex factor. Sum the outer hypothetical main sizes of all items on the line.
-        // If the sum is less than the flex container’s inner main size, use the flex grow factor for the
-        // rest of this algorithm; otherwise, use the flex shrink factor.
+	// 1 Determine the used flex factor. Sum the outer hypothetical main sizes of all items on the line.
+	// If the sum is less than the flex container’s inner main size, use the flex grow factor for the
+	// rest of this algorithm; otherwise, use the flex shrink factor.
 
-        if (main_size < container_main_size)
-        {
-                distribute_free_space_grow(container_main_size);
-        } else
-        {
-                distribute_free_space_shrink(container_main_size);
-        }
+	pixel_t sum_hypothetical_main_size = 0;
+	for(const auto& item : items)
+	{
+		sum_hypothetical_main_size += item->hypothetical_main_size;
+	}
+	if(!items.empty())
+	{
+		sum_hypothetical_main_size += (pixel_t) (items.size() - 1) * main_gap;
+	}
+
+	if (sum_hypothetical_main_size < container_main_size)
+	{
+		distribute_free_space_grow(container_main_size);
+	} else
+	{
+		distribute_free_space_shrink(container_main_size);
+	}
 }
 
 void litehtml::flex_line::distribute_free_space_grow(pixel_t container_main_size)
@@ -37,16 +47,16 @@ void litehtml::flex_line::distribute_free_space_grow(pixel_t container_main_size
                 // from the flex container’s inner main size. For frozen items, use their outer target main size; for
                 // other items, use their outer flex base size.
 
-                if (item->grow == 0 || item->base_size > item->main_size)
-                {
-                        item->frozen = true;
-                        item->clamp_state = flex_clamp_state_inflexible;
-                        initial_free_space -= item->main_size;
-                } else
-                {
-                        initial_free_space -= item->base_size;
-                        all_inflexible = false;
-                }
+		if (item->grow == 0 || item->flex_base_size > item->hypothetical_main_size)
+		{
+			item->frozen = true;
+			item->clamp_state = flex_clamp_state_inflexible;
+			initial_free_space -= item->hypothetical_main_size;
+		} else
+		{
+			initial_free_space -= item->flex_base_size;
+			all_inflexible = false;
+		}
         }
 
         // 4. Loop:
@@ -70,17 +80,17 @@ void litehtml::flex_line::distribute_free_space_grow(pixel_t container_main_size
                         remaining_free_space -= (pixel_t) (items.size() - 1) * main_gap;
                 }
 
-                for (auto& item : items)
-                {
-                        if (item->frozen)
-                        {
-                                remaining_free_space -= item->main_size;
-                        } else
-                        {
-                                remaining_free_space -= item->base_size;
-                                sum_flex_grow_factor += item->grow;
-                        }
-                }
+				for (auto& item : items)
+				{
+					if (item->frozen)
+					{
+						remaining_free_space -= item->main_size;
+					} else
+					{
+						remaining_free_space -= item->flex_base_size;
+						sum_flex_grow_factor += item->grow;
+					}
+				}
 
                 if (sum_flex_grow_factor < 1000)
                 {
@@ -107,7 +117,7 @@ void litehtml::flex_line::distribute_free_space_grow(pixel_t container_main_size
                                         // unfrozen items on the line. Set the item’s target main size to its flex base size plus a
                                         // fraction of the remaining free space proportional to the ratio.
 
-                                        item->main_size = item->base_size + remaining_free_space * (pixel_t) item->grow / (pixel_t) sum_flex_grow_factor;
+					item->main_size = item->flex_base_size + remaining_free_space * (pixel_t) item->grow / (pixel_t) sum_flex_grow_factor;
                                 }
                         }
                 }
@@ -136,16 +146,16 @@ void litehtml::flex_line::distribute_free_space_shrink(pixel_t container_main_si
                 // from the flex container’s inner main size. For frozen items, use their outer target main size; for
                 // other items, use their outer flex base size.
 
-                if (item->shrink == 0 || item->base_size < item->main_size)
-                {
-                        item->frozen = true;
-                        item->clamp_state = flex_clamp_state_inflexible;
-                        initial_free_space -= item->main_size;
-                } else
-                {
-                        initial_free_space -= item->base_size;
-                        all_inflexible = false;
-                }
+		if (item->shrink == 0 || item->flex_base_size < item->hypothetical_main_size)
+		{
+			item->frozen = true;
+			item->clamp_state = flex_clamp_state_inflexible;
+			initial_free_space -= item->hypothetical_main_size;
+		} else
+		{
+			initial_free_space -= item->flex_base_size;
+			all_inflexible = false;
+		}
         }
 
         // 4. Loop:
@@ -170,18 +180,18 @@ void litehtml::flex_line::distribute_free_space_shrink(pixel_t container_main_si
                         remaining_free_space -= (pixel_t) (items.size() - 1) * main_gap;
                 }
 
-                for (auto& item : items)
-                {
-                        if (item->frozen)
-                        {
-                                remaining_free_space -= item->main_size;
-                        } else
-                        {
-                                remaining_free_space -= item->base_size;
-                                sum_flex_shrink_factor += item->shrink;
-                                sum_scaled_flex_shrink_factor += item->scaled_flex_shrink_factor;    
-                        }
-                }
+				for (auto& item : items)
+				{
+					if (item->frozen)
+					{
+						remaining_free_space -= item->main_size;
+					} else
+					{
+						remaining_free_space -= item->flex_base_size;
+						sum_flex_shrink_factor += item->shrink;
+						sum_scaled_flex_shrink_factor += item->scaled_flex_shrink_factor;
+					}
+				}
 
                 if (sum_flex_shrink_factor < 1000)
                 {
@@ -210,7 +220,7 @@ void litehtml::flex_line::distribute_free_space_shrink(pixel_t container_main_si
                                         // the line. Set the item’s target main size to its flex base size minus a fraction of the
                                         // absolute value of the remaining free space proportional to the ratio.
 
-                                        item->main_size = item->base_size + remaining_free_space * item->scaled_flex_shrink_factor / sum_scaled_flex_shrink_factor;
+                                        item->main_size = item->flex_base_size + remaining_free_space * item->scaled_flex_shrink_factor / sum_scaled_flex_shrink_factor;
                                 }
                         }
                 }
@@ -232,15 +242,15 @@ bool litehtml::flex_line::fix_min_max_violations()
         {
                 if (!item->frozen)
                 {
-                        if (item->main_size < item->min_size)
+                        if (item->main_size < item->min_main_size)
                         {
-                                total_violation += item->min_size - item->main_size;
-                                item->main_size = item->min_size;
+                                total_violation += item->min_main_size - item->main_size;
+                                item->main_size = item->min_main_size;
                                 item->clamp_state = flex_clamp_state_min_violation;
-                        } else if (!item->max_size.is_default() && item->main_size > item->max_size) 
+                        } else if (!item->max_main_size.is_default() && item->main_size > item->max_main_size) 
                         {
-                                total_violation += item->max_size - item->main_size;
-                                item->main_size = item->max_size;
+                                total_violation += item->max_main_size - item->main_size;
+                                item->main_size = item->max_main_size;
                                 item->clamp_state = flex_clamp_state_max_violation;
                         }
                 }
@@ -368,7 +378,6 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container, 
                         }
                 }
 
-                /// Render items into new size
                 /// Find line cross_size
                 /// Find line first/last baseline
                 for (auto &item: items)
@@ -379,27 +388,18 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container, 
                             w = item->main_size - item->el->get_margins().width();
                         }
 
-                        // Create a new containing block context with the calculated width
-                        // We cannot use self_size.new_width() because it preserves the diff between width and render_width
-                        // from the parent (self_size), effectively adding parent's padding/border to the child's width.
                         containing_block_context child_cb = self_size;
                         child_cb.width = w;
                         child_cb.render_width = w;
-                        child_cb.size_mode = containing_block_context::size_mode_exact_width;
+                        child_cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_measure;
+                        
                         bool stretch = (item->align & 0xFF) == flex_align_items_stretch || (item->align & 0xFF) == flex_align_items_normal;
                         if (!stretch && item->el->css().get_height().is_predefined())
                         {
                             child_cb.size_mode |= containing_block_context::size_mode_content;
                         }
 
-                        if (self_size.size_mode & containing_block_context::size_mode_measure)
-                        {
-                            item->el->measure(child_cb, fmt_ctx);
-                        } else
-                        {
-                            item->el->measure(child_cb, fmt_ctx);
-                            item->el->place(0, 0, child_cb, fmt_ctx);
-                        }
+                        item->el->measure(child_cb, fmt_ctx);
 
                         if((item->align & 0xFF) == flex_align_items_baseline)
                         {
@@ -465,50 +465,25 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container, 
 
                 for (auto &item: items)
                 {
-                        if (self_size.size_mode & containing_block_context::size_mode_measure)
-                        {
-                            item->el->measure(self_size, fmt_ctx);
-                        } else
-                        {
-                            item->el->render(0, 0, self_size, fmt_ctx, false);
-                        }
-                        
-                        pixel_t el_ret_width = item->el->width();
-                        
-                        pixel_t w = el_ret_width - item->el->content_offset_width();
-                        if(item->el->css().get_box_sizing() == box_sizing_border_box)
-                        {
-                            w = el_ret_width - item->el->get_margins().width();
-                        }
-
                         pixel_t h = item->main_size - item->el->content_offset_height();
                         if(item->el->css().get_box_sizing() == box_sizing_border_box)
                         {
                             h = item->main_size - item->el->get_margins().height();
                         }
 
-                        // Create a new containing block context with the calculated width/height
-                        // We cannot use self_size.new_width_height() because it preserves the diff from the parent.
                         containing_block_context child_cb = self_size;
-                        child_cb.width = w;
-                        child_cb.render_width = w;
                         child_cb.height = h;
                         child_cb.render_height = h;
-                        child_cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;
+                        child_cb.size_mode = containing_block_context::size_mode_exact_height | containing_block_context::size_mode_measure;
+                        
                         bool stretch = (item->align & 0xFF) == flex_align_items_stretch || (item->align & 0xFF) == flex_align_items_normal;
                         if (!stretch && item->el->css().get_width().is_predefined())
                         {
                             child_cb.size_mode |= containing_block_context::size_mode_content;
                         }
 
-                        if (self_size.size_mode & containing_block_context::size_mode_measure)
-                        {
-                            item->el->measure(child_cb, fmt_ctx);
-                        } else
-                        {
-                            item->el->measure(child_cb, fmt_ctx);
-                            item->el->place(0, 0, child_cb, fmt_ctx);
-                        }
+                        item->el->measure(child_cb, fmt_ctx);
+                        
                         if(main_size != 0) main_size += main_gap;
                         main_size += item->el->height();
                         cross_size = std::max(cross_size, item->el->width());

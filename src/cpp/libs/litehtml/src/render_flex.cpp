@@ -80,7 +80,7 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	{
 		if(is_row_direction)
 		{
-			ret_width += ln.base_size;
+			ret_width += ln.flex_base_size;
 		}
 		ln.init(container_main_size, fit_container, is_row_direction, self_size, fmt_ctx);   
 		sum_cross_size += ln.cross_size;
@@ -227,25 +227,6 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	/////////////////////////////////////////////////////////////////
 	for(auto &ln : m_lines)
 	{
-		// First pass to ensure items have correct height after potential width changes
-		// Only for row direction where main_size is width
-		if (is_row_direction)
-		{
-			for(auto &item : ln.items)
-			{
-				pixel_t w = item->main_size - item->el->render_offset_width();
-				if(item->el->css().get_box_sizing() == box_sizing_border_box)
-				{
-					w = item->main_size - item->el->get_margins().width();
-				}
-				containing_block_context child_cb = self_size;
-				child_cb.width = w;
-				child_cb.render_width = w;
-				child_cb.size_mode = containing_block_context::size_mode_exact_width;
-				item->el->measure(child_cb, fmt_ctx);
-			}
-		}
-
 		pixel_t height = ln.calculate_items_position(container_main_size,
 									justify_content,
 									is_row_direction,
@@ -420,14 +401,14 @@ std::list<litehtml::flex_line> litehtml::render_item_flex::get_lines(const liteh
 	for(auto& item : items)
 	{
 		pixel_t gap = line.items.empty() ? 0 : main_gap;
-		if(!line.items.empty() && !single_line && line.main_size + gap + item->main_size > container_main_size + 0.01)
+		if(!line.items.empty() && !single_line && line.main_size + gap + item->hypothetical_main_size > container_main_size + 0.01)
 		{
 			lines.emplace_back(line);
 			line = flex_line(reverse_main, reverse_cross, main_gap);
 			gap = 0;
 		}
-		line.base_size += gap + item->base_size;
-		line.main_size += gap + item->main_size;
+		line.flex_base_size += gap + item->flex_base_size;
+		line.main_size += gap + item->hypothetical_main_size;
 		if(!item->auto_margin_main_start.is_default()) line.num_auto_margin_main_start++;    
 		if(!item->auto_margin_main_end.is_default()) line.num_auto_margin_main_end++;        
 		line.items.push_back(item);

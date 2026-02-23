@@ -188,8 +188,7 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 			case flex_basis_fit_content:
 			case flex_basis_content:
 				base_size = el->render(0, 0, self_size.new_width(self_size.render_width + el->content_offset_width(),
-																 containing_block_context::size_mode_content |
-																 containing_block_context::size_mode_exact_width),
+																 containing_block_context::size_mode_content),
 									   fmt_ctx);
 				break;
 			case flex_basis_min_content:

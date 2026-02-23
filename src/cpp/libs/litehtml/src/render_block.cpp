@@ -220,6 +220,10 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
 	} else
 	{
 		m_pos.width = ret_width;
+		if (containing_block_size.size_mode & containing_block_context::size_mode_exact_width)
+		{
+			m_pos.width = self_size.render_width;
+		}
 		if(self_size.render_width.type == containing_block_context::cbc_value_type_absolute && ret_width > self_size.render_width)
 		{
 			ret_width = self_size.render_width;

@@ -372,7 +372,8 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
     pixel_t spacing_x = 0;	// Number of pixels to distribute between elements
     pixel_t shift_x = 0;	// Shift elements by X to apply the text-align
 
-    if (!(containing_block_size.size_mode & containing_block_context::size_mode_content))
+    if (!(containing_block_size.size_mode & containing_block_context::size_mode_content) ||
+        (containing_block_size.size_mode & containing_block_context::size_mode_exact_width))
     {
         text_align align = m_text_align;
         if (align == text_align_start)

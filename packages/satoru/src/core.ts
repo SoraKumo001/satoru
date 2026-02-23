@@ -77,13 +77,13 @@ export const DEFAULT_FONT_MAP: Record<string, string> = {
   "sans-serif":
     "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2",
   serif:
-    "https://cdn.jsdelivr.net/npm/@fontsource/noto-serif/files/noto-serif-latin-400-normal.woff2",
+    "https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-jp/files/noto-serif-jp-japanese-400-normal.woff2",
   monospace:
-    "https://cdn.jsdelivr.net/npm/@fontsource/roboto-mono/files/roboto-mono-latin-400-normal.woff2",
+    "https://cdn.jsdelivr.net/npm/@fontsource/m-plus-1-code/files/m-plus-1-code-japanese-400-normal.woff2",
   cursive:
-    "https://cdn.jsdelivr.net/npm/@fontsource/dancing-script/files/dancing-script-latin-400-normal.woff2",
+    "https://cdn.jsdelivr.net/npm/@fontsource/yuji-syuku/files/yuji-syuku-japanese-400-normal.woff2",
   fantasy:
-    "https://cdn.jsdelivr.net/npm/@fontsource/cinzel/files/cinzel-latin-400-normal.woff2",
+    "https://cdn.jsdelivr.net/npm/@fontsource/reggae-one/files/reggae-one-japanese-400-normal.woff2",
 };
 
 export async function resolveGoogleFonts(

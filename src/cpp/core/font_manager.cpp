@@ -107,8 +107,8 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
     }
 
     if (typeface) {
-        SATORU_LOG_INFO("loadFont: SUCCESS loaded font '{}' ({} bytes) from {}{}", cleaned, size,
-                        (url ? url : "memory"), (from_cache ? " (cache)" : ""));
+        SATORU_LOG_INFO("loadFont: SUCCESS loaded font '%s' (%d bytes) from %s%s", cleaned.c_str(),
+                        size, (url ? url : "memory"), (from_cache ? " (cache)" : ""));
 
         bool duplicate = false;
         for (const auto &existing : m_typefaceCache[cleaned]) {
@@ -123,7 +123,7 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
             if (!m_defaultTypeface) m_defaultTypeface = typeface;
         }
     } else {
-        SATORU_LOG_ERROR("loadFont: FAILED to load font data ({} bytes)", size);
+        SATORU_LOG_ERROR("loadFont: FAILED to load font data (%d bytes)", size);
     }
 }
 

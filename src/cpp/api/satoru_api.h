@@ -3,6 +3,7 @@
 
 #include <litehtml/document.h>
 
+#include <cstdarg>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -77,6 +78,9 @@ void api_load_image(SatoruInstance *inst, const std::string &name, const std::st
 void api_set_font_map(SatoruInstance *inst, const std::map<std::string, std::string> &fontMap);
 
 void api_set_log_level(int level);
+
+void satoru_log(LogLevel level, const char *message);
+void satoru_log_printf(LogLevel level, const char *format, ...);
 
 std::string api_get_pending_resources(SatoruInstance *inst);
 

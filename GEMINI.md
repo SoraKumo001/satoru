@@ -22,7 +22,7 @@ This section defines the core rules for an agent's behavior within this project.
 
 A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscripten).
 
-- **Core Technologies**: `litehtml` (Layout) + `Skia` (Rendering) + `spdlog` (Logging).
+- **Core Technologies**: `litehtml` (Layout) + `Skia` (Rendering) + Lightweight custom logging.
 - **Structure**: pnpm workspaces monorepo.
   - `packages/satoru`: Core library & TS wrappers. Uses a `core.ts` base class to share logic between `index.ts` (browser) and `node.ts` (Node.js).
   - `packages/visual-test`: Visual regression testing suite.
@@ -59,9 +59,8 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - **Decoration**: Supports `wavy` style for underlines using `SkPathBuilder` and `quadTo` curves.
 
 ### 3.4 Logging Infrastructure
-- **Integration**: `spdlog` is used as the primary logging engine.
-- **Custom Sink**: `emscripten_sink` bridges `spdlog` logs to the JS `onLog` callback.
-- **Macros**: Use `SATORU_LOG_INFO`, `SATORU_LOG_ERROR`, etc., from `utils/logging.h` for formatted output.
+- **Integration**: Custom lightweight logging bridging to JS.
+- **Macros**: Use `SATORU_LOG_INFO`, `SATORU_LOG_ERROR`, etc., from `utils/logging.h` for formatted output (using standard `vsnprintf`).
 - **Control**: Log levels are controllable from JS via `Satoru.render({ logLevel: ... })` or `api_set_log_level`.
 
 ### 3.5 Resource Management & Global Caching

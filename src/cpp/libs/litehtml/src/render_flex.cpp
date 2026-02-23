@@ -224,6 +224,21 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	/////////////////////////////////////////////////////////////////
 	for(auto &ln : m_lines)
 	{
+		// First pass to ensure items have correct height after potential width changes
+		for(auto &item : ln.items)
+		{
+			pixel_t w = item->main_size - item->el->render_offset_width();
+			if(item->el->css().get_box_sizing() == box_sizing_border_box)
+			{
+				w = item->main_size - item->el->get_margins().width();
+			}
+			containing_block_context child_cb = self_size;
+			child_cb.width = w;
+			child_cb.render_width = w;
+			child_cb.size_mode = containing_block_context::size_mode_exact_width;
+			item->el->render(0, 0, child_cb, fmt_ctx, false);
+		}
+
 		pixel_t height = ln.calculate_items_position(container_main_size,
 									justify_content,
 									is_row_direction,

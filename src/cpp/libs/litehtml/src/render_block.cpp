@@ -190,6 +190,13 @@ std::shared_ptr<litehtml::render_item> litehtml::render_item_block::init()
 litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx, bool second_pass)
 {
 	containing_block_context self_size = calculate_containing_block_context(containing_block_size);
+	if (containing_block_size.size_mode & containing_block_context::size_mode_exact_width)
+	{
+		if (!src_el()->is_replaced())
+		{
+			self_size.size_mode |= containing_block_context::size_mode_exact_width;
+		}
+	}
 
     //*****************************************
     // Render content
@@ -222,7 +229,10 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
 		m_pos.width = ret_width;
 		if (containing_block_size.size_mode & containing_block_context::size_mode_exact_width)
 		{
-			m_pos.width = self_size.render_width;
+			if(m_pos.width != (pixel_t) self_size.render_width)
+			{
+				m_pos.width = self_size.render_width;
+			}
 		}
 		if(self_size.render_width.type == containing_block_context::cbc_value_type_absolute && ret_width > self_size.render_width)
 		{
@@ -236,7 +246,6 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
 		if(m_pos.width > self_size.max_width)
 		{
 			m_pos.width = self_size.max_width;
-			requires_rerender = true;
 		}
 	}
 
@@ -246,25 +255,10 @@ litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, con
 		if(m_pos.width < self_size.min_width)
 		{
 			m_pos.width = self_size.min_width;
-			requires_rerender = true;
 		}
 	} else if(m_pos.width < 0)
 	{
 		m_pos.width = 0;
-	}
-
-	// re-render content with new width if required
-	if (requires_rerender && !second_pass && !is_root())
-	{
-		if(src_el()->is_block_formatting_context())
-		{
-			fmt_ctx->clear_floats(-1);
-		} else
-		{
-			fmt_ctx->clear_floats(self_size.context_idx);
-		}
-
-		_render_content(x, y, true, self_size.new_width(m_pos.width), fmt_ctx);
 	}
 
 	// Set block height

@@ -508,6 +508,9 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 	//    and for top and bottom aligned items
     for (const auto& lbi : m_items)
 	{
+		// Reset y position to avoid accumulation from previous render passes
+		lbi->pos().y = 0;
+
 		// Apply text-align-justify
 		m_min_width += lbi->get_rendered_min_width();
 		if (spacing_x != 0 && counter)
@@ -777,7 +780,7 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 
 		if(current_context.start_lbi)
 		{
-			lbi->pos().y = current_context.baseline - lbi->get_el()->get_last_baseline() +
+			lbi->pos().y = m_top + top_shift + current_context.baseline - lbi->get_el()->get_last_baseline() +
 						   lbi->get_el()->content_offset_top();
 		} else if(is_one_of(lbi->get_el()->css().get_vertical_align(), va_top, va_bottom) && lbi->get_type() == line_box_item::type_text_part)
 		{
@@ -791,7 +794,7 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 		} else
 		{
 			// move element to the correct position
-			lbi->pos().y += m_top + top_shift;
+			lbi->pos().y = m_top + top_shift + (lbi->pos().y - 0); // lbi->pos().y is relative to baseline 0
 		}
 
         lbi->get_el()->apply_relative_shift(containing_block_size);

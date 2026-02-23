@@ -187,8 +187,7 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 				break;
 			case flex_basis_fit_content:
 			case flex_basis_content:
-				base_size = el->render(0, 0, self_size.new_width(self_size.render_width + el->content_offset_width(),
-																 containing_block_context::size_mode_content),
+				base_size = el->render(0, 0, self_size.new_width(self_size.render_width + el->content_offset_width()),
 									   fmt_ctx);
 				break;
 			case flex_basis_min_content:
@@ -452,8 +451,14 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 				break;
 			case flex_basis_max_content:
 			case flex_basis_fit_content:
-				el->render(0, 0, self_size, fmt_ctx);
-				base_size = el->height();
+				{
+					containing_block_context measure_size = self_size;
+					measure_size.height.type = containing_block_context::cbc_value_type_auto;
+					measure_size.render_height.type = containing_block_context::cbc_value_type_auto;
+					measure_size.size_mode &= ~containing_block_context::size_mode_exact_height;
+					el->render(0, 0, measure_size, fmt_ctx);
+					base_size = el->height();
+				}
 				break;
 			case flex_basis_min_content:
 				base_size = min_size;

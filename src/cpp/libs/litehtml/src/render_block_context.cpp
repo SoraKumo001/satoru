@@ -92,11 +92,29 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 					}
 				}
 
-                pixel_t rw = el->render(child_x, child_top, self_size.new_width(child_width), fmt_ctx);
+				pixel_t rw = 0;
+				if (self_size.size_mode & containing_block_context::size_mode_measure)
+				{
+				rw = el->measure(self_size.new_width(child_width), fmt_ctx);
+				} else
+				{
+				// 配置パスでは再測定を避け、計算済みのサイズを利用して配置のみを行う
+				el->place(child_x, child_top, self_size.new_width(child_width), fmt_ctx);
+				rw = el->width();
+				}
+
 				// Render table with "width: auto" into returned width
 				if(el->src_el()->css().get_display() == display_table && rw < child_width && el->src_el()->css().get_width().is_predefined())
 				{
-					el->render(child_x, child_top, self_size.new_width(rw), fmt_ctx);
+				if (self_size.size_mode & containing_block_context::size_mode_measure)
+				{
+				rw = el->measure(self_size.new_width(rw), fmt_ctx);
+				} else
+				{
+				// テーブルの幅が確定したため、新しい幅で配置し直す
+				el->place(child_x, child_top, self_size.new_width(rw), fmt_ctx);
+				rw = el->width();
+				}
 				}
 
 				// Check if we need to move block to the next line
@@ -114,8 +132,10 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 						{
 							child_top = new_top;
 							fmt_ctx->get_line_left_right(child_top, el->width(), ln_left, ln_right);
-							el->pos().x = ln_left + el->content_offset_left();
-							el->pos().y = child_top + el->border_top() + el->padding_top();
+							if (!(self_size.size_mode & containing_block_context::size_mode_measure))
+							{
+								el->place(ln_left, child_top, self_size.new_width(child_width), fmt_ctx);
+							}
 							child_top	-= el->get_margins().top;
 							// Rollback top margin collapse
 							if(is_first && collapse_top_margin())
@@ -126,10 +146,13 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
                     }
                 }
 
-				pixel_t auto_margin = el->calc_auto_margins(child_width);
-				if(auto_margin != 0)
+				if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 				{
-					el->pos().x += auto_margin;
+					pixel_t auto_margin = el->calc_auto_margins(child_width);
+					if(auto_margin != 0)
+					{
+						el->pos().x += auto_margin;
+					}
 				}
                 if (rw > ret_width)
                 {

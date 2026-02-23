@@ -39,6 +39,13 @@ namespace litehtml
                 {
                         return 0;
                 }
+                virtual pixel_t _measure(const containing_block_context& /*containing_block_size*/, formatting_context* /*fmt_ctx*/)
+                {
+                        return 0;
+                }
+                virtual void _place(pixel_t /*x*/, pixel_t /*y*/, const containing_block_context& /*containing_block_size*/, formatting_context* /*fmt_ctx*/)
+                {
+                }
 
     public:
         explicit render_item(std::shared_ptr<element>  src_el);
@@ -431,6 +438,8 @@ namespace litehtml
                 }
 
                 pixel_t render(pixel_t x, pixel_t y, const containing_block_context& containing_block_size, formatting_context* fmt_ctx, bool second_pass = false);
+                pixel_t measure(const containing_block_context& containing_block_size, formatting_context* fmt_ctx);
+                void place(pixel_t x, pixel_t y, const containing_block_context& containing_block_size, formatting_context* fmt_ctx);
         void apply_relative_shift(const containing_block_context &containing_block_size);
         void calc_outlines( pixel_t parent_width );
         pixel_t calc_auto_margins(pixel_t parent_width);        // returns left margin

@@ -36,3 +36,4 @@ build-wasm-debug
 build-wasm-release
 build
 .env
+.cache

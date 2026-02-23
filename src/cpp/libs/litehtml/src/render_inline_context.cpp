@@ -74,13 +74,6 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
 
     finish_last_box(true, self_size);
 
-	if (self_size.size_mode & containing_block_context::size_mode_measure)
-	{
-		pixel_t ret = m_max_line_width;
-		m_line_boxes.clear();
-		return ret;
-	}
-
     if (!m_line_boxes.empty())
     {
         if (collapse_top_margin())
@@ -102,6 +95,13 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
             m_pos.height = m_line_boxes.back()->bottom();
         }
     }
+
+	if (self_size.size_mode & containing_block_context::size_mode_measure)
+	{
+		pixel_t ret = m_max_line_width;
+		m_line_boxes.clear();
+		return ret;
+	}
 
     return m_max_line_width;
 }
@@ -285,14 +285,32 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
 
 	if(item->get_type() == line_box_item::type_text_part)
 	{
-		if(item->get_el()->src_el()->is_inline_box())
-		{
-			pixel_t min_rendered_width = item->get_el()->render(line_ctx.left, line_ctx.top, self_size.new_width(line_ctx.right), fmt_ctx);
-			if(min_rendered_width < item->get_el()->width() && item->get_el()->src_el()->css().get_width().is_predefined())
-			{
-				item->get_el()->render(line_ctx.left, line_ctx.top, self_size.new_width(min_rendered_width), fmt_ctx);
-			}
-			item->set_rendered_min_width(min_rendered_width);
+				if(item->get_el()->src_el()->is_inline_box())
+				{
+					auto cb = self_size.new_width(line_ctx.right);
+					pixel_t min_rendered_width = 0;
+					if (self_size.size_mode & containing_block_context::size_mode_measure)
+					{
+						min_rendered_width = item->get_el()->measure(cb, fmt_ctx);
+					} else
+					{
+						min_rendered_width = item->get_el()->measure(cb, fmt_ctx);
+						item->get_el()->place(line_ctx.left, line_ctx.top, cb, fmt_ctx);
+					}
+
+					if(min_rendered_width < item->get_el()->width() && item->get_el()->src_el()->css().get_width().is_predefined())
+					{
+						auto cb2 = self_size.new_width(min_rendered_width);
+						if (self_size.size_mode & containing_block_context::size_mode_measure)
+						{
+							item->get_el()->measure(cb2, fmt_ctx);
+						} else
+						{
+							item->get_el()->measure(cb2, fmt_ctx);
+							item->get_el()->place(line_ctx.left, line_ctx.top, cb2, fmt_ctx);
+						}
+					}
+					item->set_rendered_min_width(min_rendered_width);
 		} else if(item->get_el()->src_el()->css().get_display() == display_inline_text)
 		{
 			litehtml::size sz;

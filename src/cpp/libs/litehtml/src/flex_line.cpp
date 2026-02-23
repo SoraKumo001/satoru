@@ -453,9 +453,15 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container, 
 
                 for (auto &item: items)
                 {
-                        pixel_t el_ret_width = item->el->render(0,
-                                                                                                0,   
-                                                                                                self_size, fmt_ctx, false);
+                        if (self_size.size_mode & containing_block_context::size_mode_measure)
+                        {
+                            item->el->measure(self_size, fmt_ctx);
+                        } else
+                        {
+                            item->el->render(0, 0, self_size, fmt_ctx, false);
+                        }
+                        
+                        pixel_t el_ret_width = item->el->width();
                         
                         pixel_t w = el_ret_width - item->el->content_offset_width();
                         if(item->el->css().get_box_sizing() == box_sizing_border_box)
@@ -478,7 +484,13 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container, 
                         child_cb.render_height = h;
                         child_cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;
 
-                        item->el->render(0, 0, child_cb, fmt_ctx, false);
+                        if (self_size.size_mode & containing_block_context::size_mode_measure)
+                        {
+                            item->el->measure(child_cb, fmt_ctx);
+                        } else
+                        {
+                            item->el->render(0, 0, child_cb, fmt_ctx, false);
+                        }
                         if(main_size != 0) main_size += main_gap;
                         main_size += item->el->height();
                         cross_size = std::max(cross_size, item->el->width());

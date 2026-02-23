@@ -236,7 +236,14 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 			child_cb.width = w;
 			child_cb.render_width = w;
 			child_cb.size_mode = containing_block_context::size_mode_exact_width;
-			item->el->render(0, 0, child_cb, fmt_ctx, false);
+			if (self_size.size_mode & containing_block_context::size_mode_measure)
+			{
+				item->el->measure(child_cb, fmt_ctx);
+			} else
+			{
+				item->el->measure(child_cb, fmt_ctx);
+				item->el->place(0, 0, child_cb, fmt_ctx);
+			}
 		}
 
 		pixel_t height = ln.calculate_items_position(container_main_size,
@@ -247,79 +254,92 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 		m_pos.height = std::max(m_pos.height, height);
 	}
 
-	// calculate the final position
-	m_pos.move_to(x, y);
-	m_pos.x += content_offset_left();
-	m_pos.y += content_offset_top();
+	if (!(self_size.size_mode & containing_block_context::size_mode_measure))
+	{
+		// calculate the final position
+		m_pos.move_to(x, y);
+		m_pos.x += content_offset_left();
+		m_pos.y += content_offset_top();
+	}
 
 	for (const auto& el : m_children)
 	{
 		auto el_position = el->src_el()->css().get_position();
 		if (el_position == element_position_absolute || el_position == element_position_fixed)
 		{
-			el->render(0, 0, self_size, fmt_ctx);
-
-			pixel_t static_x = 0;
-			pixel_t static_y = 0;
-
-			auto align_items = css().get_flex_align_items();
-			auto align_self = el->src_el()->css().get_flex_align_self();
-			if (align_self != flex_align_items_auto) align_items = align_self;
-
-			auto jc = css().get_flex_justify_content();
-
-			if (is_row_direction)
+			if (self_size.size_mode & containing_block_context::size_mode_measure)
 			{
-				switch (jc)
-				{
-					case flex_justify_content_center:
-						static_x = (self_size.render_width - el->width()) / 2;
-						break;
-					case flex_justify_content_flex_end:
-					case flex_justify_content_end:
-						static_x = self_size.render_width - el->width();
-						break;
-					default: break;
-				}
-				switch (align_items)
-				{
-					case flex_align_items_center:
-						static_y = (self_size.render_height - el->height()) / 2;
-						break;
-					case flex_align_items_flex_end:
-					case flex_align_items_end:
-						static_y = self_size.render_height - el->height();
-						break;
-					default: break;
-				}
+				el->measure(self_size, fmt_ctx);
 			} else
 			{
-				switch (jc)
-				{
-					case flex_justify_content_center:
-						static_y = (self_size.render_height - el->height()) / 2;
-						break;
-					case flex_justify_content_flex_end:
-					case flex_justify_content_end:
-						static_y = self_size.render_height - el->height();
-						break;
-					default: break;
-				}
-				switch (align_items)
-				{
-					case flex_align_items_center:
-						static_x = (self_size.render_width - el->width()) / 2;
-						break;
-					case flex_align_items_flex_end:
-					case flex_align_items_end:
-						static_x = self_size.render_width - el->width();
-						break;
-					default: break;
-				}
+				el->measure(self_size, fmt_ctx);
+				el->place(0, 0, self_size, fmt_ctx);
 			}
 
-			el->pos().x = static_x + el->content_offset_left();
-			el->pos().y = static_y + el->content_offset_top();
+			if (!(self_size.size_mode & containing_block_context::size_mode_measure))
+			{
+				pixel_t static_x = 0;
+				pixel_t static_y = 0;
+
+				auto align_items = css().get_flex_align_items();
+				auto align_self = el->src_el()->css().get_flex_align_self();
+				if (align_self != flex_align_items_auto) align_items = align_self;
+
+				auto jc = css().get_flex_justify_content();
+
+				if (is_row_direction)
+				{
+					switch (jc)
+					{
+						case flex_justify_content_center:
+							static_x = (self_size.render_width - el->width()) / 2;
+							break;
+						case flex_justify_content_flex_end:
+						case flex_justify_content_end:
+							static_x = self_size.render_width - el->width();
+							break;
+						default: break;
+					}
+					switch (align_items)
+					{
+						case flex_align_items_center:
+							static_y = (self_size.render_height - el->height()) / 2;
+							break;
+						case flex_align_items_flex_end:
+						case flex_align_items_end:
+							static_y = self_size.render_height - el->height();
+							break;
+						default: break;
+					}
+				} else
+				{
+					switch (jc)
+					{
+						case flex_justify_content_center:
+							static_y = (self_size.render_height - el->height()) / 2;
+							break;
+						case flex_justify_content_flex_end:
+						case flex_justify_content_end:
+							static_y = self_size.render_height - el->height();
+							break;
+						default: break;
+					}
+					switch (align_items)
+					{
+						case flex_align_items_center:
+							static_x = (self_size.render_width - el->width()) / 2;
+							break;
+						case flex_align_items_flex_end:
+						case flex_align_items_end:
+							static_x = self_size.render_width - el->width();
+							break;
+						default: break;
+					}
+				}
+
+				el->pos().x = static_x + el->content_offset_left();
+				el->pos().y = static_y + el->content_offset_top();
+			}
 		}
 	}
 

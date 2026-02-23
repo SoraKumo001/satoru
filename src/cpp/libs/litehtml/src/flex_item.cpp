@@ -355,10 +355,24 @@ void litehtml::flex_item_row_direction::perform_render(litehtml::flex_line &ln,
 	if (el->css().get_height().is_predefined())
 	{
 		// If height is auto - render with content size
-		el->render(el->left(), el->top(), child_cb, fmt_ctx);
+		if (self_size.size_mode & containing_block_context::size_mode_measure)
+		{
+			el->measure(child_cb, fmt_ctx);
+		} else
+		{
+			el->measure(child_cb, fmt_ctx);
+			el->place(el->left(), el->top(), child_cb, fmt_ctx);
+		}
 	} else
 	{
-		el->render(el->left(), el->top(), child_cb, fmt_ctx);
+		if (self_size.size_mode & containing_block_context::size_mode_measure)
+		{
+			el->measure(child_cb, fmt_ctx);
+		} else
+		{
+			el->measure(child_cb, fmt_ctx);
+			el->place(el->left(), el->top(), child_cb, fmt_ctx);
+		}
 	}
 }
 
@@ -368,12 +382,20 @@ void litehtml::flex_item_row_direction::align_stretch(flex_line &ln, const conta
 	set_cross_position(ln.cross_start);
 	if (el->css().get_height().is_predefined())
 	{
-		el->render(el->left(), el->top(), self_size.new_width_height(
+		auto cb = self_size.new_width_height(
 				el->pos().width + el->box_sizing_width(),
 				ln.cross_size - el->content_offset_height() + el->box_sizing_height(),
 				containing_block_context::size_mode_exact_width |
 				containing_block_context::size_mode_exact_height
-				), fmt_ctx);
+				);
+		if (self_size.size_mode & containing_block_context::size_mode_measure)
+		{
+			el->measure(cb, fmt_ctx);
+		} else
+		{
+			el->measure(cb, fmt_ctx);
+			el->place(el->left(), el->top(), cb, fmt_ctx);
+		}
 		apply_main_auto_margins();
 	}
 }
@@ -558,11 +580,19 @@ void litehtml::flex_item_column_direction::perform_render(litehtml::flex_line &l
 	{
 		mode |= containing_block_context::size_mode_content;
 	}
-	el->render(el->left(), el->top(), self_size.new_width_height(
+	auto cb = self_size.new_width_height(
 			stretch ? self_size.width : self_size.render_width,
 			main_size - el->content_offset_height() + el->box_sizing_height(),
 			mode
-	), fmt_ctx);
+	);
+	if (self_size.size_mode & containing_block_context::size_mode_measure)
+	{
+		el->measure(cb, fmt_ctx);
+	} else
+	{
+		el->measure(cb, fmt_ctx);
+		el->place(el->left(), el->top(), cb, fmt_ctx);
+	}
 }
 
 void litehtml::flex_item_column_direction::align_stretch(flex_line &ln, const containing_block_context &self_size,
@@ -571,12 +601,20 @@ void litehtml::flex_item_column_direction::align_stretch(flex_line &ln, const co
 	set_cross_position(ln.cross_start);
 	if (el->css().get_width().is_predefined())
 	{
-		el->render(el->left(), el->top(), self_size.new_width_height(
+		auto cb = self_size.new_width_height(
 				ln.cross_size - el->content_offset_width() + el->box_sizing_width(),
 				el->pos().height + el->box_sizing_height(),
 				containing_block_context::size_mode_exact_width |
 				containing_block_context::size_mode_exact_height
-		), fmt_ctx);
+		);
+		if (self_size.size_mode & containing_block_context::size_mode_measure)
+		{
+			el->measure(cb, fmt_ctx);
+		} else
+		{
+			el->measure(cb, fmt_ctx);
+			el->place(el->left(), el->top(), cb, fmt_ctx);
+		}
 		apply_main_auto_margins();
 	}
 }

@@ -350,6 +350,17 @@ void processTags(std::string &svg, SatoruContext &context, const container_skia 
                         result.append("</g>");
                         replaced = true;
                         break;
+                    case satoru::MagicTag::ClipPush:
+                        if (fullIndex > 0 && fullIndex <= (int)container.get_used_clips().size()) {
+                            result.append("<g clip-path=\"url(#clip-path-" +
+                                          std::to_string(fullIndex) + ")\">");
+                            replaced = true;
+                        }
+                        break;
+                    case satoru::MagicTag::ClipPop:
+                        result.append("</g>");
+                        replaced = true;
+                        break;
                     case satoru::MagicTag::TextDraw:
                         if (fullIndex > 0 && fullIndex <= (int)textDraws.size()) {
                             processTextDraw(info, textDraws[fullIndex - 1]);

@@ -28,33 +28,50 @@ litehtml::render_item::render_item(std::shared_ptr<element>  _src_el) :
     m_borders.bottom	= doc->to_pixels(src_el()->css().get_borders().bottom.width, fm, 0);
 }
 
-litehtml::pixel_t litehtml::render_item::render(pixel_t x, pixel_t y, const containing_block_context& containing_block_size, formatting_context* fmt_ctx, bool second_pass)
+litehtml::pixel_t litehtml::render_item::measure(const containing_block_context& containing_block_size, formatting_context* fmt_ctx)
 {
-	pixel_t ret;
-
 	calc_outlines(containing_block_size.width);
+	if(src_el()->is_block_formatting_context() || ! fmt_ctx)
+	{
+		formatting_context fmt;
+		return _measure(containing_block_size, &fmt);
+	} else
+	{
+		return _measure(containing_block_size, fmt_ctx);
+	}
+}
 
-	m_pos.clear();
-	m_pos.move_to(x, y);
-
+void litehtml::render_item::place(pixel_t x, pixel_t y, const containing_block_context& containing_block_size, formatting_context* fmt_ctx)
+{
 	pixel_t content_left = content_offset_left();
 	pixel_t content_top = content_offset_top();
 
-	m_pos.x += content_left;
-	m_pos.y += content_top;
-
+	m_pos.x = x + content_left;
+	m_pos.y = y + content_top;
 
 	if(src_el()->is_block_formatting_context() || ! fmt_ctx)
 	{
 		formatting_context fmt;
-		ret = _render(x, y, containing_block_size, &fmt, second_pass);
+		_place(x, y, containing_block_size, &fmt);
 		fmt.apply_relative_shift(containing_block_size);
 	} else
 	{
 		fmt_ctx->push_position(x + content_left, y + content_top);
-		ret = _render(x, y, containing_block_size, fmt_ctx, second_pass);
+		_place(x, y, containing_block_size, fmt_ctx);
 		fmt_ctx->pop_position(x + content_left, y + content_top);
 	}
+}
+
+litehtml::pixel_t litehtml::render_item::render(pixel_t x, pixel_t y, const containing_block_context& containing_block_size, formatting_context* fmt_ctx, bool second_pass)
+{
+	if (containing_block_size.size_mode & containing_block_context::size_mode_measure)
+	{
+		return measure(containing_block_size, fmt_ctx);
+	}
+
+	pixel_t ret = measure(containing_block_size, fmt_ctx);
+	place(x, y, containing_block_size, fmt_ctx);
+
 	return ret;
 }
 

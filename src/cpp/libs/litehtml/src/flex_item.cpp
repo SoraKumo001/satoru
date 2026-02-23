@@ -361,7 +361,7 @@ void litehtml::flex_item_row_direction::perform_render(litehtml::flex_line &ln,
 		} else
 		{
 			el->measure(child_cb, fmt_ctx);
-			el->place(el->left(), el->top(), child_cb, fmt_ctx);
+			el->place(0, 0, child_cb, fmt_ctx);
 		}
 	} else
 	{
@@ -451,6 +451,7 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 		if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
 		int mode = containing_block_context::size_mode_measure;
 		bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
+		if (!stretch) mode |= containing_block_context::size_mode_content;
 		
 		// When measuring min-height, we must respect the available width to allow correct text wrapping.
 		// Use self_size.render_width as the constraint.
@@ -500,6 +501,8 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 					measure_size.render_height.type = containing_block_context::cbc_value_type_auto;
 					measure_size.size_mode &= ~containing_block_context::size_mode_exact_height;
 					measure_size.size_mode |= containing_block_context::size_mode_measure;
+					bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
+					if (!stretch) measure_size.size_mode |= containing_block_context::size_mode_content;
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
 					el->render(0, 0, measure_size, fmt_ctx ? &fmt_ctx_copy : nullptr);
@@ -591,7 +594,7 @@ void litehtml::flex_item_column_direction::perform_render(litehtml::flex_line &l
 	} else
 	{
 		el->measure(cb, fmt_ctx);
-		el->place(el->left(), el->top(), cb, fmt_ctx);
+		el->place(0, 0, cb, fmt_ctx);
 	}
 }
 

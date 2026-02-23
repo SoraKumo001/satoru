@@ -181,7 +181,8 @@ void el_svg::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position* clip,
     pos.x += x;
     pos.y += y;
 
-    std::string xml = reconstruct_xml(pos.x, pos.y);
+    // XML should not have absolute coordinates if we use canvas->translate or if it's being inserted into another SVG
+    std::string xml = reconstruct_xml(0, 0);
 
     // Replace "currentColor" with actual computed color
     litehtml::web_color color = css().get_color();

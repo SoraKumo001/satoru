@@ -5,6 +5,9 @@
 
 litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t y, bool /*second_pass*/, const containing_block_context &self_size, formatting_context* fmt_ctx)
 {
+	m_pos.width = 0;
+	m_pos.height = 0;
+
 	bool is_row_direction = true;
 	bool reverse = false;
 	
@@ -225,24 +228,21 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	for(auto &ln : m_lines)
 	{
 		// First pass to ensure items have correct height after potential width changes
-		for(auto &item : ln.items)
+		// Only for row direction where main_size is width
+		if (is_row_direction)
 		{
-			pixel_t w = item->main_size - item->el->render_offset_width();
-			if(item->el->css().get_box_sizing() == box_sizing_border_box)
+			for(auto &item : ln.items)
 			{
-				w = item->main_size - item->el->get_margins().width();
-			}
-			containing_block_context child_cb = self_size;
-			child_cb.width = w;
-			child_cb.render_width = w;
-			child_cb.size_mode = containing_block_context::size_mode_exact_width;
-			if (self_size.size_mode & containing_block_context::size_mode_measure)
-			{
+				pixel_t w = item->main_size - item->el->render_offset_width();
+				if(item->el->css().get_box_sizing() == box_sizing_border_box)
+				{
+					w = item->main_size - item->el->get_margins().width();
+				}
+				containing_block_context child_cb = self_size;
+				child_cb.width = w;
+				child_cb.render_width = w;
+				child_cb.size_mode = containing_block_context::size_mode_exact_width;
 				item->el->measure(child_cb, fmt_ctx);
-			} else
-			{
-				item->el->measure(child_cb, fmt_ctx);
-				item->el->place(0, 0, child_cb, fmt_ctx);
 			}
 		}
 
@@ -252,6 +252,11 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 									self_size,
 									fmt_ctx);
 		m_pos.height = std::max(m_pos.height, height);
+	}
+
+	if (self_size.height.type != containing_block_context::cbc_value_type_auto && self_size.height > 0)
+	{
+		m_pos.height = self_size.height;
 	}
 
 	if (!(self_size.size_mode & containing_block_context::size_mode_measure))
@@ -493,7 +498,7 @@ std::shared_ptr<litehtml::render_item> litehtml::render_item_flex::init()
             } else
             {
                 // Wrap inlines with anonymous block box
-                auto anon_el = std::make_shared<html_tag>(el->src_el());
+                auto anon_el = std::make_shared<html_tag>(src_el());
                 auto anon_ri = std::make_shared<render_item_block>(anon_el);
                 anon_ri->add_child(el->init());
                 anon_ri->parent(shared_from_this());

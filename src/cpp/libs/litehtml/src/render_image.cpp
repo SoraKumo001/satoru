@@ -3,10 +3,9 @@
 #include "types.h"
 #include <cstdio>
 
-litehtml::pixel_t litehtml::render_item_image::_render(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* /*fmt_ctx*/, bool /*second_pass*/)
+litehtml::pixel_t litehtml::render_item_image::_measure(const containing_block_context &containing_block_size, formatting_context* /*fmt_ctx*/)
 {
 	containing_block_context self_size = calculate_containing_block_context(containing_block_size);
-    calc_outlines(containing_block_size.width);
 
     litehtml::size sz;
     src_el()->get_content_size(sz, containing_block_size.width);
@@ -59,10 +58,20 @@ litehtml::pixel_t litehtml::render_item_image::_render(pixel_t x, pixel_t y, con
 
     src_el()->css_w().line_height_w().computed_value = height();
 
+    return m_pos.width + content_offset_width();
+}
+
+void litehtml::render_item_image::_place(pixel_t x, pixel_t y, const containing_block_context &/*containing_block_size*/, formatting_context* /*fmt_ctx*/)
+{
     m_pos.move_to(x, y);
     m_pos.x += content_offset_left();
     m_pos.y += content_offset_top();
+}
 
+litehtml::pixel_t litehtml::render_item_image::_render(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx, bool /*second_pass*/)
+{
+	_measure(containing_block_size, fmt_ctx);
+	_place(x, y, containing_block_size, fmt_ctx);
     return m_pos.width + content_offset_width();
 }
 

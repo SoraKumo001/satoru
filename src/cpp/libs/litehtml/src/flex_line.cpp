@@ -386,8 +386,20 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container, 
                         child_cb.width = w;
                         child_cb.render_width = w;
                         child_cb.size_mode = containing_block_context::size_mode_exact_width;
+                        bool stretch = (item->align & 0xFF) == flex_align_items_stretch || (item->align & 0xFF) == flex_align_items_normal;
+                        if (!stretch && item->el->css().get_height().is_predefined())
+                        {
+                            child_cb.size_mode |= containing_block_context::size_mode_content;
+                        }
 
-                        item->el->render(0, 0, child_cb, fmt_ctx, false);        
+                        if (self_size.size_mode & containing_block_context::size_mode_measure)
+                        {
+                            item->el->measure(child_cb, fmt_ctx);
+                        } else
+                        {
+                            item->el->measure(child_cb, fmt_ctx);
+                            item->el->place(0, 0, child_cb, fmt_ctx);
+                        }
 
                         if((item->align & 0xFF) == flex_align_items_baseline)
                         {
@@ -483,13 +495,19 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container, 
                         child_cb.height = h;
                         child_cb.render_height = h;
                         child_cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;
+                        bool stretch = (item->align & 0xFF) == flex_align_items_stretch || (item->align & 0xFF) == flex_align_items_normal;
+                        if (!stretch && item->el->css().get_width().is_predefined())
+                        {
+                            child_cb.size_mode |= containing_block_context::size_mode_content;
+                        }
 
                         if (self_size.size_mode & containing_block_context::size_mode_measure)
                         {
                             item->el->measure(child_cb, fmt_ctx);
                         } else
                         {
-                            item->el->render(0, 0, child_cb, fmt_ctx, false);
+                            item->el->measure(child_cb, fmt_ctx);
+                            item->el->place(0, 0, child_cb, fmt_ctx);
                         }
                         if(main_size != 0) main_size += main_gap;
                         main_size += item->el->height();

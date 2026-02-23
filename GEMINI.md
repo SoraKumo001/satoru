@@ -46,7 +46,11 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - `src/cpp/libs`: External libraries (`litehtml`, `skia`).
 
 ### 3.2 Rendering Pipelines
-- **SVG (2-Pass)**: Measurement -> Drawing to `SkSVGCanvas` -> Regex Post-Processing.
+- **Unified Layout Pipeline (O(N) Optimization)**: Decoupled `measure()` (size calculation) and `place()` (positioning) methods in `render_item`.
+  - **Complexity**: Reduced from exponential $O(2^n)$ to linear $O(N)$ by preventing redundant recursive layout calls.
+  - **Measure Pass**: Calculates `m_pos.width/height` using `BoxConstraints` (via `size_mode_measure`).
+  - **Place Pass**: Determines `m_pos.x/y` based on measured sizes and parent container logic (Flex, Block, etc.).
+- **SVG Pipeline**: Measurement -> Drawing to `SkSVGCanvas` -> Regex Post-Processing.
   - **Text Handling**: Defaults to retaining `<text>` elements (`textToPaths: false`). Use `--outline` in CLI to force paths.
   - **Glyph Reuse**: When `textToPaths` is enabled, common glyph shapes are stored in `container_skia` and emitted as `<path>` elements in `<defs>`. Individual glyphs are rendered via `<use xlink:href="#glyph-N">`.
   - **Style Recovery**: Since Skia's SVG backend doesn't support complex CSS effects, styles (color, weight, italic, shadow) are encoded into "Magic Colors" during drawing and restored during regex post-processing using `glyph_draw_info`.

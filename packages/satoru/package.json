@@ -17,6 +17,10 @@
         "types": "./dist/workerd.d.ts",
         "import": "./dist/workerd.js"
       },
+      "deno": {
+        "types": "./dist/single.d.ts",
+        "import": "./dist/single.js"
+      },
       "single": {
         "types": "./dist/single.d.ts",
         "import": "./dist/single.js"

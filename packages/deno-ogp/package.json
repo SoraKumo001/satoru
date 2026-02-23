@@ -1,0 +1,16 @@
+{
+  "name": "deno-ogp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "deno task dev"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "satoru": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14"
+  }
+}

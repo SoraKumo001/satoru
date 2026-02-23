@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { createSatoruWorker, LogLevel, DEFAULT_FONT_MAP } from "satoru";
+import { DEFAULT_FONT_MAP } from "satoru";
+import { createSatoruWorker, LogLevel } from "satoru/workers";
 
 const satoru = createSatoruWorker({
   maxParallel: 1,

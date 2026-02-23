@@ -8,8 +8,6 @@ export type {
   ResourceResolver,
   RenderOptions,
 } from "./index.js";
-export { createSatoruWorker } from "./workers.js";
-export type { SatoruWorker } from "./child-workers.js";
 
 /**
  * Single-file specialized wrapper for Satoru.

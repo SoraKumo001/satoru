@@ -3,12 +3,7 @@ import type { SatoruWorker } from "./child-workers.js";
 export type { SatoruWorker } from "./child-workers.js";
 import { type RenderOptions } from "./index.js";
 export { Satoru } from "./index.js";
-export type {
-  SatoruModule,
-  RequiredResource,
-  ResourceResolver,
-  RenderOptions,
-} from "./index.js";
+export * from "./index.js";
 export * from "./log-level.js";
 
 /**

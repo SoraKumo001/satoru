@@ -28,89 +28,6 @@ The engine supports full text layout with custom fonts, complex CSS styling, and
   - **Text Decoration**: Supports `underline`, `line-through`, `overline` with `solid`, `dotted`, and `dashed` styles.
   - **Text Shadow**: Multiple shadows with blur, offset, and color support (PNG/SVG/PDF).
 
-## 📋 Supported CSS Properties
-
-Satoru supports a wide range of CSS properties for high-fidelity layout and styling.
-
-### Box Model & Layout
-
-- `display`, `position`, `float`, `clear`, `visibility`, `z-index`, `overflow`, `box-sizing`
-- `width`, `height`, `min-width`, `min-height`, `max-width`, `max-height`
-- `margin` (top, right, bottom, left)
-- `padding` (top, right, bottom, left)
-
-### Typography & Text
-
-- `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`
-- `text-align`, `vertical-align`, `text-decoration` (line, color, style, thickness)
-- `text-transform`, `text-indent`, `text-overflow`, `white-space`
-- `text-shadow`
-- `line-clamp` / `-webkit-line-clamp`, `-webkit-box-orient`
-
-### Backgrounds
-
-- `background-color`
-- `background-image` (Supports `url()`, `linear-gradient`, `radial-gradient`, `conic-gradient`)
-- `background-position`, `background-size`, `background-repeat`, `background-attachment`
-
-### Borders & Shadows
-
-- `border`, `border-width`, `border-style`, `border-color` (top, right, bottom, left)
-- `border-radius` (Full support for all corners)
-- `border-collapse`, `border-spacing`
-- `box-shadow` (High-quality **Outer** and **Inset** shadows)
-
-### Flexbox
-
-- `display: flex`, `display: inline-flex`
-- `flex-direction`, `flex-wrap`, `flex-flow`
-- `justify-content`, `align-items`, `align-content`, `align-self`
-- `flex-grow`, `flex-shrink`, `flex-basis`, `flex`
-- `row-gap`, `column-gap`, `gap`, `order`
-
-### Others
-
-- `caption-side`, `content`, `appearance`
-
-## 🔄 Conversion Flow
-
-The following diagram illustrates how Satoru processes HTML/CSS into vector or raster outputs:
-
-```mermaid
-graph TD
-    subgraph Host [JS/TS Host / Edge Worker]
-        A[Load Fonts & Images] --> B[Satoru Wrapper Class]
-    end
-
-    subgraph WASM [Satoru Wasm Engine]
-        B --> C[Parse HTML/CSS<br/>gumbo + litehtml]
-        C --> D[Compute Layout<br/>litehtml Reflow]
-
-        D --> E{Output Format?}
-
-        subgraph SVG_Path [SVG Vector Pipeline]
-            E -- SVG --> F[2-Pass Render:<br/>Measure & Draw]
-            F --> G[Regex Post-process:<br/>Inject Shadows & Filters]
-        end
-
-        subgraph WASM_Raster_Path [Binary Pipeline]
-            E -- PNG/PDF --> H[SkDocument/SkSurface:<br/>Measure & Draw]
-            H -- PNG --> I[SkImage: Encode]
-            H -- PDF --> J[SkPDF: Generate]
-            I --> K[Shared Binary Buffer]
-            J --> K
-        end
-    end
-
-    G --> L[Final SVG Output]
-    K --> M[Final Binary Output<br/>PNG/PDF]
-
-    style Host fill:#e1f5fe,stroke:#01579b
-    style WASM fill:#fff3e0,stroke:#e65100
-    style SVG_Path fill:#f3e5f5,stroke:#4a148c
-    style WASM_Raster_Path fill:#e8f5e9,stroke:#1b5e20
-```
-
 ## 🛠️ Usage (TypeScript)
 
 ### Standard Environment (Node.js / Browser)
@@ -162,22 +79,22 @@ const png = await render({
 
 #### Render Options
 
-| Option            | Type                                | Description                                                              |
-| ----------------- | ----------------------------------- | ------------------------------------------------------------------------ |
-| `value`           | `string \| string[]`                | HTML string or array of HTML strings. (One of `value` or `url` is required) |
-| `url`             | `string`                            | URL to fetch HTML from. (One of `value` or `url` is required)            |
-| `width`           | `number`                            | **Required.** Width of the output in pixels.                             |
-| `height`          | `number`                            | Height of the output in pixels. Default is `0` (automatic height).       |
-| `format`          | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default is `"svg"`.                                       |
-| `textToPaths`     | `boolean`                           | Whether to convert SVG text to paths. Default is `true`.                 |
+| Option            | Type                                | Description                                                                                                                                                                                             |
+| ----------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`           | `string \| string[]`                | HTML string or array of HTML strings. (One of `value` or `url` is required)                                                                                                                             |
+| `url`             | `string`                            | URL to fetch HTML from. (One of `value` or `url` is required)                                                                                                                                           |
+| `width`           | `number`                            | **Required.** Width of the output in pixels.                                                                                                                                                            |
+| `height`          | `number`                            | Height of the output in pixels. Default is `0` (automatic height).                                                                                                                                      |
+| `format`          | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default is `"svg"`.                                                                                                                                                                      |
+| `textToPaths`     | `boolean`                           | Whether to convert SVG text to paths. Default is `true`.                                                                                                                                                |
 | `resolveResource` | `ResourceResolver`                  | Async callback to fetch missing fonts, images, or CSS. Returns `Uint8Array`, `ArrayBufferView` or `null`. It receives a second argument `defaultResolver` to fallback to the standard resolution logic. |
-| `fonts`           | `Object[]`                          | Array of `{ name, data: Uint8Array }` to pre-load fonts.                 |
-| `images`          | `Object[]`                          | Array of `{ name, url, width?, height? }` to pre-load images.            |
-| `css`             | `string`                            | Extra CSS to inject into the rendering process.                          |
-| `baseUrl`         | `string`                            | Base URL used to resolve relative URLs in fonts, images, and links.      |
-| `userAgent`       | `string`                            | User-Agent header for fetching resources (Node.js environment).          |
-| `logLevel`        | `LogLevel`                          | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`).         |
-| `onLog`           | `(level, msg) => void`              | Custom callback for receiving log messages.                              |
+| `fonts`           | `Object[]`                          | Array of `{ name, data: Uint8Array }` to pre-load fonts.                                                                                                                                                |
+| `images`          | `Object[]`                          | Array of `{ name, url, width?, height? }` to pre-load images.                                                                                                                                           |
+| `css`             | `string`                            | Extra CSS to inject into the rendering process.                                                                                                                                                         |
+| `baseUrl`         | `string`                            | Base URL used to resolve relative URLs in fonts, images, and links.                                                                                                                                     |
+| `userAgent`       | `string`                            | User-Agent header for fetching resources (Node.js environment).                                                                                                                                         |
+| `logLevel`        | `LogLevel`                          | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`).                                                                                                                                        |
+| `onLog`           | `(level, msg) => void`              | Custom callback for receiving log messages.                                                                                                                                                             |
 
 ### 💻 CLI Usage
 
@@ -225,7 +142,7 @@ const pdf = await satoru.render({
 Satoru is optimized for Cloudflare Workers. Use the `workerd` specific export which handles the specific WASM instantiation requirements of the environment.
 
 ```typescript
-import { render } from "satoru/workerd";
+import { render } from "satoru";
 
 export default {
   async fetch(request) {
@@ -248,7 +165,7 @@ export default {
 For environments where deploying a separate `.wasm` file is difficult, use the `single` export which includes the WASM binary embedded.
 
 ```typescript
-import { render } from "satoru/single";
+import { render } from "satoru";
 
 const png = await render({
   value: "<div>Embedded WASM!</div>",
@@ -262,7 +179,7 @@ const png = await render({
 For high-throughput applications, the Worker proxy distributes rendering tasks across multiple threads. You can configure all resources in a single `render` call for stateless operation.
 
 ```typescript
-import { createSatoruWorker, LogLevel } from "satoru";
+import { createSatoruWorker, LogLevel } from "satoru/workers";
 
 // Create a worker proxy with up to 4 parallel instances
 const satoru = createSatoruWorker({ maxParallel: 4 });
@@ -335,6 +252,7 @@ pnpm build
 ## 🗺️ Roadmap
 
 ### Core Engine
+
 - [x] High-level TypeScript Wrapper API with automatic resource resolution.
 - [x] **Engine State Persistence (Serialize/Deserialize Layout).**
 - [x] Improved Font Fallback & Generic Family Mapping.
@@ -342,6 +260,7 @@ pnpm build
 - [x] Multi-threaded rendering via Worker Proxy.
 
 ### Rendering Features
+
 - [x] Binary PNG & **WebP** export support.
 - [x] **High-fidelity PDF export via Skia's PDF backend (Single & Multi-page).**
 - [x] Linear, Elliptical Radial & Conic Gradient support.
@@ -353,6 +272,7 @@ pnpm build
 - [ ] Support for `aspect-ratio` property.
 
 ### Platform & Integration
+
 - [x] **Cloudflare Workers (workerd) compatibility.**
 - [x] React Integration (JSX to HTML conversion).
 - [x] Japanese Language Rendering & Standard HTML Tag Support.

@@ -51,7 +51,8 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
   - **Core Pass Separation**: The layout process is split into two distinct, linear traversals:
     1. **Measure Pass**: Calculates `m_pos.width/height` using `BoxConstraints` (via `size_mode_measure`).
     2. **Place Pass**: Determines `m_pos.x/y` based on measured sizes and container logic.
-  - **Complexity**: Reduced from exponential $O(2^n)$ to linear $O(N)$ by preventing redundant recursive layout calls.
+  - **Caching Mechanism**: Implemented caching for `containing_block_context` and measurement results in `render_item`. This prevents redundant calculations when `measure` is called multiple times (e.g., during the transition from measure to place pass or during table/flex resolution).
+  - **Complexity**: Strictly guaranteed linear $O(N)$ by preventing redundant recursive layout calls and utilizing cached states.
 - **Flexbox Algorithm (W3C Compliant)**: Fully refactored to follow the multi-step W3C Flexbox resolution process:
   1. **Base Sizing**: Determine `flex_base_size` and `hypothetical_main_size` for each item.
   2. **Main Axis Resolution**: Resolve flexible lengths (`flex-grow`/`flex-shrink`) using a re-distribution loop with `min`/`max` constraints.
@@ -131,4 +132,5 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - [x] **Phase 4: Lightweight Anonymous Boxes** (`el_anonymous` introduction).
 - [x] **Phase 5: Centering Bug Fixes** (Preserved `size_mode_exact` flags in `calculate_containing_block_context`).
 - [x] **Phase 6: Visual Validation** (Verified all core assets and shadow clipping fixes).
+- [x] **Phase 7: Pipeline Optimization & Caching** (Eliminated redundant `render()` calls and implemented layout state caching).
 

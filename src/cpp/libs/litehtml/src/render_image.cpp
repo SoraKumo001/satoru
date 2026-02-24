@@ -5,7 +5,7 @@
 
 litehtml::pixel_t litehtml::render_item_image::_measure(const containing_block_context &containing_block_size, formatting_context* /*fmt_ctx*/)
 {
-	containing_block_context self_size = calculate_containing_block_context(containing_block_size);
+	containing_block_context self_size = m_self_size;
 
     litehtml::size sz;
     src_el()->get_content_size(sz, containing_block_size.width);

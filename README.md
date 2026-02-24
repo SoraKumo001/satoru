@@ -269,7 +269,7 @@ pnpm --filter visual-test test
 
 ### Features & Optimization (In Progress / Future)
 
-- [ ] **Optimization & Refactoring (Layout Pipeline)**:
+- [x] **Optimization & Refactoring (Layout Pipeline)**:
   - Eliminate redundant `_render` virtual functions and fully transition to the 2-pass `measure`/`place` pipeline.
   - Fix performance degradation where `measure` is re-called during the `place` pass (re-achieving true $O(N)$ complexity).
   - Cache calculated `containing_block_context` and margins/paddings/borders across layout passes to reduce CPU cycles.

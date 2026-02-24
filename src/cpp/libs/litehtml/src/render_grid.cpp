@@ -159,30 +159,24 @@ struct grid_line
         }
     }
 };
-
-struct grid_item_pos
-{
-    int col_start = 0;
-    int col_end = 0;
-    int row_start = 0;
-    int row_end = 0;
-};
 }
 
-pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pass*/, const containing_block_context &self_size, formatting_context* fmt_ctx)
+void litehtml::render_item_grid::calculate_grid_layout(const containing_block_context& self_size, formatting_context* fmt_ctx)
 {
+    m_grid_layout.clear();
+
     const auto& columns_template = css().get_grid_template_columns();
     const auto& rows_template = css().get_grid_template_rows();
 
     int num_columns = (int)columns_template.size();
     if (num_columns == 0) num_columns = 1;
 
-    m_column_widths.assign(num_columns, 0);
+    m_grid_layout.column_widths.assign(num_columns, 0);
     float total_fr = 0;
     pixel_t fixed_width = 0;
 
-    m_column_gap = css().get_column_gap().calc_percent(self_size.render_width);
-    pixel_t row_gap = css().get_row_gap().calc_percent(self_size.render_height);
+    m_grid_layout.column_gap = css().get_column_gap().calc_percent(self_size.render_width);
+    m_grid_layout.row_gap = css().get_row_gap().calc_percent(self_size.render_height);
 
     // Calculate fixed and percentage columns
     for (int i = 0; i < (int)columns_template.size(); i++)
@@ -194,12 +188,12 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
         }
         else
         {
-            m_column_widths[i] = len.calc_percent(self_size.render_width);
-            fixed_width += m_column_widths[i];
+            m_grid_layout.column_widths[i] = len.calc_percent(self_size.render_width);
+            fixed_width += m_grid_layout.column_widths[i];
         }
     }
     
-    fixed_width += m_column_gap * (num_columns - 1);
+    fixed_width += m_grid_layout.column_gap * (num_columns - 1);
 
     // Distribute remaining space to fr columns
     if (total_fr > 0)
@@ -211,22 +205,16 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
             const auto& len = columns_template[i];
             if (len.units() == css_units_fr)
             {
-                m_column_widths[i] = remaining_width * (len.val() / total_fr);
+                m_grid_layout.column_widths[i] = remaining_width * (len.val() / total_fr);
             }
         }
     }
     else if (columns_template.empty())
     {
-        m_column_widths[0] = self_size.render_width;
+        m_grid_layout.column_widths[0] = self_size.render_width;
     }
 
     // Determine placements and number of rows
-    struct item_placement
-    {
-        std::shared_ptr<render_item> el;
-        grid_item_pos pos;
-    };
-    vector<item_placement> placements;
     int max_row = 0;
 
     // Occupancy map: row -> vector<bool> (cols)
@@ -302,7 +290,7 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
             item_row_span = re.index - rs.index;
         }
 
-        // Auto placement: find a big enough empty rectangle
+        // Auto placement
         if (cs.index <= 0 && !cs.is_span)
         {
             bool found = false;
@@ -333,7 +321,6 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
                     item_col_start = curr_col;
                     item_row_start = curr_row;
                     found = true;
-                    // Move cursor for next auto-placed item
                     curr_col += item_col_span;
                 }
                 else
@@ -349,7 +336,6 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
         }
         else if (cs.is_span && cs.index <= 0)
         {
-            // Handle span without fixed start
             bool found = false;
             while (!found)
             {
@@ -394,15 +380,15 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
 
         mark_occupied(item_row_start, item_col_start, item_row_span, item_col_span);
         
-        item_placement p;
-        p.el = el;
-        p.pos = { item_col_start, item_col_start + item_col_span, item_row_start, item_row_start + item_row_span };
-        placements.push_back(p);
-        max_row = std::max(max_row, p.pos.row_end);
+        grid_item item;
+        item.el = el;
+        item.pos = { item_col_start, item_col_start + item_col_span, item_row_start, item_row_start + item_row_span };
+        m_grid_layout.items.push_back(item);
+        max_row = std::max(max_row, item.pos.row_end);
     }
 
     int num_rows = std::max((int)rows_template.size(), max_row);
-    vector<pixel_t> row_heights(num_rows, 0);
+    m_grid_layout.row_heights.assign(num_rows, 0);
     float total_row_fr = 0;
     pixel_t fixed_height = 0;
 
@@ -416,13 +402,13 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
         }
         else
         {
-            row_heights[i] = len.calc_percent(self_size.render_height);
-            fixed_height += row_heights[i];
+            m_grid_layout.row_heights[i] = len.calc_percent(self_size.render_height);
+            fixed_height += m_grid_layout.row_heights[i];
         }
     }
-    fixed_height += row_gap * (num_rows - 1);
+    fixed_height += m_grid_layout.row_gap * (num_rows - 1);
 
-    // Distribute remaining space to fr rows if container height is fixed
+    // Distribute remaining space to fr rows
     if (total_row_fr > 0 && self_size.render_height.type != containing_block_context::cbc_value_type_auto)
     {
         pixel_t remaining_height = self_size.render_height - fixed_height;
@@ -432,120 +418,100 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
             const auto& len = rows_template[i];
             if (len.units() == css_units_fr)
             {
-                row_heights[i] = remaining_height * (len.val() / total_row_fr);
+                m_grid_layout.row_heights[i] = remaining_height * (len.val() / total_row_fr);
             }
         }
     }
 
-    // Use relative coordinates (0,0) as the base for child rendering.
-    // litehtml's render(x, y) adds these to the parent's position internally.
-    pixel_t base_rel_x = 0;
-    pixel_t base_rel_y = 0;
-
-    // First pass: render items to determine required heights
-    for (auto& p : placements)
+    // Measure pass
+    for (auto& item : m_grid_layout.items)
     {
         pixel_t cell_width = 0;
-        for (int i = p.pos.col_start; i < p.pos.col_end && i < num_columns; i++)
+        for (int i = item.pos.col_start; i < item.pos.col_end && i < num_columns; i++)
         {
-            cell_width += m_column_widths[i];
-            if (i > p.pos.col_start) cell_width += m_column_gap;
+            cell_width += m_grid_layout.column_widths[i];
+            if (i > item.pos.col_start) cell_width += m_grid_layout.column_gap;
         }
 
         containing_block_context cb = self_size;
-        // Available content width = cell_width - margins - borders - padding
-        cb.render_width = cell_width - p.el->margin_left() - p.el->margin_right() - p.el->content_offset_width();
+        cb.render_width = cell_width - item.el->margin_left() - item.el->margin_right() - item.el->content_offset_width();
         cb.width = cb.render_width;
         cb.height = containing_block_context::cbc_value_type_auto;
+        cb.size_mode |= containing_block_context::size_mode_measure;
 
-        // Render at (0,0) relative to parent to measure content height.
-        p.el->measure(cb, fmt_ctx);
+        item.el->measure(cb, fmt_ctx);
     }
 
-    // Distribute heights: process 1-row items first, then spans
+    // Distribute heights
     for (int span = 1; span <= num_rows; span++)
     {
-        for (auto& p : placements)
+        for (auto& item : m_grid_layout.items)
         {
-            int item_span = p.pos.row_end - p.pos.row_start;
-            if (item_span != span) continue;
+            if (item.pos.row_span() != span) continue;
 
-            // total_h should be the margin-box height
-            pixel_t total_h = p.el->height();
-            
-            // Heuristic: Ensure a minimum height based on font size and content offsets 
-            // to handle cases where fonts are not yet loaded.
-            pixel_t min_content_h = p.el->src_el()->css().get_font_size() * 1.2f;
-            pixel_t min_h = min_content_h + p.el->content_offset_height() + p.el->margin_top() + p.el->margin_bottom();
+            pixel_t total_h = item.el->height();
+            pixel_t min_content_h = item.el->src_el()->css().get_font_size() * 1.2f;
+            pixel_t min_h = min_content_h + item.el->content_offset_height() + item.el->margin_top() + item.el->margin_bottom();
             if (total_h < min_h) total_h = min_h;
 
             pixel_t current_total = 0;
-            for (int i = p.pos.row_start; i < p.pos.row_end && i < num_rows; i++)
+            for (int i = item.pos.row_start; i < item.pos.row_end && i < num_rows; i++)
             {
-                current_total += row_heights[i];
-                if (i > p.pos.row_start) current_total += row_gap;
+                current_total += m_grid_layout.row_heights[i];
+                if (i > item.pos.row_start) current_total += m_grid_layout.row_gap;
             }
 
             if (total_h > current_total)
             {
                 pixel_t diff = total_h - current_total;
-                for (int i = p.pos.row_start; i < p.pos.row_end && i < num_rows; i++)
+                for (int i = item.pos.row_start; i < item.pos.row_end && i < num_rows; i++)
                 {
-                    row_heights[i] += diff / item_span;
+                    m_grid_layout.row_heights[i] += diff / span;
                 }
             }
         }
     }
 
-    // Calculate total grid size for justify-content/align-content
+    // Calculate totals
     pixel_t acc_x = 0;
-    for (int i = 0; i < num_columns; i++) { acc_x += m_column_widths[i] + m_column_gap; }
+    for (int i = 0; i < num_columns; i++) { acc_x += m_grid_layout.column_widths[i] + m_grid_layout.column_gap; }
     pixel_t acc_y = 0;
-    for (int i = 0; i < num_rows; i++) { acc_y += row_heights[i] + row_gap; }
+    for (int i = 0; i < num_rows; i++) { acc_y += m_grid_layout.row_heights[i] + m_grid_layout.row_gap; }
 
-    pixel_t total_grid_width = acc_x > 0 ? acc_x - m_column_gap : 0;
-    pixel_t total_grid_height = acc_y > 0 ? acc_y - row_gap : 0;
+    m_grid_layout.total_grid_width = acc_x > 0 ? acc_x - m_grid_layout.column_gap : 0;
+    m_grid_layout.total_grid_height = acc_y > 0 ? acc_y - m_grid_layout.row_gap : 0;
 
-    // Second pass: final placement with relative coordinates
-    m_col_offsets.assign(num_columns, 0);
-    vector<pixel_t> row_offsets(num_rows, 0);
-    
-	if (self_size.size_mode & containing_block_context::size_mode_measure)
-	{
-		m_pos.height = (self_size.render_height.type != containing_block_context::cbc_value_type_auto) ? (pixel_t)self_size.render_height : total_grid_height;
-		m_pos.width = self_size.render_width;
-		return m_pos.height;
-	}
+    // Offsets
+    m_grid_layout.col_offsets.assign(num_columns, 0);
+    m_grid_layout.row_offsets.assign(num_rows, 0);
 
     pixel_t extra_x = 0;
     pixel_t extra_y = 0;
-    pixel_t justify_gap = m_column_gap;
-    pixel_t align_gap = row_gap;
+    pixel_t justify_gap = m_grid_layout.column_gap;
+    pixel_t align_gap = m_grid_layout.row_gap;
 
-    // justify-content
     auto jc = css().get_flex_justify_content();
-    if (jc == flex_justify_content_center) extra_x = (self_size.render_width - total_grid_width) / 2;
-    else if (jc == flex_justify_content_end || jc == flex_justify_content_flex_end) extra_x = self_size.render_width - total_grid_width;
-    else if (jc == flex_justify_content_space_between && num_columns > 1) justify_gap += (self_size.render_width - total_grid_width) / (num_columns - 1);
+    if (jc == flex_justify_content_center) extra_x = (self_size.render_width - m_grid_layout.total_grid_width) / 2;
+    else if (jc == flex_justify_content_end || jc == flex_justify_content_flex_end) extra_x = self_size.render_width - m_grid_layout.total_grid_width;
+    else if (jc == flex_justify_content_space_between && num_columns > 1) justify_gap += (self_size.render_width - m_grid_layout.total_grid_width) / (num_columns - 1);
     else if (jc == flex_justify_content_space_around && num_columns > 0)
     {
-        pixel_t diff = self_size.render_width - total_grid_width;
+        pixel_t diff = self_size.render_width - m_grid_layout.total_grid_width;
         extra_x = diff / (num_columns * 2);
         justify_gap += diff / num_columns;
     }
     else if (jc == flex_justify_content_space_evenly && num_columns > 0)
     {
-        pixel_t diff = self_size.render_width - total_grid_width;
+        pixel_t diff = self_size.render_width - m_grid_layout.total_grid_width;
         extra_x = diff / (num_columns + 1);
         justify_gap += diff / (num_columns + 1);
     }
 
-    // align-content
     auto ac = css().get_flex_align_content();
     if (self_size.render_height.type != containing_block_context::cbc_value_type_auto)
     {
         pixel_t container_h = self_size.render_height;
-        pixel_t diff = container_h - total_grid_height;
+        pixel_t diff = container_h - m_grid_layout.total_grid_height;
         if (ac == flex_align_content_center) extra_y = diff / 2;
         else if (ac == flex_align_content_end || ac == flex_align_content_flex_end) extra_y = diff;
         else if (ac == flex_align_content_space_between && num_rows > 1) align_gap += diff / (num_rows - 1);
@@ -562,46 +528,64 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
     }
 
     acc_x = extra_x;
-    for (int i = 0; i < num_columns; i++) { m_col_offsets[i] = acc_x; acc_x += m_column_widths[i] + justify_gap; }
+    for (int i = 0; i < num_columns; i++) { m_grid_layout.col_offsets[i] = acc_x; acc_x += m_grid_layout.column_widths[i] + justify_gap; }
     acc_y = extra_y;
-    for (int i = 0; i < num_rows; i++) { row_offsets[i] = acc_y; acc_y += row_heights[i] + align_gap; }
+    for (int i = 0; i < num_rows; i++) { m_grid_layout.row_offsets[i] = acc_y; acc_y += m_grid_layout.row_heights[i] + align_gap; }
+}
 
-    for (auto& p : placements)
+void litehtml::render_item_grid::place_grid_items(pixel_t x, pixel_t y, const containing_block_context& self_size, formatting_context* fmt_ctx)
+{
+    int num_columns = (int)m_grid_layout.column_widths.size();
+    int num_rows = (int)m_grid_layout.row_heights.size();
+
+    for (auto& item : m_grid_layout.items)
     {
-        pixel_t item_rel_x = m_col_offsets[p.pos.col_start];
-        pixel_t item_rel_y = row_offsets[p.pos.row_start];
+        pixel_t item_rel_x = m_grid_layout.col_offsets[item.pos.col_start];
+        pixel_t item_rel_y = m_grid_layout.row_offsets[item.pos.row_start];
         
         pixel_t cell_width = 0;
-        for (int i = p.pos.col_start; i < p.pos.col_end && i < num_columns; i++)
+        for (int i = item.pos.col_start; i < item.pos.col_end && i < num_columns; i++)
         {
-            cell_width += m_column_widths[i];
-            if (i > p.pos.col_start) cell_width += m_column_gap;
+            cell_width += m_grid_layout.column_widths[i];
+            if (i > item.pos.col_start) cell_width += m_grid_layout.column_gap;
         }
         pixel_t cell_height = 0;
-        for (int i = p.pos.row_start; i < p.pos.row_end && i < num_rows; i++)
+        for (int i = item.pos.row_start; i < item.pos.row_end && i < num_rows; i++)
         {
-            cell_height += row_heights[i];
-            if (i > p.pos.row_start) cell_height += row_gap;
+            cell_height += m_grid_layout.row_heights[i];
+            if (i > item.pos.row_start) cell_height += m_grid_layout.row_gap;
         }
 
         containing_block_context cb = self_size;
-        cb.render_width = cell_width - p.el->margin_left() - p.el->margin_right() - p.el->content_offset_width();
+        cb.render_width = cell_width - item.el->margin_left() - item.el->margin_right() - item.el->content_offset_width();
         cb.width = cb.render_width;
-        cb.render_height = cell_height - p.el->margin_top() - p.el->margin_bottom() - p.el->content_offset_height();
+        cb.render_height = cell_height - item.el->margin_top() - item.el->margin_bottom() - item.el->content_offset_height();
         cb.height = cb.render_height;
         cb.size_mode |= containing_block_context::size_mode_exact_height;
         cb.size_mode |= containing_block_context::size_mode_exact_width;
 
-        // Render at relative coordinates. render() adds margins/offsets internally.
-        p.el->measure(cb, fmt_ctx);
-        p.el->place(base_rel_x + item_rel_x, base_rel_y + item_rel_y, cb, fmt_ctx);
+        item.el->measure(cb, fmt_ctx);
+        item.el->place(x + item_rel_x, y + item_rel_y, cb, fmt_ctx);
+    }
+}
+
+pixel_t litehtml::render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pass*/, const containing_block_context &self_size, formatting_context* fmt_ctx)
+{
+    if (self_size.size_mode & containing_block_context::size_mode_measure)
+    {
+        calculate_grid_layout(self_size, fmt_ctx);
+    }
+    else
+    {
+        place_grid_items(0, 0, self_size, fmt_ctx);
     }
 
-    m_pos.height = (self_size.render_height.type != containing_block_context::cbc_value_type_auto) ? (pixel_t)self_size.render_height : total_grid_height;
     m_pos.width = self_size.render_width;
+    m_pos.height = (self_size.render_height.type != containing_block_context::cbc_value_type_auto) ? (pixel_t)self_size.render_height : m_grid_layout.total_grid_height;
 
-    return m_pos.height;
+    return m_grid_layout.total_grid_width;
 }
+
 
 void render_item_grid::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, const position* clip, draw_flag flag, int zindex)
 {
@@ -610,7 +594,7 @@ void render_item_grid::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, const p
     if (flag == draw_block && zindex == 0)
     {
         const css_border& rule = src_el()->css().get_column_rule();
-        if (rule.style != border_style_none && rule.style != border_style_hidden && m_column_widths.size() > 1)
+        if (rule.style != border_style_none && rule.style != border_style_hidden && m_grid_layout.column_widths.size() > 1)
         {
             pixel_t rule_width = rule.width.val(); // Already converted to px
             if (rule_width <= 0) rule_width = 1;
@@ -619,11 +603,11 @@ void render_item_grid::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, const p
             pos.x += x - get_scroll_left();
             pos.y += y - get_scroll_top();
 
-            for (size_t i = 0; i < m_column_widths.size() - 1; i++)
+            for (size_t i = 0; i < m_grid_layout.column_widths.size() - 1; i++)
             {
                 // The gap is between column i and column i+1
-                pixel_t gap_start = m_col_offsets[i] + m_column_widths[i];
-                pixel_t gap_end = m_col_offsets[i + 1];
+                pixel_t gap_start = m_grid_layout.col_offsets[i] + m_grid_layout.column_widths[i];
+                pixel_t gap_end = m_grid_layout.col_offsets[i + 1];
                 
                 // Position the rule in the center of the actual gap
                 pixel_t rule_x = pos.x + (gap_start + gap_end - rule_width) / 2;

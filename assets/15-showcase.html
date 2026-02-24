@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Noto+Sans+Arabic:wght@400&display=swap');
+
+    :root {
+      --primary: #4f46e5;
+      --secondary: #ec4899;
+      --accent: #f59e0b;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+      background-color: var(--bg);
+      margin: 0;
+      padding: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      display: flex;
+      flex-direction: row;
+      border: 1px solid #e2e8f0;
+    }
+
+    .image-side {
+      width: 300px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 48px;
+      font-weight: bold;
+      position: relative;
+    }
+
+    .content-side {
+      flex: 1;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .badge-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-blue {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge-pink {
+      background: #fce7f3;
+      color: #9d174d;
+    }
+
+    .badge-orange {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      color: #1e293b;
+      line-height: 1.2;
+    }
+
+    .description {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #475569;
+    }
+
+    /* 複雑なテキスト装飾のデモ */
+    .rich-text {
+      font-size: 18px;
+      padding: 20px;
+      background: #f1f5f9;
+      border-left: 4px solid var(--primary);
+      border-radius: 8px;
+    }
+
+    .highlight-bold {
+      font-weight: 900;
+      color: var(--primary);
+    }
+
+    .highlight-italic {
+      font-style: italic;
+      color: var(--secondary);
+    }
+
+    .highlight-wavy {
+      text-decoration: underline wavy var(--accent);
+    }
+
+    .highlight-shadow {
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .price-row {
+      margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .price {
+      font-size: 36px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .currency {
+      font-size: 18px;
+      font-weight: 400;
+      color: #64748b;
+      margin-left: 4px;
+    }
+
+    .btn {
+      background: #1e293b;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      text-align: center;
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- カード1: Flexboxとテキスト装飾 -->
+    <div class="card">
+      <div class="image-side">
+        S
+      </div>
+      <div class="content-side">
+        <div class="badge-list">
+          <span class="badge badge-blue">Layout</span>
+          <span class="badge badge-pink">Typography</span>
+          <span class="badge badge-orange">High-Fidelity</span>
+        </div>
+        <h1>Satoru Engine Showcase</h1>
+        <p class="description">
+          Satoru is an <span class="highlight-bold">ultra-lightweight</span> and <span
+            class="highlight-italic">high-performance</span> HTML/CSS renderer running on WebAssembly.
+        </p>
+
+        <div class="rich-text">
+          This sentence contains <span class="highlight-bold">bold emphasis</span>, <span
+            class="highlight-italic">italic accents</span>, and <span class="highlight-wavy">wavy underline
+            decorations</span> mixed together, and even <span class="highlight-shadow">drop shadows</span> are applied.
+        </div>
+
+        <div class="price-row">
+          <div>
+            <span class="price">2,400</span><span class="currency">TPS</span>
+          </div>
+          <a href="#" class="btn">Get Started</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- カード2: グリッド風のFlexレイアウトと国際化 -->
+    <div class="card" style="flex-direction: column; padding: 32px;">
+      <h2 style="margin: 0 0 24px 0;">Multi-language & Complex Shaping</h2>
+      <div style="display: flex; gap: 20px;">
+        <div style="flex: 1; padding: 20px; border: 2px dashed #cbd5e1; border-radius: 16px;">
+          <p style="font-size: 14px; color: #64748b; margin-bottom: 8px;">Complex Shaping & Decorations</p>
+          <div style="font-size: 20px; font-weight: 500;">
+            Testing complex <span style="color: var(--primary)">Shaping</span> and <span
+              style="text-decoration: line-through;">Strikethrough</span>.
+          </div>
+        </div>
+        <div style="flex: 1; padding: 20px; border: 2px dashed #cbd5e1; border-radius: 16px;">
+          <p style="font-size: 14px; color: #64748b; margin-bottom: 8px;">BiDi Support (RTL)</p>
+          <div dir="rtl" style="font-size: 20px; font-family: 'Noto Sans Arabic', sans-serif;">
+            العربية (Arabic) <span style="color: var(--secondary)">RTL Test</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

@@ -105,3 +105,14 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - **Asset Conversion**: `pnpm --filter visual-test convert-assets [file.html]`
   - Flags: `--outline` (Force SVG paths), `--no-outline` (Disable paths), `--verbose` (Enable logs).
 
+---
+
+## 5. Roadmap & Progress
+
+- [x] **Phase 1: BoxConstraints Introduction** (Unified sizing logic).
+- [x] **Phase 2: Decoupled Layout Pipeline** (Separated Measure/Place passes, $O(N)$ optimization).
+- [x] **Phase 3: W3C Flexbox Compliance** (Multi-step resolution algorithm).
+- [x] **Phase 4: Lightweight Anonymous Boxes** (`el_anonymous` introduction).
+- [x] **Phase 5: Centering Bug Fixes** (Preserved `size_mode_exact` flags in `calculate_containing_block_context`).
+- [x] **Phase 6: Visual Validation** (Verified all core assets and shadow clipping fixes).
+

@@ -271,7 +271,12 @@ pnpm --filter visual-test test
   - **Unified Resource Embedding**: Streamline image and font embedding within the SVG output pipeline.
 - [x] **Full CSS Grid Support**: Migrating Grid to the new multi-step resolution pipeline.
 - [x] **Inline overflow control**: Implementation of `overflow: hidden` and `text-overflow` for line boxes.
-- [ ] **Advanced CSS Shapes**: Support for `clip-path` and complex `radial-gradient` syntax.
+- [ ] **Advanced CSS Shapes**: Fix `clip-path` rendering and parsing issues.
+  - [ ] **Parsing**: Improve `circle()`, `ellipse()`, and `inset()` parsing to handle space-separated values and `at`/`round` keywords.
+  - [ ] **Coordinates**: Fix coordinate mismatch between Skia path and element position.
+  - [ ] **Text Clipping**: Ensure `TextBatcher::flush()` is called within the clip scope (before `restore()`).
+  - [ ] **SVG Support**: Fix clipping in SVG/Tagging mode by ensuring correct tagging sequence.
+- [x] **Radial Gradients**: Support for complex `radial-gradient` syntax.
 - [x] **Font Subsetting**: Optimizing Wasm memory by loading only required glyphs.
 
 ---

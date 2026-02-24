@@ -902,7 +902,6 @@ void container_skia::set_clip(const litehtml::position &pos,
             SkPaint p;
             p.setColor(make_magic_color(satoru::MagicTag::ClipPush, index));
             m_canvas->drawRect(SkRect::MakeXYWH(0, 0, 0.001f, 0.001f), p);
-            m_canvas->save();
         } else {
             m_canvas->save();
             m_canvas->clipRRect(make_rrect(pos, bdr_radius), true);
@@ -911,16 +910,18 @@ void container_skia::set_clip(const litehtml::position &pos,
     m_clips.push_back({pos, bdr_radius});
 }
 void container_skia::del_clip() {
+    if (m_clips.empty()) return;
     if (m_canvas) {
         flush();
-        m_canvas->restore();
         if (m_tagging) {
             SkPaint p;
             p.setColor(make_magic_color(satoru::MagicTag::ClipPop));
             m_canvas->drawRect(SkRect::MakeXYWH(0, 0, 0.001f, 0.001f), p);
+        } else {
+            m_canvas->restore();
         }
     }
-    if (!m_clips.empty()) m_clips.pop_back();
+    m_clips.pop_back();
 }
 void container_skia::get_media_features(litehtml::media_features &features) const {
     features.type = litehtml::media_type_screen;
@@ -959,7 +960,6 @@ void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity) {
                 rect = SkRect::MakeWH((float)m_width, (float)m_height);
             }
             m_canvas->drawRect(rect, p);
-            m_canvas->save();
         } else if (opacity < 1.0f) {
             SkPaint paint;
             paint.setAlphaf(opacity);
@@ -971,9 +971,10 @@ void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity) {
 }
 
 void container_skia::pop_layer(litehtml::uint_ptr hdc) {
-    if (!m_opacity_stack.empty()) {
-        m_opacity_stack.pop_back();
-    }
+    if (m_opacity_stack.empty()) return;
+    float opacity = m_opacity_stack.back();
+    m_opacity_stack.pop_back();
+
     if (m_canvas) {
         flush();
         if (m_tagging) {
@@ -988,8 +989,9 @@ void container_skia::pop_layer(litehtml::uint_ptr hdc) {
                 rect = SkRect::MakeWH((float)m_width, (float)m_height);
             }
             m_canvas->drawRect(rect, p);
+        } else {
+            m_canvas->restore();
         }
-        m_canvas->restore();
     }
 }
 
@@ -1001,6 +1003,7 @@ void container_skia::push_transform(litehtml::uint_ptr hdc,
     flush();
 
     m_canvas->save();
+    m_transform_stack_depth++;
 
     float ox = pos.x + pos.width * 0.5f;
     float oy = pos.y + pos.height * 0.5f;
@@ -1080,6 +1083,9 @@ void container_skia::push_transform(litehtml::uint_ptr hdc,
 }
 
 void container_skia::pop_transform(litehtml::uint_ptr hdc) {
+    if (m_transform_stack_depth <= 0) return;
+    m_transform_stack_depth--;
+
     if (m_canvas) {
         flush();
         m_canvas->restore();
@@ -1110,7 +1116,7 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
         }
 
         m_canvas->drawRect(rect, p);
-        m_canvas->save();
+        m_filter_stack_depth++;
         return;
     }
 
@@ -1169,12 +1175,17 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
         SkPaint paint;
         paint.setImageFilter(last_filter);
         m_canvas->saveLayer(nullptr, &paint);
+        m_filter_stack_depth++;
     } else {
         m_canvas->save();
+        m_filter_stack_depth++;
     }
 }
 
 void container_skia::pop_filter(litehtml::uint_ptr hdc) {
+    if (m_filter_stack_depth <= 0) return;
+    m_filter_stack_depth--;
+
     if (m_canvas) {
         flush();
         if (m_tagging) {
@@ -1189,8 +1200,9 @@ void container_skia::pop_filter(litehtml::uint_ptr hdc) {
                 rect = SkRect::MakeWH((float)m_width, (float)m_height);
             }
             m_canvas->drawRect(rect, p);
+        } else {
+            m_canvas->restore();
         }
-        m_canvas->restore();
     }
 }
 

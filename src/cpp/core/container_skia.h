@@ -57,6 +57,9 @@ class container_skia : public litehtml::document_container {
     std::vector<SkPath> m_usedGlyphs;
     std::vector<glyph_draw_info> m_usedGlyphDraws;
 
+    int m_filter_stack_depth = 0;
+    int m_transform_stack_depth = 0;
+
     satoru::TextBatcher *m_textBatcher = nullptr;
 
     float get_current_opacity() const {
@@ -102,6 +105,8 @@ class container_skia : public litehtml::document_container {
         m_usedClips.clear();
         m_usedGlyphs.clear();
         m_usedGlyphDraws.clear();
+        m_filter_stack_depth = 0;
+        m_transform_stack_depth = 0;
     }
 
     SkCanvas *get_canvas() const { return m_canvas; }

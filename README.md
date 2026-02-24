@@ -279,7 +279,7 @@ pnpm --filter visual-test test
   - **CSS Class-based Styling**: Minimize SVG size by using a centralized `<style>` block and shared classes instead of repetitive inline attributes (e.g., `font-weight`, `fill-opacity`).
   - **Unified Resource Embedding**: Streamline image and font embedding within the SVG output pipeline.
 - [ ] **Full CSS Grid Support**: Migrating Grid to the new multi-step resolution pipeline.
-- [ ] **Inline overflow control**: Implementation of `overflow: hidden` and `text-overflow` for line boxes.
+- [x] **Inline overflow control**: Implementation of `overflow: hidden` and `text-overflow` for line boxes.
 - [ ] **Advanced CSS Shapes**: Support for `clip-path` and complex `radial-gradient` syntax.
 - [ ] **Font Subsetting**: Optimizing Wasm memory by loading only required glyphs.
 - [ ] **State Persistence (Serialization)**: Restoring layout trees for high-speed repeated rendering.

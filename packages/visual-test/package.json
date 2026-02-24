@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
+    
     "test:update": "cross-env UPDATE_SNAPSHOTS=1 vitest run",
     "generate-reference": "tsx tools/generate-reference.ts",
     "convert-assets": "tsx tools/convert_assets.ts",

@@ -143,10 +143,11 @@ namespace litehtml
         text_align				m_text_align;
         direction				m_direction;
         text_overflow			m_text_overflow;
+        overflow				m_overflow;
 		pixel_t 				m_min_width;
 		std::list< std::unique_ptr<line_box_item> > m_items;
     public:
-        line_box(pixel_t top, pixel_t left, pixel_t right, const css_line_height_t& line_height, const font_metrics& fm, text_align align, direction dir, text_overflow overflow) :
+        line_box(pixel_t top, pixel_t left, pixel_t right, const css_line_height_t& line_height, const font_metrics& fm, text_align align, direction dir, text_overflow text_overflow, overflow overflow) :
 				m_top(top),
 				m_left(left),
 				m_right(right),
@@ -157,7 +158,8 @@ namespace litehtml
 				m_baseline(0),
 				m_text_align(align),
 				m_direction(dir),
-				m_text_overflow(overflow),
+				m_text_overflow(text_overflow),
+				m_overflow(overflow),
 				m_min_width(0)
 		{
         }

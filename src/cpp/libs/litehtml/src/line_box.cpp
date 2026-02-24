@@ -220,6 +220,7 @@ litehtml::pixel_t litehtml::line_box::calc_va_baseline(const va_context& current
 std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish(bool last_box, const containing_block_context &containing_block_size)
 {
 	if (m_text_overflow == text_overflow_ellipsis && 
+		is_one_of(m_overflow, overflow_hidden, overflow_scroll, overflow_auto) &&
 		!(containing_block_size.size_mode & containing_block_context::size_mode_content))
 	{
 		pixel_t container_width = m_right - m_left;

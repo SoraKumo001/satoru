@@ -196,21 +196,7 @@ std::shared_ptr<litehtml::render_item> litehtml::render_item_block::init()
     return ret;
 }
 
-litehtml::pixel_t litehtml::render_item_block::_render(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx, bool second_pass)
-{
-	// Since render_item::render now calls measure() and place(), 
-	// this method is only called if someone explicitly calls _render.
-	// We'll maintain compatibility by calling measure and place (if not in measure mode).
-	if (containing_block_size.size_mode & containing_block_context::size_mode_measure)
-	{
-		return _measure(containing_block_size, fmt_ctx);
-	}
 
-	pixel_t ret = _measure(containing_block_size, fmt_ctx);
-	_place(x, y, containing_block_size, fmt_ctx);
-
-	return ret;
-}
 
 litehtml::pixel_t litehtml::render_item_block::_measure(const containing_block_context &containing_block_size, formatting_context* fmt_ctx)
 {

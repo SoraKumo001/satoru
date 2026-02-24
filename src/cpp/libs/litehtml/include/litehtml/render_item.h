@@ -35,10 +35,7 @@ namespace litehtml
                 void calc_cb_length(const css_length& len, pixel_t percent_base, containing_block_context::typed_pixel& out_value) const;
                 pixel_t get_predefined_width(pixel_t parent_width) const;
                 pixel_t get_predefined_height(pixel_t parent_height) const;
-                virtual pixel_t _render(pixel_t /*x*/, pixel_t /*y*/, const containing_block_context& /*containing_block_size*/, formatting_context* /*fmt_ctx*/, bool /*second_pass = false*/)
-                {
-                        return 0;
-                }
+                
                 virtual pixel_t _measure(const containing_block_context& /*containing_block_size*/, formatting_context* /*fmt_ctx*/)
                 {
                         return 0;

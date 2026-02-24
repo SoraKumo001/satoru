@@ -85,6 +85,22 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - **Default Resolver**: The JS wrapper provides a default resource resolver that handles local file system (Node.js) and HTTP `fetch`.
 - **Interception**: Users can intercept resource requests and fallback to the default resolver via the second argument of the callback.
 
+### 3.6 litehtml Customizations & Modifications
+`litehtml` has been significantly refactored to support high-fidelity rendering and modern CSS features.
+
+- **From Recursive to Linear Layout**: Original `litehtml` layout logic was heavily recursive, often leading to exponential complexity $O(2^n)$ in complex nested structures. This was replaced by a **2-pass Unified Layout Pipeline** ($O(N)$):
+  - **Measure Pass**: Uses `BoxConstraints` to calculate sizes.
+  - **Place Pass**: Determines positions based on pre-calculated sizes.
+- **W3C Flexbox Engine**: The original limited flexbox implementation was completely removed and replaced with a full-spec W3C algorithm. It now correctly handles:
+  - Flex base size and hypothetical main size resolution.
+  - Multi-line wrapping and cross-axis alignment.
+  - Flex grow/shrink redistribution loops with min/max constraints.
+- **Element Hierarchy & Lightweight Boxes**: 
+  - Introduced `el_anonymous` to replace `html_tag` for engine-generated boxes (e.g., table parts, flex wrappers). This significantly reduces memory overhead.
+  - Decoupled `css_properties` from `html_tag`, allowing any `element` subclass to access resolved styles via a virtual interface.
+- **Strict CSS Cascade**: Fixed specificity-only sorting in original `litehtml`. The engine now respects the full W3C cascade order: `User Agent` < `User` < `Author` < `Author !important` < `User !important` < `User Agent !important`. (Includes initial support for `@layer`).
+- **Text & Unicode Integration**: Deeply integrated `Skia`, `HarfBuzz`, and `libunibreak` directly into the layout core, replacing the generic font interface with a high-performance text stack capable of BiDi, complex shaping, and advanced line-breaking.
+
 ---
 
 ## 4. Development & Verification Workflow

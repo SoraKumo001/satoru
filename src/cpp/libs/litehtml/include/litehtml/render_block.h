@@ -19,7 +19,7 @@ namespace litehtml
 		 * @return return value is the minimal width of the content in block. Must be greater or equal to ret_width parameter
 		 */
 		virtual pixel_t _render_content(pixel_t /*x*/, pixel_t /*y*/, bool /*second_pass*/, const containing_block_context &/*self_size*/, formatting_context* /*fmt_ctx*/) {return 0;}
-		pixel_t _render(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx, bool second_pass) override;
+
 		pixel_t _measure(const containing_block_context &containing_block_size, formatting_context* fmt_ctx) override;
 		void _place(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx) override;
 		pixel_t place_float(const std::shared_ptr<render_item> &el, pixel_t top, const containing_block_context &self_size, formatting_context* fmt_ctx);

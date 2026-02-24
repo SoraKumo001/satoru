@@ -13,7 +13,7 @@ namespace litehtml
 		pixel_t						m_border_spacing_x;
 		pixel_t						m_border_spacing_y;
 
-		pixel_t _render(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx, bool second_pass) override;
+		pixel_t _render(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx, bool second_pass);
 		pixel_t _measure(const containing_block_context &containing_block_size, formatting_context* fmt_ctx) override;
 		void _place(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx) override;
 

@@ -195,7 +195,7 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
 					flex_base_size = el->render(0, 0, self_size.new_width(self_size.render_width + el->content_offset_width(),
-																	 containing_block_context::size_mode_measure),
+																	 containing_block_context::size_mode_measure | containing_block_context::size_mode_content),
 										   fmt_ctx ? &fmt_ctx_copy : nullptr);
 				}
 				break;
@@ -215,7 +215,7 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 				{
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-					el->render(0, 0, self_size.new_width(0, containing_block_context::size_mode_measure), fmt_ctx ? &fmt_ctx_copy : nullptr);
+					el->render(0, 0, self_size.new_width(0, containing_block_context::size_mode_measure | containing_block_context::size_mode_content), fmt_ctx ? &fmt_ctx_copy : nullptr);
 					flex_base_size = el->width();
 				}
 				break;

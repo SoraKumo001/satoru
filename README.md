@@ -273,8 +273,12 @@ pnpm --filter visual-test test
   - Eliminate redundant `_render` virtual functions and fully transition to the 2-pass `measure`/`place` pipeline.
   - Fix performance degradation where `measure` is re-called during the `place` pass (re-achieving true $O(N)$ complexity).
   - Cache calculated `containing_block_context` and margins/paddings/borders across layout passes to reduce CPU cycles.
+- [x] **SVG Pipeline & Performance**:
+  - **High-Performance SVG Post-Processor**: Replace current slow `TagInfo` parsing with a single-pass, FSM-based stream parser to reduce CPU overhead.
+  - **Structural SVG Metadata**: Transition from the "Magic Color" hack (0.001px rects) to a more robust annotation or custom attribute system for marking filters/clips.
+  - **CSS Class-based Styling**: Minimize SVG size by using a centralized `<style>` block and shared classes instead of repetitive inline attributes (e.g., `font-weight`, `fill-opacity`).
+  - **Unified Resource Embedding**: Streamline image and font embedding within the SVG output pipeline.
 - [ ] **Full CSS Grid Support**: Migrating Grid to the new multi-step resolution pipeline.
-- [ ] **SVG Pipeline Robustness**: Moving away from Regex post-processing to a semantic SVG generator.
 - [ ] **Inline overflow control**: Implementation of `overflow: hidden` and `text-overflow` for line boxes.
 - [ ] **Advanced CSS Shapes**: Support for `clip-path` and complex `radial-gradient` syntax.
 - [ ] **Font Subsetting**: Optimizing Wasm memory by loading only required glyphs.

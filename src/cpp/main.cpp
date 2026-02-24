@@ -2,8 +2,6 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 
-#include <cstdlib>
-#include <cstring>
 #include <string>
 #include <vector>
 
@@ -14,10 +12,10 @@ using namespace emscripten;
 extern "C" {
 
 EMSCRIPTEN_KEEPALIVE
-SatoruInstance *create_instance() { return api_create_instance(); }
+SatoruInstance* create_instance() { return api_create_instance(); }
 
 EMSCRIPTEN_KEEPALIVE
-void destroy_instance(SatoruInstance *inst) { api_destroy_instance(inst); }
+void destroy_instance(SatoruInstance* inst) { api_destroy_instance(inst); }
 }
 
 // Helper to convert JS Uint8Array to std::vector<uint8_t>
@@ -32,7 +30,7 @@ std::vector<uint8_t> val_to_vector(val data) {
 }
 
 // EMSCRIPTEN_BINDINGS helper
-val render_val(SatoruInstance *inst, val htmls, int width, int height, int format,
+val render_val(SatoruInstance* inst, val htmls, int width, int height, int format,
                bool svgTextToPaths) {
     if (!inst) return val::null();
 
@@ -50,69 +48,69 @@ val render_val(SatoruInstance *inst, val htmls, int width, int height, int forma
     options.svgTextToPaths = svgTextToPaths;
 
     int size = 0;
-    const uint8_t *data =
+    const uint8_t* data =
         api_render(inst, html_vector, width, height, (RenderFormat)format, options, size);
     if (!data || size == 0) return val::null();
 
     return val(typed_memory_view(size, data));
 }
 
-void add_resource_val(SatoruInstance *inst, std::string url, int type, val data) {
+void add_resource_val(SatoruInstance* inst, std::string url, int type, val data) {
     if (!inst) return;
     auto vec = val_to_vector(data);
     api_add_resource(inst, url, type, vec);
 }
 
-void load_font_val(SatoruInstance *inst, std::string name, val data) {
+void load_font_val(SatoruInstance* inst, std::string name, val data) {
     if (!inst) return;
     auto vec = val_to_vector(data);
     api_load_font(inst, name, vec);
 }
 
-void scan_css_val(SatoruInstance *inst, std::string css) {
+void scan_css_val(SatoruInstance* inst, std::string css) {
     if (!inst) return;
     api_scan_css(inst, css);
 }
 
-void load_image_val(SatoruInstance *inst, std::string name, std::string data_url, int width,
+void load_image_val(SatoruInstance* inst, std::string name, std::string data_url, int width,
                     int height) {
     if (!inst) return;
     api_load_image(inst, name, data_url, width, height);
 }
 
-void collect_resources_val(SatoruInstance *inst, std::string html, int width) {
+void collect_resources_val(SatoruInstance* inst, std::string html, int width) {
     if (!inst) return;
     api_collect_resources(inst, html, width);
 }
 
-std::string get_pending_resources_val(SatoruInstance *inst) {
+std::string get_pending_resources_val(SatoruInstance* inst) {
     if (!inst) return "";
     return api_get_pending_resources(inst);
 }
 
-void init_document_val(SatoruInstance *inst, std::string html, int width) {
+void init_document_val(SatoruInstance* inst, std::string html, int width) {
     if (!inst) return;
     api_init_document(inst, html.c_str(), width);
 }
 
-void layout_document_val(SatoruInstance *inst, int width) {
+void layout_document_val(SatoruInstance* inst, int width) {
     if (!inst) return;
     api_layout_document(inst, width);
 }
 
-val render_from_state_val(SatoruInstance *inst, int width, int height, int format,
+val render_from_state_val(SatoruInstance* inst, int width, int height, int format,
                           bool svgTextToPaths) {
     if (!inst) return val::null();
     RenderOptions options;
     options.svgTextToPaths = svgTextToPaths;
     int size = 0;
-    const uint8_t *data =
+    const uint8_t* data =
         api_render_from_state(inst, width, height, (RenderFormat)format, options, size);
     if (!data || size == 0) return val::null();
     return val(typed_memory_view(size, data));
 }
 
-void set_font_map_val(SatoruInstance *inst, val fontMap) {
+void set_font_map_val(SatoruInstance* inst, val fontMap) {
     if (!inst) return;
     std::map<std::string, std::string> map;
     val keys = val::global("Object").call<val>("keys", fontMap);

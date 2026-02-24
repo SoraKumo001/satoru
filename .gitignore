@@ -13,8 +13,6 @@ dist/
 
 # IDEs
 .vscode/*
-!.vscode/c_cpp_properties.json
-.vscode/settings.json
 .idea/
 *.swp
 *.swo
@@ -37,3 +35,5 @@ build-wasm-release
 build
 .env
 .cache
+.clangd
+compile_commands.json

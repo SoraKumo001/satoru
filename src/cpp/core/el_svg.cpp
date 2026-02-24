@@ -137,7 +137,8 @@ std::string el_svg::reconstruct_xml(int x, int y) const {
 
     for (auto const& attr : m_attrs) {
         if (attr.first == "width" || attr.first == "height" || attr.first == "viewbox") {
-            ss << " " << (attr.first == "viewbox" ? "viewBox" : attr.first) << "=\"" << attr.second << "\"";
+            ss << " " << (attr.first == "viewbox" ? "viewBox" : attr.first) << "=\"" << attr.second
+               << "\"";
         }
     }
 
@@ -151,8 +152,8 @@ std::string el_svg::reconstruct_xml(int x, int y) const {
 
     bool stroke_attr_written = false;
     for (auto const& attr : m_attrs) {
-        if (attr.first == "xmlns" || attr.first == "x" || attr.first == "y" || attr.first == "width" ||
-            attr.first == "height" || attr.first == "viewbox")
+        if (attr.first == "xmlns" || attr.first == "x" || attr.first == "y" ||
+            attr.first == "width" || attr.first == "height" || attr.first == "viewbox")
             continue;
         if (attr.first == "stroke") {
             if (stroke_width_is_zero) {

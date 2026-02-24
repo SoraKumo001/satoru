@@ -286,10 +286,10 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                                    m_usedTextDraws, m_usedGlyphs, m_usedGlyphDraws,
                                    m_resourceManager ? &m_usedCodepoints : nullptr, m_textBatcher);
     if (fi && m_resourceManager) {
-        satoru::TextRenderer::drawText(
-            &m_context, nullptr, text, fi, color, actual_pos, overflow, dir, m_tagging,
-            get_current_opacity(), m_usedTextShadows, m_usedTextDraws, m_usedGlyphs,
-            m_usedGlyphDraws, &fi->used_codepoints, nullptr);
+        satoru::TextRenderer::drawText(&m_context, nullptr, text, fi, color, actual_pos, overflow,
+                                       dir, m_tagging, get_current_opacity(), m_usedTextShadows,
+                                       m_usedTextDraws, m_usedGlyphs, m_usedGlyphDraws,
+                                       &fi->used_codepoints, nullptr);
     }
 }
 
@@ -1230,7 +1230,7 @@ void container_skia::pop_filter(litehtml::uint_ptr hdc) {
 }
 
 SkPath container_skia::parse_clip_path(const litehtml::css_token_vector &tokens,
-                                         const litehtml::position &pos) {
+                                       const litehtml::position &pos) {
     SkPathBuilder builder;
     if (tokens.empty()) return builder.detach();
 
@@ -1367,7 +1367,8 @@ SkPath container_skia::parse_clip_path(const litehtml::css_token_vector &tokens,
                             }
                         }
                         if (r_lengths.size() >= 1) {
-                            float r = r_lengths[0].calc_percent((float)std::min(pos.width, pos.height));
+                            float r =
+                                r_lengths[0].calc_percent((float)std::min(pos.width, pos.height));
                             radius.top_left_x = radius.top_left_y = (int)r;
                             radius.top_right_x = radius.top_right_y = (int)r;
                             radius.bottom_right_x = radius.bottom_right_y = (int)r;
@@ -1375,14 +1376,15 @@ SkPath container_skia::parse_clip_path(const litehtml::css_token_vector &tokens,
                         }
                     }
                 }
-                SkRect r = SkRect::MakeLTRB((float)pos.x + left, (float)pos.y + top, (float)pos.x + (float)pos.width - right,
+                SkRect r = SkRect::MakeLTRB((float)pos.x + left, (float)pos.y + top,
+                                            (float)pos.x + (float)pos.width - right,
                                             (float)pos.y + (float)pos.height - bottom);
                 if (radius.is_zero()) {
                     builder.addRect(r);
                 } else {
-                    builder.addRRect(make_rrect(
-                        litehtml::position((int)r.fLeft, (int)r.fTop, (int)r.width(), (int)r.height()),
-                        radius));
+                    builder.addRRect(make_rrect(litehtml::position((int)r.fLeft, (int)r.fTop,
+                                                                   (int)r.width(), (int)r.height()),
+                                                radius));
                 }
             } else if (name == "polygon") {
                 bool first = true;
@@ -1409,9 +1411,10 @@ SkPath container_skia::parse_clip_path(const litehtml::css_token_vector &tokens,
 }
 
 void container_skia::push_clip_path(litehtml::uint_ptr hdc,
-                                   const litehtml::css_token_vector &clip_path,
-                                   const litehtml::position &pos) {
-    SATORU_LOG_INFO("push_clip_path: tokens count=%d, pos=%d,%d %dx%d", (int)clip_path.size(), pos.x, pos.y, pos.width, pos.height);
+                                    const litehtml::css_token_vector &clip_path,
+                                    const litehtml::position &pos) {
+    SATORU_LOG_INFO("push_clip_path: tokens count=%d, pos=%d,%d %dx%d", (int)clip_path.size(),
+                    pos.x, pos.y, pos.width, pos.height);
     if (!m_canvas || clip_path.empty()) return;
     flush();
 

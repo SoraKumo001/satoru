@@ -525,6 +525,17 @@ static std::string generateDefs(const container_skia &render_container,
         defs << "</clipPath>";
     }
 
+    const auto &clipPaths = render_container.get_used_clip_paths();
+    for (size_t i = 0; i < clipPaths.size(); ++i) {
+        const auto &cp = clipPaths[i];
+        int index = (int)(i + 1);
+        defs << "<clipPath id=\"adv-clip-path-" << index << "\">";
+        SkPath path = container_skia::parse_clip_path(cp.tokens, cp.pos);
+        SkString svgPath = SkParsePath::ToSVGString(path);
+        defs << "<path d=\"" << svgPath.c_str() << "\" />";
+        defs << "</clipPath>";
+    }
+
     const auto &glyphs = render_container.get_used_glyphs();
     for (size_t i = 0; i < glyphs.size(); ++i) {
         defs << "<path id=\"glyph-" << (i + 1) << "\" d=\""
@@ -647,6 +658,16 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                         }
                         break;
                     case satoru::MagicTag::ClipPop:
+                        result.append("</g>");
+                        replaced = true;
+                        break;
+                    case satoru::MagicTag::ClipPathPush:
+                        if (fullIndex > 0 && fullIndex <= (int)container.get_used_clip_paths().size()) {
+                            result.append("<g clip-path=\"url(#adv-clip-path-" + std::to_string(fullIndex) + ")\">");
+                            replaced = true;
+                        }
+                        break;
+                    case satoru::MagicTag::ClipPathPop:
                         result.append("</g>");
                         replaced = true;
                         break;

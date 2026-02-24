@@ -54,11 +54,13 @@ class container_skia : public litehtml::document_container {
     std::vector<std::string> m_usedInlineSvgs;
     std::vector<litehtml::position> m_inlineSvgPositions;
     std::vector<clip_info> m_usedClips;
+    std::vector<clip_path_info> m_usedClipPaths;
     std::vector<SkPath> m_usedGlyphs;
     std::vector<glyph_draw_info> m_usedGlyphDraws;
 
     int m_filter_stack_depth = 0;
     int m_transform_stack_depth = 0;
+    int m_clip_path_stack_depth = 0;
 
     satoru::TextBatcher *m_textBatcher = nullptr;
 
@@ -105,10 +107,12 @@ class container_skia : public litehtml::document_container {
         m_usedInlineSvgs.clear();
         m_usedFilters.clear();
         m_usedClips.clear();
+        m_usedClipPaths.clear();
         m_usedGlyphs.clear();
         m_usedGlyphDraws.clear();
         m_filter_stack_depth = 0;
         m_transform_stack_depth = 0;
+        m_clip_path_stack_depth = 0;
     }
 
     SkCanvas *get_canvas() const { return m_canvas; }
@@ -137,6 +141,7 @@ class container_skia : public litehtml::document_container {
     const std::vector<text_draw_info> &get_used_text_draws() const { return m_usedTextDraws; }
     const std::vector<filter_info> &get_used_filters() const { return m_usedFilters; }
     const std::vector<clip_info> &get_used_clips() const { return m_usedClips; }
+    const std::vector<clip_path_info> &get_used_clip_paths() const { return m_usedClipPaths; }
     const std::vector<SkPath> &get_used_glyphs() const { return m_usedGlyphs; }
     const std::vector<glyph_draw_info> &get_used_glyph_draws() const { return m_usedGlyphDraws; }
 
@@ -230,6 +235,10 @@ class container_skia : public litehtml::document_container {
                              const litehtml::css_token_vector &filter) override;
     virtual void pop_filter(litehtml::uint_ptr hdc) override;
 
+    virtual void push_clip_path(litehtml::uint_ptr hdc, const litehtml::css_token_vector &clip_path,
+                                const litehtml::position &pos) override;
+    virtual void pop_clip_path(litehtml::uint_ptr hdc) override;
+
     virtual void pop_backdrop_filter(litehtml::uint_ptr hdc) override;
     virtual void push_backdrop_filter(litehtml::uint_ptr hdc,
                                       const std::shared_ptr<litehtml::render_item> &el) override;
@@ -237,6 +246,9 @@ class container_skia : public litehtml::document_container {
     virtual litehtml::element::ptr create_element(
         const char *tag_name, const litehtml::string_map &attributes,
         const std::shared_ptr<litehtml::document> &doc) override;
+
+    static SkPath parse_clip_path(const litehtml::css_token_vector &tokens,
+                                  const litehtml::position &pos);
 };
 
 #endif

@@ -269,7 +269,7 @@ pnpm --filter visual-test test
   - **Structural SVG Metadata**: Transition from the "Magic Color" hack (0.001px rects) to a more robust annotation or custom attribute system for marking filters/clips.
   - **CSS Class-based Styling**: Minimize SVG size by using a centralized `<style>` block and shared classes instead of repetitive inline attributes (e.g., `font-weight`, `fill-opacity`).
   - **Unified Resource Embedding**: Streamline image and font embedding within the SVG output pipeline.
-- [ ] **Full CSS Grid Support**: Migrating Grid to the new multi-step resolution pipeline.
+- [x] **Full CSS Grid Support**: Migrating Grid to the new multi-step resolution pipeline.
 - [x] **Inline overflow control**: Implementation of `overflow: hidden` and `text-overflow` for line boxes.
 - [ ] **Advanced CSS Shapes**: Support for `clip-path` and complex `radial-gradient` syntax.
 - [x] **Font Subsetting**: Optimizing Wasm memory by loading only required glyphs.

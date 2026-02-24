@@ -24,6 +24,8 @@ enum class MagicTag : uint8_t {
     ClipPush = 8,    // クリップ開始
     ClipPop = 9,     // クリップ終了
     GlyphPath = 10,  // グリフパス（defs/use最適化用）
+    ClipPathPush = 11,
+    ClipPathPop = 12,
 };
 
 enum class MagicTagExtended : uint8_t {

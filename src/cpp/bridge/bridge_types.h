@@ -137,6 +137,11 @@ struct clip_info {
     litehtml::border_radiuses radius;
 };
 
+struct clip_path_info {
+    litehtml::css_token_vector tokens;
+    litehtml::position pos;
+};
+
 struct glyph_draw_info {
     int glyph_index;
     int style_tag;

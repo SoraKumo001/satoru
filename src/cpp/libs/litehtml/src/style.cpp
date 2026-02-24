@@ -203,6 +203,7 @@ namespace litehtml
     case _scale_:
     case _filter_:
     case _backdrop_filter_:
+    case _clip_path_:
       add_parsed_property(name, property_value(value, important, false, m_layer, m_specificity));
       break;
 

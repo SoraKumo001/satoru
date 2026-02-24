@@ -950,6 +950,8 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         const auto& transform = el->src_el()->css().get_transform();
                         const auto& filter = el->src_el()->css().get_filter();
                         const auto& backdrop_filter = el->src_el()->css().get_backdrop_filter();
+                        css_token_vector clip_path;
+                        el->src_el()->get_custom_property(_clip_path_, clip_path);
 
                         if (el->src_el()->css().get_position() == element_position_fixed)
 						{
@@ -965,11 +967,19 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                             {
                                 doc->container()->push_filter(hdc, filter);
                             }
+                            if (!clip_path.empty())
+                            {
+                                doc->container()->push_clip_path(hdc, clip_path, el->pos());
+                            }
 
 							// Fixed elements position is always relative to the (0,0)
                             el->src_el()->draw(hdc, 0, 0, clip, el);
                             el->draw_stacking_context(hdc, 0, 0, clip, true);
 
+                            if (!clip_path.empty())
+                            {
+                                doc->container()->pop_clip_path(hdc);
+                            }
                             if (!filter.empty())
                             {
                                 doc->container()->pop_filter(hdc);
@@ -1001,10 +1011,18 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                             {
                                 doc->container()->push_filter(hdc, filter);
                             }
+                            if (!clip_path.empty())
+                            {
+                                doc->container()->push_clip_path(hdc, clip_path, el_pos);
+                            }
 
                             el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
                             el->draw_stacking_context(hdc, pos.x, pos.y, clip, true);
 
+                            if (!clip_path.empty())
+                            {
+                                doc->container()->pop_clip_path(hdc);
+                            }
                             if (!filter.empty())
                             {
                                 doc->container()->pop_filter(hdc);
@@ -1029,6 +1047,8 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         const auto& transform = el->src_el()->css().get_transform();
                         const auto& filter = el->src_el()->css().get_filter();
                         const auto& backdrop_filter = el->src_el()->css().get_backdrop_filter();
+                        css_token_vector clip_path;
+                        el->src_el()->get_custom_property(_clip_path_, clip_path);
 
                         position el_pos = el->pos();
                         el_pos.x += pos.x;
@@ -1046,9 +1066,17 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         {
                             doc->container()->push_filter(hdc, filter);
                         }
+                        if (!clip_path.empty())
+                        {
+                            doc->container()->push_clip_path(hdc, clip_path, el_pos);
+                        }
 
                         el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
 
+                        if (!clip_path.empty())
+                        {
+                            doc->container()->pop_clip_path(hdc);
+                        }
                         if (!filter.empty())
                         {
                             doc->container()->pop_filter(hdc);
@@ -1069,6 +1097,8 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         const auto& transform = el->src_el()->css().get_transform();
                         const auto& filter = el->src_el()->css().get_filter();
                         const auto& backdrop_filter = el->src_el()->css().get_backdrop_filter();
+                        css_token_vector clip_path;
+                        el->src_el()->get_custom_property(_clip_path_, clip_path);
 
                         position el_pos = el->pos();
                         el_pos.x += pos.x;
@@ -1086,10 +1116,18 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         {
                             doc->container()->push_filter(hdc, filter);
                         }
+                        if (!clip_path.empty())
+                        {
+                            doc->container()->push_clip_path(hdc, clip_path, el_pos);
+                        }
 
                         el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
                         el->draw_stacking_context(hdc, pos.x, pos.y, clip, false);
 
+                        if (!clip_path.empty())
+                        {
+                            doc->container()->pop_clip_path(hdc);
+                        }
                         if (!filter.empty())
                         {
                             doc->container()->pop_filter(hdc);
@@ -1111,6 +1149,8 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         const auto& transform = el->src_el()->css().get_transform();
                         const auto& filter = el->src_el()->css().get_filter();
                         const auto& backdrop_filter = el->src_el()->css().get_backdrop_filter();
+                        css_token_vector clip_path;
+                        el->src_el()->get_custom_property(_clip_path_, clip_path);
 
                         position el_pos = el->pos();
                         el_pos.x += pos.x;
@@ -1128,6 +1168,10 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         {
                             doc->container()->push_filter(hdc, filter);
                         }
+                        if (!clip_path.empty())
+                        {
+                            doc->container()->push_clip_path(hdc, clip_path, el_pos);
+                        }
 
                         el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
                         if (el->src_el()->css().get_display() == display_inline_block || el->src_el()->css().get_display() == display_inline_flex)
@@ -1136,6 +1180,10 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                             process = false;
                         }
 
+                        if (!clip_path.empty())
+                        {
+                            doc->container()->pop_clip_path(hdc);
+                        }
                         if (!filter.empty())
                         {
                             doc->container()->pop_filter(hdc);

@@ -512,11 +512,13 @@ void container_skia::draw_radial_gradient(
             pos.push_back(stop.offset);
         }
         SkMatrix matrix;
-        matrix.setScale(1.0f, ry / rx, center.x(), center.y());
+        if (rx > 0) {
+            matrix.setScale(1.0f, ry / rx, center.x(), center.y());
+        }
         SkGradient grad(SkGradient::Colors(SkSpan(colors), SkSpan(pos), SkTileMode::kClamp),
                         SkGradient::Interpolation());
         SkPaint p;
-        p.setShader(SkShaders::RadialGradient(center, rx, grad, &matrix));
+        p.setShader(SkShaders::RadialGradient(center, rx > 0 ? rx : 0.001f, grad, &matrix));
         p.setAntiAlias(true);
         m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
     }
@@ -1212,6 +1214,251 @@ void container_skia::pop_filter(litehtml::uint_ptr hdc) {
         if (m_tagging) {
             SkPaint p;
             p.setColor(make_magic_color(satoru::MagicTag::FilterPop));
+            SkRect rect;
+            if (!m_clips.empty()) {
+                rect = SkRect::MakeXYWH(
+                    (float)m_clips.back().first.x, (float)m_clips.back().first.y,
+                    (float)m_clips.back().first.width, (float)m_clips.back().first.height);
+            } else {
+                rect = SkRect::MakeWH((float)m_width, (float)m_height);
+            }
+            m_canvas->drawRect(rect, p);
+        } else {
+            m_canvas->restore();
+        }
+    }
+}
+
+SkPath container_skia::parse_clip_path(const litehtml::css_token_vector &tokens,
+                                         const litehtml::position &pos) {
+    SkPathBuilder builder;
+    if (tokens.empty()) return builder.detach();
+
+    for (const auto &tok : tokens) {
+        if (tok.type == litehtml::CV_FUNCTION) {
+            std::string name = litehtml::lowcase(tok.name);
+            auto args = litehtml::parse_comma_separated_list(tok.value);
+
+            if (name == "circle") {
+                float cx = (float)pos.x + (float)pos.width * 0.5f;
+                float cy = (float)pos.y + (float)pos.height * 0.5f;
+                float r = std::min((float)pos.width, (float)pos.height) * 0.5f;
+
+                if (!args.empty()) {
+                    if (!args[0].empty()) {
+                        litehtml::css_length len;
+                        if (len.from_token(args[0][0], litehtml::f_length_percentage)) {
+                            r = len.calc_percent((float)std::sqrt((double)pos.width * pos.width +
+                                                                  (double)pos.height * pos.height) /
+                                                 (float)std::sqrt(2.0));
+                        }
+                    }
+                    // "at <position>"
+                    for (size_t i = 0; i < args.size(); ++i) {
+                        if (!args[i].empty() && args[i][0].ident() == "at") {
+                            if (i + 1 < args.size() && !args[i + 1].empty()) {
+                                litehtml::css_length lx;
+                                lx.from_token(args[i + 1][0], litehtml::f_length_percentage);
+                                cx = lx.calc_percent((float)pos.width) + (float)pos.x;
+                                if (i + 2 < args.size() && !args[i + 2].empty()) {
+                                    litehtml::css_length ly;
+                                    ly.from_token(args[i + 2][0], litehtml::f_length_percentage);
+                                    cy = ly.calc_percent((float)pos.height) + (float)pos.y;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                builder.addCircle(cx, cy, r);
+            } else if (name == "ellipse") {
+                float cx = (float)pos.x + (float)pos.width * 0.5f;
+                float cy = (float)pos.y + (float)pos.height * 0.5f;
+                float rx = (float)pos.width * 0.5f;
+                float ry = (float)pos.height * 0.5f;
+
+                if (!args.empty()) {
+                    int at_idx = -1;
+                    for (size_t i = 0; i < args.size(); ++i) {
+                        if (!args[i].empty() && args[i][0].ident() == "at") {
+                            at_idx = (int)i;
+                            break;
+                        }
+                    }
+
+                    if (at_idx != 0 && !args[0].empty()) {
+                        std::vector<litehtml::css_length> r_lengths;
+                        for (const auto &t : args[0]) {
+                            litehtml::css_length l;
+                            if (l.from_token(t, litehtml::f_length_percentage)) {
+                                r_lengths.push_back(l);
+                            }
+                        }
+                        if (r_lengths.size() >= 2) {
+                            rx = r_lengths[0].calc_percent((float)pos.width);
+                            ry = r_lengths[1].calc_percent((float)pos.height);
+                        }
+                    }
+
+                    if (at_idx != -1 && (size_t)at_idx + 1 < args.size()) {
+                        litehtml::css_length lx;
+                        if (!args[at_idx + 1].empty()) {
+                            lx.from_token(args[at_idx + 1][0], litehtml::f_length_percentage);
+                            cx = lx.calc_percent((float)pos.width) + (float)pos.x;
+                        }
+                        if ((size_t)at_idx + 2 < args.size() && !args[at_idx + 2].empty()) {
+                            litehtml::css_length ly;
+                            ly.from_token(args[at_idx + 2][0], litehtml::f_length_percentage);
+                            cy = ly.calc_percent((float)pos.height) + (float)pos.y;
+                        }
+                    }
+                }
+                builder.addOval(SkRect::MakeLTRB(cx - rx, cy - ry, cx + rx, cy + ry));
+            } else if (name == "inset") {
+                float top = 0, right = 0, bottom = 0, left = 0;
+                litehtml::border_radiuses radius;
+
+                if (!args.empty()) {
+                    std::vector<litehtml::css_length> lengths;
+                    std::vector<litehtml::css_token_vector> round_args;
+                    bool has_round = false;
+
+                    for (size_t i = 0; i < args.size(); ++i) {
+                        if (!args[i].empty() && args[i][0].ident() == "round") {
+                            has_round = true;
+                            for (size_t j = i; j < args.size(); ++j) {
+                                round_args.push_back(args[j]);
+                            }
+                            break;
+                        }
+                        for (const auto &t : args[i]) {
+                            litehtml::css_length l;
+                            if (l.from_token(t, litehtml::f_length_percentage)) {
+                                lengths.push_back(l);
+                            }
+                        }
+                    }
+
+                    if (lengths.size() == 1) {
+                        top = right = bottom = left = lengths[0].calc_percent((float)pos.height);
+                    } else if (lengths.size() == 2) {
+                        top = bottom = lengths[0].calc_percent((float)pos.height);
+                        right = left = lengths[1].calc_percent((float)pos.width);
+                    } else if (lengths.size() == 3) {
+                        top = lengths[0].calc_percent((float)pos.height);
+                        right = left = lengths[1].calc_percent((float)pos.width);
+                        bottom = lengths[2].calc_percent((float)pos.height);
+                    } else if (lengths.size() >= 4) {
+                        top = lengths[0].calc_percent((float)pos.height);
+                        right = lengths[1].calc_percent((float)pos.width);
+                        bottom = lengths[2].calc_percent((float)pos.height);
+                        left = lengths[3].calc_percent((float)pos.width);
+                    }
+
+                    if (has_round && !round_args.empty()) {
+                        std::vector<litehtml::css_length> r_lengths;
+                        for (const auto &ra : round_args) {
+                            for (const auto &t : ra) {
+                                if (t.ident() == "round") continue;
+                                litehtml::css_length l;
+                                if (l.from_token(t, litehtml::f_length_percentage)) {
+                                    r_lengths.push_back(l);
+                                }
+                            }
+                        }
+                        if (r_lengths.size() >= 1) {
+                            float r = r_lengths[0].calc_percent((float)std::min(pos.width, pos.height));
+                            radius.top_left_x = radius.top_left_y = (int)r;
+                            radius.top_right_x = radius.top_right_y = (int)r;
+                            radius.bottom_right_x = radius.bottom_right_y = (int)r;
+                            radius.bottom_left_x = radius.bottom_left_y = (int)r;
+                        }
+                    }
+                }
+                SkRect r = SkRect::MakeLTRB((float)pos.x + left, (float)pos.y + top, (float)pos.x + (float)pos.width - right,
+                                            (float)pos.y + (float)pos.height - bottom);
+                if (radius.is_zero()) {
+                    builder.addRect(r);
+                } else {
+                    builder.addRRect(make_rrect(
+                        litehtml::position((int)r.fLeft, (int)r.fTop, (int)r.width(), (int)r.height()),
+                        radius));
+                }
+            } else if (name == "polygon") {
+                bool first = true;
+                for (const auto &arg_tokens : args) {
+                    if (arg_tokens.size() >= 2) {
+                        litehtml::css_length lx, ly;
+                        lx.from_token(arg_tokens[0], litehtml::f_length_percentage);
+                        ly.from_token(arg_tokens[1], litehtml::f_length_percentage);
+                        float px = lx.calc_percent((float)pos.width) + (float)pos.x;
+                        float py = ly.calc_percent((float)pos.height) + (float)pos.y;
+                        if (first) {
+                            builder.moveTo(px, py);
+                            first = false;
+                        } else {
+                            builder.lineTo(px, py);
+                        }
+                    }
+                }
+                builder.close();
+            }
+        }
+    }
+    return builder.detach();
+}
+
+void container_skia::push_clip_path(litehtml::uint_ptr hdc,
+                                   const litehtml::css_token_vector &clip_path,
+                                   const litehtml::position &pos) {
+    SATORU_LOG_INFO("push_clip_path: tokens count=%d, pos=%d,%d %dx%d", (int)clip_path.size(), pos.x, pos.y, pos.width, pos.height);
+    if (!m_canvas || clip_path.empty()) return;
+    flush();
+
+    if (m_tagging) {
+        clip_path_info info;
+        info.tokens = clip_path;
+        info.pos = pos;
+        m_usedClipPaths.push_back(info);
+        int index = (int)m_usedClipPaths.size();
+
+        SkPaint p;
+        p.setColor(make_magic_color(satoru::MagicTag::ClipPathPush, index));
+
+        SkRect rect;
+        if (!m_clips.empty()) {
+            rect = SkRect::MakeXYWH((float)m_clips.back().first.x, (float)m_clips.back().first.y,
+                                    (float)m_clips.back().first.width,
+                                    (float)m_clips.back().first.height);
+        } else {
+            rect = SkRect::MakeWH((float)m_width, (float)m_height);
+        }
+
+        m_canvas->drawRect(rect, p);
+        m_clip_path_stack_depth++;
+        return;
+    }
+
+    SkPath path = container_skia::parse_clip_path(clip_path, pos);
+    if (!path.isEmpty()) {
+        m_canvas->save();
+        m_canvas->clipPath(path, true);
+        m_clip_path_stack_depth++;
+    } else {
+        m_canvas->save();
+        m_clip_path_stack_depth++;
+    }
+}
+
+void container_skia::pop_clip_path(litehtml::uint_ptr hdc) {
+    if (m_clip_path_stack_depth <= 0) return;
+    m_clip_path_stack_depth--;
+
+    if (m_canvas) {
+        flush();
+        if (m_tagging) {
+            SkPaint p;
+            p.setColor(make_magic_color(satoru::MagicTag::ClipPathPop));
             SkRect rect;
             if (!m_clips.empty()) {
                 rect = SkRect::MakeXYWH(

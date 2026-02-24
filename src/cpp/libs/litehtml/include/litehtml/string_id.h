@@ -355,6 +355,7 @@ namespace litehtml
       _order_,
       _filter_,
       _backdrop_filter_,
+      _clip_path_,
 
       _counter_reset_,
       _counter_increment_,
@@ -445,6 +446,14 @@ namespace litehtml
       _repeating_radial_gradient_,
       _conic_gradient_,
       _repeating_conic_gradient_,
+      _circle_,
+      _ellipse_,
+      _polygon_,
+      _path_,
+      _closest_side_,
+      _farthest_side_,
+      _closest_corner_,
+      _farthest_corner_,
 
       // at-rules and their components
       _charset_,

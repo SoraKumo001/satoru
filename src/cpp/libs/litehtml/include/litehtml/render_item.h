@@ -31,6 +31,11 @@ namespace litehtml
         std::vector<std::shared_ptr<render_item>>   m_positioned;
         std::shared_ptr<scroll_view>                            m_scroll_view;
 
+        containing_block_context m_cached_cb_context;
+        containing_block_context m_self_size;
+        pixel_t m_cached_parent_width = -1;
+        bool m_is_measured = false;
+
                 containing_block_context calculate_containing_block_context(const containing_block_context& cb_context);
                 void calc_cb_length(const css_length& len, pixel_t percent_base, containing_block_context::typed_pixel& out_value) const;
                 pixel_t get_predefined_width(pixel_t parent_width) const;

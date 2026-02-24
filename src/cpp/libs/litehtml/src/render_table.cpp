@@ -10,11 +10,11 @@ litehtml::render_item_table::render_item_table(std::shared_ptr<element> _src_el)
 {
 }
 
-litehtml::pixel_t litehtml::render_item_table::_render(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx, bool /*second_pass*/)
+litehtml::pixel_t litehtml::render_item_table::layout_table(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx)
 {
     if (!m_grid) return 0;
 
-	containing_block_context self_size = calculate_containing_block_context(containing_block_size);
+	containing_block_context self_size = m_self_size;
 
     // Calculate table spacing
     pixel_t table_width_spacing = 0;
@@ -464,12 +464,12 @@ litehtml::pixel_t litehtml::render_item_table::_measure(const containing_block_c
 	// For tables, we use the original _render logic but with size_mode_measure
 	containing_block_context measure_size = containing_block_size;
 	measure_size.size_mode |= containing_block_context::size_mode_measure;
-	return _render(0, 0, measure_size, fmt_ctx, false);
+	return layout_table(0, 0, measure_size, fmt_ctx);
 }
 
 void litehtml::render_item_table::_place(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx)
 {
-	_render(x, y, containing_block_size, fmt_ctx, false);
+	layout_table(x, y, containing_block_size, fmt_ctx);
 }
 
 std::shared_ptr<litehtml::render_item> litehtml::render_item_table::init()

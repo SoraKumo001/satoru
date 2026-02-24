@@ -31,10 +31,14 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
         {
             if(el->src_el()->css().get_position() == element_position_absolute || el->src_el()->css().get_position() == element_position_fixed)
             {
-				pixel_t min_rendered_width = el->render(0, child_top, self_size, fmt_ctx);
+				pixel_t min_rendered_width = el->measure(self_size, fmt_ctx);
 				if(min_rendered_width < el->width() && el->src_el()->css().get_width().is_predefined())
 				{
-					el->render(0, child_top, self_size.new_width(min_rendered_width), fmt_ctx);
+					min_rendered_width = el->measure(self_size.new_width(min_rendered_width), fmt_ctx);
+				}
+				if (!(self_size.size_mode & containing_block_context::size_mode_measure))
+				{
+					el->place(0, child_top, self_size.new_width(min_rendered_width), fmt_ctx);
 				}
             } else
             {
@@ -92,31 +96,18 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 					}
 				}
 
-				pixel_t rw = 0;
-				if (self_size.size_mode & containing_block_context::size_mode_measure)
+				pixel_t rw = el->measure(self_size.new_width(child_width), fmt_ctx);
+				if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 				{
-					rw = el->measure(self_size.new_width(child_width), fmt_ctx);
-				} else
-				{
-					// If width didn't change, we should be able to skip measure.
-					// However, litehtml often relies on JIT width calculation.
-					// To fix slowness, we MUST NOT use recursive measure+place here.
-					// el->place is recursive place only.
 					el->place(child_x, child_top, self_size.new_width(child_width), fmt_ctx);
-					rw = el->width();
 				}
 
 				// Render table with "width: auto" into returned width
 				if(el->src_el()->css().get_display() == display_table && rw < child_width && el->src_el()->css().get_width().is_predefined())
 				{
-					if (self_size.size_mode & containing_block_context::size_mode_measure)
+					rw = el->measure(self_size.new_width(rw), fmt_ctx);
+					if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 					{
-						rw = el->measure(self_size.new_width(rw), fmt_ctx);
-					} else
-					{
-						// If the table width was determined during this pass, we might need a re-measure.
-						// But to avoid O(2^N), el->measure must only do measure.
-						rw = el->measure(self_size.new_width(rw), fmt_ctx);
 						el->place(child_x, child_top, self_size.new_width(rw), fmt_ctx);
 					}
 				}

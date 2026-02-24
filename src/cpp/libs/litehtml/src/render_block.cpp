@@ -15,10 +15,19 @@ litehtml::pixel_t litehtml::render_item_block::place_float(const std::shared_ptr
 
     pixel_t ret_width = 0;
 
-	pixel_t min_rendered_width = el->render(line_left, line_top, self_size.new_width(line_right), fmt_ctx);
+	pixel_t min_rendered_width = el->measure(self_size.new_width(line_right), fmt_ctx);
+	if (!(self_size.size_mode & containing_block_context::size_mode_measure))
+	{
+		el->place(line_left, line_top, self_size.new_width(line_right), fmt_ctx);
+	}
+
 	if(min_rendered_width < el->width() && el->src_el()->css().get_width().is_predefined())
 	{
-		el->render(line_left, line_top, self_size.new_width(min_rendered_width), fmt_ctx);
+		min_rendered_width = el->measure(self_size.new_width(min_rendered_width), fmt_ctx);
+		if (!(self_size.size_mode & containing_block_context::size_mode_measure))
+		{
+			el->place(line_left, line_top, self_size.new_width(min_rendered_width), fmt_ctx);
+		}
 	}
 
     if (el->src_el()->css().get_float() == float_left)
@@ -200,7 +209,7 @@ std::shared_ptr<litehtml::render_item> litehtml::render_item_block::init()
 
 litehtml::pixel_t litehtml::render_item_block::_measure(const containing_block_context &containing_block_size, formatting_context* fmt_ctx)
 {
-	containing_block_context self_size = calculate_containing_block_context(containing_block_size);
+	containing_block_context self_size = m_self_size;
 	
 	// If the block has max-width, we should restrict the available width for children
 	if (self_size.max_width.type != containing_block_context::cbc_value_type_none)
@@ -363,7 +372,7 @@ litehtml::pixel_t litehtml::render_item_block::_measure(const containing_block_c
 
 void litehtml::render_item_block::_place(pixel_t x, pixel_t y, const containing_block_context &containing_block_size, formatting_context* fmt_ctx)
 {
-	containing_block_context self_size = calculate_containing_block_context(containing_block_size);
+	containing_block_context self_size = m_self_size;
 	
 	// If the block has max-width, we should restrict the available width for children
 	if (self_size.max_width.type != containing_block_context::cbc_value_type_none)

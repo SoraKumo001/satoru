@@ -447,6 +447,16 @@ namespace litehtml
                                 type = tp;
                         }
 
+                        bool operator==(const typed_pixel& val) const
+                        {
+                                return value == val.value && type == val.type;
+                        }
+
+                        bool operator!=(const typed_pixel& val) const
+                        {
+                                return !(*this == val);
+                        }
+
                         operator pixel_t() const
                         {
                                 return value;
@@ -499,15 +509,34 @@ namespace litehtml
 
                 containing_block_context new_width_height(pixel_t w, pixel_t h, uint32_t _size_mode = size_mode_normal) const
                 {
-                        containing_block_context ret = *this;
-                        pixel_t diff_w = (pixel_t)ret.width - (pixel_t)ret.render_width;
-                        pixel_t diff_h = (pixel_t)ret.height - (pixel_t)ret.render_height;
-                        ret.render_width = w;
-                        ret.render_height = h;
-                        ret.width = w + diff_w;
-                        ret.height = h + diff_h;
-                        ret.size_mode = _size_mode;
-                        return ret;
+                containing_block_context ret = *this;
+                pixel_t diff_w = (pixel_t)ret.width - (pixel_t)ret.render_width;
+                pixel_t diff_h = (pixel_t)ret.height - (pixel_t)ret.render_height;
+                ret.render_width = w;
+                ret.render_height = h;
+                ret.width = w + diff_w;
+                ret.height = h + diff_h;
+                ret.size_mode = _size_mode;
+                return ret;
+                }
+
+                bool operator==(const containing_block_context& val) const
+                {
+                        return width == val.width &&
+                                   render_width == val.render_width &&
+                                   min_width == val.min_width &&
+                                   max_width == val.max_width &&
+                                   height == val.height &&
+                                   render_height == val.render_height &&
+                                   min_height == val.min_height &&
+                                   max_height == val.max_height &&
+                                   context_idx == val.context_idx &&
+                                   size_mode == val.size_mode;
+                }
+
+                bool operator!=(const containing_block_context& val) const
+                {
+                        return !(*this == val);
                 }
         };
 

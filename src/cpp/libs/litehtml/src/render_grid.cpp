@@ -459,7 +459,7 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
         cb.height = containing_block_context::cbc_value_type_auto;
 
         // Render at (0,0) relative to parent to measure content height.
-        p.el->render(0, 0, cb, fmt_ctx);
+        p.el->measure(cb, fmt_ctx);
     }
 
     // Distribute heights: process 1-row items first, then spans
@@ -510,6 +510,13 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
     m_col_offsets.assign(num_columns, 0);
     vector<pixel_t> row_offsets(num_rows, 0);
     
+	if (self_size.size_mode & containing_block_context::size_mode_measure)
+	{
+		m_pos.height = (self_size.render_height.type != containing_block_context::cbc_value_type_auto) ? (pixel_t)self_size.render_height : total_grid_height;
+		m_pos.width = self_size.render_width;
+		return m_pos.height;
+	}
+
     pixel_t extra_x = 0;
     pixel_t extra_y = 0;
     pixel_t justify_gap = m_column_gap;
@@ -586,7 +593,8 @@ pixel_t render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pa
         cb.size_mode |= containing_block_context::size_mode_exact_width;
 
         // Render at relative coordinates. render() adds margins/offsets internally.
-        p.el->render(base_rel_x + item_rel_x, base_rel_y + item_rel_y, cb, fmt_ctx);
+        p.el->measure(cb, fmt_ctx);
+        p.el->place(base_rel_x + item_rel_x, base_rel_y + item_rel_y, cb, fmt_ctx);
     }
 
     m_pos.height = (self_size.render_height.type != containing_block_context::cbc_value_type_auto) ? (pixel_t)self_size.render_height : total_grid_height;

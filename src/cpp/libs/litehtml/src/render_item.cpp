@@ -30,7 +30,22 @@ litehtml::render_item::render_item(std::shared_ptr<element>  _src_el) :
 
 litehtml::pixel_t litehtml::render_item::measure(const containing_block_context& containing_block_size, formatting_context* fmt_ctx)
 {
-	calc_outlines(containing_block_size.width);
+	if (m_cached_parent_width != containing_block_size.width)
+	{
+		calc_outlines(containing_block_size.width);
+		m_cached_parent_width = containing_block_size.width;
+		m_is_measured = false;
+	}
+
+	if (m_is_measured && m_cached_cb_context == containing_block_size)
+	{
+		return m_pos.width + content_offset_width();
+	}
+
+	m_cached_cb_context = containing_block_size;
+	m_self_size = calculate_containing_block_context(containing_block_size);
+	m_is_measured = true;
+
 	if(src_el()->is_block_formatting_context() || ! fmt_ctx)
 	{
 		formatting_context fmt;
@@ -48,6 +63,13 @@ void litehtml::render_item::place(pixel_t x, pixel_t y, const containing_block_c
 
 	m_pos.x = x + content_left;
 	m_pos.y = y + content_top;
+
+	if (m_cached_cb_context != containing_block_size)
+	{
+		m_cached_cb_context = containing_block_size;
+		m_self_size = calculate_containing_block_context(containing_block_size);
+		m_is_measured = false;
+	}
 
 	if(src_el()->is_block_formatting_context() || ! fmt_ctx)
 	{
@@ -543,7 +565,7 @@ void litehtml::render_item::render_positioned(render_type rt)
 				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
 				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
 				position pos = el->m_pos;
-				width = el->render(0, 0, containing_block_size.new_width(containing_block_size.width, containing_block_context::size_mode_content), nullptr, false);
+				width = el->measure(containing_block_size.new_width(containing_block_size.width, containing_block_context::size_mode_content), nullptr);
 				el->m_pos = pos;
 				right = css_right.calc_percent(containing_block_size.width);
 				left = containing_block_size.width - width - right;
@@ -564,7 +586,7 @@ void litehtml::render_item::render_positioned(render_type rt)
 				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
 				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
 				position pos = el->m_pos;
-				width = el->render(0, 0, containing_block_size.new_width(containing_block_size.width, containing_block_context::size_mode_content), nullptr, false);
+				width = el->measure(containing_block_size.new_width(containing_block_size.width, containing_block_context::size_mode_content), nullptr);
 				el->m_pos = pos;
 				left = css_left.calc_percent(containing_block_size.width);
 			} else if(css_left.is_predefined() && !css_right.is_predefined() && !el_width.is_predefined())
@@ -637,7 +659,7 @@ void litehtml::render_item::render_positioned(render_type rt)
 				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
 				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
 				position pos = el->m_pos;
-				width = el->render(0, 0, containing_block_size.new_width(containing_block_size.width, containing_block_context::size_mode_content), nullptr, false);
+				width = el->measure(containing_block_size.new_width(containing_block_size.width, containing_block_context::size_mode_content), nullptr);
 				el->m_pos = pos;
 				left = el_static_x - el->content_offset_left();
 			} else
@@ -695,7 +717,8 @@ void litehtml::render_item::render_positioned(render_type rt)
             if(need_render)
             {
                 position pos = el->m_pos;
-				el->render(el->left(), el->top(), containing_block_size.new_width(el->width()), nullptr, true);
+				el->measure(containing_block_size.new_width(el->width()), nullptr);
+				el->place(el->left(), el->top(), containing_block_size.new_width(el->width()), nullptr);
                 el->m_pos = pos;
             }
 

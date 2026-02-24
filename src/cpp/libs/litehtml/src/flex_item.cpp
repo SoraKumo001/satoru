@@ -49,7 +49,7 @@ void litehtml::flex_item::place(flex_line &ln, pixel_t main_pos,
 								const containing_block_context &self_size,
 								formatting_context *fmt_ctx)
 {
-	perform_render(ln, self_size, fmt_ctx);
+	layout_item(ln, self_size, fmt_ctx);
 	apply_main_auto_margins();
 	set_main_position(main_pos);
 
@@ -147,7 +147,7 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 	{
 		formatting_context fmt_ctx_copy;
 		if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-		min_main_size = el->render(0, 0,
+		min_main_size = el->measure(
 							  self_size.new_width(el->content_offset_width(),
 												  containing_block_context::size_mode_content | containing_block_context::size_mode_measure),
 							  fmt_ctx ? &fmt_ctx_copy : nullptr);
@@ -194,7 +194,7 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 				{
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-					flex_base_size = el->render(0, 0, self_size.new_width(self_size.render_width + el->content_offset_width(),
+					flex_base_size = el->measure(self_size.new_width(self_size.render_width + el->content_offset_width(),
 																	 containing_block_context::size_mode_measure | containing_block_context::size_mode_content),
 										   fmt_ctx ? &fmt_ctx_copy : nullptr);
 				}
@@ -204,7 +204,7 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 				{
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-					content_size = el->render(0, 0,
+					content_size = el->measure(
 											  self_size.new_width(el->content_offset_width(),
 																  containing_block_context::size_mode_content | containing_block_context::size_mode_measure),
 											  fmt_ctx ? &fmt_ctx_copy : nullptr);
@@ -215,7 +215,7 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 				{
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-					el->render(0, 0, self_size.new_width(0, containing_block_context::size_mode_measure | containing_block_context::size_mode_content), fmt_ctx ? &fmt_ctx_copy : nullptr);
+					el->measure(self_size.new_width(0, containing_block_context::size_mode_measure | containing_block_context::size_mode_content), fmt_ctx ? &fmt_ctx_copy : nullptr);
 					flex_base_size = el->width();
 				}
 				break;
@@ -281,7 +281,7 @@ void litehtml::flex_item_row_direction::set_cross_position(pixel_t pos)
 	el->pos().y = pos + el->content_offset_top();
 }
 
-void litehtml::flex_item_row_direction::perform_render(litehtml::flex_line &ln,
+void litehtml::flex_item_row_direction::layout_item(litehtml::flex_line &ln,
 													   const litehtml::containing_block_context &self_size,
 													   litehtml::formatting_context *fmt_ctx)
 {
@@ -313,12 +313,9 @@ void litehtml::flex_item_row_direction::perform_render(litehtml::flex_line &ln,
 		}
 	}
 
-	if (self_size.size_mode & containing_block_context::size_mode_measure)
+	el->measure(child_cb, fmt_ctx);
+	if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 	{
-		el->measure(child_cb, fmt_ctx);
-	} else
-	{
-		el->measure(child_cb, fmt_ctx);
 		el->place(0, 0, child_cb, fmt_ctx);
 	}
 }
@@ -402,7 +399,7 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 		
 		// When measuring min-height, we must respect the available width to allow correct text wrapping.
 		// Use self_size.render_width as the constraint.
-		el->render(0, 0, self_size.new_width(self_size.render_width, mode), fmt_ctx ? &fmt_ctx_copy : nullptr);
+		el->measure(self_size.new_width(self_size.render_width, mode), fmt_ctx ? &fmt_ctx_copy : nullptr);
 		min_main_size = el->height();
 	} else
 	{
@@ -452,7 +449,7 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 					if (!stretch) measure_size.size_mode |= containing_block_context::size_mode_content;
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-					el->render(0, 0, measure_size, fmt_ctx ? &fmt_ctx_copy : nullptr);
+					el->measure(measure_size, fmt_ctx ? &fmt_ctx_copy : nullptr);
 					flex_base_size = el->height();
 				}
 				break;
@@ -520,7 +517,7 @@ void litehtml::flex_item_column_direction::set_cross_position(pixel_t pos)
 	el->pos().x = pos + el->content_offset_left();
 }
 
-void litehtml::flex_item_column_direction::perform_render(litehtml::flex_line &ln,
+void litehtml::flex_item_column_direction::layout_item(litehtml::flex_line &ln,
 													   const litehtml::containing_block_context &self_size,
 													   litehtml::formatting_context *fmt_ctx)
 {
@@ -545,12 +542,9 @@ void litehtml::flex_item_column_direction::perform_render(litehtml::flex_line &l
 		}
 	}
 
-	if (self_size.size_mode & containing_block_context::size_mode_measure)
+	el->measure(child_cb, fmt_ctx);
+	if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 	{
-		el->measure(child_cb, fmt_ctx);
-	} else
-	{
-		el->measure(child_cb, fmt_ctx);
 		el->place(0, 0, child_cb, fmt_ctx);
 	}
 }

@@ -1713,6 +1713,11 @@ void litehtml::html_tag::reset_style()
 	m_style.clear();
 }
 
+const litehtml::property_value& litehtml::html_tag::get_property_value(string_id name) const
+{
+	return m_style.get_property(name);
+}
+
 void litehtml::html_tag::refresh_styles()
 {
         for (auto& el : m_children)

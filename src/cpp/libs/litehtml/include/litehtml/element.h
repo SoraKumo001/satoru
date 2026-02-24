@@ -116,6 +116,30 @@ namespace litehtml
 		virtual void				set_text(const char* text);
 		virtual void				parse_attributes();
 		virtual void				parse_presentational_hints();
+
+		virtual const property_value& get_property_value(string_id name) const;
+		virtual bool				get_custom_property(string_id name, css_token_vector& result) const;
+
+		template <class Type>
+		const Type& get_property(string_id name, bool inherited, const Type& default_value, uint_ptr css_properties_member_offset) const
+		{
+			const property_value& value = get_property_value(name);
+
+			if (value.is<Type>())
+			{
+				return value.get<Type>();
+			}
+			else if (inherited || value.is<inherit>())
+			{
+				if (auto _parent = parent())
+				{
+					return *(Type*)((byte*)&_parent->css() + css_properties_member_offset);
+				}
+				return default_value;
+			}
+			return default_value;
+		}
+
 		virtual int					select(const css_selector::vector& selector_list, bool apply_pseudo = true);
 		virtual int					select(const string& selector);
 		virtual int					select(const css_selector& selector, bool apply_pseudo = true);
@@ -160,6 +184,18 @@ namespace litehtml
 		std::vector<element::ptr> get_siblings_before() const;
 		bool				find_counter(const string_id& counter_name_id, std::map<string_id, int>::iterator& map_iterator);
 		void				parse_counter_tokens(const string_vector& tokens, const int default_value, std::function<void(const string_id&, const int)> handler) const;
+	};
+
+	class el_anonymous : public element
+	{
+		style_display m_display;
+	public:
+		explicit el_anonymous(const std::shared_ptr<document>& doc, style_display disp = display_block) : element(doc), m_display(disp) {}
+		virtual ~el_anonymous() = default;
+
+		const char* get_tagName() const override { return "anonymous"; }
+		void compute_styles(bool recursive = true) override;
+		const property_value& get_property_value(string_id name) const override;
 	};
 
 	//////////////////////////////////////////////////////////////////////////

@@ -494,7 +494,44 @@ void element::set_attr( const char* /*name*/, const char* /*val*/ )					LITEHTML
 void element::apply_stylesheet( const litehtml::css& /*stylesheet*/ )				LITEHTML_EMPTY_FUNC
 void element::refresh_styles()														LITEHTML_EMPTY_FUNC
 void element::on_click()															LITEHTML_EMPTY_FUNC
-void element::compute_styles( bool /*recursive*/ )									LITEHTML_EMPTY_FUNC
+const litehtml::property_value& litehtml::element::get_property_value(string_id /*name*/) const
+{
+	static property_value invalid_pv;
+	return invalid_pv;
+}
+
+bool litehtml::element::get_custom_property(string_id /*name*/, css_token_vector& /*result*/) const
+{
+	return false;
+}
+
+void element::compute_styles( bool /*recursive*/ )                                                                   LITEHTML_EMPTY_FUNC
+
+void litehtml::el_anonymous::compute_styles(bool recursive)
+{
+	m_css.compute(this, get_document());
+	if (recursive)
+	{
+		for (auto& el : m_children)
+		{
+			el->compute_styles(recursive);
+		}
+	}
+}
+
+const litehtml::property_value& litehtml::el_anonymous::get_property_value(string_id name) const
+{
+	if(name == _display_)
+	{
+		static property_value display_pvs[display_webkit_inline_box + 1];
+		if(display_pvs[m_display].is<invalid>())
+		{
+			display_pvs[m_display] = property_value((int) m_display, false);
+		}
+		return display_pvs[m_display];
+	}
+	return element::get_property_value(name);
+}
 void element::apply_word_break()
 {
 	for (auto& el : m_children)

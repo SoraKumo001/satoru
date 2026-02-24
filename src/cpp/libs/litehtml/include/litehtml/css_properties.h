@@ -10,7 +10,7 @@
 
 namespace litehtml
 {
-  class html_tag;
+  class element;
   class document;
 
   template <class CssT, class CompT>
@@ -131,13 +131,13 @@ namespace litehtml
     string m_container_name;
 
   private:
-    void compute_font(const html_tag *el, const std::shared_ptr<document> &doc);
-    void compute_background(const html_tag *el, const std::shared_ptr<document> &doc);
-    void compute_flex(const html_tag *el, const std::shared_ptr<document> &doc);
-    void compute_grid(const html_tag *el, const std::shared_ptr<document> &doc);
-    web_color get_color_property(const html_tag *el, string_id name, bool inherited, web_color default_value, uint_ptr member_offset) const;
+    void compute_font(const element *el, const std::shared_ptr<document> &doc);
+    void compute_background(const element *el, const std::shared_ptr<document> &doc);
+    void compute_flex(const element *el, const std::shared_ptr<document> &doc);
+    void compute_grid(const element *el, const std::shared_ptr<document> &doc);
+    web_color get_color_property(const element *el, string_id name, bool inherited, web_color default_value, uint_ptr member_offset) const;
     template <class T>
-    T get_logical_property(const html_tag *el, string_id logical_side, string_id physical_side, string_id logical_all, T default_value, bool inherited, uint_ptr member_offset) const;
+    T get_logical_property(const element *el, string_id logical_side, string_id physical_side, string_id logical_all, T default_value, bool inherited, uint_ptr member_offset) const;
     void snap_border_width(css_length &width, const std::shared_ptr<document> &doc);
 
   public:
@@ -211,7 +211,7 @@ namespace litehtml
     {
     }
 
-    void compute(const html_tag *el, const std::shared_ptr<document> &doc);
+    void compute(const element *el, const std::shared_ptr<document> &doc);
     std::vector<std::tuple<string, string>> dump_get_attrs();
 
     element_position get_position() const;

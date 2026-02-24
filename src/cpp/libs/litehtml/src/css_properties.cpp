@@ -10,7 +10,7 @@
 #define offset(member) ((uint_ptr) & this->member - (uint_ptr)this)
 // #define offset(func)  [](const css_properties& css) { return css.func; }
 
-void litehtml::css_properties::compute(const html_tag *el, const document::ptr &doc)
+void litehtml::css_properties::compute(const element *el, const document::ptr &doc)
 {
   m_color = el->get_property<web_color>(_color_, true, web_color::black, offset(m_color));
 
@@ -337,7 +337,7 @@ void litehtml::css_properties::compute(const html_tag *el, const document::ptr &
 }
 
 // used for all color properties except `color` (color:currentcolor is converted to color:inherit during parsing)
-litehtml::web_color litehtml::css_properties::get_color_property(const html_tag *el, string_id name, bool inherited, web_color default_value, uint_ptr member_offset) const
+litehtml::web_color litehtml::css_properties::get_color_property(const element *el, string_id name, bool inherited, web_color default_value, uint_ptr member_offset) const
 {
   web_color color = el->get_property<web_color>(name, inherited, default_value, member_offset);
   if (color.is_current_color)
@@ -356,7 +356,7 @@ static const litehtml::pixel_t font_size_table[8][7] =
         {9, 10, 12, 15, 17, 23, 30},
         {9, 10, 13, 16, 18, 24, 32}};
 
-void litehtml::css_properties::compute_font(const html_tag *el, const document::ptr &doc)
+void litehtml::css_properties::compute_font(const element *el, const document::ptr &doc)
 {
   // initialize font size
   css_length sz = el->get_property<css_length>(_font_size_, true, css_length::predef_value(font_size_medium), offset(m_font_size));
@@ -551,7 +551,7 @@ void litehtml::css_properties::compute_font(const html_tag *el, const document::
   m_font = doc->get_font(descr, &m_font_metrics);
 }
 
-void litehtml::css_properties::compute_background(const html_tag *el, const document::ptr &doc)
+void litehtml::css_properties::compute_background(const element *el, const document::ptr &doc)
 {
   m_bg.m_color = get_color_property(el, _background_color_, false, web_color::transparent, offset(m_bg.m_color));
 
@@ -602,7 +602,7 @@ void litehtml::css_properties::compute_background(const html_tag *el, const docu
   }
 }
 
-void litehtml::css_properties::compute_flex(const html_tag *el, const document::ptr &doc)
+void litehtml::css_properties::compute_flex(const element *el, const document::ptr &doc)
 {
   if (m_display == display_flex || m_display == display_inline_flex)
   {
@@ -646,7 +646,7 @@ void litehtml::css_properties::compute_flex(const html_tag *el, const document::
   }
 }
 
-void litehtml::css_properties::compute_grid(const html_tag *el, const document::ptr &doc)
+void litehtml::css_properties::compute_grid(const element *el, const document::ptr &doc)
 {
   if (m_display == display_grid || m_display == display_inline_grid)
   {
@@ -710,7 +710,7 @@ void litehtml::css_properties::snap_border_width(css_length &width, const std::s
 }
 
 template <class T>
-T litehtml::css_properties::get_logical_property(const html_tag *el, string_id logical_side, string_id physical_side, string_id logical_all, T default_value, bool inherited, uint_ptr member_offset) const
+T litehtml::css_properties::get_logical_property(const element *el, string_id logical_side, string_id physical_side, string_id logical_all, T default_value, bool inherited, uint_ptr member_offset) const
 {
   // Priority: logical-side > logical-all > physical-side
   const property_value &v_logical = el->get_property_value(logical_side);
@@ -724,9 +724,9 @@ T litehtml::css_properties::get_logical_property(const html_tag *el, string_id l
   return el->get_property<T>(physical_side, inherited, default_value, member_offset);
 }
 
-template litehtml::css_length litehtml::css_properties::get_logical_property<litehtml::css_length>(const html_tag *el, string_id logical_side, string_id physical_side, string_id logical_all, litehtml::css_length default_value, bool inherited, uint_ptr member_offset) const;
-template litehtml::web_color litehtml::css_properties::get_logical_property<litehtml::web_color>(const html_tag *el, string_id logical_side, string_id physical_side, string_id logical_all, litehtml::web_color default_value, bool inherited, uint_ptr member_offset) const;
-template int litehtml::css_properties::get_logical_property<int>(const html_tag *el, string_id logical_side, string_id physical_side, string_id logical_all, int default_value, bool inherited, uint_ptr member_offset) const;
+template litehtml::css_length litehtml::css_properties::get_logical_property<litehtml::css_length>(const element *el, string_id logical_side, string_id physical_side, string_id logical_all, litehtml::css_length default_value, bool inherited, uint_ptr member_offset) const;
+template litehtml::web_color litehtml::css_properties::get_logical_property<litehtml::web_color>(const element *el, string_id logical_side, string_id physical_side, string_id logical_all, litehtml::web_color default_value, bool inherited, uint_ptr member_offset) const;
+template int litehtml::css_properties::get_logical_property<int>(const element *el, string_id logical_side, string_id physical_side, string_id logical_all, int default_value, bool inherited, uint_ptr member_offset) const;
 
 std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_properties::dump_get_attrs()
 {

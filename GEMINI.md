@@ -45,17 +45,25 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - `src/cpp/utils`: Skia utilities, Base64 helpers, SkUnicode implementation, and logging macros (`logging.h`).
 - `src/cpp/libs`: External libraries (`litehtml`, `skia`).
 
-### 3.2 Rendering Pipelines
+### 3.2 Layout & Rendering Pipelines
+
 - **Unified Layout Pipeline (O(N) Optimization)**: Decoupled `measure()` (size calculation) and `place()` (positioning) methods in `render_item`.
+  - **Core Pass Separation**: The layout process is split into two distinct, linear traversals:
+    1. **Measure Pass**: Calculates `m_pos.width/height` using `BoxConstraints` (via `size_mode_measure`).
+    2. **Place Pass**: Determines `m_pos.x/y` based on measured sizes and container logic.
   - **Complexity**: Reduced from exponential $O(2^n)$ to linear $O(N)$ by preventing redundant recursive layout calls.
-  - **Measure Pass**: Calculates `m_pos.width/height` using `BoxConstraints` (via `size_mode_measure`).
-  - **Place Pass**: Determines `m_pos.x/y` based on measured sizes and parent container logic (Flex, Block, etc.).
+- **Flexbox Algorithm (W3C Compliant)**: Fully refactored to follow the multi-step W3C Flexbox resolution process:
+  1. **Base Sizing**: Determine `flex_base_size` and `hypothetical_main_size` for each item.
+  2. **Main Axis Resolution**: Resolve flexible lengths (`flex-grow`/`flex-shrink`) using a re-distribution loop with `min`/`max` constraints.
+  3. **Cross Axis Resolution**: Determine line `cross_size` based on the largest item in the line.
+  4. **Finalization**: Re-measure items for `stretch` and `align-self` before final positioning.
+- **Lightweight Anonymous Boxes**: Introduced `el_anonymous` class to replace heavy `html_tag` for internal wrapper boxes (Flex text wrapping, Table parts, etc.).
+  - **Optimization**: Reduced memory overhead and simplified style resolution for internal boxes.
+  - **Unified Property Interface**: Refactored `css_properties` to work with the base `element` class via a virtual property access interface.
 - **SVG Pipeline**: Measurement -> Drawing to `SkSVGCanvas` -> Regex Post-Processing.
-  - **Text Handling**: Defaults to retaining `<text>` elements (`textToPaths: false`). Use `--outline` in CLI to force paths.
-  - **Glyph Reuse**: When `textToPaths` is enabled, common glyph shapes are stored in `container_skia` and emitted as `<path>` elements in `<defs>`. Individual glyphs are rendered via `<use xlink:href="#glyph-N">`.
-  - **Style Recovery**: Since Skia's SVG backend doesn't support complex CSS effects, styles (color, weight, italic, shadow) are encoded into "Magic Colors" during drawing and restored during regex post-processing using `glyph_draw_info`.
-- **PNG/WebP**: Render to `SkSurface` -> `SkImage` -> Encode.
-- **PDF (2-Pass)**: Measurement -> Drawing to `SkPDFDocument`.
+  - **Style Recovery**: Styles (color, weight, shadow) are encoded into "Magic Colors" during drawing and restored during regex post-processing.
+  - **Glyph Reuse**: Common glyph shapes are stored in `<defs>` and referenced via `<use>` to minimize output size.
+- **Binary Pipelines (PNG/WebP/PDF)**: Direct rendering to `SkSurface` or `SkPDFDocument`.
 
 ### 3.3 CSS Engine (litehtml Customizations)
 - **Cascade Priority**: Correct W3C order (`Important` > `Layer` > `Specificity`).

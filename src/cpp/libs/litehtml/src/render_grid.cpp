@@ -55,7 +55,7 @@ std::shared_ptr<render_item> render_item_grid::init()
             else
             {
                 // Normal Grid: wrap inlines in a single anonymous block
-                auto anon_el = std::make_shared<el_div>(src_el()->get_document());
+                auto anon_el = std::make_shared<el_anonymous>(src_el()->get_document());
                 anon_el->parent(src_el());
                 anon_el->compute_styles(false);
                 auto anon_ri = std::make_shared<render_item_block>(anon_el);

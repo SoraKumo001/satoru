@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { createSatoruWorker, LogLevel, DEFAULT_FONT_MAP } from "satoru-render/workers";
+import {
+  createSatoruWorker,
+  LogLevel,
+  DEFAULT_FONT_MAP,
+} from "satoru-render/workers";
 
 const satoru = createSatoruWorker({
   maxParallel: 1,
@@ -338,7 +342,10 @@ const App: React.FC = () => {
         }}
       >
         <h2 style={{ color: "#2196F3", margin: 0 }}>
-          Satoru Engine Playground (Multi-threaded)
+          <a href="https://www.npmjs.com/package/satoru-render">
+            Satoru Render
+          </a>{" "}
+          Playground (Multi-threaded)
         </h2>
       </header>
 

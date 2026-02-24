@@ -62,6 +62,8 @@ class container_skia : public litehtml::document_container {
 
     satoru::TextBatcher *m_textBatcher = nullptr;
 
+    std::map<font_request, std::vector<font_info *>> m_createdFonts;
+
     float get_current_opacity() const {
         float opacity = 1.0f;
         for (float o : m_opacity_stack) {
@@ -157,6 +159,8 @@ class container_skia : public litehtml::document_container {
     }
 
     const std::set<font_request> &get_missing_fonts() const { return m_missingFonts; }
+
+    std::map<font_request, std::set<char32_t>> get_used_fonts_characters() const;
 
     // litehtml::document_container implementations
     virtual litehtml::uint_ptr create_font(const litehtml::font_description &desc,

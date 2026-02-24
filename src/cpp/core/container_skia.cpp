@@ -231,12 +231,23 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description 
 
     fi->fm_ascent = (int)(ascent + (css_line_height - (ascent + descent)) / 2.0f + 1.0f);
     fi->fm_height = (int)css_line_height;
+
+    font_request req;
+    req.family = desc.family;
+    req.weight = desc.weight;
+    req.slant = slant;
+    m_createdFonts[req].push_back(fi);
+
     return (litehtml::uint_ptr)fi;
 }
 
 void container_skia::delete_font(litehtml::uint_ptr hFont) {
     font_info *fi = (font_info *)hFont;
     if (fi) {
+        for (auto &entry : m_createdFonts) {
+            auto &v = entry.second;
+            v.erase(std::remove(v.begin(), v.end(), fi), v.end());
+        }
         for (auto font : fi->fonts) delete font;
         delete fi;
     }
@@ -248,9 +259,13 @@ litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_pt
     if (fi) {
         fi->is_rtl = (dir == litehtml::direction_rtl);
     }
-    return (litehtml::pixel_t)satoru::TextLayout::measureText(
-               &m_context, text, fi, -1.0, m_resourceManager ? &m_usedCodepoints : nullptr)
-        .width;
+    auto width = (litehtml::pixel_t)satoru::TextLayout::measureText(
+                     &m_context, text, fi, -1.0, m_resourceManager ? &m_usedCodepoints : nullptr)
+                     .width;
+    if (fi && m_resourceManager) {
+        satoru::TextLayout::measureText(&m_context, text, fi, -1.0, &fi->used_codepoints);
+    }
+    return width;
 }
 
 void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtml::uint_ptr hFont,
@@ -270,6 +285,12 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                                    m_tagging, get_current_opacity(), m_usedTextShadows,
                                    m_usedTextDraws, m_usedGlyphs, m_usedGlyphDraws,
                                    m_resourceManager ? &m_usedCodepoints : nullptr, m_textBatcher);
+    if (fi && m_resourceManager) {
+        satoru::TextRenderer::drawText(
+            &m_context, nullptr, text, fi, color, actual_pos, overflow, dir, m_tagging,
+            get_current_opacity(), m_usedTextShadows, m_usedTextDraws, m_usedGlyphs,
+            m_usedGlyphDraws, &fi->used_codepoints, nullptr);
+    }
 }
 
 void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::shadow_vector &shadows,
@@ -1223,4 +1244,15 @@ litehtml::element::ptr container_skia::create_element(
         return std::make_shared<litehtml::el_svg>(doc);
     }
     return nullptr;
+}
+
+std::map<font_request, std::set<char32_t>> container_skia::get_used_fonts_characters() const {
+    std::map<font_request, std::set<char32_t>> res;
+    for (const auto &entry : m_createdFonts) {
+        auto &set = res[entry.first];
+        for (auto fi : entry.second) {
+            set.insert(fi->used_codepoints.begin(), fi->used_codepoints.end());
+        }
+    }
+    return res;
 }

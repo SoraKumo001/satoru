@@ -70,6 +70,34 @@ const uint8_t *render_and_store(SatoruInstance *inst, F render_func,
     (inst->context.*setter)(std::move(data));
     return bytes;
 }
+
+std::string encode_utf8(char32_t cp) {
+    std::string res;
+    if (cp <= 0x7F) {
+        res += (char)cp;
+    } else if (cp <= 0x7FF) {
+        res += (char)(0xC0 | (cp >> 6));
+        res += (char)(0x80 | (cp & 0x3F));
+    } else if (cp <= 0xFFFF) {
+        res += (char)(0xE0 | (cp >> 12));
+        res += (char)(0x80 | ((cp >> 6) & 0x3F));
+        res += (char)(0x80 | (cp & 0x3F));
+    } else if (cp <= 0x10FFFF) {
+        res += (char)(0xF0 | (cp >> 18));
+        res += (char)(0x80 | ((cp >> 12) & 0x3F));
+        res += (char)(0x80 | ((cp >> 6) & 0x3F));
+        res += (char)(0x80 | (cp & 0x3F));
+    }
+    return res;
+}
+
+std::string codepoints_to_utf8(const std::set<char32_t> &cps) {
+    std::string res;
+    for (char32_t cp : cps) {
+        res += encode_utf8(cp);
+    }
+    return res;
+}
 }  // namespace
 
 // --- SatoruInstance Implementation ---
@@ -138,8 +166,15 @@ void SatoruInstance::collect_resources(const std::string &html, int width) {
 
     const auto &usedCodepoints = discovery_container->get_used_codepoints();
     const auto &requestedAttribs = discovery_container->get_requested_font_attributes();
+    const auto &usedFontCharacters = discovery_container->get_used_fonts_characters();
 
     for (const auto &req : requestedAttribs) {
+        std::string charactersStr;
+        auto it_chars = usedFontCharacters.find(req);
+        if (it_chars != usedFontCharacters.end()) {
+            charactersStr = codepoints_to_utf8(it_chars->second);
+        }
+
         std::vector<std::string> urls =
             context.fontManager.getFontUrls(req.family, req.weight, req.slant, &usedCodepoints);
 
@@ -151,20 +186,27 @@ void SatoruInstance::collect_resources(const std::string &html, int width) {
                 if (it != fontMap.end()) {
                     const std::string &mapped = it->second;
                     if (mapped.substr(0, 7) == "http://" || mapped.substr(0, 8) == "https://") {
-                        resourceManager.request(mapped, req.family, ResourceType::Font);
+                        resourceManager.request(mapped, req.family, ResourceType::Font, false,
+                                                charactersStr);
                     } else {
                         // Treat as font family name for Google Fonts
                         std::string providerUrl =
                             "provider:google-fonts?family=" + mapped +
                             "&weight=" + std::to_string(req.weight) +
                             "&italic=" + (req.slant == SkFontStyle::kItalic_Slant ? "1" : "0");
-                        resourceManager.request(providerUrl, req.family, ResourceType::Font);
+
+                        if (!charactersStr.empty()) {
+                            providerUrl += "&text=" + charactersStr;
+                        }
+
+                        resourceManager.request(providerUrl, req.family, ResourceType::Font, false,
+                                                charactersStr);
                     }
                 }
             }
         } else {
             for (const auto &url : urls) {
-                resourceManager.request(url, req.family, ResourceType::Font);
+                resourceManager.request(url, req.family, ResourceType::Font, false, charactersStr);
             }
         }
     }
@@ -204,7 +246,7 @@ std::string SatoruInstance::get_pending_resources_json() {
             typeStr = "css";
 
         ss << "{\"url\":\"" << json_escape(req.url) << "\",\"name\":\"" << json_escape(req.name)
-           << "\",\"type\":\"" << typeStr
+           << "\",\"characters\":\"" << json_escape(req.characters) << "\",\"type\":\"" << typeStr
            << "\",\"redraw_on_ready\":" << (req.redraw_on_ready ? "true" : "false") << "}";
         if (i < requests.size() - 1) ss << ",";
     }

@@ -13,7 +13,7 @@ extern container_skia* g_discovery_container;
 ResourceManager::ResourceManager(SatoruContext& context) : m_context(context) {}
 
 void ResourceManager::request(const std::string& url, const std::string& name, ResourceType type,
-                              bool redraw_on_ready) {
+                              bool redraw_on_ready, const std::string& characters) {
     if (url.empty()) return;
     if (m_resolvedUrls.count(url)) return;  // Already resolved
 
@@ -46,7 +46,7 @@ void ResourceManager::request(const std::string& url, const std::string& name, R
         if (req.url == url) return;
     }
 
-    m_requests.insert({url, name, type, redraw_on_ready});
+    m_requests.insert({url, name, characters, type, redraw_on_ready});
 }
 
 std::vector<ResourceRequest> ResourceManager::getPendingRequests() {

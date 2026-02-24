@@ -258,15 +258,6 @@ pnpm --filter visual-test test
 
 ## 🗺️ Roadmap
 
-### Core Architecture (Completed)
-
-- [x] **$O(N)$ Unified Layout Pipeline**: Decoupled Measure/Place passes for linear performance.
-- [x] **W3C Compliant Flexbox**: Full implementation of the multi-step flex resolution algorithm.
-- [x] **Lightweight Anonymous Boxes**: Optimized memory/style resolution for internal wrappers.
-- [x] **Professional Text Shaping (HarfBuzz)**: Integrated complex script handling.
-- [x] **International Text & Line Breaking**: UAX #14 compliant line breaking and BiDi support.
-- [x] **Automatic Google Fonts Resolution**: Dynamic resource fetching and CSS parsing.
-
 ### Features & Optimization (In Progress / Future)
 
 - [x] **Optimization & Refactoring (Layout Pipeline)**:
@@ -281,8 +272,7 @@ pnpm --filter visual-test test
 - [ ] **Full CSS Grid Support**: Migrating Grid to the new multi-step resolution pipeline.
 - [x] **Inline overflow control**: Implementation of `overflow: hidden` and `text-overflow` for line boxes.
 - [ ] **Advanced CSS Shapes**: Support for `clip-path` and complex `radial-gradient` syntax.
-- [ ] **Font Subsetting**: Optimizing Wasm memory by loading only required glyphs.
-- [ ] **State Persistence (Serialization)**: Restoring layout trees for high-speed repeated rendering.
+- [x] **Font Subsetting**: Optimizing Wasm memory by loading only required glyphs.
 
 ---
 

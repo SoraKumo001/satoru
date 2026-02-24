@@ -1,6 +1,7 @@
 #ifndef BRIDGE_TYPES_H
 #define BRIDGE_TYPES_H
 
+#include <set>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -24,6 +25,7 @@ struct font_info {
     int fm_height;
     bool fake_bold;
     bool is_rtl;
+    std::set<char32_t> used_codepoints;
 };
 
 struct font_request {

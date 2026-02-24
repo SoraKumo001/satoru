@@ -47,6 +47,7 @@ export interface RequiredResource {
   type: "font" | "css" | "image";
   url: string;
   name: string;
+  characters?: string;
   redraw_on_ready?: boolean;
 }
 
@@ -98,6 +99,7 @@ export async function resolveGoogleFonts(
 
   const weight = urlObj.searchParams.get("weight") || "400";
   const italic = urlObj.searchParams.get("italic") === "1";
+  const text = urlObj.searchParams.get("text") || resource.characters;
 
   let targetFamily = family;
   let forceNormalStyle = false;
@@ -112,9 +114,17 @@ export async function resolveGoogleFonts(
 
   const useItalic = italic && !forceNormalStyle;
 
-  const googleFontUrl = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(
+  let googleFontUrl = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(
     targetFamily,
   )}:ital,wght@${useItalic ? "1" : "0"},${weight}&display=swap`;
+
+  if (text) {
+    // Google Fonts text parameter has a limit (around 1000 chars is usually safe for URL length)
+    // If it's too long, we fall back to full character set to avoid URL too long errors
+    if (text.length < 800) {
+      googleFontUrl += `&text=${encodeURIComponent(text)}`;
+    }
+  }
 
   const headers: Record<string, string> = {};
   if (userAgent) {
@@ -368,7 +378,7 @@ export abstract class SatoruBase {
       const inputHtmls = Array.isArray(value) ? value : [value];
       const processedHtmls: string[] = [];
 
-      const resolvedUrls = new Set<string>();
+      const resolvedResources = new Set<string>();
 
       for (const rawHtml of inputHtmls) {
         let processedHtml = rawHtml;
@@ -379,7 +389,10 @@ export abstract class SatoruBase {
           if (!json) break;
 
           const resources = JSON.parse(json) as RequiredResource[];
-          const pending = resources.filter((r) => !resolvedUrls.has(r.url));
+          const pending = resources.filter((r) => {
+            const key = `${r.type}:${r.url}:${r.characters ?? ""}`;
+            return !resolvedResources.has(key);
+          });
           if (pending.length === 0) break;
 
           await Promise.all(
@@ -388,7 +401,8 @@ export abstract class SatoruBase {
                 if (r.url.startsWith("data:")) {
                   return;
                 }
-                resolvedUrls.add(r.url);
+                const key = `${r.type}:${r.url}:${r.characters ?? ""}`;
+                resolvedResources.add(key);
                 const data = await resolver({ ...r });
                 if (
                   data &&
@@ -413,6 +427,14 @@ export abstract class SatoruBase {
             }),
           );
         }
+
+        const resolvedUrls = new Set<string>();
+        resolvedResources.forEach((key) => {
+          const parts = key.split(":");
+          if (parts.length >= 2) {
+            resolvedUrls.add(parts.slice(1, -1).join(":"));
+          }
+        });
 
         resolvedUrls.forEach((url) => {
           const escapedUrl = url.replace(/[.*+?^${}()|[\]]/g, "\\$&");

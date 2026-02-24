@@ -14,6 +14,7 @@ enum class ResourceType : int { Raw = 0, Font = 1, Image = 2, Css = 3 };
 struct ResourceRequest {
     std::string url;
     std::string name;  // Font family name, or other identifier
+    std::string characters;
     ResourceType type;
     bool redraw_on_ready;
 
@@ -21,6 +22,7 @@ struct ResourceRequest {
     bool operator<(const ResourceRequest& other) const {
         if (url != other.url) return url < other.url;
         if (name != other.name) return name < other.name;
+        if (characters != other.characters) return characters < other.characters;
         if (type != other.type) return type < other.type;
         return redraw_on_ready < other.redraw_on_ready;
     }
@@ -32,7 +34,7 @@ class ResourceManager {
 
     // Register a needed resource
     void request(const std::string& url, const std::string& name, ResourceType type,
-                 bool redraw_on_ready = false);
+                 bool redraw_on_ready = false, const std::string& characters = "");
 
     // Get list of pending requests to send to JS
     std::vector<ResourceRequest> getPendingRequests();

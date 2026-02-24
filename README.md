@@ -1,6 +1,10 @@
 # Satoru Wasm: High-Performance HTML to SVG/PNG/PDF Engine
 
 [![Playground](https://img.shields.io/badge/Demo-Playground-blueviolet)](https://sorakumo001.github.io/satoru/)
+[![npm license](https://img.shields.io/npm/l/satoru-render.svg)](https://www.npmjs.com/package/satoru-render)
+[![npm version](https://img.shields.io/npm/v/satoru-render.svg)](https://www.npmjs.com/package/satoru-render)
+[![npm download](https://img.shields.io/npm/dw/satoru-render.svg)](https://www.npmjs.com/package/satoru-render)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/SoraKumo001/satoru)
 
 **Satoru** is a portable, WebAssembly-powered HTML rendering engine. It combines the **Skia Graphics Engine** and **litehtml** to provide high-quality, pixel-perfect SVG, PNG, and PDF generation entirely within WebAssembly.
 
@@ -255,6 +259,7 @@ pnpm --filter visual-test test
 ## 🗺️ Roadmap
 
 ### Core Architecture (Completed)
+
 - [x] **$O(N)$ Unified Layout Pipeline**: Decoupled Measure/Place passes for linear performance.
 - [x] **W3C Compliant Flexbox**: Full implementation of the multi-step flex resolution algorithm.
 - [x] **Lightweight Anonymous Boxes**: Optimized memory/style resolution for internal wrappers.
@@ -263,6 +268,7 @@ pnpm --filter visual-test test
 - [x] **Automatic Google Fonts Resolution**: Dynamic resource fetching and CSS parsing.
 
 ### Features & Optimization (In Progress / Future)
+
 - [ ] **Full CSS Grid Support**: Migrating Grid to the new multi-step resolution pipeline.
 - [ ] **SVG Pipeline Robustness**: Moving away from Regex post-processing to a semantic SVG generator.
 - [ ] **Inline overflow control**: Implementation of `overflow: hidden` and `text-overflow` for line boxes.

@@ -2,9 +2,14 @@
   "configurations": [
     {
       "name": "Emscripten",
-      "compilerPath": "${env:EMSDK}/upstream/emscripten/em++.bat",
+      "compilerPath": "${env:EMSDK}/upstream/bin/clang++.exe",
       "compileCommands": "${workspaceFolder}/build/compile_commands.json",
-      "intelliSenseMode": "windows-clang-x64",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${env:EMSDK}/upstream/emscripten/system/include",
+        "${env:EMSDK}/upstream/emscripten/cache/sysroot/include"
+      ],
+      "intelliSenseMode": "linux-clang-x64",
       "cStandard": "c17",
       "cppStandard": "c++17"
     }

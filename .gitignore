@@ -12,7 +12,7 @@ dist/
 !dist/wasm/
 
 # IDEs
-.vscode/*
+.vscode
 .idea/
 *.swp
 *.swo

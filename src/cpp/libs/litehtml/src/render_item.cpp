@@ -716,10 +716,8 @@ void litehtml::render_item::render_positioned(render_type rt)
 
             if(need_render)
             {
-                position pos = el->m_pos;
-				el->measure(containing_block_size.new_width(el->width()), nullptr);
-				el->place(el->left(), el->top(), containing_block_size.new_width(el->width()), nullptr);
-                el->m_pos = pos;
+				el->measure(containing_block_size, nullptr);
+				el->place(left, top, containing_block_size, nullptr);
             }
 
             if(el_position == element_position_fixed)

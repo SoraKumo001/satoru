@@ -369,18 +369,22 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
         draw.url = url;
         draw.layer = layer;
         draw.opacity = 1.0f;
-        if (!m_clips.empty()) {
-            draw.has_clip = true;
-            draw.clip_pos = m_clips.back().first;
-            draw.clip_radius = m_clips.back().second;
-        } else {
-            draw.has_clip = false;
-        }
+
+        // Use background layer's clip_box as primary clipping
+        draw.has_clip = true;
+        draw.clip_pos = layer.clip_box;
+        draw.clip_radius = layer.border_radius;  // TODO: Should we adjust radius for clip_box?
+
         m_usedImageDraws.push_back(draw);
         int index = (int)m_usedImageDraws.size();
         SkPaint p;
         p.setColor(make_magic_color(satoru::MagicTagExtended::ImageDraw, index));
-        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
+
+        // Fill the clip_box area with magic color
+        m_canvas->drawRect(
+            SkRect::MakeXYWH((float)layer.clip_box.x, (float)layer.clip_box.y,
+                             (float)layer.clip_box.width, (float)layer.clip_box.height),
+            p);
     } else {
         auto it = m_context.imageCache.find(url);
         if (it != m_context.imageCache.end() && it->second.skImage) {
@@ -388,7 +392,8 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
             p.setAntiAlias(true);
 
             m_canvas->save();
-            m_canvas->clipRRect(make_rrect(layer.border_box, layer.border_radius), true);
+            // Clip to layer.clip_box which respects background-clip
+            m_canvas->clipRRect(make_rrect(layer.clip_box, layer.border_radius), true);
 
             SkRect dst =
                 SkRect::MakeXYWH((float)layer.origin_box.x, (float)layer.origin_box.y,

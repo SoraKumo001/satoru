@@ -120,13 +120,15 @@ set(SATORU_LIBS
         -g0
         -fexceptions
         -msimd128
+        -flto=thin
     )
     set(COMMON_LINK_OPTIONS
         "--bind"
-        "-Oz"
+        "-O3"
         "-g0"
         -fexceptions
         -msimd128
+        "-flto=thin"
         "-sWASM_BIGINT=1"
         "-sSUPPORT_LONGJMP=emscripten"
         "-sDISABLE_EXCEPTION_CATCHING=0"

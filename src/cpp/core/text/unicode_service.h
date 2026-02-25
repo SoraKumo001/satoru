@@ -8,6 +8,7 @@
 
 #include "include/core/SkRefCnt.h"
 #include "modules/skunicode/include/SkUnicode.h"
+#include "utils/lru_cache.h"
 
 namespace satoru {
 
@@ -44,7 +45,7 @@ class UnicodeService {
 
    private:
     sk_sp<SkUnicode> m_unicode;
-    mutable std::unordered_map<std::string, std::vector<char>> m_lineBreakCache;
+    mutable LruCache<std::string, std::vector<char>> m_lineBreakCache;
 };
 
 }  // namespace satoru

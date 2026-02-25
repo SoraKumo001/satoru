@@ -9,7 +9,7 @@
 
 namespace satoru {
 
-UnicodeService::UnicodeService() { m_unicode = satoru::MakeUnicode(); }
+UnicodeService::UnicodeService() : m_lineBreakCache(1000) { m_unicode = satoru::MakeUnicode(); }
 
 char32_t UnicodeService::decodeUtf8(const char** ptr) const {
     if (!ptr || !*ptr || !**ptr) return 0;
@@ -120,15 +120,14 @@ void UnicodeService::getLineBreaks(const char* text, size_t len, const char* lan
         key = std::string(text, len);
     }
 
-    auto it = m_lineBreakCache.find(key);
-    if (it != m_lineBreakCache.end()) {
-        breaks = it->second;
+    if (std::vector<char>* cached = m_lineBreakCache.get(key)) {
+        breaks = *cached;
         return;
     }
 
     breaks.resize(len);
     set_linebreaks_utf8((const unsigned char*)text, len, lang, breaks.data());
-    m_lineBreakCache[key] = breaks;
+    m_lineBreakCache.put(key, breaks);
 }
 
 void UnicodeService::clearCache() { m_lineBreakCache.clear(); }

@@ -530,11 +530,36 @@ css_attribute_selector parse_subclass_selector(const css_token_vector& tokens, i
 		return {};
 
 	case '.':
-		if (tok1.type == IDENT)
+		if (tok1.type == IDENT || tok1.ch == '\\')
 		{
-			index += 2;
+			index++; // skip '.'
+			string name;
+			int nest_level = 0;
+			while (index < (int)tokens.size())
+			{
+				const auto& t = tokens[index];
+				if (t.type == WHITESPACE && nest_level == 0)
+					break;
+				
+				if (nest_level == 0)
+				{
+					if (t.ch == '>' || t.ch == '+' || t.ch == '~' || t.ch == ',' || t.ch == '{')
+						break;
+					if (t.ch == '.' || t.ch == '#' || t.ch == ':')
+						break;
+				}
+
+				if (t.ch == '[' || t.ch == '(' || t.ch == '{') nest_level++;
+				if (t.ch == ']' || t.ch == ')' || t.ch == '}') nest_level--;
+				
+				if (t.type == IDENT) name += t.name;
+				else name += t.repr;
+				index++;
+			}
+			
+			if (name.empty()) return {};
+
 			selector.type = select_class;
-			string name = tok1.name;
 			// class names are matched ASCII case-insensitively in quirks mode
 			if (mode == quirks_mode) lcase(name);
 			selector.name = _id(name);
@@ -764,7 +789,7 @@ css_selector::vector parse_selector_list(const css_token_vector& tokens, int opt
 
 bool css_selector::parse(const string& text, document_mode mode)
 {
-	auto tokens = normalize(text, f_componentize);
+	auto tokens = normalize(text, 0);
 	auto ptr = parse_complex_selector(tokens, mode, false);
 	if (!ptr) return false;
 	*this = *ptr;

@@ -1912,105 +1912,25 @@ namespace litehtml
         }
         else if (func_name == "min" || func_name == "max")
         {
+          if (evaluate_calc(val, el)) changed = true;
+          /*
           auto args = parse_comma_separated_list(val);
           if (!args.empty())
           {
-            /* 
-            // DISABLE folding to allow css_length to handle it dynamically
-            auto doc = el ? el->get_document() : nullptr;
-            position viewport;
-            if (doc) doc->container()->get_viewport(viewport);
-            else viewport = {0, 0, 800, 600};
-
-            float base_font_size = 16.0f;
-            if (doc && doc->root()) base_font_size = doc->root()->css().get_font_size();
-
-            auto to_px = [&](const css_token& t) -> float
-            {
-                if (t.type == NUMBER) return t.n.number;
-                if (t.type == PERCENTAGE) return t.n.number * viewport.width / 100.0f;
-                if (t.type == DIMENSION)
-                {
-                    string unit = lowcase(t.unit);
-                    if (unit == "px") return t.n.number;
-                    if (unit == "rem") return t.n.number * base_font_size;
-                    if (unit == "em") return t.n.number * base_font_size;
-                    if (unit == "vw") return t.n.number * viewport.width / 100.0f;
-                    if (unit == "vh") return t.n.number * viewport.height / 100.0f;
-                }
-                return 0;
-            };
-
-            int best_idx = 0;
-            float best_px = to_px(args[0][0]);
-            bool possible = (args[0].size() == 1);
-
-            for (int idx = 1; idx < (int)args.size(); ++idx)
-            {
-                if (args[idx].size() != 1) { possible = false; break; }
-                float px = to_px(args[idx][0]);
-                if (func_name == "min") { if (px < best_px) { best_px = px; best_idx = idx; } }
-                else { if (px > best_px) { best_px = px; best_idx = idx; } }
-            }
-
-            if (possible)
-            {
-              css_token result = args[best_idx][0];
-              remove(tokens, i);
-              insert(tokens, i, {result});
-              changed = true;
-              continue;
-            }
-            */
+            // ... (DISABLE FOLDING) ...
           }
+          */
         }
         else if (func_name == "clamp")
         {
+          if (evaluate_calc(val, el)) changed = true;
+          /*
           auto args = parse_comma_separated_list(val);
           if (args.size() == 3)
           {
-            /*
-            // DISABLE folding
-            auto doc = el ? el->get_document() : nullptr;
-            position viewport;
-            if (doc) doc->container()->get_viewport(viewport);
-            else viewport = {0, 0, 800, 600};
-
-            float base_font_size = 16.0f;
-            if (doc && doc->root()) base_font_size = doc->root()->css().get_font_size();
-
-            auto to_px = [&](const css_token& t) -> float
-            {
-                if (t.type == NUMBER) return t.n.number;
-                if (t.type == PERCENTAGE) return t.n.number * viewport.width / 100.0f;
-                if (t.type == DIMENSION)
-                {
-                    string unit = lowcase(t.unit);
-                    if (unit == "px") return t.n.number;
-                    if (unit == "rem") return t.n.number * base_font_size;
-                    if (unit == "em") return t.n.number * base_font_size;
-                    if (unit == "vw") return t.n.number * viewport.width / 100.0f;
-                    if (unit == "vh") return t.n.number * viewport.height / 100.0f;
-                }
-                return 0;
-            };
-
-            if (args[0].size() == 1 && args[1].size() == 1 && args[2].size() == 1)
-            {
-              float min_v = to_px(args[0][0]);
-              float val_v = to_px(args[1][0]);
-              float max_v = to_px(args[2][0]);
-              
-              float result_v = std::max(min_v, std::min(val_v, max_v));
-              
-              css_token result(DIMENSION, result_v, css_number_number, "px");
-              remove(tokens, i);
-              insert(tokens, i, {result});
-              changed = true;
-              continue;
-            }
-            */
+            // ... (DISABLE FOLDING) ...
           }
+          */
         }
       }
       if (tok.is_component_value())

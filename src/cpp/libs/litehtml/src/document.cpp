@@ -605,16 +605,7 @@ pixel_t document::to_pixels( const css_length& val, const font_metrics& metrics,
 	}
 	if (val.is_calc())
 	{
-		pixel_t ret = val.calc_px();
-		if (val.calc_percent() != 0)
-		{
-			ret += (pixel_t)(size * val.calc_percent() / 100.0);
-		}
-		if (val.calc_rem() != 0 && m_root)
-		{
-			ret += (pixel_t)(m_root->css().get_font_size() * val.calc_rem());
-		}
-		return ret;
+		return val.calc_percent(size);
 	}
 	pixel_t ret;
 	switch(val.units())

@@ -160,8 +160,8 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
             const auto& ca = analysis.chars[i];
             bool is_break = true;
             if (i + 1 < analysis.chars.size()) {
-                is_break = unicode.shouldBreakGrapheme(ca.codepoint, analysis.chars[i + 1].codepoint,
-                                                       &state);
+                is_break = unicode.shouldBreakGrapheme(ca.codepoint,
+                                                       analysis.chars[i + 1].codepoint, &state);
             }
             if (is_break) {
                 size_t offset = ca.offset + ca.len;
@@ -188,8 +188,8 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     return result;
 }
 
-TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
-                                     std::set<char32_t>* usedCodepoints) {
+TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_t len,
+                                     font_info* fi, std::set<char32_t>* usedCodepoints) {
     TextAnalysis analysis;
     if (!text || !len || !ctx) return analysis;
 
@@ -217,8 +217,8 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
         ca.is_emoji = unicode.isEmoji(ca.codepoint);
         ca.is_mark = unicode.isMark(ca.codepoint);
 
-        ca.font = ctx->fontManager.selectFont(ca.codepoint, fi, has_last_font ? &last_font : nullptr,
-                                              unicode);
+        ca.font = ctx->fontManager.selectFont(ca.codepoint, fi,
+                                              has_last_font ? &last_font : nullptr, unicode);
         last_font = ca.font;
         has_last_font = true;
 

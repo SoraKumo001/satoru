@@ -113,8 +113,8 @@ std::string SatoruInstance::get_full_master_css() const {
 
 void SatoruInstance::init_document(const char *html, int width, int height) {
     int initial_height = (height > 0) ? height : 3000;
-    render_container =
-        std::make_unique<container_skia>(width, initial_height, nullptr, context, &resourceManager, false);
+    render_container = std::make_unique<container_skia>(width, initial_height, nullptr, context,
+                                                        &resourceManager, false);
 
     std::string css = get_full_master_css() + "\nbr { display: -litehtml-br !important; }\n";
     doc = litehtml::document::createFromString(html, render_container.get(), css.c_str());
@@ -154,8 +154,8 @@ static void scan_image_sizes(litehtml::element::ptr el, SatoruContext &context) 
 
 void SatoruInstance::collect_resources(const std::string &html, int width, int height) {
     int initial_height = (height > 0) ? height : 3000;
-    discovery_container =
-        std::make_unique<container_skia>(width, initial_height, nullptr, context, &resourceManager, false);
+    discovery_container = std::make_unique<container_skia>(width, initial_height, nullptr, context,
+                                                           &resourceManager, false);
 
     context.fontManager.scanFontFaces(html.c_str());
 

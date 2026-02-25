@@ -2,8 +2,8 @@
 #define SATORU_LRU_CACHE_H
 
 #include <list>
-#include <unordered_map>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace satoru {
 
@@ -42,7 +42,9 @@ class LruCache {
         }
     }
 
-    bool exists(const Key& key) const { return m_cache_items_map.find(key) != m_cache_items_map.end(); }
+    bool exists(const Key& key) const {
+        return m_cache_items_map.find(key) != m_cache_items_map.end();
+    }
 
     size_t size() const { return m_cache_items_map.size(); }
 

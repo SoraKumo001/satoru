@@ -2,9 +2,9 @@
 #define SATORU_FONT_MANAGER_H
 
 #include <map>
-#include <unordered_map>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "bridge/bridge_types.h"

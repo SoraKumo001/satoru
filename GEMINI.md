@@ -102,3 +102,4 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - [x] **Phase 9: Dynamic CSS Lengths** (`min()`, `max()`, `clamp()`).
 - [x] **Phase 10: Robust Text Stack & LRU Caching** (BiDi support, LRU eviction for shaping/measurement).
 - [x] **Phase 11: High-Performance SVG Pipeline** (FSM parser refactor).
+- [ ] **Phase 12: Vertical Writing Support** (Logical properties, upright/sideways orientation, vertical layout pipeline).

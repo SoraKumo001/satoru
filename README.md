@@ -269,6 +269,11 @@ pnpm --filter visual-test test
 - [x] **Radial Gradients**: Support for complex `radial-gradient` syntax.
 - [x] **Font Subsetting**: Optimizing Wasm memory by loading only required glyphs.
 
+- [ ] **Vertical Writing Support (Writing Modes)**:
+    - Implementation of `writing-mode: vertical-rl / vertical-lr`.
+    - Logical-to-physical coordinate mapping in the layout pipeline.
+    - Text stack enhancement for upright/sideways orientation and vertical baseline adjustment.
+
 ---
 
 ## 📜 License

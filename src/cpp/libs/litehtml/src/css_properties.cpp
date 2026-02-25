@@ -236,25 +236,60 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   doc->cvt_units(m_css_padding.top, m_font_metrics, 0);
   doc->cvt_units(m_css_padding.bottom, m_font_metrics, 0);
 
-  m_css_borders.left.color = get_logical_property<web_color>(el, (m_direction == direction_ltr) ? _border_inline_start_color_ : _border_inline_end_color_, _border_left_color_, _border_inline_color_, m_color, false, offset(m_css_borders.left.color));
-  m_css_borders.right.color = get_logical_property<web_color>(el, (m_direction == direction_ltr) ? _border_inline_end_color_ : _border_inline_start_color_, _border_right_color_, _border_inline_color_, m_color, false, offset(m_css_borders.right.color));
-  m_css_borders.top.color = get_logical_property<web_color>(el, _border_block_start_color_, _border_top_color_, _border_block_color_, m_color, false, offset(m_css_borders.top.color));
-  m_css_borders.bottom.color = get_logical_property<web_color>(el, _border_block_end_color_, _border_bottom_color_, _border_block_color_, m_color, false, offset(m_css_borders.bottom.color));
+  string_id _border_is_c = (m_direction == direction_ltr) ? _border_inline_start_color_ : _border_inline_end_color_;
+  string_id _border_ie_c = (m_direction == direction_ltr) ? _border_inline_end_color_ : _border_inline_start_color_;
+  string_id _border_is_s = (m_direction == direction_ltr) ? _border_inline_start_style_ : _border_inline_end_style_;
+  string_id _border_ie_s = (m_direction == direction_ltr) ? _border_inline_end_style_ : _border_inline_start_style_;
+  string_id _border_is_w = (m_direction == direction_ltr) ? _border_inline_start_width_ : _border_inline_end_width_;
+  string_id _border_ie_w = (m_direction == direction_ltr) ? _border_inline_end_width_ : _border_inline_start_width_;
+
+  if (m_writing_mode == writing_mode_vertical_rl || m_writing_mode == writing_mode_vertical_lr)
+  {
+    m_css_borders.top.color = get_logical_property<web_color>(el, _border_is_c, _border_top_color_, _border_inline_color_, m_color, false, offset(m_css_borders.top.color));
+    m_css_borders.bottom.color = get_logical_property<web_color>(el, _border_ie_c, _border_bottom_color_, _border_inline_color_, m_color, false, offset(m_css_borders.bottom.color));
+    m_css_borders.top.style = (border_style)get_logical_property<int>(el, _border_is_s, _border_top_style_, _border_inline_style_, border_style_none, false, offset(m_css_borders.top.style));
+    m_css_borders.bottom.style = (border_style)get_logical_property<int>(el, _border_ie_s, _border_bottom_style_, _border_inline_style_, border_style_none, false, offset(m_css_borders.bottom.style));
+    m_css_borders.top.width = get_logical_property<css_length>(el, _border_is_w, _border_top_width_, _border_inline_width_, border_width_medium_value, false, offset(m_css_borders.top.width));
+    m_css_borders.bottom.width = get_logical_property<css_length>(el, _border_ie_w, _border_bottom_width_, _border_inline_width_, border_width_medium_value, false, offset(m_css_borders.bottom.width));
+
+    if (m_writing_mode == writing_mode_vertical_rl)
+    {
+      m_css_borders.right.color = get_logical_property<web_color>(el, _border_block_start_color_, _border_right_color_, _border_block_color_, m_color, false, offset(m_css_borders.right.color));
+      m_css_borders.left.color = get_logical_property<web_color>(el, _border_block_end_color_, _border_left_color_, _border_block_color_, m_color, false, offset(m_css_borders.left.color));
+      m_css_borders.right.style = (border_style)get_logical_property<int>(el, _border_block_start_style_, _border_right_style_, _border_block_style_, border_style_none, false, offset(m_css_borders.right.style));
+      m_css_borders.left.style = (border_style)get_logical_property<int>(el, _border_block_end_style_, _border_left_style_, _border_block_style_, border_style_none, false, offset(m_css_borders.left.style));
+      m_css_borders.right.width = get_logical_property<css_length>(el, _border_block_start_width_, _border_right_width_, _border_block_width_, border_width_medium_value, false, offset(m_css_borders.right.width));
+      m_css_borders.left.width = get_logical_property<css_length>(el, _border_block_end_width_, _border_left_width_, _border_block_width_, border_width_medium_value, false, offset(m_css_borders.left.width));
+    }
+    else
+    {
+      m_css_borders.left.color = get_logical_property<web_color>(el, _border_block_start_color_, _border_left_color_, _border_block_color_, m_color, false, offset(m_css_borders.left.color));
+      m_css_borders.right.color = get_logical_property<web_color>(el, _border_block_end_color_, _border_right_color_, _border_block_color_, m_color, false, offset(m_css_borders.right.color));
+      m_css_borders.left.style = (border_style)get_logical_property<int>(el, _border_block_start_style_, _border_left_style_, _border_block_style_, border_style_none, false, offset(m_css_borders.left.style));
+      m_css_borders.right.style = (border_style)get_logical_property<int>(el, _border_block_end_style_, _border_right_style_, _border_block_style_, border_style_none, false, offset(m_css_borders.right.style));
+      m_css_borders.left.width = get_logical_property<css_length>(el, _border_block_start_width_, _border_left_width_, _border_block_width_, border_width_medium_value, false, offset(m_css_borders.left.width));
+      m_css_borders.right.width = get_logical_property<css_length>(el, _border_block_end_width_, _border_right_width_, _border_block_width_, border_width_medium_value, false, offset(m_css_borders.right.width));
+    }
+  }
+  else
+  {
+    m_css_borders.left.color = get_logical_property<web_color>(el, _border_is_c, _border_left_color_, _border_inline_color_, m_color, false, offset(m_css_borders.left.color));
+    m_css_borders.right.color = get_logical_property<web_color>(el, _border_ie_c, _border_right_color_, _border_inline_color_, m_color, false, offset(m_css_borders.right.color));
+    m_css_borders.top.color = get_logical_property<web_color>(el, _border_block_start_color_, _border_top_color_, _border_block_color_, m_color, false, offset(m_css_borders.top.color));
+    m_css_borders.bottom.color = get_logical_property<web_color>(el, _border_block_end_color_, _border_bottom_color_, _border_block_color_, m_color, false, offset(m_css_borders.bottom.color));
+
+    m_css_borders.left.style = (border_style)get_logical_property<int>(el, _border_is_s, _border_left_style_, _border_inline_style_, border_style_none, false, offset(m_css_borders.left.style));
+    m_css_borders.right.style = (border_style)get_logical_property<int>(el, _border_ie_s, _border_right_style_, _border_inline_style_, border_style_none, false, offset(m_css_borders.right.style));
+    m_css_borders.top.style = (border_style)get_logical_property<int>(el, _border_block_start_style_, _border_top_style_, _border_block_style_, border_style_none, false, offset(m_css_borders.top.style));
+    m_css_borders.bottom.style = (border_style)get_logical_property<int>(el, _border_block_end_style_, _border_bottom_style_, _border_block_style_, border_style_none, false, offset(m_css_borders.bottom.style));
+
+    m_css_borders.left.width = get_logical_property<css_length>(el, _border_is_w, _border_left_width_, _border_inline_width_, border_width_medium_value, false, offset(m_css_borders.left.width));
+    m_css_borders.right.width = get_logical_property<css_length>(el, _border_ie_w, _border_right_width_, _border_inline_width_, border_width_medium_value, false, offset(m_css_borders.right.width));
+    m_css_borders.top.width = get_logical_property<css_length>(el, _border_block_start_width_, _border_top_width_, _border_block_width_, border_width_medium_value, false, offset(m_css_borders.top.width));
+    m_css_borders.bottom.width = get_logical_property<css_length>(el, _border_block_end_width_, _border_bottom_width_, _border_block_width_, border_width_medium_value, false, offset(m_css_borders.bottom.width));
+  }
 
   if (m_css_borders.left.color.is_current_color) m_css_borders.left.color = m_color;
-  if (m_css_borders.right.color.is_current_color) m_css_borders.right.color = m_color;
-  if (m_css_borders.top.color.is_current_color) m_css_borders.top.color = m_color;
-  if (m_css_borders.bottom.color.is_current_color) m_css_borders.bottom.color = m_color;
-
-  m_css_borders.left.style = (border_style)get_logical_property<int>(el, (m_direction == direction_ltr) ? _border_inline_start_style_ : _border_inline_end_style_, _border_left_style_, _border_inline_style_, border_style_none, false, offset(m_css_borders.left.style));
-  m_css_borders.right.style = (border_style)get_logical_property<int>(el, (m_direction == direction_ltr) ? _border_inline_end_style_ : _border_inline_start_style_, _border_right_style_, _border_inline_style_, border_style_none, false, offset(m_css_borders.right.style));
-  m_css_borders.top.style = (border_style)get_logical_property<int>(el, _border_block_start_style_, _border_top_style_, _border_block_style_, border_style_none, false, offset(m_css_borders.top.style));
-  m_css_borders.bottom.style = (border_style)get_logical_property<int>(el, _border_block_end_style_, _border_bottom_style_, _border_block_style_, border_style_none, false, offset(m_css_borders.bottom.style));
-
-  m_css_borders.left.width = get_logical_property<css_length>(el, (m_direction == direction_ltr) ? _border_inline_start_width_ : _border_inline_end_width_, _border_left_width_, _border_inline_width_, border_width_medium_value, false, offset(m_css_borders.left.width));
-  m_css_borders.right.width = get_logical_property<css_length>(el, (m_direction == direction_ltr) ? _border_inline_end_width_ : _border_inline_start_width_, _border_right_width_, _border_inline_width_, border_width_medium_value, false, offset(m_css_borders.right.width));
-  m_css_borders.top.width = get_logical_property<css_length>(el, _border_block_start_width_, _border_top_width_, _border_block_width_, border_width_medium_value, false, offset(m_css_borders.top.width));
-  m_css_borders.bottom.width = get_logical_property<css_length>(el, _border_block_end_width_, _border_bottom_width_, _border_block_width_, border_width_medium_value, false, offset(m_css_borders.bottom.width));
 
   if (m_css_borders.left.style == border_style_none || m_css_borders.left.style == border_style_hidden)
     m_css_borders.left.width = 0;
@@ -299,10 +334,28 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   doc->cvt_units(m_css_border_spacing_x, m_font_metrics, 0);
   doc->cvt_units(m_css_border_spacing_y, m_font_metrics, 0);
 
-  m_css_offsets.left = get_logical_property<css_length>(el, (m_direction == direction_ltr) ? _inset_inline_start_ : _inset_inline_end_, _left_, _inset_inline_, _auto, false, offset(m_css_offsets.left));
-  m_css_offsets.right = get_logical_property<css_length>(el, (m_direction == direction_ltr) ? _inset_inline_end_ : _inset_inline_start_, _right_, _inset_inline_, _auto, false, offset(m_css_offsets.right));
-  m_css_offsets.top = get_logical_property<css_length>(el, _inset_block_start_, _top_, _inset_block_, _auto, false, offset(m_css_offsets.top));
-  m_css_offsets.bottom = get_logical_property<css_length>(el, _inset_block_end_, _bottom_, _inset_block_, _auto, false, offset(m_css_offsets.bottom));
+  if (m_writing_mode == writing_mode_vertical_rl || m_writing_mode == writing_mode_vertical_lr)
+  {
+    m_css_offsets.top = get_logical_property<css_length>(el, _inset_is, _top_, _inset_block_, _auto, false, offset(m_css_offsets.top));
+    m_css_offsets.bottom = get_logical_property<css_length>(el, _inset_ie, _bottom_, _inset_block_, _auto, false, offset(m_css_offsets.bottom));
+    if (m_writing_mode == writing_mode_vertical_rl)
+    {
+      m_css_offsets.right = get_logical_property<css_length>(el, _inset_block_start_, _right_, _inset_block_, _auto, false, offset(m_css_offsets.right));
+      m_css_offsets.left = get_logical_property<css_length>(el, _inset_block_end_, _left_, _inset_block_, _auto, false, offset(m_css_offsets.left));
+    }
+    else
+    {
+      m_css_offsets.left = get_logical_property<css_length>(el, _inset_block_start_, _left_, _inset_block_, _auto, false, offset(m_css_offsets.left));
+      m_css_offsets.right = get_logical_property<css_length>(el, _inset_block_end_, _right_, _inset_block_, _auto, false, offset(m_css_offsets.right));
+    }
+  }
+  else
+  {
+    m_css_offsets.left = get_logical_property<css_length>(el, _inset_is, _left_, _inset_inline_, _auto, false, offset(m_css_offsets.left));
+    m_css_offsets.right = get_logical_property<css_length>(el, _inset_ie, _right_, _inset_inline_, _auto, false, offset(m_css_offsets.right));
+    m_css_offsets.top = get_logical_property<css_length>(el, _inset_block_start_, _top_, _inset_block_, _auto, false, offset(m_css_offsets.top));
+    m_css_offsets.bottom = get_logical_property<css_length>(el, _inset_block_end_, _bottom_, _inset_block_, _auto, false, offset(m_css_offsets.bottom));
+  }
 
   doc->cvt_units(m_css_offsets.left, m_font_metrics, 0);
   doc->cvt_units(m_css_offsets.right, m_font_metrics, 0);

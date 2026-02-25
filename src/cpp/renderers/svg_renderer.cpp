@@ -28,6 +28,7 @@
 #include "include/svg/SkSVGCanvas.h"
 #include "include/utils/SkParsePath.h"
 #include "utils/skia_utils.h"
+#include "utils/logging.h"
 
 namespace litehtml {
 std::vector<css_token_vector> parse_comma_separated_list(const css_token_vector &tokens);
@@ -1044,6 +1045,21 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height,
     return finalizeSvg(svg, inst->context, *inst->render_container, options);
 }
 
+static void dump_elements_recursive(litehtml::element::ptr el) {
+    if (!el) return;
+    const char *tag = el->get_tagName();
+    if (tag && strcmp(tag, "div") == 0) {
+        auto attrs = el->css().dump_get_attrs();
+        for (const auto &attr : attrs) {
+            SATORU_LOG_INFO("SVG DIV [%s] CSS ATTR: %s = %s", tag, std::get<0>(attr).c_str(),
+                            std::get<1>(attr).c_str());
+        }
+    }
+    for (auto &child : el->children()) {
+        dump_elements_recursive(child);
+    }
+}
+
 std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context,
                             const char *master_css, const RenderOptions &options) {
     int initial_height = (height > 0) ? height : 3000;
@@ -1055,6 +1071,10 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
     auto doc = litehtml::document::createFromString(html, &container, css.c_str());
     if (!doc) return "";
     doc->render(width);
+
+    if (doc->root()) {
+        dump_elements_recursive(doc->root());
+    }
 
     int content_height = (height > 0) ? height : (int)doc->height();
     if (content_height < 1) content_height = 1;

@@ -261,19 +261,8 @@ pnpm --filter visual-test test
 ### Features & Optimization (In Progress / Future)
 
 - [x] **Optimization & Refactoring (Layout Pipeline)**:
-  - Eliminate redundant `_render` virtual functions and fully transition to the 2-pass `measure`/`place` pipeline.
-  - Fix performance degradation where `measure` is re-called during the `place` pass (re-achieving true $O(N)$ complexity).
-  - Cache calculated `containing_block_context` and margins/paddings/borders across layout passes to reduce CPU cycles.
 - [x] **SVG Pipeline & Performance**:
-  - **High-Performance SVG Post-Processor**: Replace current slow `TagInfo` parsing with a single-pass, FSM-based stream parser to reduce CPU overhead.
-  - **Structural SVG Metadata**: Transition from the "Magic Color" hack (0.001px rects) to a more robust annotation or custom attribute system for marking filters/clips.
-  - **CSS Class-based Styling**: Minimize SVG size by using a centralized `<style>` block and shared classes instead of repetitive inline attributes (e.g., `font-weight`, `fill-opacity`).
-  - **Unified Resource Embedding**: Streamline image and font embedding within the SVG output pipeline.
-- [ ] **Performance Optimization (Text & Layout)**:
-  - **`measureText` & `shapeText` Cache Enhancement**: Implement a robust measurement cache and optimize `ShapingKey` to minimize memory allocations.
-  - **`selectFont` Caching & Run-based Processing**: Cache font selection results and resolve fonts per-run rather than per-character to reduce `unicharsToGlyphs` overhead.
-  - **Unicode Attribute Batching**: Pre-calculate Unicode properties (BiDi, LineBreak, Emoji) in a single pass to avoid redundant UTF-8 decoding and property checks.
-  - **LRU Cache Management**: Introduce LRU policies for all caches (Shaping, LineBreaks, FontSelection) to prevent memory growth in long-running sessions.
+- [x] **Performance Optimization (Text & Layout)**:
 - [x] **Full CSS Grid Support**: Migrating Grid to the new multi-step resolution pipeline.
 - [x] **Inline overflow control**: Implementation of `overflow: hidden` and `text-overflow` for line boxes.
 - [x] **Advanced CSS Shapes**: Fix `clip-path` rendering and parsing issues.

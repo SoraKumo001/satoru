@@ -16,6 +16,13 @@ struct CharFont {
     SkFont font;
 };
 
+struct MeasureResult {
+    double width;
+    size_t length;              // bytes processed that fit
+    bool fits;                  // true if all text fits within max_width
+    const char* last_safe_pos;  // pointer to the end of the last character that fits
+};
+
 class SatoruFontRunIterator : public SkShaper::FontRunIterator {
    public:
     SatoruFontRunIterator(const std::vector<CharFont>& charFonts)
@@ -43,6 +50,33 @@ class SatoruFontRunIterator : public SkShaper::FontRunIterator {
     const std::vector<CharFont>& m_charFonts;
     size_t m_currentPos;
     size_t m_currentIndex;
+};
+
+struct MeasureKey {
+    std::string text;
+    std::string font_family;
+    float font_size;
+    int font_weight;
+    bool italic;
+    double maxWidth;
+
+    bool operator==(const MeasureKey& other) const {
+        return font_size == other.font_size && font_weight == other.font_weight &&
+               italic == other.italic && maxWidth == other.maxWidth &&
+               font_family == other.font_family && text == other.text;
+    }
+};
+
+struct MeasureKeyHash {
+    std::size_t operator()(const MeasureKey& k) const {
+        std::size_t h = std::hash<std::string>{}(k.text);
+        h ^= std::hash<std::string>{}(k.font_family) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<float>{}(k.font_size) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<int>{}(k.font_weight) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<bool>{}(k.italic) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<double>{}(k.maxWidth) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        return h;
+    }
 };
 
 struct ShapedResult {

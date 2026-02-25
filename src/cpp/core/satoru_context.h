@@ -32,6 +32,8 @@ class SatoruContext {
     std::map<std::string, image_info> imageCache;
     std::unordered_map<satoru::ShapingKey, satoru::ShapedResult, satoru::ShapingKeyHash>
         shapingCache;
+    std::unordered_map<satoru::MeasureKey, satoru::MeasureResult, satoru::MeasureKeyHash>
+        measurementCache;
 
     void init();
 
@@ -68,6 +70,7 @@ class SatoruContext {
         clearCss();
         m_fontMap.clear();
         shapingCache.clear();
+        measurementCache.clear();
         if (m_unicodeService) {
             m_unicodeService->clearCache();
         }

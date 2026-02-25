@@ -87,6 +87,24 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     MeasureResult result = {0.0, 0, true, text};
     if (!text || !*text || !fi || fi->fonts.empty() || !ctx) return result;
 
+    MeasureKey key;
+    bool canCache = (usedCodepoints == nullptr);
+    if (canCache) {
+        key.text = text;
+        key.font_family = fi->desc.family;
+        key.font_size = (float)fi->desc.size;
+        key.font_weight = fi->desc.weight;
+        key.italic = (fi->desc.style == litehtml::font_style_italic);
+        key.maxWidth = maxWidth;
+
+        auto it = ctx->measurementCache.find(key);
+        if (it != ctx->measurementCache.end()) {
+            MeasureResult cached = it->second;
+            cached.last_safe_pos = text + cached.length;
+            return cached;
+        }
+    }
+
     size_t total_len = strlen(text);
     bool limit_width = maxWidth >= 0;
 
@@ -137,42 +155,45 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     if (!limit_width || handler.width() <= maxWidth + 0.01) {
         result.width = handler.width();
         result.length = total_len;
-        result.last_safe_pos = text + total_len;
-        return result;
-    }
+    } else {
+        // Width limit handling (grapheme break aware)
+        result.fits = false;
+        walk_p = text;
+        double last_w = 0;
+        int state = 0;
 
-    // Width limit handling (grapheme break aware)
-    result.fits = false;
-    walk_p = text;
-    double last_w = 0;
-    int state = 0;
-
-    while (*walk_p) {
-        const char* prev_p = walk_p;
-        char32_t u1 = unicode.decodeUtf8(&walk_p);
-        const char* next_p = walk_p;
-        bool is_break = true;
-        if (*next_p) {
-            const char* temp_p = next_p;
-            char32_t u2 = unicode.decodeUtf8(&temp_p);
-            is_break = unicode.shouldBreakGrapheme(u1, u2, &state);
-        }
-        if (is_break) {
-            size_t offset = next_p - text;
-            double w = handler.widthAtOffset(offset);
-            if (w > maxWidth + 0.01) {
-                result.width = last_w;
-                result.length = prev_p - text;
-                result.last_safe_pos = prev_p;
-                return result;
+        while (*walk_p) {
+            const char* prev_p = walk_p;
+            char32_t u1 = unicode.decodeUtf8(&walk_p);
+            const char* next_p = walk_p;
+            bool is_break = true;
+            if (*next_p) {
+                const char* temp_p = next_p;
+                char32_t u2 = unicode.decodeUtf8(&temp_p);
+                is_break = unicode.shouldBreakGrapheme(u1, u2, &state);
             }
-            last_w = w;
+            if (is_break) {
+                size_t offset = next_p - text;
+                double w = handler.widthAtOffset(offset);
+                if (w > maxWidth + 0.01) {
+                    result.width = last_w;
+                    result.length = prev_p - text;
+                    break;
+                }
+                last_w = w;
+            }
+        }
+        if (!*walk_p && result.fits) { // Actually didn't break in loop
+            result.width = last_w;
+            result.length = walk_p - text;
         }
     }
 
-    result.width = last_w;
-    result.length = walk_p - text;
-    result.last_safe_pos = walk_p;
+    result.last_safe_pos = text + result.length;
+    if (canCache) {
+        ctx->measurementCache[key] = result;
+    }
+
     return result;
 }
 

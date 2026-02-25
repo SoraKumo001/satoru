@@ -30,7 +30,7 @@ describe("PNG (Skia) Visual Tests", () => {
     [DIFF_DIR, TEMP_DIR].forEach(
       (dir) => !fs.existsSync(dir) && fs.mkdirSync(dir, { recursive: true }),
     );
-    satoru = createSatoruWorker();
+    satoru = createSatoruWorker({ maxParallel: 8 });
     if (fs.existsSync(BASELINE_PATH)) {
       baselines = JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"));
     }

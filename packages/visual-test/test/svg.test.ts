@@ -33,7 +33,7 @@ describe("SVG (Browser) Visual Tests", () => {
     [DIFF_DIR, TEMP_DIR].forEach(
       (dir) => !fs.existsSync(dir) && fs.mkdirSync(dir, { recursive: true }),
     );
-    satoru = createSatoruWorker();
+    satoru = createSatoruWorker({ maxParallel: 8 });
     browser = await chromium.launch();
     page = await browser.newPage();
     if (fs.existsSync(BASELINE_PATH)) {

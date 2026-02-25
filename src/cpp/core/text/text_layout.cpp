@@ -104,11 +104,10 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         key.italic = (fi->desc.style == litehtml::font_style_italic);
         key.maxWidth = maxWidth;
 
-        auto it = ctx->measurementCache.find(key);
-        if (it != ctx->measurementCache.end()) {
-            MeasureResult cached = it->second;
-            cached.last_safe_pos = text + cached.length;
-            return cached;
+        if (MeasureResult* cached = ctx->measurementCache.get(key)) {
+            MeasureResult res = *cached;
+            res.last_safe_pos = text + res.length;
+            return res;
         }
     }
 
@@ -183,7 +182,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
 
     result.last_safe_pos = text + result.length;
     if (canCache) {
-        ctx->measurementCache[key] = result;
+        ctx->measurementCache.put(key, result);
     }
 
     return result;
@@ -241,8 +240,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
     key.italic = (fi->desc.style == litehtml::font_style_italic);
     key.is_rtl = fi->is_rtl;
 
-    auto it = ctx->shapingCache.find(key);
-    if (it != ctx->shapingCache.end()) {
+    if (ShapedResult* cached = ctx->shapingCache.get(key)) {
         if (usedCodepoints) {
             // キャッシュヒット時も使用コードポイントを収集する必要がある
             UnicodeService& unicode = ctx->getUnicodeService();
@@ -252,7 +250,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
                 usedCodepoints->insert(unicode.decodeUtf8(&p));
             }
         }
-        return it->second;
+        return *cached;
     }
 
     TextAnalysis analysis = analyzeText(ctx, text, len, fi, usedCodepoints);
@@ -291,7 +289,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
 
     result.blob = blobHandler.makeBlob();
 
-    ctx->shapingCache[key] = result;
+    ctx->shapingCache.put(key, result);
     return result;
 }
 

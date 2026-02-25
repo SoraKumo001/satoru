@@ -10,6 +10,7 @@
 #include "core/text/text_types.h"
 #include "core/text/unicode_service.h"
 #include "font_manager.h"
+#include "utils/lru_cache.h"
 #include "include/core/SkData.h"
 #include "include/core/SkFontStyle.h"
 #include "modules/skshaper/include/SkShaper.h"
@@ -30,10 +31,10 @@ class SatoruContext {
    public:
     SatoruFontManager fontManager;
     std::map<std::string, image_info> imageCache;
-    std::unordered_map<satoru::ShapingKey, satoru::ShapedResult, satoru::ShapingKeyHash>
-        shapingCache;
-    std::unordered_map<satoru::MeasureKey, satoru::MeasureResult, satoru::MeasureKeyHash>
-        measurementCache;
+    satoru::LruCache<satoru::ShapingKey, satoru::ShapedResult, satoru::ShapingKeyHash> shapingCache;
+    satoru::LruCache<satoru::MeasureKey, satoru::MeasureResult, satoru::MeasureKeyHash> measurementCache;
+
+    SatoruContext() : shapingCache(2000), measurementCache(2000) {}
 
     void init();
 

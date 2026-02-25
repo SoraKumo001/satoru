@@ -80,7 +80,7 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	{
 		if(is_row_direction)
 		{
-			ret_width += ln.flex_base_size;
+			ret_width = std::max(ret_width, ln.flex_base_size);
 		}
 		ln.init(container_main_size, fit_container, is_row_direction, self_size, fmt_ctx);   
 		sum_cross_size += ln.cross_size;

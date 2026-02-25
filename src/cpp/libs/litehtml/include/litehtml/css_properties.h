@@ -31,6 +31,8 @@ namespace litehtml
   private:
     element_position m_el_position;
     direction m_direction;
+    writing_mode m_writing_mode;
+    text_orientation m_text_orientation;
     text_align m_text_align;
     overflow m_overflow;
     text_overflow m_text_overflow;
@@ -143,6 +145,8 @@ namespace litehtml
   public:
     css_properties() : m_el_position(element_position_static),
                        m_direction(direction_ltr),
+                       m_writing_mode(writing_mode_horizontal_tb),
+                       m_text_orientation(text_orientation_mixed),
                        m_text_align(text_align_start),
                        m_overflow(overflow_visible),
                        m_text_overflow(text_overflow_clip),
@@ -212,13 +216,19 @@ namespace litehtml
     }
 
     void compute(const element *el, const std::shared_ptr<document> &doc);
-    std::vector<std::tuple<string, string>> dump_get_attrs();
+    std::vector<std::tuple<string, string>> dump_get_attrs() const;
 
     element_position get_position() const;
     void set_position(element_position mElPosition);
 
     direction get_direction() const;
     void set_direction(direction mDirection);
+
+    writing_mode get_writing_mode() const;
+    void set_writing_mode(writing_mode mWritingMode);
+
+    text_orientation get_text_orientation() const;
+    void set_text_orientation(text_orientation mTextOrientation);
 
     text_align get_text_align() const;
     void set_text_align(text_align mTextAlign);
@@ -438,6 +448,26 @@ namespace litehtml
   inline void css_properties::set_direction(direction mDirection)
   {
     m_direction = mDirection;
+  }
+
+  inline writing_mode css_properties::get_writing_mode() const
+  {
+    return m_writing_mode;
+  }
+
+  inline void css_properties::set_writing_mode(writing_mode mWritingMode)
+  {
+    m_writing_mode = mWritingMode;
+  }
+
+  inline text_orientation css_properties::get_text_orientation() const
+  {
+    return m_text_orientation;
+  }
+
+  inline void css_properties::set_text_orientation(text_orientation mTextOrientation)
+  {
+    m_text_orientation = mTextOrientation;
   }
 
   inline text_align css_properties::get_text_align() const

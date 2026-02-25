@@ -304,6 +304,8 @@ namespace litehtml
       _text_overflow_,
       _display_,
       _direction_,
+      _writing_mode_,
+      _text_orientation_,
       _visibility_,
       _appearance_,
       _box_sizing_,

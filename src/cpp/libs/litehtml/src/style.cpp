@@ -28,6 +28,8 @@ namespace litehtml
       {
           {_display_, style_display_strings},
           {_direction_, direction_strings},
+          {_writing_mode_, writing_mode_strings},
+          {_text_orientation_, text_orientation_strings},
           {_visibility_, visibility_strings},
           {_position_, element_position_strings},
           {_float_, element_float_strings},
@@ -209,6 +211,8 @@ namespace litehtml
 
     case _display_:
     case _direction_:
+    case _writing_mode_:
+    case _text_orientation_:
     case _visibility_:
     case _position_:
     case _float_:

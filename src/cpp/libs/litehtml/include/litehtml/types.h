@@ -817,6 +817,26 @@ namespace litehtml
 				direction_rtl
 		};
 
+#define writing_mode_strings            "horizontal-tb;vertical-rl;vertical-lr;sideways-rl;sideways-lr"
+
+		enum writing_mode
+		{
+				writing_mode_horizontal_tb,
+				writing_mode_vertical_rl,
+				writing_mode_vertical_lr,
+				writing_mode_sideways_rl,
+				writing_mode_sideways_lr
+		};
+
+#define text_orientation_strings        "mixed;upright;sideways"
+
+		enum text_orientation
+		{
+				text_orientation_mixed,
+				text_orientation_upright,
+				text_orientation_sideways
+		};
+
 #define text_transform_strings          "none;capitalize;uppercase;lowercase"
 
         enum text_transform

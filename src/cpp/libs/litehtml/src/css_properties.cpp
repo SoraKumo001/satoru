@@ -16,6 +16,9 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
 
   m_el_position = (element_position)el->get_property<int>(_position_, false, element_position_static, offset(m_el_position));
   m_direction = (direction)el->get_property<int>(_direction_, true, direction_ltr, offset(m_direction));
+  m_writing_mode = (writing_mode)el->get_property<int>(_writing_mode_, true, writing_mode_horizontal_tb, offset(m_writing_mode));
+  m_text_orientation = (text_orientation)el->get_property<int>(_text_orientation_, true, text_orientation_mixed, offset(m_text_orientation));
+  
   m_display = (style_display)el->get_property<int>(_display_, false, display_inline, offset(m_display));
   m_visibility = (visibility)el->get_property<int>(_visibility_, true, visibility_visible, offset(m_visibility));
   m_float = (element_float)el->get_property<int>(_float_, false, float_none, offset(m_float));
@@ -175,20 +178,58 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   doc->cvt_units(m_css_max_width, m_font_metrics, 0);
   doc->cvt_units(m_css_max_height, m_font_metrics, 0);
 
-  m_css_margins.left = get_logical_property<css_length>(el, (m_direction == direction_ltr) ? _margin_inline_start_ : _margin_inline_end_, _margin_left_, _margin_inline_, 0, false, offset(m_css_margins.left));
-  m_css_margins.right = get_logical_property<css_length>(el, (m_direction == direction_ltr) ? _margin_inline_end_ : _margin_inline_start_, _margin_right_, _margin_inline_, 0, false, offset(m_css_margins.right));
-  m_css_margins.top = get_logical_property<css_length>(el, _margin_block_start_, _margin_top_, _margin_block_, 0, false, offset(m_css_margins.top));
-  m_css_margins.bottom = get_logical_property<css_length>(el, _margin_block_end_, _margin_bottom_, _margin_block_, 0, false, offset(m_css_margins.bottom));
+  string_id _margin_is = (m_direction == direction_ltr) ? _margin_inline_start_ : _margin_inline_end_;
+  string_id _margin_ie = (m_direction == direction_ltr) ? _margin_inline_end_ : _margin_inline_start_;
+  string_id _padding_is = (m_direction == direction_ltr) ? _padding_inline_start_ : _padding_inline_end_;
+  string_id _padding_ie = (m_direction == direction_ltr) ? _padding_inline_end_ : _padding_inline_start_;
+  string_id _inset_is = (m_direction == direction_ltr) ? _inset_inline_start_ : _inset_inline_end_;
+  string_id _inset_ie = (m_direction == direction_ltr) ? _inset_inline_end_ : _inset_inline_start_;
+
+  if (m_writing_mode == writing_mode_vertical_rl || m_writing_mode == writing_mode_vertical_lr)
+  {
+    m_css_margins.top = get_logical_property<css_length>(el, _margin_is, _margin_top_, _margin_inline_, 0, false, offset(m_css_margins.top));
+    m_css_margins.bottom = get_logical_property<css_length>(el, _margin_ie, _margin_bottom_, _margin_inline_, 0, false, offset(m_css_margins.bottom));
+    if (m_writing_mode == writing_mode_vertical_rl)
+    {
+      m_css_margins.right = get_logical_property<css_length>(el, _margin_block_start_, _margin_right_, _margin_block_, 0, false, offset(m_css_margins.right));
+      m_css_margins.left = get_logical_property<css_length>(el, _margin_block_end_, _margin_left_, _margin_block_, 0, false, offset(m_css_margins.left));
+    }
+    else
+    {
+      m_css_margins.left = get_logical_property<css_length>(el, _margin_block_start_, _margin_left_, _margin_block_, 0, false, offset(m_css_margins.left));
+      m_css_margins.right = get_logical_property<css_length>(el, _margin_block_end_, _margin_right_, _margin_block_, 0, false, offset(m_css_margins.right));
+    }
+
+    m_css_padding.top = get_logical_property<css_length>(el, _padding_is, _padding_top_, _padding_block_, 0, false, offset(m_css_padding.top));
+    m_css_padding.bottom = get_logical_property<css_length>(el, _padding_ie, _padding_bottom_, _padding_block_, 0, false, offset(m_css_padding.bottom));
+    if (m_writing_mode == writing_mode_vertical_rl)
+    {
+      m_css_padding.right = get_logical_property<css_length>(el, _padding_block_start_, _padding_right_, _padding_block_, 0, false, offset(m_css_padding.right));
+      m_css_padding.left = get_logical_property<css_length>(el, _padding_block_end_, _padding_left_, _padding_block_, 0, false, offset(m_css_padding.left));
+    }
+    else
+    {
+      m_css_padding.left = get_logical_property<css_length>(el, _padding_block_start_, _padding_left_, _padding_block_, 0, false, offset(m_css_padding.left));
+      m_css_padding.right = get_logical_property<css_length>(el, _padding_block_end_, _padding_right_, _padding_block_, 0, false, offset(m_css_padding.right));
+    }
+  }
+  else
+  {
+    m_css_margins.left = get_logical_property<css_length>(el, _margin_is, _margin_left_, _margin_inline_, 0, false, offset(m_css_margins.left));
+    m_css_margins.right = get_logical_property<css_length>(el, _margin_ie, _margin_right_, _margin_inline_, 0, false, offset(m_css_margins.right));
+    m_css_margins.top = get_logical_property<css_length>(el, _margin_block_start_, _margin_top_, _margin_block_, 0, false, offset(m_css_margins.top));
+    m_css_margins.bottom = get_logical_property<css_length>(el, _margin_block_end_, _margin_bottom_, _margin_block_, 0, false, offset(m_css_margins.bottom));
+
+    m_css_padding.left = get_logical_property<css_length>(el, _padding_is, _padding_left_, _padding_inline_, 0, false, offset(m_css_padding.left));
+    m_css_padding.right = get_logical_property<css_length>(el, _padding_ie, _padding_right_, _padding_inline_, 0, false, offset(m_css_padding.right));
+    m_css_padding.top = get_logical_property<css_length>(el, _padding_block_start_, _padding_top_, _padding_block_, 0, false, offset(m_css_padding.top));
+    m_css_padding.bottom = get_logical_property<css_length>(el, _padding_block_end_, _padding_bottom_, _padding_block_, 0, false, offset(m_css_padding.bottom));
+  }
 
   doc->cvt_units(m_css_margins.left, m_font_metrics, 0);
   doc->cvt_units(m_css_margins.right, m_font_metrics, 0);
   doc->cvt_units(m_css_margins.top, m_font_metrics, 0);
   doc->cvt_units(m_css_margins.bottom, m_font_metrics, 0);
-
-  m_css_padding.left = get_logical_property<css_length>(el, (m_direction == direction_ltr) ? _padding_inline_start_ : _padding_inline_end_, _padding_left_, _padding_inline_, 0, false, offset(m_css_padding.left));
-  m_css_padding.right = get_logical_property<css_length>(el, (m_direction == direction_ltr) ? _padding_inline_end_ : _padding_inline_start_, _padding_right_, _padding_inline_, 0, false, offset(m_css_padding.right));
-  m_css_padding.top = get_logical_property<css_length>(el, _padding_block_start_, _padding_top_, _padding_block_, 0, false, offset(m_css_padding.top));
-  m_css_padding.bottom = get_logical_property<css_length>(el, _padding_block_end_, _padding_bottom_, _padding_block_, 0, false, offset(m_css_padding.bottom));
 
   doc->cvt_units(m_css_padding.left, m_font_metrics, 0);
   doc->cvt_units(m_css_padding.right, m_font_metrics, 0);
@@ -728,12 +769,14 @@ template litehtml::css_length litehtml::css_properties::get_logical_property<lit
 template litehtml::web_color litehtml::css_properties::get_logical_property<litehtml::web_color>(const element *el, string_id logical_side, string_id physical_side, string_id logical_all, litehtml::web_color default_value, bool inherited, uint_ptr member_offset) const;
 template int litehtml::css_properties::get_logical_property<int>(const element *el, string_id logical_side, string_id physical_side, string_id logical_all, int default_value, bool inherited, uint_ptr member_offset) const;
 
-std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_properties::dump_get_attrs()
+std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_properties::dump_get_attrs() const
 {
   std::vector<std::tuple<string, string>> ret;
 
   ret.emplace_back("display", index_value(m_display, style_display_strings));
   ret.emplace_back("direction", index_value(m_direction, direction_strings));
+  ret.emplace_back("writing_mode", index_value(m_writing_mode, writing_mode_strings));
+  ret.emplace_back("text_orientation", index_value(m_text_orientation, text_orientation_strings));
   ret.emplace_back("el_position", index_value(m_el_position, element_position_strings));
   ret.emplace_back("text_align", index_value(m_text_align, text_align_strings));
   ret.emplace_back("font_size", m_font_size.to_string());

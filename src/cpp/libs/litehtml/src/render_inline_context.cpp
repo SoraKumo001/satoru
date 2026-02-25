@@ -282,43 +282,52 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
     }
     line_ctx.right = self_size.render_width;
     line_ctx.fix_top();
-	fmt_ctx->get_line_left_right(line_ctx.top, self_size.render_width, line_ctx.left, line_ctx.right);
+    fmt_ctx->get_line_left_right(line_ctx.top, self_size.render_width, line_ctx.left, line_ctx.right);
 
-	if(item->get_type() == line_box_item::type_text_part)
-	{
-				if(item->get_el()->src_el()->is_inline_box())
-				{
-					auto cb = self_size.new_width(line_ctx.right);
-					pixel_t min_rendered_width = item->get_el()->measure(cb, fmt_ctx);
-					if (!(self_size.size_mode & containing_block_context::size_mode_measure))
-					{
-						item->get_el()->place(line_ctx.left, line_ctx.top, cb, fmt_ctx);
-					}
+    int base_level = (css().get_direction() == direction_rtl ? 1 : 0);
+    item->set_bidi_level(base_level);
 
-					if(min_rendered_width < item->get_el()->width() && item->get_el()->src_el()->css().get_width().is_predefined())
-					{
-						auto cb2 = self_size.new_width(min_rendered_width);
-						item->get_el()->measure(cb2, fmt_ctx);
-						if (!(self_size.size_mode & containing_block_context::size_mode_measure))
-						{
-							item->get_el()->place(line_ctx.left, line_ctx.top, cb2, fmt_ctx);
-						}
-					}
-					item->set_rendered_min_width(min_rendered_width);
-		} else if(item->get_el()->src_el()->css().get_display() == display_inline_text)
-		{
-			litehtml::size sz;
-			item->get_el()->src_el()->get_content_size(sz, line_ctx.right);
-			item->get_el()->pos() = sz;
-			item->set_rendered_min_width(sz.width);
+    if (item->get_type() == line_box_item::type_text_part)
+    {
+    if (item->get_el()->src_el()->is_inline_box())
+    {
+    auto cb = self_size.new_width(line_ctx.right);
+    pixel_t min_rendered_width = item->get_el()->measure(cb, fmt_ctx);
+    if (!(self_size.size_mode & containing_block_context::size_mode_measure))
+            {
+    item->get_el()->place(line_ctx.left, line_ctx.top, cb, fmt_ctx);
+    }
 
-			// Detect BiDi level for text part
-			string text;
-			item->get_el()->src_el()->get_text(text);
-			int base_level = (css().get_direction() == direction_rtl ? 1 : 0);
-			item->set_bidi_level(src_el()->get_document()->container()->get_bidi_level(text.c_str(), base_level));
-		}
-	}
+    if (min_rendered_width < item->get_el()->width() &&
+    item->get_el()->src_el()->css().get_width().is_predefined())
+    {
+    auto cb2 = self_size.new_width(min_rendered_width);
+    item->get_el()->measure(cb2, fmt_ctx);
+    if (!(self_size.size_mode & containing_block_context::size_mode_measure))
+    {
+        item->get_el()->place(line_ctx.left, line_ctx.top, cb2, fmt_ctx);
+    }
+    }
+    item->set_rendered_min_width(min_rendered_width);
+
+    // For inline-block, we still want to detect if it's primarily RTL or LTR
+            string text;
+    item->get_el()->src_el()->get_text(text);
+    item->set_bidi_level(src_el()->get_document()->container()->get_bidi_level(text.c_str(), base_level));
+    }
+    else if (item->get_el()->src_el()->css().get_display() == display_inline_text)
+    {
+    litehtml::size sz;
+        item->get_el()->src_el()->get_content_size(sz, line_ctx.right);
+            item->get_el()->pos() = sz;
+            item->set_rendered_min_width(sz.width);
+
+            // Detect BiDi level for text part
+            string text;
+            item->get_el()->src_el()->get_text(text);
+            item->set_bidi_level(src_el()->get_document()->container()->get_bidi_level(text.c_str(), base_level));
+        }
+    }
 
     bool add_box = true;
     if(!m_line_boxes.empty())

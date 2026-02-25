@@ -143,7 +143,7 @@ namespace litehtml
   public:
     css_properties() : m_el_position(element_position_static),
                        m_direction(direction_ltr),
-                       m_text_align(text_align_left),
+                       m_text_align(text_align_start),
                        m_overflow(overflow_visible),
                        m_text_overflow(text_overflow_clip),
                        m_white_space(white_space_normal),

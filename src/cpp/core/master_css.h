@@ -29,6 +29,8 @@ const char *satoru_master_css =
     "    color: #000;\n"
     "}\n"
     "button, input, select, textarea { box-sizing: border-box; }\n"
-    "svg { display: inline-block; overflow: hidden; }\n";
+    "svg { display: inline-block; overflow: hidden; }\n"
+    "*[dir=\"rtl\"] { direction: rtl; }\n"
+    "*[dir=\"ltr\"] { direction: ltr; }\n";
 
 #endif  // SATORU_MASTER_CSS_H

@@ -938,6 +938,7 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
     {
         if (el->is_visible())
         {
+            bool is_positioned = el->src_el()->is_positioned();
             bool is_active = false;
             bool force_stacking = false;
             bool should_recurse = true;
@@ -945,7 +946,7 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
             switch (flag)
             {
                 case draw_positioned:
-                    if (el->src_el()->is_positioned() && el->src_el()->css().get_z_index() == zindex)
+                    if (is_positioned && el->src_el()->css().get_z_index() == zindex)
                     {
                         is_active = true;
                         force_stacking = true;
@@ -953,13 +954,13 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                     }
                     break;
                 case draw_block:
-                    if (!el->src_el()->is_inline() && el->src_el()->css().get_float() == float_none && !el->src_el()->is_positioned())
+                    if (!is_positioned && !el->src_el()->is_inline() && el->src_el()->css().get_float() == float_none)
                     {
                         is_active = true;
                     }
                     break;
                 case draw_floats:
-                    if (el->src_el()->css().get_float() != float_none && !el->src_el()->is_positioned())
+                    if (!is_positioned && el->src_el()->css().get_float() != float_none)
                     {
                         is_active = true;
                         force_stacking = true;
@@ -967,7 +968,7 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                     }
                     break;
                 case draw_inlines:
-                    if (el->src_el()->is_inline() && el->src_el()->css().get_float() == float_none && !el->src_el()->is_positioned())
+                    if (!is_positioned && el->src_el()->is_inline() && el->src_el()->css().get_float() == float_none)
                     {
                         is_active = true;
                         if (el->src_el()->is_inline_box())
@@ -981,44 +982,40 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                     break;
             }
 
-            // We MUST push properties if we are either drawing the element itself
-            // or recursing into its children in this pass.
-            // (e.g. a block with clip-path containing inlines being drawn in draw_inlines pass)
-            
-            float opacity = el->src_el()->css().get_opacity();
-            const auto& transform = el->src_el()->css().get_transform();
-            const auto& filter = el->src_el()->css().get_filter();
-            const auto& backdrop_filter = el->src_el()->css().get_backdrop_filter();
-            css_token_vector clip_path;
-            el->src_el()->get_custom_property(_clip_path_, clip_path);
-
-            bool has_props = (opacity < 1.0f) || !transform.empty() || !filter.empty() || !backdrop_filter.empty() || !clip_path.empty();
-
-            if (has_props)
-            {
-                if (opacity < 1.0f) doc->container()->push_layer(hdc, opacity);
-                if (!backdrop_filter.empty()) doc->container()->push_backdrop_filter(hdc, el);
-
-                if (el->src_el()->css().get_position() == element_position_fixed)
-                {
-                    if (!transform.empty()) doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el->pos());
-                    if (!filter.empty()) doc->container()->push_filter(hdc, filter);
-                    if (!clip_path.empty()) doc->container()->push_clip_path(hdc, clip_path, el->pos());
-                }
-                else
-                {
-                    position el_pos = el->pos();
-                    el_pos.x += pos.x;
-                    el_pos.y += pos.y;
-
-                    if (!transform.empty()) doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
-                    if (!filter.empty()) doc->container()->push_filter(hdc, filter);
-                    if (!clip_path.empty()) doc->container()->push_clip_path(hdc, clip_path, el_pos);
-                }
-            }
-
             if (is_active)
             {
+                float opacity = el->src_el()->css().get_opacity();
+                const auto& transform = el->src_el()->css().get_transform();
+                const auto& filter = el->src_el()->css().get_filter();
+                const auto& backdrop_filter = el->src_el()->css().get_backdrop_filter();
+                css_token_vector clip_path;
+                el->src_el()->get_custom_property(_clip_path_, clip_path);
+
+                bool has_props = (opacity < 1.0f) || !transform.empty() || !filter.empty() || !backdrop_filter.empty() || !clip_path.empty();
+
+                if (has_props)
+                {
+                    if (opacity < 1.0f) doc->container()->push_layer(hdc, opacity);
+                    if (!backdrop_filter.empty()) doc->container()->push_backdrop_filter(hdc, el);
+
+                    if (el->src_el()->css().get_position() == element_position_fixed)
+                    {
+                        if (!transform.empty()) doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el->pos());
+                        if (!filter.empty()) doc->container()->push_filter(hdc, filter);
+                        if (!clip_path.empty()) doc->container()->push_clip_path(hdc, clip_path, el->pos());
+                    }
+                    else
+                    {
+                        position el_pos = el->pos();
+                        el_pos.x += pos.x;
+                        el_pos.y += pos.y;
+
+                        if (!transform.empty()) doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
+                        if (!filter.empty()) doc->container()->push_filter(hdc, filter);
+                        if (!clip_path.empty()) doc->container()->push_clip_path(hdc, clip_path, el_pos);
+                    }
+                }
+
                 if (flag == draw_positioned && el->src_el()->css().get_position() == element_position_fixed)
                 {
                     el->src_el()->draw(hdc, 0, 0, clip, el);
@@ -1032,13 +1029,23 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         el->draw_stacking_context(hdc, pos.x, pos.y, clip, (flag == draw_positioned));
                     }
                 }
+
+                if (has_props)
+                {
+                    if (!clip_path.empty()) doc->container()->pop_clip_path(hdc);
+                    if (!filter.empty()) doc->container()->pop_filter(hdc);
+                    if (!transform.empty()) doc->container()->pop_transform(hdc);
+                    if (!backdrop_filter.empty()) doc->container()->pop_backdrop_filter(hdc);
+                    if (opacity < 1.0f) doc->container()->pop_layer(hdc);
+                }
             }
 
             if (should_recurse)
             {
+                // Recurse for elements that allow it in this pass
                 if (flag == draw_positioned)
                 {
-                    if (!el->src_el()->is_positioned())
+                    if (!is_positioned)
                     {
                         el->draw_children(hdc, pos.x, pos.y, clip, flag, zindex);
                     }
@@ -1047,20 +1054,11 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                 {
                     if (el->src_el()->css().get_float() == float_none &&
                         !el->src_el()->is_inline_box() &&
-                        !el->src_el()->is_positioned())
+                        !is_positioned)
                     {
                         el->draw_children(hdc, pos.x, pos.y, clip, flag, zindex);
                     }
                 }
-            }
-
-            if (has_props)
-            {
-                if (!clip_path.empty()) doc->container()->pop_clip_path(hdc);
-                if (!filter.empty()) doc->container()->pop_filter(hdc);
-                if (!transform.empty()) doc->container()->pop_transform(hdc);
-                if (!backdrop_filter.empty()) doc->container()->pop_backdrop_filter(hdc);
-                if (opacity < 1.0f) doc->container()->pop_layer(hdc);
             }
         }
     }

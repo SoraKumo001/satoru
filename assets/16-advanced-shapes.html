@@ -1,48 +1,57 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <style>
-        .box {
-            width: 100px;
-            height: 100px;
-            background-color: #3b82f6;
-            margin: 20px;
-            display: inline-block;
-        }
-        .clip-circle {
-            clip-path: circle(50%);
-        }
-        .clip-ellipse {
-            clip-path: ellipse(25% 40% at 50% 50%);
-        }
-        .clip-inset {
-            clip-path: inset(10% 20% 30% 40% round 10px);
-        }
-        .clip-polygon {
-            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-        }
-        
-        .grad-complex {
-            width: 200px;
-            height: 150px;
-            background: radial-gradient(farthest-side at 20% 30%, #fcd34d, #ef4444);
-            margin: 20px;
-        }
-        .grad-ellipse {
-            width: 200px;
-            height: 150px;
-            background: radial-gradient(ellipse 100px 50px at center, #10b981, #3b82f6);
-            margin: 20px;
-        }
-    </style>
+  <style>
+    .box {
+      width: 100px;
+      height: 100px;
+      background-color: #3b82f6;
+      margin: 20px;
+      display: inline-block;
+      text-align: center;
+    }
+
+    .clip-circle {
+      clip-path: circle(50%);
+    }
+
+    .clip-ellipse {
+      clip-path: ellipse(25% 40% at 50% 50%);
+    }
+
+    .clip-inset {
+      clip-path: inset(10% 20% 30% 40% round 10px);
+    }
+
+    .clip-polygon {
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    }
+
+    .grad-complex {
+      width: 200px;
+      height: 150px;
+      background: radial-gradient(farthest-side at 20% 30%, #fcd34d, #ef4444);
+      margin: 20px;
+    }
+
+    .grad-ellipse {
+      width: 200px;
+      height: 150px;
+      background: radial-gradient(ellipse 100px 50px at center, #10b981, #3b82f6);
+      margin: 20px;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="box clip-circle">Circle</div>
-    <div class="box clip-ellipse">Ellipse</div>
-    <div class="box clip-inset">Inset</div>
-    <div class="box clip-polygon">Polygon</div>
-    <br>
-    <div class="grad-complex">Farthest Side</div>
-    <div class="grad-ellipse">Ellipse Size</div>
+  <div class="box clip-circle">Circle</div>
+  <div class="box clip-ellipse">Ellipse</div>
+  <div class="box clip-inset">Inset</div>
+  <div class="box clip-polygon">Polygon</div>
+  <br>
+  <div class="grad-complex">Farthest Side</div>
+  <div class="grad-ellipse">Ellipse Size</div>
 </body>
+
 </html>

@@ -230,11 +230,21 @@ namespace litehtml
 
 	inline bool litehtml::element::is_positioned()	const
 	{
-		return (css().get_position() > element_position_static || 
-				css().get_opacity() < 1.0f ||
-				!css().get_transform().empty() ||
-				!css().get_filter().empty() ||
-				!css().get_z_index_length().is_predefined());
+		if(	css().get_position() > element_position_static || 
+			css().get_opacity() < 1.0f ||
+			!css().get_transform().empty() ||
+			!css().get_filter().empty() ||
+			!css().get_backdrop_filter().empty() ||
+			!css().get_z_index_length().is_predefined())
+		{
+			return true;
+		}
+		css_token_vector clip_path;
+		if(get_custom_property(_clip_path_, clip_path))
+		{
+			return true;
+		}
+		return false;
 	}
 
 	inline bool litehtml::element::is_float()	const

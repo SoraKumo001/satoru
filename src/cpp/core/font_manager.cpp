@@ -496,15 +496,18 @@ SkFont SatoruFontManager::selectFont(char32_t u, font_info *fi, SkFont *lastSele
                                      const satoru::UnicodeService &unicode) {
     SkFont *selected_font = nullptr;
 
-    if (unicode.isMark(u) && lastSelectedFont) {
-        selected_font = lastSelectedFont;
-    } else {
+    // 1. 直前のフォントがそのまま使えるか確認 (MRU最適化)
+    if (lastSelectedFont) {
+        SkGlyphID glyph = lastSelectedFont->getTypeface()->unicharToGlyph(u);
+        if (glyph != 0 || unicode.isMark(u)) {
+            selected_font = lastSelectedFont;
+        }
+    }
+
+    // 2. 直前のフォントが使えない場合のみ、全フォントから検索
+    if (!selected_font) {
         for (auto f : fi->fonts) {
-            SkGlyphID glyph = 0;
-            SkUnichar sc = (SkUnichar)u;
-            f->getTypeface()->unicharsToGlyphs(SkSpan<const SkUnichar>(&sc, 1),
-                                               SkSpan<SkGlyphID>(&glyph, 1));
-            if (glyph != 0) {
+            if (f->getTypeface()->unicharToGlyph(u) != 0) {
                 selected_font = f;
                 break;
             }
@@ -519,5 +522,6 @@ SkFont SatoruFontManager::selectFont(char32_t u, font_info *fi, SkFont *lastSele
         font.setEmbeddedBitmaps(true);
         font.setHinting(SkFontHinting::kNone);
     }
+
     return font;
 }

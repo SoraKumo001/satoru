@@ -31,6 +31,10 @@ class TextLayout {
     static void splitText(SatoruContext* ctx, const char* text,
                           const std::function<void(const char*)>& onWord,
                           const std::function<void(const char*)>& onSpace);
+
+   private:
+    static TextAnalysis analyzeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
+                                    std::set<char32_t>* usedCodepoints);
 };
 
 }  // namespace satoru

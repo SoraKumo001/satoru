@@ -23,6 +23,21 @@ struct MeasureResult {
     const char* last_safe_pos;  // pointer to the end of the last character that fits
 };
 
+struct TextCharAnalysis {
+    char32_t codepoint;
+    size_t offset;
+    size_t len;
+    SkFont font;
+    bool is_emoji;
+    bool is_mark;
+};
+
+struct TextAnalysis {
+    std::vector<TextCharAnalysis> chars;
+    std::vector<char> line_breaks;
+    uint8_t bidi_level;
+};
+
 class SatoruFontRunIterator : public SkShaper::FontRunIterator {
    public:
     SatoruFontRunIterator(const std::vector<CharFont>& charFonts)

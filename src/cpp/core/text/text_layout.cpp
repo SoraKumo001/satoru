@@ -21,19 +21,26 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
         : fInner(inner), fResult(result) {
         fResult.width = 0;
     }
-    void beginLine() override { fInner->beginLine(); }
+    void beginLine() override {
+        if (fInner) fInner->beginLine();
+    }
     void runInfo(const SkShaper::RunHandler::RunInfo& info) override {
         fResult.width += info.fAdvance.fX;
-        fInner->runInfo(info);
+        if (fInner) fInner->runInfo(info);
     }
-    void commitRunInfo() override { fInner->commitRunInfo(); }
+    void commitRunInfo() override {
+        if (fInner) fInner->commitRunInfo();
+    }
     Buffer runBuffer(const SkShaper::RunHandler::RunInfo& info) override {
-        return fInner->runBuffer(info);
+        if (fInner) return fInner->runBuffer(info);
+        return {nullptr, nullptr, nullptr, nullptr, {0, 0}};
     }
     void commitRunBuffer(const SkShaper::RunHandler::RunInfo& info) override {
-        fInner->commitRunBuffer(info);
+        if (fInner) fInner->commitRunBuffer(info);
     }
-    void commitLine() override { fInner->commitLine(); }
+    void commitLine() override {
+        if (fInner) fInner->commitLine();
+    }
 
    private:
     SkShaper::RunHandler* fInner;
@@ -108,36 +115,25 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     size_t total_len = strlen(text);
     bool limit_width = maxWidth >= 0;
 
+    TextAnalysis analysis = analyzeText(ctx, text, total_len, fi, usedCodepoints);
+
     // Use OffsetWidthRunHandler directly for measureText to support widthAtOffset
     UnicodeService& unicode = ctx->getUnicodeService();
     SkShaper* shaper = ctx->getShaper();
     if (!shaper) return result;
 
     std::vector<CharFont> charFonts;
-    const char* walk_p = text;
-    const char* walk_end = text + total_len;
-    SkFont last_font;
-    bool has_last_font = false;
-    while (walk_p < walk_end) {
-        const char* prev_walk = walk_p;
-        char32_t u = unicode.decodeUtf8(&walk_p);
-        if (usedCodepoints) usedCodepoints->insert(u);
-        SkFont font =
-            ctx->fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr, unicode);
-        last_font = font;
-        has_last_font = true;
-        size_t char_len = (size_t)(walk_p - prev_walk);
-        if (!charFonts.empty() && charFonts.back().font == font) {
-            charFonts.back().len += char_len;
+    for (const auto& ca : analysis.chars) {
+        if (!charFonts.empty() && charFonts.back().font == ca.font) {
+            charFonts.back().len += ca.len;
         } else {
-            charFonts.push_back({char_len, font});
+            charFonts.push_back({ca.len, ca.font});
         }
     }
 
     OffsetWidthRunHandler handler;
     SatoruFontRunIterator fontRuns(charFonts);
-    int baseLevel = fi->is_rtl ? 1 : 0;
-    uint8_t itemLevel = (uint8_t)unicode.getBidiLevel(text, baseLevel, nullptr);
+    uint8_t itemLevel = analysis.bidi_level;
     std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
         SkShaper::MakeBiDiRunIterator(text, total_len, itemLevel);
     if (!bidi) bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, total_len);
@@ -158,34 +154,30 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     } else {
         // Width limit handling (grapheme break aware)
         result.fits = false;
-        walk_p = text;
         double last_w = 0;
         int state = 0;
 
-        while (*walk_p) {
-            const char* prev_p = walk_p;
-            char32_t u1 = unicode.decodeUtf8(&walk_p);
-            const char* next_p = walk_p;
+        for (size_t i = 0; i < analysis.chars.size(); ++i) {
+            const auto& ca = analysis.chars[i];
             bool is_break = true;
-            if (*next_p) {
-                const char* temp_p = next_p;
-                char32_t u2 = unicode.decodeUtf8(&temp_p);
-                is_break = unicode.shouldBreakGrapheme(u1, u2, &state);
+            if (i + 1 < analysis.chars.size()) {
+                is_break = unicode.shouldBreakGrapheme(ca.codepoint, analysis.chars[i + 1].codepoint,
+                                                       &state);
             }
             if (is_break) {
-                size_t offset = next_p - text;
+                size_t offset = ca.offset + ca.len;
                 double w = handler.widthAtOffset(offset);
                 if (w > maxWidth + 0.01) {
                     result.width = last_w;
-                    result.length = prev_p - text;
+                    result.length = ca.offset;
                     break;
                 }
                 last_w = w;
             }
         }
-        if (!*walk_p && result.fits) { // Actually didn't break in loop
+        if (result.fits) {
             result.width = last_w;
-            result.length = walk_p - text;
+            result.length = total_len;
         }
     }
 
@@ -195,6 +187,46 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     }
 
     return result;
+}
+
+TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
+                                     std::set<char32_t>* usedCodepoints) {
+    TextAnalysis analysis;
+    if (!text || !len || !ctx) return analysis;
+
+    UnicodeService& unicode = ctx->getUnicodeService();
+    analysis.line_breaks.resize(len);
+    unicode.getLineBreaks(text, len, nullptr, analysis.line_breaks);
+
+    int baseLevel = fi->is_rtl ? 1 : 0;
+    analysis.bidi_level = (uint8_t)unicode.getBidiLevel(text, baseLevel, nullptr);
+
+    const char* p = text;
+    const char* end = text + len;
+    SkFont last_font;
+    bool has_last_font = false;
+
+    while (p < end) {
+        TextCharAnalysis ca;
+        ca.offset = p - text;
+        const char* prev_p = p;
+        ca.codepoint = unicode.decodeUtf8(&p);
+        ca.len = p - prev_p;
+
+        if (usedCodepoints) usedCodepoints->insert(ca.codepoint);
+
+        ca.is_emoji = unicode.isEmoji(ca.codepoint);
+        ca.is_mark = unicode.isMark(ca.codepoint);
+
+        ca.font = ctx->fontManager.selectFont(ca.codepoint, fi, has_last_font ? &last_font : nullptr,
+                                              unicode);
+        last_font = ca.font;
+        has_last_font = true;
+
+        analysis.chars.push_back(ca);
+    }
+
+    return analysis;
 }
 
 ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
@@ -223,38 +255,26 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
         return it->second;
     }
 
-    ShapedResult result = {0.0, nullptr};
-    SkShaper* shaper = ctx->getShaper();
-    UnicodeService& unicode = ctx->getUnicodeService();
-    if (!shaper) return {0.0, nullptr};
+    TextAnalysis analysis = analyzeText(ctx, text, len, fi, usedCodepoints);
 
     std::vector<CharFont> charFonts;
-    const char* walk_p = text;
-    const char* walk_end = text + len;
-    SkFont last_font;
-    bool has_last_font = false;
-    while (walk_p < walk_end) {
-        const char* prev_walk = walk_p;
-        char32_t u = unicode.decodeUtf8(&walk_p);
-        if (usedCodepoints) usedCodepoints->insert(u);
-        SkFont font =
-            ctx->fontManager.selectFont(u, fi, has_last_font ? &last_font : nullptr, unicode);
-        last_font = font;
-        has_last_font = true;
-        size_t char_len = (size_t)(walk_p - prev_walk);
-        if (!charFonts.empty() && charFonts.back().font == font) {
-            charFonts.back().len += char_len;
+    for (const auto& ca : analysis.chars) {
+        if (!charFonts.empty() && charFonts.back().font == ca.font) {
+            charFonts.back().len += ca.len;
         } else {
-            charFonts.push_back({char_len, font});
+            charFonts.push_back({ca.len, ca.font});
         }
     }
 
+    ShapedResult result = {0.0, nullptr};
+    SkShaper* shaper = ctx->getShaper();
+    if (!shaper) return result;
+
     SkTextBlobBuilderRunHandler blobHandler(text, {0, 0});
     WidthProxyRunHandler handler(&blobHandler, result);
-    SatoruFontRunIterator fontRuns(charFonts);
 
-    int baseLevel = fi->is_rtl ? 1 : 0;
-    uint8_t itemLevel = (uint8_t)unicode.getBidiLevel(text, baseLevel, nullptr);
+    SatoruFontRunIterator fontRuns(charFonts);
+    uint8_t itemLevel = analysis.bidi_level;
     std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
         SkShaper::MakeBiDiRunIterator(text, len, itemLevel);
     if (!bidi) bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, len);

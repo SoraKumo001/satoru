@@ -270,9 +270,11 @@ pnpm --filter visual-test test
 - [x] **Font Subsetting**: Optimizing Wasm memory by loading only required glyphs.
 
 - [ ] **Vertical Writing Support (Writing Modes)**:
-    - Implementation of `writing-mode: vertical-rl / vertical-lr`.
-    - Logical-to-physical coordinate mapping in the layout pipeline.
-    - Text stack enhancement for upright/sideways orientation and vertical baseline adjustment.
+    - [ ] Logical-to-physical coordinate mapping and abstraction (inline/block) in `render_item`.
+    - [ ] Logicalization of `formatting_context` for float and clear calculations.
+    - [ ] Vertical orientation support for `line_box` and line-breaking logic.
+    - [ ] Text stack enhancement for upright/sideways orientation and vertical baseline adjustment in `TextRenderer`.
+    - [ ] Add vertical writing test cases to `visual-test` suite.
 
 ---
 

@@ -45,7 +45,15 @@ ignore_all_files_in_gitignore: true
 # list of additional paths to ignore in this project.
 # Same syntax as gitignore, so you can use * and **.
 # Note: global ignored_paths from serena_config.yml are also applied additively.
-ignored_paths: []
+ignored_paths:
+  - "node_modules/**"
+  - "vcpkg_installed/**"
+  - "build/**"
+  - "dist/**"
+  - ".cache/**"
+  - "packages/*/node_modules/**"
+  - "packages/*/dist/**"
+  - "assets/**"
 
 # whether the project is in read-only mode
 # If set to true, all editing tools will be disabled and attempts to use them will result in an error
@@ -123,4 +131,4 @@ initial_prompt: ""
 # such as docstrings or parameter information.
 # This overrides the corresponding setting in the global configuration; see the documentation there.
 # If null or missing, use the setting from the global configuration.
-symbol_info_budget:
+symbol_info_budget: 10.0

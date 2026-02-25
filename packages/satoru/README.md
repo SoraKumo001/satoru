@@ -1,4 +1,4 @@
-# Satoru Wasm: High-Performance HTML to SVG/PNG/PDF Engine
+# Satoru Render: High-Performance HTML to Image/PDF Engine
 
 [![Playground](https://img.shields.io/badge/Demo-Playground-blueviolet)](https://sorakumo001.github.io/satoru/)
 [![npm license](https://img.shields.io/npm/l/satoru-render.svg)](https://www.npmjs.com/package/satoru-render)
@@ -6,200 +6,175 @@
 [![npm download](https://img.shields.io/npm/dw/satoru-render.svg)](https://www.npmjs.com/package/satoru-render)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/SoraKumo001/satoru)
 
-**Satoru** is a portable, WebAssembly-powered HTML rendering engine. It combines the **Skia Graphics Engine** and **litehtml** to provide high-quality, pixel-perfect SVG, PNG, and PDF generation entirely within WebAssembly.
+**Satoru Render** is a high-fidelity HTML-to-Image/PDF conversion engine built with WebAssembly. It provides a lightweight, dependency-free solution for generating high-quality visuals and documents across **Node.js**, **Cloudflare Workers**, **Deno**, and **Web Browsers**.
 
-## 🚀 Project Status: High-Fidelity Rendering & Edge Ready
+By combining the **Skia** graphics engine with a custom **litehtml** layout core, Satoru performs all layout and drawing operations entirely within WASM, eliminating the need for headless browsers or system-level dependencies.
 
-The engine supports full text layout with custom fonts, complex CSS styling, and efficient binary data transfer. It is now compatible with **Cloudflare Workers (workerd)**, allowing for serverless, edge-side image and document generation.
+![Sample Output](./document/sample01.webp)
 
-### Key Capabilities
+---
 
-- **Pure Wasm Pipeline**: Performs all layout and drawing operations inside Wasm. Zero dependencies on browser DOM or `<canvas>`.
-- **Edge Native**: Specialized wrapper for Cloudflare Workers ensures smooth execution in restricted environments.
-- **Triple Output Modes**:
-  - **SVG**: Generates lean, vector-based Pure SVG strings with post-processed effects (Filters, Gradients).
-  - **PNG**: Generates high-quality raster images via Skia, transferred as binary data for maximum performance.
-  - **PDF**: Generates high-fidelity vector documents via Skia's PDF backend, including native support for text, gradients, images, and **multi-page output**.
-- **High-Level TS Wrapper**: Includes a `Satoru` class that abstracts Wasm memory management and provides a clean async API.
-- **Dynamic Font Loading**: Supports loading `.ttf` / `.woff2` / `.ttc` files at runtime with automatic weight/style inference.
-- **Japanese Support**: Full support for Japanese rendering with multi-font fallback logic.
-- **Image Format Support**: Native support for **PNG**, **JPEG**, **WebP**, **AVIF**, **GIF**, **BMP**, and **ICO** image formats.
-- **Advanced CSS Support**:
-  - **Box Model**: Margin, padding, border, and accurate **Border Radius**.
-  - **Box Shadow**: High-quality **Outer** and **Inset** shadows using advanced SVG filters (SVG) or Skia blurs (PNG/PDF).
-  - **Gradients**: Linear, **Elliptical Radial**, and **Conic** (Sweep) gradient support.
-  - **Standard Tags**: Full support for `<b>`, `<strong>`, `<i>`, `<u>`, and `<h1>`-`<h6>` via integrated master CSS.
-  - **Text Decoration**: Supports `underline`, `line-through`, `overline` with `solid`, `dotted`, and `dashed` styles.
-  - **Text Shadow**: Multiple shadows with blur, offset, and color support (PNG/SVG/PDF).
+## ✨ Key Features
 
-## 🛠️ Usage (TypeScript)
+- **Pure WebAssembly Engine**: 100% independent of browser DOM or `<canvas>`. Runs anywhere WASM is supported.
+- **Edge Native**: Specifically optimized for **Cloudflare Workers (workerd)** and other serverless environments.
+- **Professional Graphics**:
+  - **SVG**: Lean, vector-based strings with post-processed filters and gradients.
+  - **PNG / WebP**: High-performance raster images with advanced Skia rendering.
+  - **PDF**: Multi-page vector documents with native text and gradient support.
+- **Advanced CSS Capabilities**:
+  - **Box Model**: Precise margin, padding, borders, and **Border Radius**.
+  - **Shadows**: High-quality **Outer** and **Inset** shadows (using SVG filters or Skia blurs).
+  - **Gradients**: Linear, **Elliptical Radial**, and **Conic** (Sweep) support.
+  - **Text Styling**: Multi-shadows, decorations (solid/dotted/dashed), and automatic weight/style inference.
+- **Internationalization**: Robust support for complex text layouts, including **Japanese** and multi-font fallback logic.
+- **Smart Resource Management**: Dynamic loading of `.ttf`, `.woff2`, and `.ttc` fonts, plus native support for all major image formats (AVIF, WebP, PNG, JPEG, etc.).
 
-### Standard Environment (Node.js / Browser)
+---
 
-Satoru provides a high-level `render` function for converting HTML to various formats. It automatically handles WASM instantiation and resource resolution.
+## 📦 Installation
 
-#### Basic Rendering (Automatic Resource Resolution)
+```bash
+npm install satoru-render
+```
 
-The `render` function supports automated multi-pass resource resolution. It identifies missing fonts, images, and external CSS and requests them via the `resolveResource` callback.
+---
+
+## 🚀 Quick Start
+
+### Basic Usage (TypeScript)
+
+The `render` function is the primary entry point. It handles WASM instantiation, resource resolution, and conversion in a single call.
 
 ```typescript
-import { render, LogLevel } from "satoru-render";
+import { render } from "satoru-render";
 
 const html = `
-  <style>
-    @font-face {
-      font-family: 'Roboto';
-      src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2');
-    }
-  </style>
-  <div style="font-family: 'Roboto'; color: #2196F3; font-size: 40px;">
-    Hello Satoru!
-    <img src="logo.png" style="width: 50px;">
+  <div style="padding: 40px; background: #f8f9fa; border-radius: 12px; border: 2px solid #dee2e6;">
+    <h1 style="color: #007bff; font-family: sans-serif;">Hello Satoru!</h1>
+    <p style="color: #495057;">This document was rendered entirely in WebAssembly.</p>
   </div>
 `;
 
-// Render to PDF with automatic resource resolution from HTML string
-const pdf = await render({
+// Render to PNG
+const png = await render({
   value: html,
   width: 600,
-  format: "pdf",
-  baseUrl: "https://example.com/assets/", // Optional: resolve relative URLs
-  logLevel: LogLevel.Info,
-  resolveResource: async (resource, defaultResolver) => {
-    if (resource.url.startsWith("custom://")) {
-      return myCustomData;
-    }
-    return defaultResolver(resource);
-  },
-});
-
-// Render from a URL directly
-const png = await render({
-  url: "https://example.com/page.html",
-  width: 1024,
   format: "png",
 });
 ```
 
-#### Render Options
+---
 
-| Option            | Type                                | Description                                                                                                                                                                                             |
-| ----------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`           | `string \| string[]`                | HTML string or array of HTML strings. (One of `value` or `url` is required)                                                                                                                             |
-| `url`             | `string`                            | URL to fetch HTML from. (One of `value` or `url` is required)                                                                                                                                           |
-| `width`           | `number`                            | **Required.** Width of the output in pixels.                                                                                                                                                            |
-| `height`          | `number`                            | Height of the output in pixels. Default is `0` (automatic height).                                                                                                                                      |
-| `format`          | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default is `"svg"`.                                                                                                                                                                      |
-| `textToPaths`     | `boolean`                           | Whether to convert SVG text to paths. Default is `true`.                                                                                                                                                |
-| `resolveResource` | `ResourceResolver`                  | Async callback to fetch missing fonts, images, or CSS. Returns `Uint8Array`, `ArrayBufferView` or `null`. It receives a second argument `defaultResolver` to fallback to the standard resolution logic. |
-| `fonts`           | `Object[]`                          | Array of `{ name, data: Uint8Array }` to pre-load fonts.                                                                                                                                                |
-| `images`          | `Object[]`                          | Array of `{ name, url, width?, height? }` to pre-load images.                                                                                                                                           |
-| `css`             | `string`                            | Extra CSS to inject into the rendering process.                                                                                                                                                         |
-| `baseUrl`         | `string`                            | Base URL used to resolve relative URLs in fonts, images, and links.                                                                                                                                     |
-| `userAgent`       | `string`                            | User-Agent header for fetching resources (Node.js environment).                                                                                                                                         |
-| `logLevel`        | `LogLevel`                          | Logging verbosity (`None`, `Error`, `Warning`, `Info`, `Debug`).                                                                                                                                        |
-| `onLog`           | `(level, msg) => void`              | Custom callback for receiving log messages.                                                                                                                                                             |
+## 🛠️ Advanced Usage
 
-### 💻 CLI Usage
+### 1. Dynamic Resource Resolution
 
-Satoru includes a command-line interface for easy conversion.
-
-```bash
-# Convert a local HTML file to PNG
-npx satoru-render input.html -o output.png
-
-# Convert a URL to PDF
-npx satoru-render https://example.com -o example.pdf -w 1280
-
-# Convert with custom options
-npx satoru-render input.html -w 1024 -f webp --verbose
-```
-
-#### CLI Options
-
-- `<input>`: Input file path or URL (**Required**)
-- `-o, --output <path>`: Output file path
-- `-w, --width <number>`: Viewport width (default: 800)
-- `-h, --height <number>`: Viewport height (default: 0, auto-calculate)
-- `-f, --format <format>`: Output format: `svg`, `png`, `webp`, `pdf`
-- `--verbose`: Enable detailed logging
-- `--help`: Show help message
-
-### 📄 Multi-page PDF Generation
-
-You can generate a multi-page PDF by passing an array of HTML strings to the `value` property. Each string in the array will be rendered as a new page.
+Satoru can automatically fetch missing fonts, images, or external CSS via a `resolveResource` callback.
 
 ```typescript
-const pdf = await satoru.render({
-  value: [
-    "<h1>Page 1</h1><p>First page content.</p>",
-    "<h1>Page 2</h1><p>Second page content.</p>",
-    "<h1>Page 3</h1><p>Third page content.</p>",
-  ],
-  width: 600,
+const pdf = await render({
+  value: html,
+  width: 800,
+  format: "pdf",
+  baseUrl: "https://example.com/assets/",
+  resolveResource: async (resource, defaultResolver) => {
+    // Custom intercept logic
+    if (resource.url.startsWith("my-app://")) {
+      return myAssetBuffer;
+    }
+    // Fallback to default fetch/filesystem resolver
+    return defaultResolver(resource);
+  },
+});
+```
+
+### 2. Multi-page PDF Generation
+
+Generate complex documents by passing an array of HTML strings. Each element in the array becomes a new page.
+
+```typescript
+const pdf = await render({
+  value: ["<h1>Page One</h1>", "<h1>Page Two</h1>", "<h1>Page Three</h1>"],
+  width: 595, // A4 width in points
   format: "pdf",
 });
 ```
 
-### ☁️ Cloudflare Workers (Edge)
+### 3. Edge/Cloudflare Workers
 
-Satoru is optimized for Cloudflare Workers. Use the `workerd` specific export which handles the specific WASM instantiation requirements of the environment.
+Use the specialized `workerd` export for serverless environments.
 
 ```typescript
 import { render } from "satoru-render";
 
 export default {
   async fetch(request) {
-    const pdf = await render({
-      value: "<h1>Edge Rendered</h1>",
+    const png = await render({
+      value: "<h1>Edge Generated Image</h1>",
       width: 800,
-      format: "pdf",
-      baseUrl: "https://example.com/",
+      format: "png",
     });
 
-    return new Response(pdf, {
-      headers: { "Content-Type": "application/pdf" },
-    });
+    return new Response(png, { headers: { "Content-Type": "image/png" } });
   },
 };
 ```
 
-### 📦 Single-file (Embedded WASM)
+### 6. Multi-threaded Rendering (Worker Proxy)
 
-For environments where deploying a separate `.wasm` file is difficult, use the `single` export which includes the WASM binary embedded.
-
-```typescript
-import { render } from "satoru-render";
-
-const png = await render({
-  value: "<div>Embedded WASM!</div>",
-  width: 600,
-  format: "png",
-});
-```
-
-### 🧵 Multi-threaded Rendering (Worker Proxy)
-
-For high-throughput applications, the Worker proxy distributes rendering tasks across multiple threads. You can configure all resources in a single `render` call for stateless operation.
+Distribute rendering tasks across multiple background workers for high-throughput applications.
 
 ```typescript
-import { createSatoruWorker, LogLevel } from "satoru-render/workers";
+import { createSatoruWorker } from "satoru-render/workers";
 
-// Create a worker proxy with up to 4 parallel instances
 const satoru = createSatoruWorker({ maxParallel: 4 });
 
-// Render with full configuration in one go
 const png = await satoru.render({
-  value: "<h1>Parallel Rendering</h1><img src='icon.png'>",
+  value: "<h1>Parallel Task</h1>",
   width: 800,
   format: "png",
-  baseUrl: "https://example.com/assets/",
-  logLevel: LogLevel.Debug, // Enable debug logs for this task
-  fonts: [{ name: "CustomFont", data: fontData }], // Pre-load fonts
-  css: "h1 { color: red; }", // Inject extra CSS
 });
 ```
+
+---
+
+## 💻 CLI Tool
+
+Convert files or URLs directly from your terminal.
+
+```bash
+# Local HTML to PNG
+npx satoru-render input.html -o output.png
+
+# URL to PDF with specific width
+npx satoru-render https://example.com -o site.pdf -w 1280
+
+# WebP conversion with verbose logs
+npx satoru-render input.html -f webp --verbose
+```
+
+---
+
+## 📖 API Reference
+
+### Render Options
+
+| Option            | Type                                | Description                                             |
+| :---------------- | :---------------------------------- | :------------------------------------------------------ |
+| `value`           | `string \| string[]`                | HTML string or array of strings (for multi-page PDF).   |
+| `url`             | `string`                            | URL to fetch HTML from.                                 |
+| `width`           | `number`                            | **Required.** Output width in pixels.                   |
+| `height`          | `number`                            | Output height. Default: `0` (auto-calculate).           |
+| `format`          | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default: `"svg"`.                        |
+| `resolveResource` | `ResourceResolver`                  | Async callback to fetch assets (fonts, images, CSS).    |
+| `fonts`           | `Object[]`                          | Pre-load fonts: `[{ name, data: Uint8Array }]`.         |
+| `css`             | `string`                            | Extra CSS to inject into the document.                  |
+| `baseUrl`         | `string`                            | Base URL for relative path resolution.                  |
+| `logLevel`        | `LogLevel`                          | Verbosity: `None`, `Error`, `Warning`, `Info`, `Debug`. |
+
+---
 
 ## 📜 License
 
-MIT License
+This project is licensed under the **MIT License**.

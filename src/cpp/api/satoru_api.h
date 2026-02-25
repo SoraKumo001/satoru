@@ -28,9 +28,9 @@ class SatoruInstance {
     ~SatoruInstance();
 
     // Core Logic
-    void init_document(const char *html, int width);
+    void init_document(const char *html, int width, int height);
     void layout_document(int width);
-    void collect_resources(const std::string &html, int width);
+    void collect_resources(const std::string &html, int width, int height);
     std::string get_full_master_css() const;
 
     // Resource Management
@@ -45,7 +45,7 @@ SatoruInstance *api_create_instance();
 void api_destroy_instance(SatoruInstance *inst);
 
 // State Management API
-void api_init_document(SatoruInstance *inst, const char *html, int width);
+void api_init_document(SatoruInstance *inst, const char *html, int width, int height);
 void api_layout_document(SatoruInstance *inst, int width);
 const uint8_t *api_render_from_state(SatoruInstance *inst, int width, int height,
                                      RenderFormat format, const RenderOptions &options,
@@ -68,7 +68,7 @@ int api_get_last_png_size(SatoruInstance *inst);
 int api_get_last_webp_size(SatoruInstance *inst);
 int api_get_last_pdf_size(SatoruInstance *inst);
 int api_get_last_svg_size(SatoruInstance *inst);
-void api_collect_resources(SatoruInstance *inst, const std::string &html, int width);
+void api_collect_resources(SatoruInstance *inst, const std::string &html, int width, int height);
 void api_add_resource(SatoruInstance *inst, const std::string &url, int type,
                       const std::vector<uint8_t> &data);
 void api_scan_css(SatoruInstance *inst, const std::string &css);

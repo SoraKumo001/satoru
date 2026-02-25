@@ -3,7 +3,7 @@ import { LogLevel } from "./log-level.js";
 export interface SatoruModule {
   create_instance: () => any;
   destroy_instance: (inst: any) => void;
-  collect_resources: (inst: any, html: string, width: number) => void;
+  collect_resources: (inst: any, html: string, width: number, height: number) => void;
   get_pending_resources: (inst: any) => string;
   add_resource: (
     inst: any,
@@ -22,7 +22,7 @@ export interface SatoruModule {
   ) => void;
   set_font_map: (inst: any, fontMap: Record<string, string>) => void;
   set_log_level: (level: number) => void;
-  init_document: (inst: any, html: string, width: number) => void;
+  init_document: (inst: any, html: string, width: number, height: number) => void;
   layout_document: (inst: any, width: number) => void;
   render_from_state: (
     inst: any,
@@ -232,7 +232,7 @@ export abstract class SatoruBase {
   ): Promise<any> {
     const mod = await this.getModule();
     const inst = mod.create_instance();
-    mod.init_document(inst, options.html, options.width);
+    mod.init_document(inst, options.html, options.width, options.height ?? 0);
     return inst;
   }
 
@@ -383,7 +383,7 @@ export abstract class SatoruBase {
       for (const rawHtml of inputHtmls) {
         let processedHtml = rawHtml;
         for (let i = 0; i < 10; i++) {
-          mod.collect_resources(instancePtr, processedHtml, width);
+          mod.collect_resources(instancePtr, processedHtml, width, height);
 
           const json = mod.get_pending_resources(instancePtr);
           if (!json) break;

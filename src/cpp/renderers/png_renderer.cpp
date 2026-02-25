@@ -45,7 +45,7 @@ sk_sp<SkData> renderDocumentToPng(SatoruInstance *inst, int width, int height,
 
 sk_sp<SkData> renderHtmlToPng(const char *html, int width, int height, SatoruContext &context,
                               const char *master_css) {
-    int initial_height = (height > 0) ? height : 32767;
+    int initial_height = (height > 0) ? height : 3000;
     container_skia container(width, initial_height, nullptr, context, nullptr, false);
 
     std::string css = master_css ? master_css : litehtml::master_css;

@@ -111,9 +111,10 @@ std::string SatoruInstance::get_full_master_css() const {
            context.getExtraCss();
 }
 
-void SatoruInstance::init_document(const char *html, int width) {
+void SatoruInstance::init_document(const char *html, int width, int height) {
+    int initial_height = (height > 0) ? height : 3000;
     render_container =
-        std::make_unique<container_skia>(width, 32767, nullptr, context, &resourceManager, false);
+        std::make_unique<container_skia>(width, initial_height, nullptr, context, &resourceManager, false);
 
     std::string css = get_full_master_css() + "\nbr { display: -litehtml-br !important; }\n";
     doc = litehtml::document::createFromString(html, render_container.get(), css.c_str());
@@ -151,9 +152,10 @@ static void scan_image_sizes(litehtml::element::ptr el, SatoruContext &context) 
     }
 }
 
-void SatoruInstance::collect_resources(const std::string &html, int width) {
+void SatoruInstance::collect_resources(const std::string &html, int width, int height) {
+    int initial_height = (height > 0) ? height : 3000;
     discovery_container =
-        std::make_unique<container_skia>(width, 32767, nullptr, context, &resourceManager, false);
+        std::make_unique<container_skia>(width, initial_height, nullptr, context, &resourceManager, false);
 
     context.fontManager.scanFontFaces(html.c_str());
 
@@ -344,8 +346,8 @@ int api_get_last_webp_size(SatoruInstance *inst) { return (int)inst->context.get
 int api_get_last_pdf_size(SatoruInstance *inst) { return (int)inst->context.get_last_pdf_size(); }
 int api_get_last_svg_size(SatoruInstance *inst) { return (int)inst->context.get_last_svg_size(); }
 
-void api_collect_resources(SatoruInstance *inst, const std::string &html, int width) {
-    inst->collect_resources(html, width);
+void api_collect_resources(SatoruInstance *inst, const std::string &html, int width, int height) {
+    inst->collect_resources(html, width, height);
 }
 
 void api_add_resource(SatoruInstance *inst, const std::string &url, int type,
@@ -375,8 +377,8 @@ std::string api_get_pending_resources(SatoruInstance *inst) {
     return inst->get_pending_resources_json();
 }
 
-void api_init_document(SatoruInstance *inst, const char *html, int width) {
-    inst->init_document(html, width);
+void api_init_document(SatoruInstance *inst, const char *html, int width, int height) {
+    inst->init_document(html, width, height);
 }
 
 void api_layout_document(SatoruInstance *inst, int width) { inst->layout_document(width); }

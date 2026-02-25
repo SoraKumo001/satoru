@@ -78,9 +78,9 @@ void load_image_val(SatoruInstance* inst, std::string name, std::string data_url
     api_load_image(inst, name, data_url, width, height);
 }
 
-void collect_resources_val(SatoruInstance* inst, std::string html, int width) {
+void collect_resources_val(SatoruInstance* inst, std::string html, int width, int height) {
     if (!inst) return;
-    api_collect_resources(inst, html, width);
+    api_collect_resources(inst, html, width, height);
 }
 
 std::string get_pending_resources_val(SatoruInstance* inst) {
@@ -88,9 +88,9 @@ std::string get_pending_resources_val(SatoruInstance* inst) {
     return api_get_pending_resources(inst);
 }
 
-void init_document_val(SatoruInstance* inst, std::string html, int width) {
+void init_document_val(SatoruInstance* inst, std::string html, int width, int height) {
     if (!inst) return;
-    api_init_document(inst, html.c_str(), width);
+    api_init_document(inst, html.c_str(), width, height);
 }
 
 void layout_document_val(SatoruInstance* inst, int width) {

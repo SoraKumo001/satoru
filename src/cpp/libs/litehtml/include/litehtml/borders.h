@@ -257,7 +257,7 @@ namespace litehtml
 		{
 			return	"left: " + left.to_string() +
 					", top: " + top.to_string() +
-					", right: " + top.to_string() +
+					", right: " + right.to_string() +
 					", bottom: " + bottom.to_string();
 		}
 	};

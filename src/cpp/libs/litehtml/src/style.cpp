@@ -57,6 +57,10 @@ namespace litehtml
           {_border_right_style_, border_style_strings},
           {_border_top_style_, border_style_strings},
           {_border_bottom_style_, border_style_strings},
+          {_border_inline_start_style_, border_style_strings},
+          {_border_inline_end_style_, border_style_strings},
+          {_border_block_start_style_, border_style_strings},
+          {_border_block_end_style_, border_style_strings},
           {_column_rule_style_, border_style_strings},
           {_border_collapse_, border_collapse_strings},
           {_table_layout_, table_layout_strings},
@@ -237,6 +241,10 @@ namespace litehtml
     case _border_bottom_style_:
     case _border_left_style_:
     case _border_right_style_:
+    case _border_inline_start_style_:
+    case _border_inline_end_style_:
+    case _border_block_start_style_:
+    case _border_block_end_style_:
     case _border_collapse_:
     case _table_layout_:
     case _flex_direction_:
@@ -382,6 +390,10 @@ namespace litehtml
     case _border_bottom_color_:
     case _border_left_color_:
     case _border_right_color_:
+    case _border_inline_start_color_:
+    case _border_inline_end_color_:
+    case _border_block_start_color_:
+    case _border_block_end_color_:
       if (parse_color(val, *clr, container))
         add_parsed_property(name, property_value(*clr, important, false, m_layer, m_specificity));
       break;
@@ -417,6 +429,10 @@ namespace litehtml
     case _border_right_:
     case _border_top_:
     case _border_bottom_:
+    case _border_inline_start_:
+    case _border_inline_end_:
+    case _border_block_start_:
+    case _border_block_end_:
       parse_border_side(name, value, important, container);
       break;
 
@@ -437,6 +453,10 @@ namespace litehtml
     case _border_bottom_width_:
     case _border_left_width_:
     case _border_right_width_:
+    case _border_inline_start_width_:
+    case _border_inline_end_width_:
+    case _border_block_start_width_:
+    case _border_block_end_width_:
       if (parse_border_width(val, *len))
         add_parsed_property(name, property_value(*len, important, false, m_layer, m_specificity));
       break;

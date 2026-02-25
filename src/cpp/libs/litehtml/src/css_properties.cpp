@@ -290,6 +290,9 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   }
 
   if (m_css_borders.left.color.is_current_color) m_css_borders.left.color = m_color;
+  if (m_css_borders.right.color.is_current_color) m_css_borders.right.color = m_color;
+  if (m_css_borders.top.color.is_current_color) m_css_borders.top.color = m_color;
+  if (m_css_borders.bottom.color.is_current_color) m_css_borders.bottom.color = m_color;
 
   if (m_css_borders.left.style == border_style_none || m_css_borders.left.style == border_style_hidden)
     m_css_borders.left.width = 0;

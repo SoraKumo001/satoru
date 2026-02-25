@@ -105,12 +105,77 @@ namespace
 
 bool css_length::from_token(const css_token& token, int options, const string& keywords)
 {
-	if (token.type == CV_FUNCTION && lowcase(token.name) == "calc")
+	if (token.type == CV_FUNCTION)
 	{
-		size_t i = 0;
-		calc_value val = parse_calc_expression(token.value, i);
-		set_calc(val.px, val.percent, val.rem);
-		return true;
+		string name = lowcase(token.name);
+		if (name == "calc")
+		{
+			size_t i = 0;
+			calc_value val = parse_calc_expression(token.value, i);
+			set_calc(val.px, val.percent, val.rem);
+			return true;
+		}
+		else if (name == "min" || name == "max" || name == "clamp")
+		{
+			std::vector<css_length> operands;
+			css_token_vector current_operand;
+			for (const auto& t : token.value)
+			{
+				if (t.type == ',')
+				{
+					if (!current_operand.empty())
+					{
+						css_length op;
+						// Use normalize to componentize and remove whitespace if needed
+						// But simpler here: just check if it's a single value or calc
+						if (current_operand.size() == 1)
+						{
+							if (op.from_token(current_operand[0], options, keywords))
+								operands.push_back(op);
+						}
+						else
+						{
+							// Support calc/nested math inside min/max
+							// For simplicity, we could try to parse it as calc if it's multiple tokens
+							// or wrap it in a pseudo-calc token
+							css_token pseudo(CV_FUNCTION, "calc");
+							pseudo.value = current_operand;
+							if (op.from_token(pseudo, options, keywords))
+								operands.push_back(op);
+						}
+						current_operand.clear();
+					}
+				}
+				else if (t.type != WHITESPACE)
+				{
+					current_operand.push_back(t);
+				}
+			}
+			if (!current_operand.empty())
+			{
+				css_length op;
+				if (current_operand.size() == 1)
+				{
+					if (op.from_token(current_operand[0], options, keywords))
+						operands.push_back(op);
+				}
+				else
+				{
+					css_token pseudo(CV_FUNCTION, "calc");
+					pseudo.value = current_operand;
+					if (op.from_token(pseudo, options, keywords))
+						operands.push_back(op);
+				}
+			}
+
+			if (!operands.empty())
+			{
+				if (name == "min") set_math(op_min, std::move(operands));
+				else if (name == "max") set_math(op_max, std::move(operands));
+				else if (name == "clamp") set_math(op_clamp, std::move(operands));
+				return true;
+			}
+		}
 	}
 
 	if ((options & f_positive) && is_one_of(token.type, NUMBER, DIMENSION, PERCENTAGE) && token.n.number < 0)
@@ -175,7 +240,13 @@ css_length css_length::predef_value(int val)
 string css_length::to_string() const
 {
 	if (is_predefined()) return "";
-	if (m_is_calc) return "calc(" + std::to_string(m_px) + "px + " + std::to_string(m_percent) + "% + " + std::to_string(m_rem) + "rem)";
+	if (m_is_calc)
+	{
+		if (m_op == op_min) return "min(...)";
+		if (m_op == op_max) return "max(...)";
+		if (m_op == op_clamp) return "clamp(...)";
+		return "calc(" + std::to_string(m_px) + "px + " + std::to_string(m_percent) + "% + " + std::to_string(m_rem) + "rem)";
+	}
 	if (m_units == css_units_percentage) return std::to_string(m_value) + "%";
 	return std::to_string(m_value) + "px";
 }

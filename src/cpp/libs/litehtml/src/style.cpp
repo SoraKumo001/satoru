@@ -1915,6 +1915,8 @@ namespace litehtml
           auto args = parse_comma_separated_list(val);
           if (!args.empty())
           {
+            /* 
+            // DISABLE folding to allow css_length to handle it dynamically
             auto doc = el ? el->get_document() : nullptr;
             position viewport;
             if (doc) doc->container()->get_viewport(viewport);
@@ -1959,6 +1961,7 @@ namespace litehtml
               changed = true;
               continue;
             }
+            */
           }
         }
         else if (func_name == "clamp")
@@ -1966,6 +1969,8 @@ namespace litehtml
           auto args = parse_comma_separated_list(val);
           if (args.size() == 3)
           {
+            /*
+            // DISABLE folding
             auto doc = el ? el->get_document() : nullptr;
             position viewport;
             if (doc) doc->container()->get_viewport(viewport);
@@ -1998,15 +2003,13 @@ namespace litehtml
               
               float result_v = std::max(min_v, std::min(val_v, max_v));
               
-              // どのトークンを返すかは難しいが、とりあえず中央の値を基準に px で返すか、
-              // あるいは単に val_v に一番近いものを返す。
-              // ここでは簡略化のため px DIMENSION を返す。
               css_token result(DIMENSION, result_v, css_number_number, "px");
               remove(tokens, i);
               insert(tokens, i, {result});
               changed = true;
               continue;
             }
+            */
           }
         }
       }

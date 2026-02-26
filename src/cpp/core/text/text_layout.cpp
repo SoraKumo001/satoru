@@ -179,7 +179,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     shaper->shape(text, total_len, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000, &handler);
 
     if (!limit_width || handler.width() <= maxWidth + 0.01) {
-        result.width = handler.width();
+        result.width = std::min(handler.width(), limit_width ? maxWidth : handler.width());
         result.length = total_len;
     } else {
         // Width limit handling (grapheme break aware)

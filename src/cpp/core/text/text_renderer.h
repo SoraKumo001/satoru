@@ -73,7 +73,7 @@ class TextRenderer {
         TextBatcher* batcher = nullptr, int styleTag = -1, int styleIndex = -1);
 
     static void drawDecoration(SkCanvas* canvas, font_info* fi, const litehtml::position& pos,
-                               const litehtml::web_color& color, double finalWidth);
+                               const litehtml::web_color& color, double finalWidth, litehtml::writing_mode mode);
 };
 
 }  // namespace satoru

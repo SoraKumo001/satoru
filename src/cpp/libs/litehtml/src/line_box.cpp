@@ -1,4 +1,4 @@
-﻿#include "html.h"
+#include "html.h"
 #include "line_box.h"
 #include "element.h"
 #include "render_item.h"
@@ -987,7 +987,7 @@ bool litehtml::line_box::can_hold(const std::unique_ptr<line_box_item>& item, wh
 
 		if (m_writing_mode == writing_mode_horizontal_tb)
 		{
-			if (m_left + m_width + item->width() > m_right)
+			if (m_left + m_width + item->width() > m_right + 0.01)
 			{
 				return false;
 			}
@@ -995,7 +995,7 @@ bool litehtml::line_box::can_hold(const std::unique_ptr<line_box_item>& item, wh
 		else
 		{
 			// For vertical writing, m_right is actually the bottom boundary (height limit)
-			if (m_top + m_width + item->get_el()->height() > m_right)
+			if (m_top + m_width + item->get_el()->height() > m_right + 0.01)
 			{
 				return false;
 			}
@@ -1083,7 +1083,7 @@ bool litehtml::line_box::is_break_only() const
 	return break_found;
 }
 
-std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::new_width( pixel_t left, pixel_t right)
+std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::new_inline_size( pixel_t left, pixel_t right)
 {
 	std::list< std::unique_ptr<line_box_item> > ret_items;
     pixel_t add = left - m_left;

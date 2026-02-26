@@ -538,6 +538,25 @@ namespace litehtml
                                 mode(writing_mode_horizontal_tb)
                 {}
 
+                containing_block_context new_inline_size(pixel_t is, uint32_t _size_mode = size_mode_normal) const
+                {
+                    containing_block_context ret = *this;
+                    if (mode == writing_mode_horizontal_tb)
+                    {
+                        pixel_t diff = (pixel_t)ret.width - (pixel_t)ret.render_width;
+                        ret.render_width = is;
+                        ret.width = is + diff;
+                    }
+                    else
+                    {
+                        pixel_t diff = (pixel_t)ret.height - (pixel_t)ret.render_height;
+                        ret.render_height = is;
+                        ret.height = is + diff;
+                    }
+                    ret.size_mode = _size_mode;
+                    return ret;
+                }
+
                 containing_block_context new_width(pixel_t w, uint32_t _size_mode = size_mode_normal) const
                 {
                         containing_block_context ret = *this;

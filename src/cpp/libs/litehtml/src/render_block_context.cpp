@@ -1,4 +1,4 @@
-﻿#include "render_block_context.h"
+#include "render_block_context.h"
 #include "document.h"
 #include "types.h"
 
@@ -34,18 +34,18 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 				pixel_t min_rendered_width = el->measure(self_size, fmt_ctx);
 				if(min_rendered_width < el->width() && el->src_el()->css().get_width().is_predefined())
 				{
-					min_rendered_width = el->measure(self_size.new_width(min_rendered_width), fmt_ctx);
+					min_rendered_width = el->measure(self_size.new_inline_size(min_rendered_width), fmt_ctx);
 				}
 				if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 				{
-					el->place_logical(0, block_offset, self_size.new_width(min_rendered_width), fmt_ctx);
+					el->place_logical(0, block_offset, self_size.new_inline_size(min_rendered_width), fmt_ctx);
 				}
             } else
             {
                 block_offset = fmt_ctx->get_cleared_top(el, block_offset);
                 pixel_t inline_offset  = 0;
-				pixel_t inline_available_size = self_size.render_width;
-				pixel_t line_right	= self_size.render_width;
+				pixel_t inline_available_size = self_size.render_inline_size();
+				pixel_t line_right	= self_size.render_inline_size();
 				pixel_t block_start_margin = m_margins.top;
 
                 el->calc_outlines(self_size.width);
@@ -61,7 +61,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 					{
 						inline_offset = line_left - el->margin_inline_start();
 					}
-					if(line_right != self_size.render_width)
+					if(line_right != self_size.render_inline_size())
                     {
                         line_right += el->margin_inline_end();
                     }
@@ -96,19 +96,19 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 					}
 				}
 
-				pixel_t rw = el->measure(self_size.new_width(inline_available_size), fmt_ctx);
+				pixel_t rw = el->measure(self_size.new_inline_size(inline_available_size), fmt_ctx);
 				if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 				{
-					el->place_logical(inline_offset, block_offset, self_size.new_width(inline_available_size), fmt_ctx);
+					el->place_logical(inline_offset, block_offset, self_size.new_inline_size(inline_available_size), fmt_ctx);
 				}
 
 				// Render table with "width: auto" into returned width
 				if(el->src_el()->css().get_display() == display_table && rw < inline_available_size && el->src_el()->css().get_width().is_predefined())
 				{
-					rw = el->measure(self_size.new_width(rw), fmt_ctx);
+					rw = el->measure(self_size.new_inline_size(rw), fmt_ctx);
 					if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 					{
-						el->place_logical(inline_offset, block_offset, self_size.new_width(rw), fmt_ctx);
+						el->place_logical(inline_offset, block_offset, self_size.new_inline_size(rw), fmt_ctx);
 					}
 				}
 
@@ -129,7 +129,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 							fmt_ctx->get_line_left_right(block_offset, el->inline_size(), ln_left, ln_right);
 							if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 							{
-								el->place_logical(ln_left, block_offset, self_size.new_width(inline_available_size), fmt_ctx);
+								el->place_logical(ln_left, block_offset, self_size.new_inline_size(inline_available_size), fmt_ctx);
 							}
 							block_offset -= el->margin_block_start();
 							// Rollback top margin collapse

@@ -65,7 +65,7 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
             float line_thickness = m_currentStyle.line_width;
             float center_x = (float)tx + line_thickness / 2.0f;
             for (int i = 0; i < run.count; ++i) {
-                float gx = center_x;
+                float gx = center_x - m_currentStyle.fi->desc.size / 2.0f;
                 float gy = (float)ty + run.positions[i].fX;
                 // Rotate 90 deg CW: cos=0, sin=1
                 builder_run.xforms()[i] = SkRSXform::Make(0, 1, gx, gy);
@@ -278,7 +278,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                                 gy -= (float)fi->desc.size * 0.6f;
                             }
                         } else {
-                            gx = center_x;
+                            gx = center_x - fi->desc.size / 2.0f;
                             gy = (float)current_ty + run.positions[i].fX;
                             rotation = 90.0f;
                         }
@@ -389,7 +389,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         auto builder_run = builder.allocRunRSXform(run.font, run.count);
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
-                            float gx = center_x;
+                            float gx = center_x - fi->desc.size / 2.0f;
                             float gy = (float)current_ty + run.positions[i].fX;
                             // Rotate 90 deg CW: cos=0, sin=1
                             builder_run.xforms()[i] = SkRSXform::Make(0, 1, gx, gy);

@@ -1,4 +1,4 @@
-#ifndef SATORU_TEXT_RENDERER_H
+﻿#ifndef SATORU_TEXT_RENDERER_H
 #define SATORU_TEXT_RENDERER_H
 
 #include <set>
@@ -56,7 +56,7 @@ class TextRenderer {
    public:
     static void drawText(SatoruContext* ctx, SkCanvas* canvas, const char* text, font_info* fi,
                          const litehtml::web_color& color, const litehtml::position& pos,
-                         litehtml::text_overflow overflow, litehtml::direction dir, bool tagging,
+                         litehtml::text_overflow overflow, litehtml::direction dir, litehtml::writing_mode mode, bool tagging,
                          float currentOpacity, std::vector<text_shadow_info>& usedTextShadows,
                          std::vector<text_draw_info>& usedTextDraws,
                          std::vector<SkPath>& usedGlyphs,
@@ -67,7 +67,7 @@ class TextRenderer {
     // Internal helper for shaping and drawing a single run of text
     static double drawTextInternal(
         SatoruContext* ctx, SkCanvas* canvas, const char* str, size_t strLen, font_info* fi,
-        double tx, double ty, const SkPaint& paint, bool tagging,
+        double tx, double ty, litehtml::writing_mode mode, const SkPaint& paint, bool tagging,
         std::vector<text_draw_info>& usedTextDraws, std::vector<SkPath>& usedGlyphs,
         std::vector<glyph_draw_info>& usedGlyphDraws, std::set<char32_t>* usedCodepoints,
         TextBatcher* batcher = nullptr, int styleTag = -1, int styleIndex = -1);
@@ -79,3 +79,4 @@ class TextRenderer {
 }  // namespace satoru
 
 #endif  // SATORU_TEXT_RENDERER_H
+

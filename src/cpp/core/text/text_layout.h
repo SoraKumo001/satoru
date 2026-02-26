@@ -4,6 +4,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <functional>
 
 #include "bridge/bridge_types.h"
 #include "core/text/text_types.h"
@@ -14,27 +15,28 @@ namespace satoru {
 
 class TextLayout {
    public:
-    // Measures the text width. If max_width is provided (>= 0), stops when width exceeds max_width.
     static MeasureResult measureText(SatoruContext* ctx, const char* text, font_info* fi,
-                                     double maxWidth = -1.0,
+                                     litehtml::writing_mode mode = litehtml::writing_mode_horizontal_tb,
+                                     double maxWidth = -1.0, 
                                      std::set<char32_t>* usedCodepoints = nullptr);
 
-    // Ellipsizes the text to fit within maxWidth.
     static std::string ellipsizeText(SatoruContext* ctx, const char* text, font_info* fi,
-                                     double maxWidth, std::set<char32_t>* usedCodepoints = nullptr);
+                                     litehtml::writing_mode mode,
+                                     double maxWidth, 
+                                     std::set<char32_t>* usedCodepoints = nullptr);
 
-    // Core shaping logic that produces a ShapedResult.
     static ShapedResult shapeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
+                                  litehtml::writing_mode mode = litehtml::writing_mode_horizontal_tb,
                                   std::set<char32_t>* usedCodepoints = nullptr);
 
-    // Splits text into words and spaces (for litehtml's split_text)
     static void splitText(SatoruContext* ctx, const char* text,
                           const std::function<void(const char*)>& onWord,
                           const std::function<void(const char*)>& onSpace);
 
    private:
     static TextAnalysis analyzeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
-                                    std::set<char32_t>* usedCodepoints);
+                                    litehtml::writing_mode mode = litehtml::writing_mode_horizontal_tb,
+                                    std::set<char32_t>* usedCodepoints = nullptr);
 };
 
 }  // namespace satoru

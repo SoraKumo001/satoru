@@ -1,3 +1,4 @@
+#include "libs/litehtml/include/litehtml.h"
 #ifndef SATORU_TEXT_TYPES_H
 #define SATORU_TEXT_TYPES_H
 
@@ -74,11 +75,13 @@ struct MeasureKey {
     int font_weight;
     bool italic;
     double maxWidth;
+    litehtml::writing_mode mode;
 
     bool operator==(const MeasureKey& other) const {
         return font_size == other.font_size && font_weight == other.font_weight &&
                italic == other.italic && maxWidth == other.maxWidth &&
-               font_family == other.font_family && text == other.text;
+               font_family == other.font_family && text == other.text &&
+               mode == other.mode;
     }
 };
 
@@ -90,6 +93,7 @@ struct MeasureKeyHash {
         h ^= std::hash<int>{}(k.font_weight) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<bool>{}(k.italic) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<double>{}(k.maxWidth) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<int>{}(k.mode) + 0x9e3779b9 + (h << 6) + (h >> 2);
         return h;
     }
 };
@@ -106,11 +110,13 @@ struct ShapingKey {
     int font_weight;
     bool italic;
     bool is_rtl;
+    litehtml::writing_mode mode;
 
     bool operator==(const ShapingKey& other) const {
         return font_size == other.font_size && font_weight == other.font_weight &&
                italic == other.italic && is_rtl == other.is_rtl &&
-               font_family == other.font_family && text == other.text;
+               font_family == other.font_family && text == other.text &&
+               mode == other.mode;
     }
 };
 
@@ -122,6 +128,7 @@ struct ShapingKeyHash {
         h ^= std::hash<int>{}(k.font_weight) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<bool>{}(k.italic) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<bool>{}(k.is_rtl) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<int>{}(k.mode) + 0x9e3779b9 + (h << 6) + (h >> 2);
         return h;
     }
 };

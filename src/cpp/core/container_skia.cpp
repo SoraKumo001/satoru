@@ -254,23 +254,20 @@ void container_skia::delete_font(litehtml::uint_ptr hFont) {
 }
 
 litehtml::pixel_t container_skia::text_width(const char *text, litehtml::uint_ptr hFont,
-                                             litehtml::direction dir) {
+                                             litehtml::direction dir, litehtml::writing_mode mode) {
     font_info *fi = (font_info *)hFont;
     if (fi) {
         fi->is_rtl = (dir == litehtml::direction_rtl);
     }
-    auto width = (litehtml::pixel_t)satoru::TextLayout::measureText(
-                     &m_context, text, fi, -1.0, m_resourceManager ? &m_usedCodepoints : nullptr)
-                     .width;
-    if (fi && m_resourceManager) {
-        satoru::TextLayout::measureText(&m_context, text, fi, -1.0, &fi->used_codepoints);
-    }
-    return width;
+    auto result = satoru::TextLayout::measureText(&m_context, text, fi, mode, -1.0,
+                                                  m_resourceManager ? &m_usedCodepoints : nullptr);
+    return (litehtml::pixel_t)result.width;
 }
 
 void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtml::uint_ptr hFont,
                                litehtml::web_color color, const litehtml::position &pos,
-                               litehtml::text_overflow overflow, litehtml::direction dir) {
+                               litehtml::text_overflow overflow, litehtml::direction dir,
+                               litehtml::writing_mode mode) {
     if (!m_canvas) return;
     font_info *fi = (font_info *)hFont;
     if (!fi || fi->fonts.empty()) return;
@@ -282,12 +279,12 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
     }
 
     satoru::TextRenderer::drawText(&m_context, m_canvas, text, fi, color, actual_pos, overflow, dir,
-                                   m_tagging, get_current_opacity(), m_usedTextShadows,
+                                   mode, m_tagging, get_current_opacity(), m_usedTextShadows,
                                    m_usedTextDraws, m_usedGlyphs, m_usedGlyphDraws,
                                    m_resourceManager ? &m_usedCodepoints : nullptr, m_textBatcher);
     if (fi && m_resourceManager) {
         satoru::TextRenderer::drawText(&m_context, nullptr, text, fi, color, actual_pos, overflow,
-                                       dir, m_tagging, get_current_opacity(), m_usedTextShadows,
+                                       dir, mode, m_tagging, get_current_opacity(), m_usedTextShadows,
                                        m_usedTextDraws, m_usedGlyphs, m_usedGlyphDraws,
                                        &fi->used_codepoints, nullptr);
     }
@@ -1150,10 +1147,10 @@ void container_skia::push_filter(litehtml::uint_ptr hdc, const litehtml::css_tok
 
     sk_sp<SkImageFilter> last_filter = nullptr;
 
-    for (const auto &tok : filter) {
-        if (tok.type == litehtml::CV_FUNCTION) {
-            std::string name = litehtml::lowcase(tok.name);
-            auto args = litehtml::parse_comma_separated_list(tok.value);
+    for (const auto &filter_tok : filter) {
+        if (filter_tok.type == litehtml::CV_FUNCTION) {
+            std::string name = litehtml::lowcase(filter_tok.name);
+            auto args = litehtml::parse_comma_separated_list(filter_tok.value);
 
             if (name == "blur") {
                 if (!args.empty() && !args[0].empty()) {
@@ -1321,7 +1318,7 @@ SkPath container_skia::parse_clip_path(const litehtml::css_token_vector &tokens,
                 builder.addOval(SkRect::MakeLTRB(cx - rx, cy - ry, cx + rx, cy + ry));
             } else if (name == "inset") {
                 float top = 0, right = 0, bottom = 0, left = 0;
-                litehtml::border_radiuses radius;
+                litehtml::border_radiuses b_radius;
 
                 if (!args.empty()) {
                     std::vector<litehtml::css_length> lengths;
@@ -1372,24 +1369,24 @@ SkPath container_skia::parse_clip_path(const litehtml::css_token_vector &tokens,
                             }
                         }
                         if (r_lengths.size() >= 1) {
-                            float r =
+                            float rr =
                                 r_lengths[0].calc_percent((float)std::min(pos.width, pos.height));
-                            radius.top_left_x = radius.top_left_y = (int)r;
-                            radius.top_right_x = radius.top_right_y = (int)r;
-                            radius.bottom_right_x = radius.bottom_right_y = (int)r;
-                            radius.bottom_left_x = radius.bottom_left_y = (int)r;
+                            b_radius.top_left_x = b_radius.top_left_y = (int)rr;
+                            b_radius.top_right_x = b_radius.top_right_y = (int)rr;
+                            b_radius.bottom_right_x = b_radius.bottom_right_y = (int)rr;
+                            b_radius.bottom_left_x = b_radius.bottom_left_y = (int)rr;
                         }
                     }
                 }
                 SkRect r = SkRect::MakeLTRB((float)pos.x + left, (float)pos.y + top,
                                             (float)pos.x + (float)pos.width - right,
                                             (float)pos.y + (float)pos.height - bottom);
-                if (radius.is_zero()) {
+                if (b_radius.is_zero()) {
                     builder.addRect(r);
                 } else {
                     builder.addRRect(make_rrect(litehtml::position((int)r.fLeft, (int)r.fTop,
                                                                    (int)r.width(), (int)r.height()),
-                                                radius));
+                                                b_radius));
                 }
             } else if (name == "polygon") {
                 bool first = true;

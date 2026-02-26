@@ -79,7 +79,7 @@ void TextBatcher::flush() {
 
 void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* text, font_info* fi,
                             const litehtml::web_color& color, const litehtml::position& pos,
-                            litehtml::text_overflow overflow, litehtml::direction dir, bool tagging,
+                            litehtml::text_overflow overflow, litehtml::direction dir, litehtml::writing_mode mode, bool tagging,
                             float currentOpacity, std::vector<text_shadow_info>& usedTextShadows,
                             std::vector<text_draw_info>& usedTextDraws,
                             std::vector<SkPath>& usedGlyphs,
@@ -95,10 +95,10 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
         bool forced = (pos.width < 1.0f);
         double margin = forced ? 0.0f : 2.0f;
 
-        if (forced || TextLayout::measureText(ctx, text, fi, -1.0, nullptr).width >
+        if (forced || TextLayout::measureText(ctx, text, fi, mode, -1.0, nullptr).width >
                           available_width + margin) {
             text_str =
-                TextLayout::ellipsizeText(ctx, text, fi, (double)available_width, usedCodepoints);
+                TextLayout::ellipsizeText(ctx, text, fi, mode, (double)available_width, usedCodepoints);
         }
     }
 
@@ -156,7 +156,7 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
                     SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, blur_std_dev));
 
             drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi,
-                             (double)pos.x + s.x.val(), (double)pos.y + s.y.val(), shadow_paint,
+                             (double)pos.x + s.x.val(), (double)pos.y + s.y.val(), mode, shadow_paint,
                              false, usedTextDraws, usedGlyphs, usedGlyphDraws, usedCodepoints,
                              batcher);
         }
@@ -164,7 +164,7 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
 
     double final_width =
         drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi, (double)pos.x,
-                         (double)pos.y, paint, tagging, usedTextDraws, usedGlyphs, usedGlyphDraws,
+                         (double)pos.y, mode, paint, tagging, usedTextDraws, usedGlyphs, usedGlyphDraws,
                          usedCodepoints, batcher, (int)styleTag, styleIndex);
 
     if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
@@ -174,12 +174,12 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
 
 double TextRenderer::drawTextInternal(
     SatoruContext* ctx, SkCanvas* canvas, const char* str, size_t strLen, font_info* fi, double tx,
-    double ty, const SkPaint& paint, bool tagging, std::vector<text_draw_info>& usedTextDraws,
+    double ty, litehtml::writing_mode mode, const SkPaint& paint, bool tagging, std::vector<text_draw_info>& usedTextDraws,
     std::vector<SkPath>& usedGlyphs, std::vector<glyph_draw_info>& usedGlyphDraws,
     std::set<char32_t>* usedCodepoints, TextBatcher* batcher, int styleTag, int styleIndex) {
     if (strLen == 0) return 0.0;
 
-    ShapedResult shaped = TextLayout::shapeText(ctx, str, strLen, fi, usedCodepoints);
+    ShapedResult shaped = TextLayout::shapeText(ctx, str, strLen, fi, mode, usedCodepoints);
     if (!shaped.blob) return 0.0;
 
     if (tagging) {

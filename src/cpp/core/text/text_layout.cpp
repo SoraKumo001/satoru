@@ -90,7 +90,7 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
 }  // namespace
 
 MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font_info* fi,
-                                      double maxWidth, std::set<char32_t>* usedCodepoints) {
+                                      litehtml::writing_mode mode, double maxWidth, std::set<char32_t>* usedCodepoints) {
     MeasureResult result = {0.0, 0, true, text};
     if (!text || !*text || !fi || fi->fonts.empty() || !ctx) return result;
 
@@ -103,6 +103,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         key.font_weight = fi->desc.weight;
         key.italic = (fi->desc.style == litehtml::font_style_italic);
         key.maxWidth = maxWidth;
+        key.mode = mode;
 
         if (MeasureResult* cached = ctx->measurementCache.get(key)) {
             MeasureResult res = *cached;
@@ -114,7 +115,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     size_t total_len = strlen(text);
     bool limit_width = maxWidth >= 0;
 
-    TextAnalysis analysis = analyzeText(ctx, text, total_len, fi, usedCodepoints);
+    TextAnalysis analysis = analyzeText(ctx, text, total_len, fi, mode, usedCodepoints);
 
     // Use OffsetWidthRunHandler directly for measureText to support widthAtOffset
     UnicodeService& unicode = ctx->getUnicodeService();
@@ -189,7 +190,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
 }
 
 TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_t len,
-                                     font_info* fi, std::set<char32_t>* usedCodepoints) {
+                                     font_info* fi, litehtml::writing_mode mode, std::set<char32_t>* usedCodepoints) {
     TextAnalysis analysis;
     if (!text || !len || !ctx) return analysis;
 
@@ -228,8 +229,8 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
     return analysis;
 }
 
-ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
-                                   std::set<char32_t>* usedCodepoints) {
+ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi, 
+                                  litehtml::writing_mode mode, std::set<char32_t>* usedCodepoints) {
     if (!text || !len || !fi || fi->fonts.empty() || !ctx) return {0.0, nullptr};
 
     ShapingKey key;
@@ -239,10 +240,10 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
     key.font_weight = fi->desc.weight;
     key.italic = (fi->desc.style == litehtml::font_style_italic);
     key.is_rtl = fi->is_rtl;
+    key.mode = mode;
 
     if (ShapedResult* cached = ctx->shapingCache.get(key)) {
         if (usedCodepoints) {
-            // キャッシュヒット時も使用コードポイントを収集する必要がある
             UnicodeService& unicode = ctx->getUnicodeService();
             const char* p = text;
             const char* p_end = text + len;
@@ -253,7 +254,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
         return *cached;
     }
 
-    TextAnalysis analysis = analyzeText(ctx, text, len, fi, usedCodepoints);
+    TextAnalysis analysis = analyzeText(ctx, text, len, fi, mode, usedCodepoints);
 
     std::vector<CharFont> charFonts;
     for (const auto& ca : analysis.chars) {
@@ -294,16 +295,16 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
 }
 
 std::string TextLayout::ellipsizeText(SatoruContext* ctx, const char* text, font_info* fi,
-                                      double maxWidth, std::set<char32_t>* usedCodepoints) {
+                                      litehtml::writing_mode mode, double maxWidth, std::set<char32_t>* usedCodepoints) {
     if (!text || !*text) return "";
 
     // First, check if full text fits
-    MeasureResult full_res = measureText(ctx, text, fi, maxWidth, usedCodepoints);
+    MeasureResult full_res = measureText(ctx, text, fi, mode, maxWidth, usedCodepoints);
     if (full_res.fits) return std::string(text);
 
     // Calculate ellipsis width
     const char* ellipsis = "...";
-    double ellipsis_width = measureText(ctx, ellipsis, fi, -1.0, usedCodepoints).width;
+    double ellipsis_width = measureText(ctx, ellipsis, fi, mode, -1.0, usedCodepoints).width;
 
     // Use a small epsilon to handle float precision issues
     const double epsilon = 0.1;
@@ -315,7 +316,7 @@ std::string TextLayout::ellipsizeText(SatoruContext* ctx, const char* text, font
     double available_width = std::max(0.0, maxWidth - ellipsis_width);
 
     // Re-measure with stricter limit
-    MeasureResult part_res = measureText(ctx, text, fi, available_width, nullptr);
+    MeasureResult part_res = measureText(ctx, text, fi, mode, available_width, nullptr);
 
     std::string result(text, part_res.length);
     result += ellipsis;

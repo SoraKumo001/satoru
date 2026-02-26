@@ -1,4 +1,4 @@
-#include "html.h"
+﻿#include "html.h"
 #include "el_text.h"
 #include "render_item.h"
 #include "document_container.h"
@@ -108,7 +108,7 @@ void litehtml::el_text::compute_styles(bool /*recursive*/)
 	} else
 	{
 		m_size.height	= fm.height;
-		m_size.width	= get_document()->container()->text_width(m_use_transformed ? m_transformed_text.c_str() : m_text.c_str(), font, el_parent->get_direction());
+		m_size.width	= get_document()->container()->text_width(m_use_transformed ? m_transformed_text.c_str() : m_text.c_str(), font, el_parent->get_direction(), el_parent->css().get_writing_mode());
 	}
 	m_draw_spaces = fm.draw_spaces;
 }

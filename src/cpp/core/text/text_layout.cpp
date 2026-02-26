@@ -10,6 +10,7 @@
 #include "include/core/SkFont.h"
 #include "include/core/SkTextBlob.h"
 #include "modules/skshaper/include/SkShaper.h"
+#include "utils/logging.h"
 
 namespace satoru {
 
@@ -37,11 +38,25 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
         if (fInner) fInner->commitRunInfo();
     }
     Buffer runBuffer(const SkShaper::RunHandler::RunInfo& info) override {
-        if (fInner) return fInner->runBuffer(info);
+        if (fInner) {
+            fCurrentBuffer = fInner->runBuffer(info);
+            return fCurrentBuffer;
+        }
         return {nullptr, nullptr, nullptr, nullptr, {0, 0}};
     }
     void commitRunBuffer(const SkShaper::RunHandler::RunInfo& info) override {
-        if (fInner) fInner->commitRunBuffer(info);
+        if (fInner) {
+            if (fMode != litehtml::writing_mode_horizontal_tb && fCurrentBuffer.positions) {
+                for (size_t i = 0; i < info.glyphCount; ++i) {
+                    float oldX = fCurrentBuffer.positions[i].fX;
+                    float oldY = fCurrentBuffer.positions[i].fY;
+                    fCurrentBuffer.positions[i].fX = -oldY;
+                    fCurrentBuffer.positions[i].fY = oldX;
+                }
+                SATORU_LOG_INFO("Vertical Writing: Rotated %d glyphs", (int)info.glyphCount);
+            }
+            fInner->commitRunBuffer(info);
+        }
     }
     void commitLine() override {
         if (fInner) fInner->commitLine();
@@ -51,6 +66,7 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
     SkShaper::RunHandler* fInner;
     ShapedResult& fResult;
     litehtml::writing_mode fMode;
+    SkShaper::RunHandler::Buffer fCurrentBuffer;
 };
 
 // Original DetailedWidthRunHandler logic for measureText widthAtOffset

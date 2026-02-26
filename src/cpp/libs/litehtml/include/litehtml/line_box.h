@@ -168,8 +168,16 @@ namespace litehtml
 
         pixel_t bottom() const { if(m_writing_mode == writing_mode_horizontal_tb) return m_top + height(); return m_top + width(); }
         pixel_t top() const { return m_top; }
-        pixel_t right() const { if(m_writing_mode == writing_mode_horizontal_tb) return m_left + width(); return m_left; }
-        pixel_t left() const { if(m_writing_mode == writing_mode_horizontal_tb) return m_left; return m_left - height(); }
+        pixel_t right() const {
+            if(m_writing_mode == writing_mode_horizontal_tb) return m_left + width();
+            if(m_writing_mode == writing_mode_vertical_rl || m_writing_mode == writing_mode_sideways_rl) return m_left;
+            return m_left + height();
+        }
+        pixel_t left() const {
+            if(m_writing_mode == writing_mode_horizontal_tb) return m_left;
+            if(m_writing_mode == writing_mode_vertical_rl || m_writing_mode == writing_mode_sideways_rl) return m_left - height();
+            return m_left;
+        }
         pixel_t		height() const  { return m_height;				}
         pixel_t	 	width() const	{ return m_width;				}
 		pixel_t	 	line_right() const	{ return m_right;			}

@@ -190,15 +190,8 @@ double TextRenderer::drawTextInternal(
             for (int i = 0; i < run.count; ++i) {
                 auto pathOpt = run.font.getPath(run.glyphs[i]);
                 float gx, gy;
-                if (mode == litehtml::writing_mode_horizontal_tb) {
-                    gx = run.positions[i].fX + (float)tx;
-                    gy = run.positions[i].fY + (float)ty;
-                } else {
-                    // Vertical writing: run.positions[i].fY is the inline advance
-                    // We need to shift X by font ascent to align with the line box
-                    gx = (float)tx + run.positions[i].fX;
-                    gy = (float)ty + run.positions[i].fY;
-                }
+                gx = run.positions[i].fX + (float)tx;
+                gy = run.positions[i].fY + (float)ty;
 
                 if (pathOpt.has_value() && !pathOpt.value().isEmpty()) {
                     int glyphIdx = -1;

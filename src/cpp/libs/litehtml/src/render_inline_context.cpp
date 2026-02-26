@@ -218,7 +218,10 @@ litehtml::pixel_t litehtml::render_item_inline_context::new_box(const std::uniqu
 		line_ctx.top = 0;
 		if (m_line_boxes.empty())
 		{
-			line_ctx.left = self_size.render_width;
+			if (self_size.mode == writing_mode_vertical_rl || self_size.mode == writing_mode_sideways_rl)
+				line_ctx.left = self_size.render_width;
+			else
+				line_ctx.left = 0;
 		}
 		else
 		{

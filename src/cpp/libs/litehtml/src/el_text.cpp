@@ -107,8 +107,13 @@ void litehtml::el_text::compute_styles(bool /*recursive*/)
 		m_size.width	= 0;
 	} else
 	{
-		m_size.height	= fm.height;
 		m_size.width	= get_document()->container()->text_width(m_use_transformed ? m_transformed_text.c_str() : m_text.c_str(), font, el_parent->get_direction(), el_parent->css().get_writing_mode());
+		m_size.height	= fm.height;
+
+		if (el_parent->css().get_writing_mode() != writing_mode_horizontal_tb)
+		{
+			std::swap(m_size.width, m_size.height);
+		}
 	}
 	m_draw_spaces = fm.draw_spaces;
 }

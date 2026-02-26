@@ -27,12 +27,9 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
         if (fInner) fInner->beginLine();
     }
     void runInfo(const SkShaper::RunHandler::RunInfo& info) override {
-        if (fMode == litehtml::writing_mode_horizontal_tb) {
-            fResult.width += info.fAdvance.fX;
-        } else {
-            // For vertical modes, the primary advance is Y
-            fResult.width += info.fAdvance.fY;
-        }
+        // We always use the primary advance (X for horizontal shaper)
+        // because we handle vertical rotation manually using horizontal metrics.
+        fResult.width += info.fAdvance.fX;
         if (fInner) fInner->runInfo(info);
     }
     void commitRunInfo() override {
@@ -74,11 +71,7 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
     OffsetWidthRunHandler(litehtml::writing_mode mode) : fWidth(0), fMode(mode) {}
     void beginLine() override {}
     void runInfo(const RunInfo& info) override {
-        if (fMode == litehtml::writing_mode_horizontal_tb) {
-            fWidth += info.fAdvance.fX;
-        } else {
-            fWidth += info.fAdvance.fY;
-        }
+        fWidth += info.fAdvance.fX;
     }
     void commitRunInfo() override {}
     Buffer runBuffer(const RunInfo& info) override {

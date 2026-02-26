@@ -27,9 +27,12 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
         if (fInner) fInner->beginLine();
     }
     void runInfo(const SkShaper::RunHandler::RunInfo& info) override {
-        // Currently we use horizontal advances even for vertical layout
-        // (faux-vertical). So we always take fX as the advance along the line.
-        fResult.width += info.fAdvance.fX;
+        if (fMode == litehtml::writing_mode_horizontal_tb) {
+            fResult.width += info.fAdvance.fX;
+        } else {
+            // For vertical modes, the primary advance is Y
+            fResult.width += info.fAdvance.fY;
+        }
         if (fInner) fInner->runInfo(info);
     }
     void commitRunInfo() override {
@@ -71,7 +74,11 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
     OffsetWidthRunHandler(litehtml::writing_mode mode) : fWidth(0), fMode(mode) {}
     void beginLine() override {}
     void runInfo(const RunInfo& info) override {
-        fWidth += info.fAdvance.fX;
+        if (fMode == litehtml::writing_mode_horizontal_tb) {
+            fWidth += info.fAdvance.fX;
+        } else {
+            fWidth += info.fAdvance.fY;
+        }
     }
     void commitRunInfo() override {}
     Buffer runBuffer(const RunInfo& info) override {
@@ -106,7 +113,8 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
 }  // namespace
 
 MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font_info* fi,
-                                      litehtml::writing_mode mode, double maxWidth, std::set<char32_t>* usedCodepoints) {
+                                      litehtml::writing_mode mode, double maxWidth,
+                                      std::set<char32_t>* usedCodepoints) {
     MeasureResult result = {0.0, 0, true, text};
     if (!text || !*text || !fi || fi->fonts.empty() || !ctx) return result;
 
@@ -208,7 +216,8 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
 }
 
 TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_t len,
-                                     font_info* fi, litehtml::writing_mode mode, std::set<char32_t>* usedCodepoints) {
+                                     font_info* fi, litehtml::writing_mode mode,
+                                     std::set<char32_t>* usedCodepoints) {
     TextAnalysis analysis;
     if (!text || !len || !ctx) return analysis;
 
@@ -264,8 +273,9 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
     return analysis;
 }
 
-ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi, 
-                                  litehtml::writing_mode mode, std::set<char32_t>* usedCodepoints) {
+ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
+                                   litehtml::writing_mode mode,
+                                   std::set<char32_t>* usedCodepoints) {
     if (!text || !len || !fi || fi->fonts.empty() || !ctx) return {0.0, nullptr};
 
     ShapingKey key;
@@ -332,7 +342,8 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
 }
 
 std::string TextLayout::ellipsizeText(SatoruContext* ctx, const char* text, font_info* fi,
-                                      litehtml::writing_mode mode, double maxWidth, std::set<char32_t>* usedCodepoints) {
+                                      litehtml::writing_mode mode, double maxWidth,
+                                      std::set<char32_t>* usedCodepoints) {
     if (!text || !*text) return "";
 
     // First, check if full text fits

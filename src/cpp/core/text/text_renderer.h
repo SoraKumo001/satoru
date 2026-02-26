@@ -27,7 +27,7 @@ class TextBatcher {
 
         bool operator==(const Style& other) const {
             return fi == other.fi && color == other.color && opacity == other.opacity &&
-                   tagging == other.tagging && mode == other.mode && 
+                   tagging == other.tagging && mode == other.mode &&
                    line_width == other.line_width &&
                    is_vertical_upright == other.is_vertical_upright;
         }
@@ -36,7 +36,8 @@ class TextBatcher {
 
     TextBatcher(SatoruContext* ctx, SkCanvas* canvas)
         : m_ctx(ctx), m_canvas(canvas), m_active(false) {
-        m_currentStyle = {nullptr, {0, 0, 0, 0}, 0.0f, false, litehtml::writing_mode_horizontal_tb, 0.0f, true};
+        m_currentStyle = {nullptr, {0, 0, 0, 0}, 0.0f, false, litehtml::writing_mode_horizontal_tb,
+                          0.0f,    true};
     }
 
     void addText(const sk_sp<SkTextBlob>& blob, double tx, double ty, const Style& style);
@@ -61,8 +62,9 @@ class TextRenderer {
    public:
     static void drawText(SatoruContext* ctx, SkCanvas* canvas, const char* text, font_info* fi,
                          const litehtml::web_color& color, const litehtml::position& pos,
-                         litehtml::text_overflow overflow, litehtml::direction dir, litehtml::writing_mode mode, bool tagging,
-                         float currentOpacity, std::vector<text_shadow_info>& usedTextShadows,
+                         litehtml::text_overflow overflow, litehtml::direction dir,
+                         litehtml::writing_mode mode, bool tagging, float currentOpacity,
+                         std::vector<text_shadow_info>& usedTextShadows,
                          std::vector<text_draw_info>& usedTextDraws,
                          std::vector<SkPath>& usedGlyphs,
                          std::vector<glyph_draw_info>& usedGlyphDraws,
@@ -72,16 +74,16 @@ class TextRenderer {
     // Internal helper for shaping and drawing a single run of text
     static double drawTextInternal(
         SatoruContext* ctx, SkCanvas* canvas, const char* str, size_t strLen, font_info* fi,
-        const litehtml::position& pos, litehtml::writing_mode mode, const SkPaint& paint, bool tagging,
-        std::vector<text_draw_info>& usedTextDraws, std::vector<SkPath>& usedGlyphs,
+        const litehtml::position& pos, litehtml::writing_mode mode, const SkPaint& paint,
+        bool tagging, std::vector<text_draw_info>& usedTextDraws, std::vector<SkPath>& usedGlyphs,
         std::vector<glyph_draw_info>& usedGlyphDraws, std::set<char32_t>* usedCodepoints,
         TextBatcher* batcher = nullptr, int styleTag = -1, int styleIndex = -1);
 
     static void drawDecoration(SkCanvas* canvas, font_info* fi, const litehtml::position& pos,
-                               const litehtml::web_color& color, double finalWidth, litehtml::writing_mode mode);
+                               const litehtml::web_color& color, double finalWidth,
+                               litehtml::writing_mode mode);
 };
 
 }  // namespace satoru
 
 #endif  // SATORU_TEXT_RENDERER_H
-

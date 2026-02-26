@@ -26,7 +26,7 @@ void TextBatcher::addText(const sk_sp<SkTextBlob>& blob, double tx, double ty, c
     if (m_active && m_currentStyle != style) {
         flush();
     }
-    
+
     bool is_vertical = (style.mode == litehtml::writing_mode_vertical_rl ||
                         style.mode == litehtml::writing_mode_vertical_lr);
 
@@ -58,7 +58,7 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
     while (it.experimentalNext(&run)) {
         bool is_vertical = (m_currentStyle.mode == litehtml::writing_mode_vertical_rl ||
                             m_currentStyle.mode == litehtml::writing_mode_vertical_lr);
-        
+
         if (is_vertical && !m_currentStyle.is_vertical_upright) {
             auto builder_run = m_builder.allocRunRSXform(run.font, run.count);
             memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
@@ -78,7 +78,8 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
                     float center_x = (float)tx + m_currentStyle.line_width / 2.0f;
                     builder_run.pos[i * 2] = center_x - m_currentStyle.fi->desc.size / 2.0f;
                     // Add ascent to bring the baseline down from the top of the character box
-                    builder_run.pos[i * 2 + 1] = (float)ty + (float)m_currentStyle.fi->fm_ascent + run.positions[i].fX;
+                    builder_run.pos[i * 2 + 1] =
+                        (float)ty + (float)m_currentStyle.fi->fm_ascent + run.positions[i].fX;
                 } else {
                     builder_run.pos[i * 2] = run.positions[i].fX + (float)tx;
                     builder_run.pos[i * 2 + 1] = run.positions[i].fY + (float)ty;
@@ -113,8 +114,9 @@ void TextBatcher::flush() {
 
 void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* text, font_info* fi,
                             const litehtml::web_color& color, const litehtml::position& pos,
-                            litehtml::text_overflow overflow, litehtml::direction dir, litehtml::writing_mode mode, bool tagging,
-                            float currentOpacity, std::vector<text_shadow_info>& usedTextShadows,
+                            litehtml::text_overflow overflow, litehtml::direction dir,
+                            litehtml::writing_mode mode, bool tagging, float currentOpacity,
+                            std::vector<text_shadow_info>& usedTextShadows,
                             std::vector<text_draw_info>& usedTextDraws,
                             std::vector<SkPath>& usedGlyphs,
                             std::vector<glyph_draw_info>& usedGlyphDraws,
@@ -126,14 +128,15 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
     litehtml::position actual_pos = pos;
     std::string text_str = text;
     if (overflow == litehtml::text_overflow_ellipsis) {
-        double available_size = (mode == litehtml::writing_mode_horizontal_tb) ? pos.width : pos.height;
+        double available_size =
+            (mode == litehtml::writing_mode_horizontal_tb) ? pos.width : pos.height;
         bool forced = (available_size < 1.0f);
         double margin = forced ? 0.0f : 2.0f;
 
         if (forced || TextLayout::measureText(ctx, text, fi, mode, -1.0, nullptr).width >
                           available_size + margin) {
-            text_str =
-                TextLayout::ellipsizeText(ctx, text, fi, mode, (double)available_size, usedCodepoints);
+            text_str = TextLayout::ellipsizeText(ctx, text, fi, mode, (double)available_size,
+                                                 usedCodepoints);
         }
     }
 
@@ -190,28 +193,30 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
                 shadow_paint.setMaskFilter(
                     SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, blur_std_dev));
 
-            drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi,
-                             actual_pos, mode, shadow_paint,
-                             false, usedTextDraws, usedGlyphs, usedGlyphDraws, usedCodepoints,
-                             batcher);
+            drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi, actual_pos, mode,
+                             shadow_paint, false, usedTextDraws, usedGlyphs, usedGlyphDraws,
+                             usedCodepoints, batcher);
         }
     }
 
     double final_width =
-        drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi, actual_pos,
-                         mode, paint, tagging, usedTextDraws, usedGlyphs, usedGlyphDraws,
-                         usedCodepoints, batcher, (int)styleTag, styleIndex);
+        drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi, actual_pos, mode,
+                         paint, tagging, usedTextDraws, usedGlyphs, usedGlyphDraws, usedCodepoints,
+                         batcher, (int)styleTag, styleIndex);
 
     if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
         drawDecoration(canvas, fi, pos, color, final_width, mode);
     }
 }
 
-double TextRenderer::drawTextInternal(
-    SatoruContext* ctx, SkCanvas* canvas, const char* str, size_t strLen, font_info* fi, const litehtml::position& pos,
-    litehtml::writing_mode mode, const SkPaint& paint, bool tagging, std::vector<text_draw_info>& usedTextDraws,
-    std::vector<SkPath>& usedGlyphs, std::vector<glyph_draw_info>& usedGlyphDraws,
-    std::set<char32_t>* usedCodepoints, TextBatcher* batcher, int styleTag, int styleIndex) {
+double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, const char* str,
+                                      size_t strLen, font_info* fi, const litehtml::position& pos,
+                                      litehtml::writing_mode mode, const SkPaint& paint,
+                                      bool tagging, std::vector<text_draw_info>& usedTextDraws,
+                                      std::vector<SkPath>& usedGlyphs,
+                                      std::vector<glyph_draw_info>& usedGlyphDraws,
+                                      std::set<char32_t>* usedCodepoints, TextBatcher* batcher,
+                                      int styleTag, int styleIndex) {
     if (strLen == 0) return 0.0;
 
     TextAnalysis analysis = TextLayout::analyzeText(ctx, str, strLen, fi, mode, usedCodepoints);
@@ -219,14 +224,15 @@ double TextRenderer::drawTextInternal(
     double current_tx = (double)pos.x;
     double current_ty = (double)pos.y;
 
-    bool is_vertical = (mode == litehtml::writing_mode_vertical_rl || mode == litehtml::writing_mode_vertical_lr);
+    bool is_vertical =
+        (mode == litehtml::writing_mode_vertical_rl || mode == litehtml::writing_mode_vertical_lr);
 
     size_t start = 0;
     while (start < analysis.chars.size()) {
         size_t end = start + 1;
-        while (end < analysis.chars.size() && 
-               analysis.chars[end].font == analysis.chars[start].font &&
-               analysis.chars[end].is_vertical_upright == analysis.chars[start].is_vertical_upright) {
+        while (
+            end < analysis.chars.size() && analysis.chars[end].font == analysis.chars[start].font &&
+            analysis.chars[end].is_vertical_upright == analysis.chars[start].is_vertical_upright) {
             end++;
         }
 
@@ -234,7 +240,8 @@ double TextRenderer::drawTextInternal(
         size_t run_len = analysis.chars[end - 1].offset + analysis.chars[end - 1].len - run_offset;
         bool is_upright = analysis.chars[start].is_vertical_upright;
 
-        ShapedResult shaped = TextLayout::shapeText(ctx, str + run_offset, run_len, fi, mode, nullptr);
+        ShapedResult shaped =
+            TextLayout::shapeText(ctx, str + run_offset, run_len, fi, mode, nullptr);
         if (!shaped.blob) {
             start = end;
             continue;
@@ -300,19 +307,24 @@ double TextRenderer::drawTextInternal(
                         int w = (int)ceilf(bounds.width());
                         int h = (int)ceilf(bounds.height());
                         if (w > 0 && h > 0) {
-                            SkImageInfo info = SkImageInfo::MakeN32Premul(w, h, SkColorSpace::MakeSRGB());
+                            SkImageInfo info =
+                                SkImageInfo::MakeN32Premul(w, h, SkColorSpace::MakeSRGB());
                             auto surface = SkSurfaces::Raster(info);
                             if (surface) {
                                 auto tmpCanvas = surface->getCanvas();
                                 tmpCanvas->clear(SK_ColorTRANSPARENT);
-                                tmpCanvas->drawSimpleText(&run.glyphs[i], sizeof(uint16_t), SkTextEncoding::kGlyphID, -bounds.fLeft, -bounds.fTop, run.font, paint);
+                                tmpCanvas->drawSimpleText(&run.glyphs[i], sizeof(uint16_t),
+                                                          SkTextEncoding::kGlyphID, -bounds.fLeft,
+                                                          -bounds.fTop, run.font, paint);
                                 auto img = surface->makeImageSnapshot();
 
                                 canvas->save();
                                 canvas->translate(gx, gy);
                                 if (rotation != 0) canvas->rotate(rotation);
-                                SkRect dst = SkRect::MakeXYWH(bounds.fLeft, bounds.fTop, (float)w, (float)h);
-                                canvas->drawImageRect(img, dst, SkSamplingOptions(SkFilterMode::kLinear));
+                                SkRect dst =
+                                    SkRect::MakeXYWH(bounds.fLeft, bounds.fTop, (float)w, (float)h);
+                                canvas->drawImageRect(img, dst,
+                                                      SkSamplingOptions(SkFilterMode::kLinear));
                                 canvas->restore();
                             }
                         }
@@ -320,7 +332,7 @@ double TextRenderer::drawTextInternal(
                 }
             }
         } else if (batcher && fi->desc.text_shadow.empty() &&
-            fi->desc.decoration_line == litehtml::text_decoration_line_none) {
+                   fi->desc.decoration_line == litehtml::text_decoration_line_none) {
             TextBatcher::Style style;
             style.fi = fi;
             SkColor c = paint.getColor();
@@ -338,7 +350,7 @@ double TextRenderer::drawTextInternal(
             if (is_vertical) {
                 float line_thickness = (float)pos.width;
                 float center_x = (float)current_tx + line_thickness / 2.0f;
-                
+
                 SkTextBlobBuilder builder;
                 SkTextBlob::Iter it(*shaped.blob);
                 SkTextBlob::Iter::ExperimentalRun run;
@@ -348,7 +360,8 @@ double TextRenderer::drawTextInternal(
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
                             builder_run.pos[i * 2] = center_x - fi->desc.size / 2.0f;
-                            builder_run.pos[i * 2 + 1] = (float)current_ty + (float)fi->fm_ascent + run.positions[i].fX;
+                            builder_run.pos[i * 2 + 1] =
+                                (float)current_ty + (float)fi->fm_ascent + run.positions[i].fX;
                         }
                     } else {
                         auto builder_run = builder.allocRunRSXform(run.font, run.count);
@@ -382,7 +395,8 @@ double TextRenderer::drawTextInternal(
 }
 
 void TextRenderer::drawDecoration(SkCanvas* canvas, font_info* fi, const litehtml::position& pos,
-                                  const litehtml::web_color& color, double finalWidth, litehtml::writing_mode mode) {
+                                  const litehtml::web_color& color, double finalWidth,
+                                  litehtml::writing_mode mode) {
     float inline_size = (float)finalWidth;
     float thickness = (float)fi->desc.decoration_thickness.val();
     if (thickness == 0) thickness = 1.0f;
@@ -402,7 +416,7 @@ void TextRenderer::drawDecoration(SkCanvas* canvas, font_info* fi, const litehtm
     auto draw_logical_line = [&](float block_offset) {
         logical_pos start(0, block_offset);
         logical_pos end(inline_size, block_offset);
-        logical_size size(0, 0); // lines have no size for context mapping
+        logical_size size(0, 0);  // lines have no size for context mapping
 
         litehtml::position p_start = wm_ctx.to_physical(start, size);
         litehtml::position p_end = wm_ctx.to_physical(end, size);
@@ -432,7 +446,8 @@ void TextRenderer::drawDecoration(SkCanvas* canvas, font_info* fi, const litehtm
     };
 
     if (fi->desc.decoration_line & litehtml::text_decoration_line_underline) {
-        float underline_offset = (float)fi->fm_ascent + (float)fi->desc.underline_offset.val() + thickness;
+        float underline_offset =
+            (float)fi->fm_ascent + (float)fi->desc.underline_offset.val() + thickness;
         draw_logical_line(underline_offset);
     }
     if (fi->desc.decoration_line & litehtml::text_decoration_line_overline) {

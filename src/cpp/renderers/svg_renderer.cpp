@@ -27,8 +27,8 @@
 #include "include/encode/SkPngEncoder.h"
 #include "include/svg/SkSVGCanvas.h"
 #include "include/utils/SkParsePath.h"
-#include "utils/skia_utils.h"
 #include "utils/logging.h"
+#include "utils/skia_utils.h"
 
 namespace litehtml {
 std::vector<css_token_vector> parse_comma_separated_list(const css_token_vector &tokens);

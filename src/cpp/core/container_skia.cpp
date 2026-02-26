@@ -284,9 +284,9 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char *text, litehtm
                                    m_resourceManager ? &m_usedCodepoints : nullptr, m_textBatcher);
     if (fi && m_resourceManager) {
         satoru::TextRenderer::drawText(&m_context, nullptr, text, fi, color, actual_pos, overflow,
-                                       dir, mode, m_tagging, get_current_opacity(), m_usedTextShadows,
-                                       m_usedTextDraws, m_usedGlyphs, m_usedGlyphDraws,
-                                       &fi->used_codepoints, nullptr);
+                                       dir, mode, m_tagging, get_current_opacity(),
+                                       m_usedTextShadows, m_usedTextDraws, m_usedGlyphs,
+                                       m_usedGlyphDraws, &fi->used_codepoints, nullptr);
     }
 }
 

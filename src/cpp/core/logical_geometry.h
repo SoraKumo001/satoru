@@ -33,8 +33,9 @@ struct logical_edges {
 };
 
 class WritingModeContext {
-public:
-    WritingModeContext(litehtml::writing_mode mode, pixel_t container_width, pixel_t container_height)
+   public:
+    WritingModeContext(litehtml::writing_mode mode, pixel_t container_width,
+                       pixel_t container_height)
         : m_mode(mode), m_container_width(container_width), m_container_height(container_height) {}
 
     // 論理座標から物理座標（litehtml::position）への変換
@@ -73,17 +74,18 @@ public:
     }
 
     bool is_vertical() const {
-        return m_mode == litehtml::writing_mode_vertical_rl || m_mode == litehtml::writing_mode_vertical_lr;
+        return m_mode == litehtml::writing_mode_vertical_rl ||
+               m_mode == litehtml::writing_mode_vertical_lr;
     }
 
     litehtml::writing_mode mode() const { return m_mode; }
 
-private:
+   private:
     litehtml::writing_mode m_mode;
     pixel_t m_container_width;
     pixel_t m_container_height;
 };
 
-} // namespace satoru
+}  // namespace satoru
 
-#endif // SATORU_LOGICAL_GEOMETRY_H
+#endif  // SATORU_LOGICAL_GEOMETRY_H

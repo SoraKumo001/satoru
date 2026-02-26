@@ -83,8 +83,8 @@ struct MeasureKey {
     bool operator==(const MeasureKey& other) const {
         return font_size == other.font_size && font_weight == other.font_weight &&
                italic == other.italic && maxWidth == other.maxWidth &&
-               font_family == other.font_family && text == other.text &&
-               mode == other.mode && orientation == other.orientation;
+               font_family == other.font_family && text == other.text && mode == other.mode &&
+               orientation == other.orientation;
     }
 };
 
@@ -120,8 +120,8 @@ struct ShapingKey {
     bool operator==(const ShapingKey& other) const {
         return font_size == other.font_size && font_weight == other.font_weight &&
                italic == other.italic && is_rtl == other.is_rtl &&
-               font_family == other.font_family && text == other.text &&
-               mode == other.mode && orientation == other.orientation;
+               font_family == other.font_family && text == other.text && mode == other.mode &&
+               orientation == other.orientation;
     }
 };
 

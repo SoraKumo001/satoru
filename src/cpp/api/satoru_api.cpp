@@ -135,8 +135,10 @@ void SatoruInstance::init_document(const char *html, int width, int height) {
     doc = litehtml::document::createFromString(html, render_container.get(), css.c_str());
 
     if (doc && doc->root()) {
-        satoru_log_printf(LogLevel::Info, "DEBUG ID: _border_is_w = %s", litehtml::_s(litehtml::_border_inline_start_width_).c_str());
-        satoru_log_printf(LogLevel::Info, "DEBUG ID: _border_bs_w = %s", litehtml::_s(litehtml::_border_block_start_width_).c_str());
+        satoru_log_printf(LogLevel::Info, "DEBUG ID: _border_is_w = %s",
+                          litehtml::_s(litehtml::_border_inline_start_width_).c_str());
+        satoru_log_printf(LogLevel::Info, "DEBUG ID: _border_bs_w = %s",
+                          litehtml::_s(litehtml::_border_block_start_width_).c_str());
         dump_elements_recursive(doc->root());
     }
 }

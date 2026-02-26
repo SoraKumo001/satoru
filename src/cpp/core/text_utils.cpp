@@ -21,17 +21,21 @@ std::string normalize_utf8(const char* text) {
 
 MeasureResult measure_text(SatoruContext* ctx, const char* text, font_info* fi, double max_width,
                            std::set<char32_t>* used_codepoints) {
-    return TextLayout::measureText(ctx, text, fi, litehtml::writing_mode_horizontal_tb, max_width, used_codepoints);
+    return TextLayout::measureText(ctx, text, fi, litehtml::writing_mode_horizontal_tb, max_width,
+                                   used_codepoints);
 }
 
 double text_width(SatoruContext* ctx, const char* text, font_info* fi,
                   std::set<char32_t>* used_codepoints) {
-    return TextLayout::measureText(ctx, text, fi, litehtml::writing_mode_horizontal_tb, -1.0, used_codepoints).width;
+    return TextLayout::measureText(ctx, text, fi, litehtml::writing_mode_horizontal_tb, -1.0,
+                                   used_codepoints)
+        .width;
 }
 
 std::string ellipsize_text(SatoruContext* ctx, const char* text, font_info* fi, double max_width,
                            std::set<char32_t>* used_codepoints) {
-    return TextLayout::ellipsizeText(ctx, text, fi, litehtml::writing_mode_horizontal_tb, max_width, used_codepoints);
+    return TextLayout::ellipsizeText(ctx, text, fi, litehtml::writing_mode_horizontal_tb, max_width,
+                                     used_codepoints);
 }
 
 int get_bidi_level(const char* text, int base_level, int* last_level) {
@@ -40,4 +44,3 @@ int get_bidi_level(const char* text, int base_level, int* last_level) {
 }
 
 }  // namespace satoru
-

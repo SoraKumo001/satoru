@@ -21,17 +21,19 @@ class TextBatcher {
         litehtml::web_color color;
         float opacity;
         bool tagging;
+        litehtml::writing_mode mode;
+        float line_width;
 
         bool operator==(const Style& other) const {
             return fi == other.fi && color == other.color && opacity == other.opacity &&
-                   tagging == other.tagging;
+                   tagging == other.tagging && mode == other.mode && line_width == other.line_width;
         }
         bool operator!=(const Style& other) const { return !(*this == other); }
     };
 
     TextBatcher(SatoruContext* ctx, SkCanvas* canvas)
         : m_ctx(ctx), m_canvas(canvas), m_active(false) {
-        m_currentStyle = {nullptr, {0, 0, 0, 0}, 0.0f, false};
+        m_currentStyle = {nullptr, {0, 0, 0, 0}, 0.0f, false, litehtml::writing_mode_horizontal_tb, 0.0f};
     }
 
     void addText(const sk_sp<SkTextBlob>& blob, double tx, double ty, const Style& style);
@@ -67,7 +69,7 @@ class TextRenderer {
     // Internal helper for shaping and drawing a single run of text
     static double drawTextInternal(
         SatoruContext* ctx, SkCanvas* canvas, const char* str, size_t strLen, font_info* fi,
-        double tx, double ty, litehtml::writing_mode mode, const SkPaint& paint, bool tagging,
+        const litehtml::position& pos, litehtml::writing_mode mode, const SkPaint& paint, bool tagging,
         std::vector<text_draw_info>& usedTextDraws, std::vector<SkPath>& usedGlyphs,
         std::vector<glyph_draw_info>& usedGlyphDraws, std::set<char32_t>* usedCodepoints,
         TextBatcher* batcher = nullptr, int styleTag = -1, int styleIndex = -1);

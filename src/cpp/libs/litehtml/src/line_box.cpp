@@ -1,4 +1,4 @@
-#include "html.h"
+﻿#include "html.h"
 #include "line_box.h"
 #include "element.h"
 #include "render_item.h"
@@ -1019,3 +1019,4 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::new_wi
     }
 	return ret_items;
 }
+

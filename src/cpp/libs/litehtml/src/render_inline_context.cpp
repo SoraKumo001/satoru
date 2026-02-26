@@ -1,4 +1,4 @@
-#include "render_inline_context.h"
+﻿#include "render_inline_context.h"
 #include "document.h"
 #include "document_container.h"
 #include "iterators.h"
@@ -241,7 +241,7 @@ litehtml::pixel_t litehtml::render_item_inline_context::new_box(const std::uniqu
 			css().get_text_align(),
 			css().get_direction(),
 			css().get_text_overflow(),
-			css().get_overflow()));
+			css().get_overflow(), css().get_writing_mode()));
 
 	// Add items returned by finish_last_box function into the new line
 	for(auto& it : items)
@@ -468,3 +468,4 @@ litehtml::pixel_t litehtml::render_item_inline_context::get_last_baseline()
 	}
 	return bl;
 }
+

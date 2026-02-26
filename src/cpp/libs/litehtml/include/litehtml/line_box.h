@@ -1,4 +1,4 @@
-#ifndef LH_LINE_BOX_H
+﻿#ifndef LH_LINE_BOX_H
 #define LH_LINE_BOX_H
 
 #include <memory>
@@ -144,10 +144,11 @@ namespace litehtml
         direction				m_direction;
         text_overflow			m_text_overflow;
         overflow				m_overflow;
-		pixel_t 				m_min_width;
+		pixel_t m_min_width;
+		writing_mode m_writing_mode;
 		std::list< std::unique_ptr<line_box_item> > m_items;
     public:
-        line_box(pixel_t top, pixel_t left, pixel_t right, const css_line_height_t& line_height, const font_metrics& fm, text_align align, direction dir, text_overflow text_overflow, overflow overflow) :
+        line_box(pixel_t top, pixel_t left, pixel_t right, const css_line_height_t& line_height, const font_metrics& fm, text_align align, direction dir, text_overflow text_overflow, overflow overflow, writing_mode mode) :
 				m_top(top),
 				m_left(left),
 				m_right(right),
@@ -160,14 +161,15 @@ namespace litehtml
 				m_direction(dir),
 				m_text_overflow(text_overflow),
 				m_overflow(overflow),
-				m_min_width(0)
+				m_min_width(0),
+				m_writing_mode(mode)
 		{
         }
 
-        pixel_t		bottom() const	{ return m_top + height();	}
-        pixel_t		top() const		{ return m_top;				}
-        pixel_t		right() const	{ return m_left + width();	}
-        pixel_t		left() const	{ return m_left;			}
+        pixel_t bottom() const { if(m_writing_mode == writing_mode_horizontal_tb) return m_top + height(); return m_top + width(); }
+        pixel_t top() const { return m_top; }
+        pixel_t right() const { if(m_writing_mode == writing_mode_horizontal_tb) return m_left + width(); return m_left; }
+        pixel_t left() const { if(m_writing_mode == writing_mode_horizontal_tb) return m_left; return m_left - height(); }
         pixel_t		height() const  { return m_height;				}
         pixel_t	 	width() const	{ return m_width;				}
 		pixel_t	 	line_right() const	{ return m_right;			}
@@ -194,3 +196,7 @@ namespace litehtml
 }
 
 #endif //LH_LINE_BOX_H
+
+
+
+

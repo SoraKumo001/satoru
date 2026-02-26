@@ -643,6 +643,7 @@ void litehtml::css_properties::compute_font(const element *el, const document::p
   descr.emphasis_style = m_text_emphasis_style;
   descr.emphasis_color = m_text_emphasis_color;
   descr.emphasis_position = m_text_emphasis_position;
+  descr.orientation = m_text_orientation;
   descr.text_shadow = m_text_shadow;
 
   m_font = doc->get_font(descr, &m_font_metrics);

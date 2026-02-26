@@ -134,6 +134,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         key.italic = (fi->desc.style == litehtml::font_style_italic);
         key.maxWidth = maxWidth;
         key.mode = mode;
+        key.orientation = fi->desc.orientation;
 
         if (MeasureResult* cached = ctx->measurementCache.get(key)) {
             MeasureResult res = *cached;
@@ -154,10 +155,11 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
 
     std::vector<CharFont> charFonts;
     for (const auto& ca : analysis.chars) {
-        if (!charFonts.empty() && charFonts.back().font == ca.font) {
+        if (!charFonts.empty() && charFonts.back().font == ca.font &&
+            charFonts.back().is_vertical_upright == ca.is_vertical_upright) {
             charFonts.back().len += ca.len;
         } else {
-            charFonts.push_back({ca.len, ca.font});
+            charFonts.push_back({ca.len, ca.font, ca.is_vertical_upright});
         }
     }
 
@@ -251,6 +253,19 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
 
         ca.is_emoji = unicode.isEmoji(ca.codepoint);
         ca.is_mark = unicode.isMark(ca.codepoint);
+
+        if (mode == litehtml::writing_mode_horizontal_tb) {
+            ca.is_vertical_upright = true;
+        } else {
+            if (fi->desc.orientation == litehtml::text_orientation_upright) {
+                ca.is_vertical_upright = true;
+            } else if (fi->desc.orientation == litehtml::text_orientation_sideways) {
+                ca.is_vertical_upright = false;
+            } else {
+                // mixed mode
+                ca.is_vertical_upright = unicode.isVerticalUpright(ca.codepoint);
+            }
+        }
 
         ca.font = ctx->fontManager.selectFont(ca.codepoint, fi,
                                               has_last_font ? &last_font : nullptr, unicode);

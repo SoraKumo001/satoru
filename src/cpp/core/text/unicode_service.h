@@ -45,6 +45,7 @@ class UnicodeService {
 
     // Vertical writing support
     char32_t getVerticalSubstitution(char32_t u) const;
+    bool isVerticalUpright(char32_t u) const;
 
    private:
     sk_sp<SkUnicode> m_unicode;

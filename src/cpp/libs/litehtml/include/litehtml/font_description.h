@@ -23,6 +23,7 @@ namespace litehtml
     std::string emphasis_style;                                           // Text emphasis style
     web_color emphasis_color = web_color::current_color;                  // Text emphasis color
     int emphasis_position = text_emphasis_position_over;
+    text_orientation orientation = text_orientation_mixed;
     shadow_vector text_shadow;
 
     std::string hash() const
@@ -40,6 +41,7 @@ namespace litehtml
       out += ":ephs=" + emphasis_style;
       out += ":ephc=" + emphasis_color.to_string();
       out += ":ephp=" + std::to_string(emphasis_position);
+      out += ":or=" + std::to_string(orientation);
       for(const auto& s : text_shadow)
       {
           out += ":ts=" + std::to_string(s.x.val()) + "," + std::to_string(s.y.val()) + "," + std::to_string(s.blur.val()) + "," + s.color.to_string();

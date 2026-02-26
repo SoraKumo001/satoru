@@ -99,7 +99,11 @@ bool UnicodeService::isSpace(char32_t u) const {
 }
 
 bool UnicodeService::isEmoji(char32_t u) const {
-    return (u >= 0x1F300 && u <= 0x1F9FF) || (u >= 0x2600 && u <= 0x26FF);
+    return (u >= 0x1F000 && u <= 0x1FADF) || (u >= 0x1F300 && u <= 0x1F9FF) ||
+           (u >= 0x2600 && u <= 0x26FF) || (u >= 0x2700 && u <= 0x27BF) ||
+           (u >= 0x1F000 && u <= 0x1F02F) || (u >= 0x1F0A0 && u <= 0x1F0FF) ||
+           (u >= 0x1F100 && u <= 0x1F64F) || (u >= 0x1F680 && u <= 0x1F6FF) ||
+           (u >= 0x1F900 && u <= 0x1F9FF);
 }
 
 bool UnicodeService::shouldBreakGrapheme(char32_t u1, char32_t u2, int* state) const {
@@ -173,6 +177,38 @@ char32_t UnicodeService::getVerticalSubstitution(char32_t u) const {
 
         default: return u;
     }
+}
+
+bool UnicodeService::isVerticalUpright(char32_t u) const {
+    // Basic CJK Ranges
+    if (u >= 0x2E80 && u <= 0x2EFF) return true;  // CJK Radicals Supplement
+    if (u >= 0x2F00 && u <= 0x2FDF) return true;  // Kangxi Radicals
+    if (u >= 0x2FF0 && u <= 0x2FFF) return true;  // Ideographic Description Characters
+    if (u >= 0x3000 && u <= 0x303F) return true;  // CJK Symbols and Punctuation
+    if (u >= 0x3040 && u <= 0x309F) return true;  // Hiragana
+    if (u >= 0x30A0 && u <= 0x30FF) return true;  // Katakana
+    if (u >= 0x3100 && u <= 0x312F) return true;  // Bopomofo
+    if (u >= 0x3130 && u <= 0x318F) return true;  // Hangul Compatibility Jamo
+    if (u >= 0x3190 && u <= 0x319F) return true;  // Kanbun
+    if (u >= 0x31A0 && u <= 0x31BF) return true;  // Bopomofo Extended
+    if (u >= 0x31C0 && u <= 0x31EF) return true;  // CJK Strokes
+    if (u >= 0x31F0 && u <= 0x31FF) return true;  // Katakana Phonetic Extensions
+    if (u >= 0x3200 && u <= 0x32FF) return true;  // Enclosed CJK Letters and Months
+    if (u >= 0x3300 && u <= 0x33FF) return true;  // CJK Compatibility
+    if (u >= 0x3400 && u <= 0x4DBF) return true;  // CJK Unified Ideographs Extension A
+    if (u >= 0x4E00 && u <= 0x9FFF) return true;  // CJK Unified Ideographs
+    if (u >= 0xAC00 && u <= 0xD7AF) return true;  // Hangul Syllables
+    if (u >= 0xF900 && u <= 0xFAFF) return true;  // CJK Compatibility Ideographs
+    if (u >= 0xFE30 && u <= 0xFE4F) return true;  // CJK Compatibility Forms
+    if (u >= 0xFF00 && u <= 0xFF60) return true;  // Fullwidth Forms (excluding halfwidth)
+    if (u >= 0xFFE0 && u <= 0xFFEE) return true;  // Fullwidth Forms
+
+    // CJK Extensions in Supplementary Plane
+    if (u >= 0x20000 && u <= 0x3134F) return true;
+
+    if (isEmoji(u)) return true;
+
+    return false;
 }
 
 }  // namespace satoru

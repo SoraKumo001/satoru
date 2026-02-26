@@ -1,4 +1,4 @@
-#include "render_block_context.h"
+﻿#include "render_block_context.h"
 #include "document.h"
 #include "types.h"
 
@@ -38,7 +38,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 				}
 				if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 				{
-					el->place(0, child_top, self_size.new_width(min_rendered_width), fmt_ctx);
+					el->place_logical(0, child_top, self_size.new_width(min_rendered_width), fmt_ctx);
 				}
             } else
             {
@@ -99,7 +99,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 				pixel_t rw = el->measure(self_size.new_width(child_width), fmt_ctx);
 				if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 				{
-					el->place(child_x, child_top, self_size.new_width(child_width), fmt_ctx);
+					el->place_logical(child_x, child_top, self_size.new_width(child_width), fmt_ctx);
 				}
 
 				// Render table with "width: auto" into returned width
@@ -108,7 +108,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 					rw = el->measure(self_size.new_width(rw), fmt_ctx);
 					if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 					{
-						el->place(child_x, child_top, self_size.new_width(rw), fmt_ctx);
+						el->place_logical(child_x, child_top, self_size.new_width(rw), fmt_ctx);
 					}
 				}
 
@@ -129,7 +129,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 							fmt_ctx->get_line_left_right(child_top, el->width(), ln_left, ln_right);
 							if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 							{
-								el->place(ln_left, child_top, self_size.new_width(child_width), fmt_ctx);
+								el->place_logical(ln_left, child_top, self_size.new_width(child_width), fmt_ctx);
 							}
 							child_top	-= el->get_margins().top;
 							// Rollback top margin collapse
@@ -154,7 +154,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
                     ret_width = rw;
 				}
 				m_margins.top = top_margin;
-                child_top += el->height();
+                child_top += el->block_size();
                 last_margin = el->get_margins().bottom;
 				last_margin_el = el;
                 is_first = false;
@@ -169,10 +169,10 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 
     if (self_size.height.type != containing_block_context::cbc_value_type_auto  && self_size.height > 0)
     {
-        m_pos.height = self_size.height;
+        if(self_size.mode == writing_mode_horizontal_tb) m_pos.height = self_size.height; else m_pos.width = self_size.width;
         if(src_el()->css().get_display() == display_table_cell)
         {
-            m_pos.height = std::max(m_pos.height, child_top);
+            if(self_size.mode == writing_mode_horizontal_tb) m_pos.height = std::max(m_pos.height, child_top); else m_pos.width = std::max(m_pos.width, child_top);
             if(collapse_bottom_margin())
             {
                 m_pos.height -= last_margin;
@@ -188,7 +188,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
         }
     } else
     {
-        m_pos.height = child_top;
+        if(self_size.mode == writing_mode_horizontal_tb) m_pos.height = child_top; else m_pos.width = child_top;
         if(collapse_bottom_margin())
         {
             m_pos.height -= last_margin;
@@ -225,3 +225,5 @@ litehtml::pixel_t litehtml::render_item_block_context::get_last_baseline()
 	const auto &item = m_children.back();
 	return content_offset_top() + item->top() + item->get_last_baseline();
 }
+
+

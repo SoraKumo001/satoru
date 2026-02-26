@@ -8,69 +8,60 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	m_pos.width = 0;
 	m_pos.height = 0;
 
-	bool is_row_direction = true;
+	bool is_main_inline = true; // row direction
 	bool reverse = false;
 	
-	// Correct Fix: Subtract padding and border from the main size
-	pixel_t container_main_size = self_size.render_width;
-
 	switch (css().get_flex_direction())
 	{
 		case flex_direction_column:
-			is_row_direction = false;
+			is_main_inline = false;
 			reverse = false;
 			break;
 		case flex_direction_column_reverse:
-			is_row_direction = false;
+			is_main_inline = false;
 			reverse = true;
 			break;
 		case flex_direction_row:
-			is_row_direction = true;
+			is_main_inline = true;
 			reverse = false;
 			break;
 		case flex_direction_row_reverse:
-			is_row_direction = true;
+			is_main_inline = true;
 			reverse = true;
 			break;
 	}
+
+	pixel_t container_main_size = is_main_inline ? self_size.render_inline_size() : self_size.render_block_size();
 
 	bool single_line = css().get_flex_wrap() == flex_wrap_nowrap;
 	bool fit_container = false;
 
-	if(!is_row_direction)
+	if(!is_main_inline)
 	{
-		if(self_size.height.type != containing_block_context::cbc_value_type_auto)
+		if(self_size.block_size().type != containing_block_context::cbc_value_type_auto)
 		{
-			container_main_size = self_size.render_height;
+			container_main_size = self_size.render_block_size();
 		} else
 		{
-			// Direction columns, height is auto - always in single line
+			// Direction columns, block size is auto - always in single line
 			container_main_size = 0;
 			single_line = true;
 			fit_container = true;
 		}
-		if(self_size.min_height.type != containing_block_context::cbc_value_type_auto && self_size.min_height > container_main_size)
-		{
-			container_main_size = self_size.min_height;
-		}
-		if(self_size.max_height.type != containing_block_context::cbc_value_type_auto && self_size.max_height > container_main_size)
-		{
-			container_main_size = self_size.max_height;
-			single_line = false;
-		}
+		// TODO: min/max block size checks using logical properties
 	}
 
-	pixel_t main_gap = (pixel_t)(is_row_direction ? css().get_column_gap().calc_percent(container_main_size) : css().get_row_gap().calc_percent(container_main_size));
-	pixel_t cross_gap = (pixel_t)(is_row_direction ? css().get_row_gap().calc_percent(self_size.render_height) : css().get_column_gap().calc_percent(self_size.render_width));
+	pixel_t main_gap = (pixel_t)(is_main_inline ? css().get_column_gap().calc_percent(container_main_size) : css().get_row_gap().calc_percent(container_main_size));
+	pixel_t cross_gap = (pixel_t)(is_main_inline ? css().get_row_gap().calc_percent(self_size.render_block_size()) : css().get_column_gap().calc_percent(self_size.render_inline_size()));
 
 	/////////////////////////////////////////////////////////////////
 	/// Split flex items to lines
 	/////////////////////////////////////////////////////////////////
-	m_lines = get_lines(self_size, fmt_ctx, is_row_direction, container_main_size, single_line, main_gap); 
+	m_lines = get_lines(self_size, fmt_ctx, is_main_inline, container_main_size, single_line, main_gap); 
 
 	pixel_t sum_cross_size = 0;
 	pixel_t sum_main_size = 0;
-	pixel_t ret_width = 0;
+	pixel_t max_inline_size = 0;
 
 	/////////////////////////////////////////////////////////////////
 	/// Resolving Flexible Lengths
@@ -78,11 +69,11 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	/////////////////////////////////////////////////////////////////
 	for(auto& ln : m_lines)
 	{
-		if(is_row_direction)
+		if(is_main_inline)
 		{
-			ret_width = std::max(ret_width, ln.flex_base_size);
+			max_inline_size = std::max(max_inline_size, ln.flex_base_size);
 		}
-		ln.init(container_main_size, fit_container, is_row_direction, self_size, fmt_ctx);   
+		ln.init(container_main_size, fit_container, is_main_inline, self_size, fmt_ctx);   
 		sum_cross_size += ln.cross_size;
 		sum_main_size = std::max(sum_main_size, ln.main_size);
 		if(reverse)
@@ -106,16 +97,16 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	/////////////////////////////////////////////////////////////////
 	/// Calculate free cross size
 	/////////////////////////////////////////////////////////////////
-	if (is_row_direction)
+	if (is_main_inline)
 	{
-		if (self_size.height.type != containing_block_context::cbc_value_type_auto)
+		if (self_size.block_size().type != containing_block_context::cbc_value_type_auto)
 		{
-			free_cross_size = self_size.render_height - sum_cross_size;
+			free_cross_size = self_size.render_block_size() - sum_cross_size;
 		}
 	} else
 	{
-		free_cross_size = self_size.render_width - sum_cross_size;
-		ret_width = sum_cross_size;
+		free_cross_size = self_size.render_inline_size() - sum_cross_size;
+		max_inline_size = sum_cross_size;
 	}
 
 	/////////////////////////////////////////////////////////////////
@@ -217,7 +208,7 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 
 	/// Fix justify-content property
 	flex_justify_content justify_content = css().get_flex_justify_content();
-	if((justify_content == flex_justify_content_right || justify_content == flex_justify_content_left) && !is_row_direction)
+	if((justify_content == flex_justify_content_right || justify_content == flex_justify_content_left) && !is_main_inline)
 	{
 		justify_content = flex_justify_content_start;
 	}
@@ -225,19 +216,31 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	/////////////////////////////////////////////////////////////////
 	/// Align flex items in flex lines
 	/////////////////////////////////////////////////////////////////
+	pixel_t max_block_size = 0;
 	for(auto &ln : m_lines)
 	{
-		pixel_t height = ln.calculate_items_position(container_main_size,
+		pixel_t bs = ln.calculate_items_position(container_main_size,
 									justify_content,
-									is_row_direction,
+									is_main_inline,
 									self_size,
 									fmt_ctx);
-		m_pos.height = std::max(m_pos.height, height);
+		max_block_size = std::max(max_block_size, bs);
 	}
 
-	if (self_size.height.type != containing_block_context::cbc_value_type_auto && self_size.height > 0)
+	if (self_size.mode == writing_mode_horizontal_tb)
 	{
-		m_pos.height = self_size.height;
+		m_pos.height = max_block_size;
+		if (self_size.height.type != containing_block_context::cbc_value_type_auto && self_size.height > 0)
+		{
+			m_pos.height = self_size.height;
+		}
+	} else
+	{
+		m_pos.width = max_block_size;
+		if (self_size.width.type != containing_block_context::cbc_value_type_auto && self_size.width > 0)
+		{
+			m_pos.width = self_size.width;
+		}
 	}
 
 	if (!(self_size.size_mode & containing_block_context::size_mode_measure))
@@ -273,27 +276,27 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 
 				auto jc = css().get_flex_justify_content();
 
-				if (is_row_direction)
+				if (is_main_inline)
 				{
 					switch (jc)
 					{
 						case flex_justify_content_center:
-							static_x = (self_size.render_width - el->width()) / 2;
+							static_x = (self_size.render_inline_size() - el->inline_size()) / 2;
 							break;
 						case flex_justify_content_flex_end:
 						case flex_justify_content_end:
-							static_x = self_size.render_width - el->width();
+							static_x = self_size.render_inline_size() - el->inline_size();
 							break;
 						default: break;
 					}
 					switch (align_items)
 					{
 						case flex_align_items_center:
-							static_y = (self_size.render_height - el->height()) / 2;
+							static_y = (self_size.render_block_size() - el->block_size()) / 2;
 							break;
 						case flex_align_items_flex_end:
 						case flex_align_items_end:
-							static_y = self_size.render_height - el->height();
+							static_y = self_size.render_block_size() - el->block_size();
 							break;
 						default: break;
 					}
@@ -302,22 +305,22 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 					switch (jc)
 					{
 						case flex_justify_content_center:
-							static_y = (self_size.render_height - el->height()) / 2;
+							static_y = (self_size.render_block_size() - el->block_size()) / 2;
 							break;
 						case flex_justify_content_flex_end:
 						case flex_justify_content_end:
-							static_y = self_size.render_height - el->height();
+							static_y = self_size.render_block_size() - el->block_size();
 							break;
 						default: break;
 					}
 					switch (align_items)
 					{
 						case flex_align_items_center:
-							static_x = (self_size.render_width - el->width()) / 2;
+							static_x = (self_size.render_inline_size() - el->inline_size()) / 2;
 							break;
 						case flex_align_items_flex_end:
 						case flex_align_items_end:
-							static_x = self_size.render_width - el->width();
+							static_x = self_size.render_inline_size() - el->inline_size();
 							break;
 						default: break;
 					}
@@ -329,18 +332,18 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 		}
 	}
 
-	return ret_width;
+	return max_inline_size;
 }
 
 std::list<litehtml::flex_line> litehtml::render_item_flex::get_lines(const litehtml::containing_block_context &self_size,
 																	 litehtml::formatting_context *fmt_ctx,
-																	 bool is_row_direction, pixel_t container_main_size,
+																	 bool is_main_inline, pixel_t container_main_size,
 																	 bool single_line, pixel_t main_gap)
 {
 	bool reverse_main;
 	bool reverse_cross = css().get_flex_wrap() == flex_wrap_wrap_reverse;
 
-	if(is_row_direction)
+	if(is_main_inline)
 	{
 		reverse_main = css().get_flex_direction() == flex_direction_row_reverse;
 	} else
@@ -363,7 +366,7 @@ std::list<litehtml::flex_line> litehtml::render_item_flex::get_lines(const liteh
 		}
 
 		std::shared_ptr<flex_item> item = nullptr;
-		if(is_row_direction)
+		if(is_main_inline)
 		{
 			item = std::make_shared<flex_item_row_direction>(el);
 		} else

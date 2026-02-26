@@ -48,7 +48,7 @@ litehtml::pixel_t litehtml::render_item::measure(const containing_block_context&
 
 	if(src_el()->is_block_formatting_context() || ! fmt_ctx)
 	{
-		formatting_context fmt;
+		formatting_context fmt(css().get_writing_mode());
 		return _measure(containing_block_size, &fmt);
 	} else
 	{
@@ -73,7 +73,7 @@ void litehtml::render_item::place(pixel_t x, pixel_t y, const containing_block_c
 
 	if(src_el()->is_block_formatting_context() || ! fmt_ctx)
 	{
-		formatting_context fmt;
+		formatting_context fmt(css().get_writing_mode());
 		_place(x, y, containing_block_size, &fmt);
 		fmt.apply_relative_shift(containing_block_size);
 	} else
@@ -1808,4 +1808,5 @@ litehtml::pixel_t litehtml::render_item::border_block_end() const
 	}
 	return m_borders.right;
 }
+
 

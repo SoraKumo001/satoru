@@ -1,4 +1,4 @@
-﻿#include "render_inline_context.h"
+#include "render_inline_context.h"
 #include "document.h"
 #include "document_container.h"
 #include "iterators.h"
@@ -88,11 +88,17 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
         if (collapse_bottom_margin())
         {
             m_margins.bottom = std::max(m_line_boxes.back()->bottom_margin(), m_margins.bottom);
-            m_pos.height = m_line_boxes.back()->bottom() - m_line_boxes.back()->bottom_margin();
+			if (self_size.mode == writing_mode_horizontal_tb)
+				m_pos.height = m_line_boxes.back()->bottom() - m_line_boxes.back()->bottom_margin();
+			else
+				m_pos.width = m_line_boxes.front()->right() - m_line_boxes.back()->left();
         }
         else
         {
-            m_pos.height = m_line_boxes.back()->bottom();
+			if (self_size.mode == writing_mode_horizontal_tb)
+				m_pos.height = m_line_boxes.back()->bottom();
+			else
+				m_pos.width = m_line_boxes.front()->right() - m_line_boxes.back()->left();
         }
     }
 
@@ -196,26 +202,50 @@ std::list<std::unique_ptr<litehtml::line_box_item> > litehtml::render_item_inlin
 litehtml::pixel_t litehtml::render_item_inline_context::new_box(const std::unique_ptr<line_box_item>& el, line_context& line_ctx, const containing_block_context &self_size, formatting_context* fmt_ctx)
 {
 	auto items = finish_last_box(false, self_size);
-	pixel_t line_top = 0;
-	if(!m_line_boxes.empty())
+	pixel_t line_block_pos = 0;
+	if (self_size.mode == writing_mode_horizontal_tb)
 	{
-		line_top = m_line_boxes.back()->bottom();
+		if(!m_line_boxes.empty())
+		{
+			line_block_pos = m_line_boxes.back()->bottom();
+		}
+		line_ctx.top = fmt_ctx->get_cleared_top(el->get_el(), line_block_pos);
+		line_ctx.left = 0;
+		line_ctx.right = self_size.render_width;
 	}
-    line_ctx.top = fmt_ctx->get_cleared_top(el->get_el(), line_top);
+	else
+	{
+		line_ctx.top = 0;
+		if (m_line_boxes.empty())
+		{
+			line_ctx.left = self_size.render_width;
+		}
+		else
+		{
+			line_ctx.left = m_line_boxes.back()->left();
+		}
+		line_ctx.right = self_size.render_height;
+	}
 
-    line_ctx.left = 0;
-    line_ctx.right = self_size.render_width;
     line_ctx.fix_top();
-	fmt_ctx->get_line_left_right(line_ctx.top, self_size.render_width, line_ctx.left, line_ctx.right);
+	if (self_size.mode == writing_mode_horizontal_tb)
+	{
+		fmt_ctx->get_line_left_right(line_ctx.top, self_size.render_width, line_ctx.left, line_ctx.right);
+	}
 
     if(el->get_el()->src_el()->is_inline() || el->get_el()->src_el()->is_block_formatting_context())
     {
-        if (el->get_el()->width() > line_ctx.right - line_ctx.left)
-        {            line_ctx.top = fmt_ctx->find_next_line_top(line_ctx.top, el->get_el()->width(), self_size.render_width);
-            line_ctx.left = 0;
-            line_ctx.right = self_size.render_width;
-            line_ctx.fix_top();
-			fmt_ctx->get_line_left_right(line_ctx.top, self_size.render_width, line_ctx.left, line_ctx.right);
+		pixel_t inline_size = (self_size.mode == writing_mode_horizontal_tb) ? el->get_el()->width() : el->get_el()->height();
+        if (inline_size > line_ctx.right - line_ctx.left)
+        {            
+			if (self_size.mode == writing_mode_horizontal_tb)
+			{
+				line_ctx.top = fmt_ctx->find_next_line_top(line_ctx.top, inline_size, self_size.render_width);
+				line_ctx.left = 0;
+				line_ctx.right = self_size.render_width;
+				line_ctx.fix_top();
+				fmt_ctx->get_line_left_right(line_ctx.top, self_size.render_width, line_ctx.left, line_ctx.right);
+			}
         }
     }
 
@@ -282,7 +312,10 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
     }
     line_ctx.right = self_size.render_width;
     line_ctx.fix_top();
-    fmt_ctx->get_line_left_right(line_ctx.top, self_size.render_width, line_ctx.left, line_ctx.right);
+	if (self_size.mode == writing_mode_horizontal_tb)
+	{
+		fmt_ctx->get_line_left_right(line_ctx.top, self_size.render_width, line_ctx.left, line_ctx.right);
+	}
 
     int base_level = (css().get_direction() == direction_rtl ? 1 : 0);
     item->set_bidi_level(base_level);
@@ -370,7 +403,10 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
         line_ctx.left = 0;
         line_ctx.right = self_size.render_width;
         line_ctx.fix_top();
-		fmt_ctx->get_line_left_right(line_ctx.top, self_size.render_width, line_ctx.left, line_ctx.right);
+		if (self_size.mode == writing_mode_horizontal_tb)
+		{
+			fmt_ctx->get_line_left_right(line_ctx.top, self_size.render_width, line_ctx.left, line_ctx.right);
+		}
     }
 
     if(!item->get_el()->src_el()->is_inline())
@@ -468,4 +504,3 @@ litehtml::pixel_t litehtml::render_item_inline_context::get_last_baseline()
 	}
 	return bl;
 }
-

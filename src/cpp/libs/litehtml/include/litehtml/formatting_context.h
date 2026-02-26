@@ -15,9 +15,10 @@ namespace litehtml
 		pixel_pixel_cache m_cache_line_right;
 		pixel_t m_current_top;
 		pixel_t m_current_left;
+		writing_mode m_writing_mode;
 
 	public:
-		formatting_context() : m_current_top(0), m_current_left(0)	{}
+		formatting_context(writing_mode mode = writing_mode_horizontal_tb) : m_current_top(0), m_current_left(0), m_writing_mode(mode)	{}
 
 		void push_position(pixel_t x, pixel_t y)
 		{

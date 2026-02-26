@@ -76,10 +76,17 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
             for (int i = 0; i < run.count; ++i) {
                 if (is_vertical) {
                     float center_x = (float)tx + m_currentStyle.line_width / 2.0f;
-                    builder_run.pos[i * 2] = center_x - m_currentStyle.fi->desc.size / 2.0f;
-                    // Add ascent to bring the baseline down from the top of the character box
-                    builder_run.pos[i * 2 + 1] =
-                        (float)ty + (float)m_currentStyle.fi->fm_ascent + run.positions[i].fX;
+                    float gx = center_x - m_currentStyle.fi->desc.size / 2.0f;
+                    float gy = (float)ty + (float)m_currentStyle.fi->fm_ascent + run.positions[i].fX;
+
+                    if (m_currentStyle.is_vertical_punctuation) {
+                        // Offset punctuation to the top-right
+                        gx += (float)m_currentStyle.fi->desc.size * 0.6f;
+                        gy -= (float)m_currentStyle.fi->desc.size * 0.6f;
+                    }
+
+                    builder_run.pos[i * 2] = gx;
+                    builder_run.pos[i * 2 + 1] = gy;
                 } else {
                     builder_run.pos[i * 2] = run.positions[i].fX + (float)tx;
                     builder_run.pos[i * 2 + 1] = run.positions[i].fY + (float)ty;
@@ -232,13 +239,15 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
         size_t end = start + 1;
         while (
             end < analysis.chars.size() && analysis.chars[end].font == analysis.chars[start].font &&
-            analysis.chars[end].is_vertical_upright == analysis.chars[start].is_vertical_upright) {
+            analysis.chars[end].is_vertical_upright == analysis.chars[start].is_vertical_upright &&
+            analysis.chars[end].is_vertical_punctuation == analysis.chars[start].is_vertical_punctuation) {
             end++;
         }
 
         size_t run_offset = analysis.chars[start].offset;
         size_t run_len = analysis.chars[end - 1].offset + analysis.chars[end - 1].len - run_offset;
         bool is_upright = analysis.chars[start].is_vertical_upright;
+        bool is_punctuation = analysis.chars[start].is_vertical_punctuation;
 
         ShapedResult shaped =
             TextLayout::shapeText(ctx, str + run_offset, run_len, fi, mode, nullptr);
@@ -262,6 +271,10 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         if (is_upright) {
                             gx = center_x - fi->desc.size / 2.0f;
                             gy = (float)current_ty + (float)fi->fm_ascent + run.positions[i].fX;
+                            if (is_punctuation) {
+                                gx += (float)fi->desc.size * 0.6f;
+                                gy -= (float)fi->desc.size * 0.6f;
+                            }
                         } else {
                             gx = center_x;
                             gy = (float)current_ty + run.positions[i].fX;
@@ -343,6 +356,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             style.mode = mode;
             style.line_width = is_vertical ? (float)pos.width : (float)pos.height;
             style.is_vertical_upright = is_upright;
+            style.is_vertical_punctuation = is_punctuation;
             batcher->addText(shaped.blob, current_tx, current_ty, style);
         } else {
             if (batcher) batcher->flush();
@@ -359,9 +373,14 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         auto builder_run = builder.allocRunPos(run.font, run.count);
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
-                            builder_run.pos[i * 2] = center_x - fi->desc.size / 2.0f;
-                            builder_run.pos[i * 2 + 1] =
-                                (float)current_ty + (float)fi->fm_ascent + run.positions[i].fX;
+                            float gx = center_x - fi->desc.size / 2.0f;
+                            float gy = (float)current_ty + (float)fi->fm_ascent + run.positions[i].fX;
+                            if (is_punctuation) {
+                                gx += (float)fi->desc.size * 0.6f;
+                                gy -= (float)fi->desc.size * 0.6f;
+                            }
+                            builder_run.pos[i * 2] = gx;
+                            builder_run.pos[i * 2 + 1] = gy;
                         }
                     } else {
                         auto builder_run = builder.allocRunRSXform(run.font, run.count);

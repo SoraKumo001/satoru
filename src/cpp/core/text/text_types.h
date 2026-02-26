@@ -16,6 +16,7 @@ struct CharFont {
     size_t len;
     SkFont font;
     bool is_vertical_upright;
+    bool is_vertical_punctuation;
 };
 
 struct MeasureResult {
@@ -33,11 +34,13 @@ struct TextCharAnalysis {
     bool is_emoji;
     bool is_mark;
     bool is_vertical_upright;
+    bool is_vertical_punctuation;
 };
 
 struct TextAnalysis {
     std::vector<TextCharAnalysis> chars;
     std::vector<char> line_breaks;
+    std::string substituted_text;
     uint8_t bidi_level;
 };
 

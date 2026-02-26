@@ -20,6 +20,9 @@ class UnicodeService {
     // UTF-8 Decoding (Advances the pointer)
     char32_t decodeUtf8(const char** ptr) const;
 
+    // UTF-8 Encoding
+    void encodeUtf8(char32_t u, std::string& out) const;
+
     // Normalization (NFC)
     std::string normalize(const char* text) const;
 
@@ -46,6 +49,7 @@ class UnicodeService {
     // Vertical writing support
     char32_t getVerticalSubstitution(char32_t u) const;
     bool isVerticalUpright(char32_t u) const;
+    bool isVerticalPunctuation(char32_t u) const;
 
    private:
     sk_sp<SkUnicode> m_unicode;

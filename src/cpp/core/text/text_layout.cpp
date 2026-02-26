@@ -134,6 +134,8 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     bool limit_width = maxWidth >= 0;
 
     TextAnalysis analysis = analyzeText(ctx, text, total_len, fi, mode, usedCodepoints);
+    const char* shape_text = analysis.substituted_text.c_str();
+    size_t shape_len = analysis.substituted_text.size();
 
     // Use OffsetWidthRunHandler directly for measureText to support widthAtOffset
     UnicodeService& unicode = ctx->getUnicodeService();
@@ -143,10 +145,11 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     std::vector<CharFont> charFonts;
     for (const auto& ca : analysis.chars) {
         if (!charFonts.empty() && charFonts.back().font == ca.font &&
-            charFonts.back().is_vertical_upright == ca.is_vertical_upright) {
+            charFonts.back().is_vertical_upright == ca.is_vertical_upright &&
+            charFonts.back().is_vertical_punctuation == ca.is_vertical_punctuation) {
             charFonts.back().len += ca.len;
         } else {
-            charFonts.push_back({ca.len, ca.font, ca.is_vertical_upright});
+            charFonts.push_back({ca.len, ca.font, ca.is_vertical_upright, ca.is_vertical_punctuation});
         }
     }
 
@@ -154,18 +157,19 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     SatoruFontRunIterator fontRuns(charFonts);
     uint8_t itemLevel = analysis.bidi_level;
     std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
-        SkShaper::MakeBiDiRunIterator(text, total_len, itemLevel);
-    if (!bidi) bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, total_len);
+        SkShaper::MakeBiDiRunIterator(shape_text, shape_len, itemLevel);
+    if (!bidi) bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, shape_len);
     std::unique_ptr<SkShaper::ScriptRunIterator> script =
-        SkShaper::MakeSkUnicodeHbScriptRunIterator(text, total_len);
+        SkShaper::MakeSkUnicodeHbScriptRunIterator(shape_text, shape_len);
     if (!script)
         script = std::make_unique<SkShaper::TrivialScriptRunIterator>(
-            SkSetFourByteTag('Z', 'y', 'y', 'y'), total_len);
+            SkSetFourByteTag('Z', 'y', 'y', 'y'), shape_len);
     std::unique_ptr<SkShaper::LanguageRunIterator> lang =
-        SkShaper::MakeStdLanguageRunIterator(text, total_len);
-    if (!lang) lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", total_len);
+        SkShaper::MakeStdLanguageRunIterator(shape_text, shape_len);
+    if (!lang) lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", shape_len);
 
-    shaper->shape(text, total_len, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000, &handler);
+    shaper->shape(shape_text, shape_len, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000,
+                  &handler);
 
     if (!limit_width || handler.width() <= maxWidth + 0.01) {
         result.width = std::min(handler.width(), limit_width ? maxWidth : handler.width());
@@ -231,7 +235,7 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
         ca.offset = p - text;
         const char* prev_p = p;
         ca.codepoint = unicode.decodeUtf8(&p);
-        ca.len = p - prev_p;
+        size_t original_len = p - prev_p;
 
         if (mode != litehtml::writing_mode_horizontal_tb) {
             ca.codepoint = unicode.getVerticalSubstitution(ca.codepoint);
@@ -239,12 +243,19 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
 
         if (usedCodepoints) usedCodepoints->insert(ca.codepoint);
 
+        size_t current_sub_offset = analysis.substituted_text.size();
+        unicode.encodeUtf8(ca.codepoint, analysis.substituted_text);
+        ca.len = analysis.substituted_text.size() - current_sub_offset;
+        ca.offset = current_sub_offset;
+
         ca.is_emoji = unicode.isEmoji(ca.codepoint);
         ca.is_mark = unicode.isMark(ca.codepoint);
 
         if (mode == litehtml::writing_mode_horizontal_tb) {
             ca.is_vertical_upright = true;
+            ca.is_vertical_punctuation = false;
         } else {
+            ca.is_vertical_punctuation = unicode.isVerticalPunctuation(ca.codepoint);
             if (fi->desc.orientation == litehtml::text_orientation_upright) {
                 ca.is_vertical_upright = true;
             } else if (fi->desc.orientation == litehtml::text_orientation_sideways) {
@@ -294,14 +305,17 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
     }
 
     TextAnalysis analysis = analyzeText(ctx, text, len, fi, mode, usedCodepoints);
+    const char* shape_text = analysis.substituted_text.c_str();
+    size_t shape_len = analysis.substituted_text.size();
 
     std::vector<CharFont> charFonts;
     for (const auto& ca : analysis.chars) {
         if (!charFonts.empty() && charFonts.back().font == ca.font &&
-            charFonts.back().is_vertical_upright == ca.is_vertical_upright) {
+            charFonts.back().is_vertical_upright == ca.is_vertical_upright &&
+            charFonts.back().is_vertical_punctuation == ca.is_vertical_punctuation) {
             charFonts.back().len += ca.len;
         } else {
-            charFonts.push_back({ca.len, ca.font, ca.is_vertical_upright});
+            charFonts.push_back({ca.len, ca.font, ca.is_vertical_upright, ca.is_vertical_punctuation});
         }
     }
 
@@ -309,24 +323,25 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
     SkShaper* shaper = ctx->getShaper();
     if (!shaper) return result;
 
-    SkTextBlobBuilderRunHandler blobHandler(text, {0, 0});
+    SkTextBlobBuilderRunHandler blobHandler(shape_text, {0, 0});
     WidthProxyRunHandler handler(&blobHandler, result, mode);
 
     SatoruFontRunIterator fontRuns(charFonts);
     uint8_t itemLevel = analysis.bidi_level;
     std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
-        SkShaper::MakeBiDiRunIterator(text, len, itemLevel);
-    if (!bidi) bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, len);
+        SkShaper::MakeBiDiRunIterator(shape_text, shape_len, itemLevel);
+    if (!bidi) bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, shape_len);
     std::unique_ptr<SkShaper::ScriptRunIterator> script =
-        SkShaper::MakeSkUnicodeHbScriptRunIterator(text, len);
+        SkShaper::MakeSkUnicodeHbScriptRunIterator(shape_text, shape_len);
     if (!script)
         script = std::make_unique<SkShaper::TrivialScriptRunIterator>(
-            SkSetFourByteTag('Z', 'y', 'y', 'y'), len);
+            SkSetFourByteTag('Z', 'y', 'y', 'y'), shape_len);
     std::unique_ptr<SkShaper::LanguageRunIterator> lang =
-        SkShaper::MakeStdLanguageRunIterator(text, len);
-    if (!lang) lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", len);
+        SkShaper::MakeStdLanguageRunIterator(shape_text, shape_len);
+    if (!lang) lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", shape_len);
 
-    shaper->shape(text, len, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000, &handler);
+    shaper->shape(shape_text, shape_len, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000,
+                  &handler);
 
     result.blob = blobHandler.makeBlob();
 

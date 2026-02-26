@@ -26,6 +26,14 @@ char32_t UnicodeService::decodeUtf8(const char** ptr) const {
     return (char32_t)cp;
 }
 
+void UnicodeService::encodeUtf8(char32_t u, std::string& out) const {
+    utf8proc_uint8_t buf[4];
+    utf8proc_ssize_t len = utf8proc_encode_char((utf8proc_int32_t)u, buf);
+    if (len > 0) {
+        out.append((const char*)buf, len);
+    }
+}
+
 std::string UnicodeService::normalize(const char* text) const {
     if (!text || !*text) return "";
     utf8proc_uint8_t* retval = nullptr;
@@ -142,27 +150,13 @@ char32_t UnicodeService::getVerticalSubstitution(char32_t u) const {
     // CJK Compatibility Forms (U+FE30 to U+FE4F)
 
     switch (u) {
-        // Punctuation
-        case 0x3001:
-            return 0xFE11;  // IDEOGRAPHIC COMMA (、)
-        case 0x3002:
-            return 0xFE12;  // IDEOGRAPHIC FULL STOP (。)
-        case 0xFF0C:
-            return 0xFE10;  // FULLWIDTH COMMA (，)
-        case 0xFF0E:
-            return 0xFE12;  // FULLWIDTH FULL STOP (．)
-        case 0xFF1A:
-            return 0xFE13;  // FULLWIDTH COLON (：)
-        case 0xFF1B:
-            return 0xFE14;  // FULLWIDTH SEMICOLON (；)
-        case 0xFF01:
-            return 0xFE15;  // FULLWIDTH EXCLAMATION MARK (！)
-        case 0xFF1F:
-            return 0xFE16;  // FULLWIDTH QUESTION MARK (？)
-        case 0x2026:
-            return 0xFE19;  // HORIZONTAL ELLIPSIS (…)
+        // Punctuation - do NOT substitute here, handled by manual offset in TextRenderer
+        // case 0x3001: return 0xFE11;
+        // case 0x3002: return 0xFE12;
+
+        // EM DASH (—)
         case 0x2014:
-            return 0xFE31;  // EM DASH (—)
+            return 0xFE31;
 
         // Brackets
         case 0x3008:
@@ -237,6 +231,10 @@ bool UnicodeService::isVerticalUpright(char32_t u) const {
     if (isEmoji(u)) return true;
 
     return false;
+}
+
+bool UnicodeService::isVerticalPunctuation(char32_t u) const {
+    return u == 0x3001 || u == 0x3002 || u == 0xFF0C || u == 0xFF0E;
 }
 
 }  // namespace satoru

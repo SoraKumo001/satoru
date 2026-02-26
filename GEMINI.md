@@ -5,19 +5,25 @@
 This section defines the core rules for an agent's behavior within this project.
 
 ### 1.1 Shell Environment: Windows PowerShell
+
 - **Command Chaining**: Use `;` for sequential execution (do NOT use `&&` or `||`).
 - **Constraint**: Do not execute multiple shell commands in parallel.
 
 ### 1.2 Communication & Troubleshooting
+
 - **Progress Reporting**: Always report your current status in the user's language concisely before and during each step.
 - **Hash Mismatch**: If encountered, immediately re-read the file with `get_text_file_contents` to synchronize. If the issue persists, overwrite the entire file using `write_file`.
 
 ### 1.3 Git Usage
+
 - **No Write Operations**: Do not perform `git add`, `commit`, `push`, etc., unless explicitly and specifically instructed by the user.
 - **Read-Only Access**: `status`, `diff`, and `log` are permitted and recommended for gathering context.
 
 ### 1.4 Serena Tool Constraints
-- **serena__read_file**: Use of `serena__read_file` is strictly prohibited. Use `read_text_file` or other alternative tools instead.
+
+- **serena\_\_read_file**: Use of `serena__read_file` is strictly prohibited. Use `read_text_file` or other alternative tools instead.
+- **replace_content**: Use of `replace_content` is strictly prohibited. Use `edit_file` or other alternative tools instead.
+- **find_symbol**: Use of `find_symbol` is strictly prohibited. Use `get_symbols_overview` and `read_text_file` with line numbers or other alternative tools instead.
 
 ---
 
@@ -37,6 +43,7 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 ## 3. Technical Specifications & Architecture
 
 ### 3.1 Directory Structure
+
 - `src/cpp/api`: Emscripten API implementation (`satoru_api.cpp`).
 - `src/cpp/bridge`: Unified type definitions and constants shared across modules (`bridge_types.h`, `magic_tags.h`).
 - `src/cpp/core`: Layout/Rendering core, resource management, and master CSS.
@@ -65,6 +72,7 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - **Binary Pipelines**: Optimized direct rendering to `SkSurface` (PNG/WebP) or `SkPDFDocument` (PDF).
 
 ### 3.3 CSS Engine (litehtml Customizations)
+
 - **Cascade & Specificity**: Strict W3C cascade order.
 - **Dynamic Lengths**: Full support for `min()`, `max()`, and `clamp()` functions with recursive evaluation.
 - **International Text**:
@@ -73,6 +81,7 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - **Decoration**: Advanced decoration support including `wavy` underlines.
 
 ### 3.4 Resource Management & Global Caching
+
 - **Font Caching**: 2-level lookup (URL + FNV-1a hash) with global management of `SkTypeface`.
 - **Automatic Resolution**: Integrated Google Fonts provider support and automatic parsing of dynamic CSS font rules.
 
@@ -81,11 +90,13 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 ## 4. Development & Verification Workflow
 
 ### 4.1 Build Commands
+
 - `pnpm wasm:configure`: Configure CMake with Ninja.
 - `pnpm wasm:build`: Compile C++ to Wasm (uses Thin LTO and -O3 in production).
 - `pnpm build`: Full monorepo build.
 
 ### 4.2 Verification Protocol
+
 1. **Build Check**: Ensure Wasm compilation success.
 2. **Visual Audit**: Run `pnpm --filter visual-test convert-assets` and inspect outputs in `temp/`.
 3. **Log Analysis**: Use `--verbose` to inspect layout passes and cache hits/misses.

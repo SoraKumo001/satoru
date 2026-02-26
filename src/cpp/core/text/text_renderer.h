@@ -39,7 +39,7 @@ class TextBatcher {
     TextBatcher(SatoruContext* ctx, SkCanvas* canvas)
         : m_ctx(ctx), m_canvas(canvas), m_active(false) {
         m_currentStyle = {nullptr, {0, 0, 0, 0}, 0.0f, false, litehtml::writing_mode_horizontal_tb,
-                          0.0f,    true, false};
+                          0.0f,    true,         false};
     }
 
     void addText(const sk_sp<SkTextBlob>& blob, double tx, double ty, const Style& style);

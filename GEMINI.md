@@ -102,18 +102,3 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 3. **Log Analysis**: Use `--verbose` to inspect layout passes and cache hits/misses.
 
 ---
-
-## 5. Roadmap & Progress
-
-- [x] **Phase 1: BoxConstraints Introduction** (Unified sizing logic).
-- [x] **Phase 2: Decoupled Layout Pipeline** (Separated Measure/Place passes, $O(N)$ optimization).
-- [x] **Phase 3: W3C Flexbox Compliance** (Multi-step resolution algorithm).
-- [x] **Phase 4: Lightweight Anonymous Boxes** (`el_anonymous` introduction).
-- [x] **Phase 5: Centering Bug Fixes** (Preserved `size_mode_exact` flags).
-- [x] **Phase 6: Visual Validation** (Verified core assets).
-- [x] **Phase 7: Pipeline Optimization & Caching** (Layout state caching).
-- [x] **Phase 8: Advanced CSS Shapes & Filters** (`clip-path`, `backdrop-filter`).
-- [x] **Phase 9: Dynamic CSS Lengths** (`min()`, `max()`, `clamp()`).
-- [x] **Phase 10: Robust Text Stack & LRU Caching** (BiDi support, LRU eviction for shaping/measurement).
-- [x] **Phase 11: High-Performance SVG Pipeline** (FSM parser refactor).
-- [x] **Phase 12: Vertical Writing Support** (Logical properties, upright/sideways orientation, vertical layout pipeline).

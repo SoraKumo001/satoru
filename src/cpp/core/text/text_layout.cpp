@@ -70,9 +70,7 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
 
     OffsetWidthRunHandler(litehtml::writing_mode mode) : fWidth(0), fMode(mode) {}
     void beginLine() override {}
-    void runInfo(const RunInfo& info) override {
-        fWidth += info.fAdvance.fX;
-    }
+    void runInfo(const RunInfo& info) override { fWidth += info.fAdvance.fX; }
     void commitRunInfo() override {}
     Buffer runBuffer(const RunInfo& info) override {
         fCurrentRunOffsets.resize(info.glyphCount);
@@ -149,7 +147,8 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
             charFonts.back().is_vertical_punctuation == ca.is_vertical_punctuation) {
             charFonts.back().len += ca.len;
         } else {
-            charFonts.push_back({ca.len, ca.font, ca.is_vertical_upright, ca.is_vertical_punctuation});
+            charFonts.push_back(
+                {ca.len, ca.font, ca.is_vertical_upright, ca.is_vertical_punctuation});
         }
     }
 
@@ -315,7 +314,8 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
             charFonts.back().is_vertical_punctuation == ca.is_vertical_punctuation) {
             charFonts.back().len += ca.len;
         } else {
-            charFonts.push_back({ca.len, ca.font, ca.is_vertical_upright, ca.is_vertical_punctuation});
+            charFonts.push_back(
+                {ca.len, ca.font, ca.is_vertical_upright, ca.is_vertical_punctuation});
         }
     }
 

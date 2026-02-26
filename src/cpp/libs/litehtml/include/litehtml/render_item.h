@@ -11,6 +11,7 @@
 #include "formatting_context.h"
 #include "element.h"
 #include "scroll_view.h"
+#include "../../../core/logical_geometry.h"
 
 namespace litehtml
 {
@@ -182,6 +183,51 @@ namespace litehtml
         pixel_t border_inline_end() const;
         pixel_t border_block_start() const;
         pixel_t border_block_end() const;
+
+        void margin_inline_start(pixel_t val);
+        void margin_inline_end(pixel_t val);
+        void margin_block_start(pixel_t val);
+        void margin_block_end(pixel_t val);
+
+        void padding_inline_start(pixel_t val);
+        void padding_inline_end(pixel_t val);
+        void padding_block_start(pixel_t val);
+        void padding_block_end(pixel_t val);
+
+        void border_inline_start(pixel_t val);
+        void border_inline_end(pixel_t val);
+        void border_block_start(pixel_t val);
+        void border_block_end(pixel_t val);
+
+        pixel_t content_inline_start() const
+        {
+            return margin_inline_start() + padding_inline_start() + border_inline_start();
+        }
+
+        pixel_t content_inline_end() const
+        {
+            return margin_inline_end() + padding_inline_end() + border_inline_end();
+        }
+
+        pixel_t content_block_start() const
+        {
+            return margin_block_start() + padding_block_start() + border_block_start();
+        }
+
+        pixel_t content_block_end() const
+        {
+            return margin_block_end() + padding_block_end() + border_block_end();
+        }
+
+        pixel_t content_inline_offset_size() const
+        {
+            return content_inline_start() + content_inline_end();
+        }
+
+        pixel_t content_block_offset_size() const
+        {
+            return content_block_start() + content_block_end();
+        }
 
         pixel_t padding_top() const
         {

@@ -6,9 +6,9 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 {
     element_position el_position;
 
-	pixel_t ret_width = 0;
-    pixel_t child_top = 0;
-    pixel_t last_margin = 0;
+	pixel_t max_inline_size = 0;
+    pixel_t block_offset = 0;
+    pixel_t last_block_margin = 0;
 	std::shared_ptr<render_item> last_margin_el;
     bool is_first = true;
     for (const auto& el : m_children)
@@ -22,10 +22,10 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 
         if(el->src_el()->css().get_float() != float_none)
         {
-            pixel_t rw = place_float(el, child_top, self_size, fmt_ctx);
-            if (rw > ret_width)
+            pixel_t rw = place_float(el, block_offset, self_size, fmt_ctx);
+            if (rw > max_inline_size)
             {
-                ret_width = rw;
+                max_inline_size = rw;
             }
         } else if(el->src_el()->css().get_display() != display_none)
         {
@@ -38,15 +38,15 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 				}
 				if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 				{
-					el->place_logical(0, child_top, self_size.new_width(min_rendered_width), fmt_ctx);
+					el->place_logical(0, block_offset, self_size.new_width(min_rendered_width), fmt_ctx);
 				}
             } else
             {
-                child_top = fmt_ctx->get_cleared_top(el, child_top);
-                pixel_t child_x  = 0;
-				pixel_t child_width = self_size.render_width;
+                block_offset = fmt_ctx->get_cleared_top(el, block_offset);
+                pixel_t inline_offset  = 0;
+				pixel_t inline_available_size = self_size.render_width;
 				pixel_t line_right	= self_size.render_width;
-				pixel_t top_margin = m_margins.top;
+				pixel_t block_start_margin = m_margins.top;
 
                 el->calc_outlines(self_size.width);
 
@@ -56,59 +56,59 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 				   el->src_el()->css().get_display() == display_table)
                 {
                     pixel_t line_left = 0;
-					fmt_ctx->get_line_left_right(child_top, child_width, line_left, line_right);
-					if(line_left != child_x)
+					fmt_ctx->get_line_left_right(block_offset, inline_available_size, line_left, line_right);
+					if(line_left != inline_offset)
 					{
-						child_x = line_left - el->margin_left();
+						inline_offset = line_left - el->margin_inline_start();
 					}
 					if(line_right != self_size.render_width)
                     {
-                        line_right += el->margin_right();
+                        line_right += el->margin_inline_end();
                     }
 					if(el->css().get_width().is_predefined())
 					{
-						child_width = line_right - line_left;
+						inline_available_size = line_right - line_left;
                     }
                 }
 
 				// Collapse top margin
 				if(is_first && collapse_top_margin())
 				{
-					if(el->get_margins().top > 0)
+					if(el->margin_block_start() > 0)
 					{
-						child_top -= el->get_margins().top;
-						if (el->get_margins().top > get_margins().top)
+						block_offset -= el->margin_block_start();
+						if (el->margin_block_start() > margin_block_start())
 						{
-							top_margin = el->get_margins().top;
+							block_start_margin = el->margin_block_start();
 						}
 					}
 				} else
 				{
-					if(el->get_margins().top > 0)
+					if(el->margin_block_start() > 0)
 					{
-						if (last_margin > el->get_margins().top)
+						if (last_block_margin > el->margin_block_start())
 						{
-							child_top -= el->get_margins().top;
+							block_offset -= el->margin_block_start();
 						} else
 						{
-							child_top -= last_margin;
+							block_offset -= last_block_margin;
 						}
 					}
 				}
 
-				pixel_t rw = el->measure(self_size.new_width(child_width), fmt_ctx);
+				pixel_t rw = el->measure(self_size.new_width(inline_available_size), fmt_ctx);
 				if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 				{
-					el->place_logical(child_x, child_top, self_size.new_width(child_width), fmt_ctx);
+					el->place_logical(inline_offset, block_offset, self_size.new_width(inline_available_size), fmt_ctx);
 				}
 
 				// Render table with "width: auto" into returned width
-				if(el->src_el()->css().get_display() == display_table && rw < child_width && el->src_el()->css().get_width().is_predefined())
+				if(el->src_el()->css().get_display() == display_table && rw < inline_available_size && el->src_el()->css().get_width().is_predefined())
 				{
 					rw = el->measure(self_size.new_width(rw), fmt_ctx);
 					if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 					{
-						el->place_logical(child_x, child_top, self_size.new_width(rw), fmt_ctx);
+						el->place_logical(inline_offset, block_offset, self_size.new_width(rw), fmt_ctx);
 					}
 				}
 
@@ -117,25 +117,25 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 				   el->src_el()->is_block_formatting_context() ||
 				   el->src_el()->css().get_display() == display_table)
 				{
-					if(el->right() > line_right)
+					if(el->inline_size() > line_right)
 					{
                         pixel_t ln_left  = 0;
-                        pixel_t ln_right = el->width();
-						pixel_t new_top	 = fmt_ctx->find_next_line_top(child_top, el->width(), ln_right);
+                        pixel_t ln_right = el->inline_size();
+						pixel_t new_block_offset = fmt_ctx->find_next_line_top(block_offset, el->inline_size(), ln_right);
 						// If block was moved to the next line, recalculate its position
-						if(new_top != child_top)
+						if(new_block_offset != block_offset)
 						{
-							child_top = new_top;
-							fmt_ctx->get_line_left_right(child_top, el->width(), ln_left, ln_right);
+							block_offset = new_block_offset;
+							fmt_ctx->get_line_left_right(block_offset, el->inline_size(), ln_left, ln_right);
 							if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 							{
-								el->place_logical(ln_left, child_top, self_size.new_width(child_width), fmt_ctx);
+								el->place_logical(ln_left, block_offset, self_size.new_width(inline_available_size), fmt_ctx);
 							}
-							child_top	-= el->get_margins().top;
+							block_offset -= el->margin_block_start();
 							// Rollback top margin collapse
 							if(is_first && collapse_top_margin())
 							{
-								top_margin = m_margins.top;
+								block_start_margin = margin_block_start();
 							}
 						}
                     }
@@ -143,19 +143,19 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 
 				if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 				{
-					pixel_t auto_margin = el->calc_auto_margins(child_width);
+					pixel_t auto_margin = el->calc_auto_margins(inline_available_size);
 					if(auto_margin != 0)
 					{
 						el->pos().x += auto_margin;
 					}
 				}
-                if (rw > ret_width)
+                if (rw > max_inline_size)
                 {
-                    ret_width = rw;
+                    max_inline_size = rw;
 				}
-				m_margins.top = top_margin;
-                child_top += el->block_size();
-                last_margin = el->get_margins().bottom;
+				margin_block_start(block_start_margin);
+                block_offset += el->block_size();
+                last_block_margin = el->margin_block_end();
 				last_margin_el = el;
                 is_first = false;
 
@@ -172,38 +172,38 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
         if(self_size.mode == writing_mode_horizontal_tb) m_pos.height = self_size.height; else m_pos.width = self_size.width;
         if(src_el()->css().get_display() == display_table_cell)
         {
-            if(self_size.mode == writing_mode_horizontal_tb) m_pos.height = std::max(m_pos.height, child_top); else m_pos.width = std::max(m_pos.width, child_top);
+            if(self_size.mode == writing_mode_horizontal_tb) m_pos.height = std::max(m_pos.height, block_offset); else m_pos.width = std::max(m_pos.width, block_offset);
             if(collapse_bottom_margin())
             {
-                m_pos.height -= last_margin;
-                if(m_margins.bottom < last_margin)
+                if(self_size.mode == writing_mode_horizontal_tb) m_pos.height -= last_block_margin; else m_pos.width -= last_block_margin;
+                if(margin_block_end() < last_block_margin)
                 {
-                    m_margins.bottom = last_margin;
+                    margin_block_end(last_block_margin);
                 }
                 if(last_margin_el)
                 {
-                    last_margin_el->get_margins().bottom = 0;
+                    last_margin_el->margin_block_end(0);
                 }
             }
         }
     } else
     {
-        if(self_size.mode == writing_mode_horizontal_tb) m_pos.height = child_top; else m_pos.width = child_top;
+        if(self_size.mode == writing_mode_horizontal_tb) m_pos.height = block_offset; else m_pos.width = block_offset;
         if(collapse_bottom_margin())
         {
-            m_pos.height -= last_margin;
-            if(m_margins.bottom < last_margin)
+            if(self_size.mode == writing_mode_horizontal_tb) m_pos.height -= last_block_margin; else m_pos.width -= last_block_margin;
+            if(margin_block_end() < last_block_margin)
             {
-                m_margins.bottom = last_margin;
+                margin_block_end(last_block_margin);
             }
 			if(last_margin_el)
 			{
-				last_margin_el->get_margins().bottom = 0;
+				last_margin_el->margin_block_end(0);
 			}
         }
     }
 
-    return ret_width;
+    return max_inline_size;
 }
 
 litehtml::pixel_t litehtml::render_item_block_context::get_first_baseline()

@@ -1663,18 +1663,18 @@ litehtml::pixel_t litehtml::render_item::inline_size() const
 {
 	if (css().get_writing_mode() == writing_mode_horizontal_tb)
 	{
-		return width();
+		return m_pos.width + m_margins.width() + m_borders.width() + m_padding.width();
 	}
-	return height();
+	return m_pos.height + m_margins.height() + m_borders.height() + m_padding.height();
 }
 
 litehtml::pixel_t litehtml::render_item::block_size() const
 {
 	if (css().get_writing_mode() == writing_mode_horizontal_tb)
 	{
-		return height();
+		return m_pos.height + m_margins.height() + m_borders.height() + m_padding.height();
 	}
-	return width();
+	return m_pos.width + m_margins.width() + m_borders.width() + m_padding.width();
 }
 
 litehtml::pixel_t litehtml::render_item::margin_inline_start() const
@@ -1807,6 +1807,84 @@ litehtml::pixel_t litehtml::render_item::border_block_end() const
 		return m_borders.left;
 	}
 	return m_borders.right;
+}
+
+void litehtml::render_item::margin_inline_start(pixel_t val)
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_margins.left = val;
+	else m_margins.top = val;
+}
+
+void litehtml::render_item::margin_inline_end(pixel_t val)
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_margins.right = val;
+	else m_margins.bottom = val;
+}
+
+void litehtml::render_item::margin_block_start(pixel_t val)
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_margins.top = val;
+	else if (css().get_writing_mode() == writing_mode_vertical_rl) m_margins.right = val;
+	else m_margins.left = val;
+}
+
+void litehtml::render_item::margin_block_end(pixel_t val)
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_margins.bottom = val;
+	else if (css().get_writing_mode() == writing_mode_vertical_rl) m_margins.left = val;
+	else m_margins.right = val;
+}
+
+void litehtml::render_item::padding_inline_start(pixel_t val)
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_padding.left = val;
+	else m_padding.top = val;
+}
+
+void litehtml::render_item::padding_inline_end(pixel_t val)
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_padding.right = val;
+	else m_padding.bottom = val;
+}
+
+void litehtml::render_item::padding_block_start(pixel_t val)
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_padding.top = val;
+	else if (css().get_writing_mode() == writing_mode_vertical_rl) m_padding.right = val;
+	else m_padding.left = val;
+}
+
+void litehtml::render_item::padding_block_end(pixel_t val)
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_padding.bottom = val;
+	else if (css().get_writing_mode() == writing_mode_vertical_rl) m_padding.left = val;
+	else m_padding.right = val;
+}
+
+void litehtml::render_item::border_inline_start(pixel_t val)
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_borders.left = val;
+	else m_borders.top = val;
+}
+
+void litehtml::render_item::border_inline_end(pixel_t val)
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_borders.right = val;
+	else m_borders.bottom = val;
+}
+
+void litehtml::render_item::border_block_start(pixel_t val)
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_borders.top = val;
+	else if (css().get_writing_mode() == writing_mode_vertical_rl) m_borders.right = val;
+	else m_borders.left = val;
+}
+
+void litehtml::render_item::border_block_end(pixel_t val)
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_borders.bottom = val;
+	else if (css().get_writing_mode() == writing_mode_vertical_rl) m_borders.left = val;
+	else m_borders.right = val;
 }
 
 

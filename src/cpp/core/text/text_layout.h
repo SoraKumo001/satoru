@@ -15,6 +15,10 @@ namespace satoru {
 
 class TextLayout {
    public:
+    static TextAnalysis analyzeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
+                                    litehtml::writing_mode mode = litehtml::writing_mode_horizontal_tb,
+                                    std::set<char32_t>* usedCodepoints = nullptr);
+
     static MeasureResult measureText(SatoruContext* ctx, const char* text, font_info* fi,
                                      litehtml::writing_mode mode = litehtml::writing_mode_horizontal_tb,
                                      double maxWidth = -1.0, 
@@ -32,11 +36,6 @@ class TextLayout {
     static void splitText(SatoruContext* ctx, const char* text,
                           const std::function<void(const char*)>& onWord,
                           const std::function<void(const char*)>& onSpace);
-
-   private:
-    static TextAnalysis analyzeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
-                                    litehtml::writing_mode mode = litehtml::writing_mode_horizontal_tb,
-                                    std::set<char32_t>* usedCodepoints = nullptr);
 };
 
 }  // namespace satoru

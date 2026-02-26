@@ -27,14 +27,9 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
         if (fInner) fInner->beginLine();
     }
     void runInfo(const SkShaper::RunHandler::RunInfo& info) override {
-        // info.fAdvance is already oriented correctly by SkShaper for vertical/horizontal
-        // We take the primary advance direction based on writing mode
-        if (fMode == litehtml::writing_mode_horizontal_tb) {
-            fResult.width += info.fAdvance.fX;
-        } else {
-            // For vertical modes, the primary advance is Y
-            fResult.width += info.fAdvance.fY;
-        }
+        // Currently we use horizontal advances even for vertical layout
+        // (faux-vertical). So we always take fX as the advance along the line.
+        fResult.width += info.fAdvance.fX;
         if (fInner) fInner->runInfo(info);
     }
     void commitRunInfo() override {
@@ -76,11 +71,7 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
     OffsetWidthRunHandler(litehtml::writing_mode mode) : fWidth(0), fMode(mode) {}
     void beginLine() override {}
     void runInfo(const RunInfo& info) override {
-        if (fMode == litehtml::writing_mode_horizontal_tb) {
-            fWidth += info.fAdvance.fX;
-        } else {
-            fWidth += info.fAdvance.fY;
-        }
+        fWidth += info.fAdvance.fX;
     }
     void commitRunInfo() override {}
     Buffer runBuffer(const RunInfo& info) override {
@@ -90,12 +81,7 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
     }
     void commitRunBuffer(const RunInfo& info) override {
         for (size_t i = 0; i < info.glyphCount; ++i) {
-            float advance;
-            if (fMode == litehtml::writing_mode_horizontal_tb) {
-                advance = std::abs(fCurrentRunPositions[i + 1].fX - fCurrentRunPositions[i].fX);
-            } else {
-                advance = std::abs(fCurrentRunPositions[i + 1].fY - fCurrentRunPositions[i].fY);
-            }
+            float advance = std::abs(fCurrentRunPositions[i + 1].fX - fCurrentRunPositions[i].fX);
             fGlyphs.push_back({fCurrentRunOffsets[i], advance});
         }
     }
@@ -290,6 +276,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
     key.italic = (fi->desc.style == litehtml::font_style_italic);
     key.is_rtl = fi->is_rtl;
     key.mode = mode;
+    key.orientation = fi->desc.orientation;
 
     if (ShapedResult* cached = ctx->shapingCache.get(key)) {
         if (usedCodepoints) {
@@ -307,10 +294,11 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
 
     std::vector<CharFont> charFonts;
     for (const auto& ca : analysis.chars) {
-        if (!charFonts.empty() && charFonts.back().font == ca.font) {
+        if (!charFonts.empty() && charFonts.back().font == ca.font &&
+            charFonts.back().is_vertical_upright == ca.is_vertical_upright) {
             charFonts.back().len += ca.len;
         } else {
-            charFonts.push_back({ca.len, ca.font});
+            charFonts.push_back({ca.len, ca.font, ca.is_vertical_upright});
         }
     }
 

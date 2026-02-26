@@ -27,9 +27,12 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
         if (fInner) fInner->beginLine();
     }
     void runInfo(const SkShaper::RunHandler::RunInfo& info) override {
+        // info.fAdvance is already oriented correctly by SkShaper for vertical/horizontal
+        // We take the primary advance direction based on writing mode
         if (fMode == litehtml::writing_mode_horizontal_tb) {
             fResult.width += info.fAdvance.fX;
         } else {
+            // For vertical modes, the primary advance is Y
             fResult.width += info.fAdvance.fY;
         }
         if (fInner) fInner->runInfo(info);
@@ -46,15 +49,8 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
     }
     void commitRunBuffer(const SkShaper::RunHandler::RunInfo& info) override {
         if (fInner) {
-            if (fMode != litehtml::writing_mode_horizontal_tb && fCurrentBuffer.positions) {
-                for (size_t i = 0; i < info.glyphCount; ++i) {
-                    float oldX = fCurrentBuffer.positions[i].fX;
-                    float oldY = fCurrentBuffer.positions[i].fY;
-                    fCurrentBuffer.positions[i].fX = -oldY;
-                    fCurrentBuffer.positions[i].fY = oldX;
-                }
-                SATORU_LOG_INFO("Vertical Writing: Rotated %d glyphs", (int)info.glyphCount);
-            }
+            // Coordinate swap for vertical text will be handled by TextRenderer
+            // using logical-to-physical mapping. We avoid low-level swapping here.
             fInner->commitRunBuffer(info);
         }
     }

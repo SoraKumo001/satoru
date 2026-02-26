@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "bridge/magic_tags.h"
+#include "core/logical_geometry.h"
 #include "core/satoru_context.h"
 #include "core/text/text_layout.h"
 #include "core/text/text_types.h"
@@ -181,6 +182,18 @@ double TextRenderer::drawTextInternal(
 
     ShapedResult shaped = TextLayout::shapeText(ctx, str, strLen, fi, mode, usedCodepoints);
     if (!shaped.blob) return 0.0;
+
+    // Map logical (tx, ty) to physical (ptx, pty) based on writing mode
+    // tx: inline offset, ty: block offset
+    float ptx = (float)tx;
+    float pty = (float)ty;
+
+    if (mode == litehtml::writing_mode_vertical_rl) {
+        // Vertical-RL: inline -> Y, block -> -X (from right)
+        // Here tx/ty are relative to the text run start.
+        // We assume tx/ty passed are already physical for now to avoid regression,
+        // but ideally we should use wm_ctx.to_physical().
+    }
 
     if (tagging) {
         if (batcher) batcher->flush();

@@ -165,6 +165,24 @@ namespace litehtml
             return m_pos.width + m_margins.width() + m_padding.width() + m_borders.width();
         }
 
+        pixel_t inline_size() const;
+        pixel_t block_size() const;
+
+        pixel_t margin_inline_start() const;
+        pixel_t margin_inline_end() const;
+        pixel_t margin_block_start() const;
+        pixel_t margin_block_end() const;
+
+        pixel_t padding_inline_start() const;
+        pixel_t padding_inline_end() const;
+        pixel_t padding_block_start() const;
+        pixel_t padding_block_end() const;
+
+        pixel_t border_inline_start() const;
+        pixel_t border_inline_end() const;
+        pixel_t border_block_start() const;
+        pixel_t border_block_end() const;
+
         pixel_t padding_top() const
         {
             return m_padding.top;

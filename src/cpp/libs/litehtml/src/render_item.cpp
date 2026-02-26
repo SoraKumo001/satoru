@@ -1,4 +1,4 @@
-#include "render_item.h"
+﻿#include "render_item.h"
 #include "document.h"
 #include <typeinfo>
 #include "document_container.h"
@@ -1637,4 +1637,155 @@ litehtml::pixel_t litehtml::render_item::get_predefined_height(pixel_t parent_he
 		if (ret < 0) ret = 0;
 	}
 	return ret;
+}
+
+
+litehtml::pixel_t litehtml::render_item::inline_size() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return width();
+	}
+	return height();
+}
+
+litehtml::pixel_t litehtml::render_item::block_size() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return height();
+	}
+	return width();
+}
+
+litehtml::pixel_t litehtml::render_item::margin_inline_start() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return m_margins.left;
+	}
+	return m_margins.top;
+}
+
+litehtml::pixel_t litehtml::render_item::margin_inline_end() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return m_margins.right;
+	}
+	return m_margins.bottom;
+}
+
+litehtml::pixel_t litehtml::render_item::margin_block_start() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return m_margins.top;
+	}
+	if (css().get_writing_mode() == writing_mode_vertical_rl)
+	{
+		return m_margins.right;
+	}
+	return m_margins.left; // vertical-lr
+}
+
+litehtml::pixel_t litehtml::render_item::margin_block_end() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return m_margins.bottom;
+	}
+	if (css().get_writing_mode() == writing_mode_vertical_rl)
+	{
+		return m_margins.left;
+	}
+	return m_margins.right; // vertical-lr
+}
+
+litehtml::pixel_t litehtml::render_item::padding_inline_start() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return m_padding.left;
+	}
+	return m_padding.top;
+}
+
+litehtml::pixel_t litehtml::render_item::padding_inline_end() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return m_padding.right;
+	}
+	return m_padding.bottom;
+}
+
+litehtml::pixel_t litehtml::render_item::padding_block_start() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return m_padding.top;
+	}
+	if (css().get_writing_mode() == writing_mode_vertical_rl)
+	{
+		return m_padding.right;
+	}
+	return m_padding.left;
+}
+
+litehtml::pixel_t litehtml::render_item::padding_block_end() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return m_padding.bottom;
+	}
+	if (css().get_writing_mode() == writing_mode_vertical_rl)
+	{
+		return m_padding.left;
+	}
+	return m_padding.right;
+}
+
+litehtml::pixel_t litehtml::render_item::border_inline_start() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return m_borders.left;
+	}
+	return m_borders.top;
+}
+
+litehtml::pixel_t litehtml::render_item::border_inline_end() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return m_borders.right;
+	}
+	return m_borders.bottom;
+}
+
+litehtml::pixel_t litehtml::render_item::border_block_start() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return m_borders.top;
+	}
+	if (css().get_writing_mode() == writing_mode_vertical_rl)
+	{
+		return m_borders.right;
+	}
+	return m_borders.left;
+}
+
+litehtml::pixel_t litehtml::render_item::border_block_end() const
+{
+	if (css().get_writing_mode() == writing_mode_horizontal_tb)
+	{
+		return m_borders.bottom;
+	}
+	if (css().get_writing_mode() == writing_mode_vertical_rl)
+	{
+		return m_borders.left;
+	}
+	return m_borders.right;
 }

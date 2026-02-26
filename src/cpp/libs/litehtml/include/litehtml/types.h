@@ -1,4 +1,4 @@
-#ifndef LH_TYPES_H
+﻿#ifndef LH_TYPES_H
 #define LH_TYPES_H
 
 #include <cmath>
@@ -406,7 +406,26 @@ namespace litehtml
 
         using fonts_map = std::map<string, font_item>;
 
-        enum draw_flag
+#define direction_strings		"ltr;rtl"
+
+	enum direction
+	{
+		direction_ltr,
+		direction_rtl
+	};
+
+#define writing_mode_strings	"horizontal-tb;vertical-rl;vertical-lr;sideways-rl;sideways-lr"
+
+	enum writing_mode
+	{
+		writing_mode_horizontal_tb,
+		writing_mode_vertical_rl,
+		writing_mode_vertical_lr,
+		writing_mode_sideways_rl,
+		writing_mode_sideways_lr
+	};
+
+	enum draw_flag
         {
                 draw_root,
                 draw_block,
@@ -483,6 +502,7 @@ namespace litehtml
 
                 int context_idx;
                 uint32_t size_mode;
+                writing_mode mode;
 
                 containing_block_context() :
                                 width(0, cbc_value_type_auto),
@@ -494,7 +514,8 @@ namespace litehtml
                                 min_height(0, cbc_value_type_none),
                                 max_height(0, cbc_value_type_none),
                                 context_idx(0),
-                                size_mode(size_mode_normal)
+                                size_mode(size_mode_normal),
+                                mode(writing_mode_horizontal_tb)
                 {}
 
                 containing_block_context new_width(pixel_t w, uint32_t _size_mode = size_mode_normal) const
@@ -809,26 +830,7 @@ namespace litehtml
                 text_align_end
         };
 
-#define direction_strings               "ltr;rtl"
-
-		enum direction
-		{
-				direction_ltr,
-				direction_rtl
-		};
-
-#define writing_mode_strings            "horizontal-tb;vertical-rl;vertical-lr;sideways-rl;sideways-lr"
-
-		enum writing_mode
-		{
-				writing_mode_horizontal_tb,
-				writing_mode_vertical_rl,
-				writing_mode_vertical_lr,
-				writing_mode_sideways_rl,
-				writing_mode_sideways_lr
-		};
-
-#define text_orientation_strings        "mixed;upright;sideways"
+#define text_orientation_strings	"mixed;upright;sideways"
 
 		enum text_orientation
 		{

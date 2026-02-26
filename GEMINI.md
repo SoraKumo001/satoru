@@ -16,6 +16,9 @@ This section defines the core rules for an agent's behavior within this project.
 - **No Write Operations**: Do not perform `git add`, `commit`, `push`, etc., unless explicitly and specifically instructed by the user.
 - **Read-Only Access**: `status`, `diff`, and `log` are permitted and recommended for gathering context.
 
+### 1.4 Serena Tool Constraints
+- **serena__read_file**: Use of `serena__read_file` is strictly prohibited. Use `read_text_file` or other alternative tools instead.
+
 ---
 
 ## 2. Project Overview: Satoru

@@ -17,15 +17,20 @@ namespace {
 // Records total width while delegating to another handler
 class WidthProxyRunHandler : public SkShaper::RunHandler {
    public:
-    WidthProxyRunHandler(SkShaper::RunHandler* inner, ShapedResult& result)
-        : fInner(inner), fResult(result) {
+    WidthProxyRunHandler(SkShaper::RunHandler* inner, ShapedResult& result,
+                         litehtml::writing_mode mode)
+        : fInner(inner), fResult(result), fMode(mode) {
         fResult.width = 0;
     }
     void beginLine() override {
         if (fInner) fInner->beginLine();
     }
     void runInfo(const SkShaper::RunHandler::RunInfo& info) override {
-        fResult.width += info.fAdvance.fX;
+        if (fMode == litehtml::writing_mode_horizontal_tb) {
+            fResult.width += info.fAdvance.fX;
+        } else {
+            fResult.width += info.fAdvance.fY;
+        }
         if (fInner) fInner->runInfo(info);
     }
     void commitRunInfo() override {
@@ -45,6 +50,7 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
    private:
     SkShaper::RunHandler* fInner;
     ShapedResult& fResult;
+    litehtml::writing_mode fMode;
 };
 
 // Original DetailedWidthRunHandler logic for measureText widthAtOffset
@@ -55,9 +61,15 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
         float advance;
     };
 
-    OffsetWidthRunHandler() : fWidth(0) {}
+    OffsetWidthRunHandler(litehtml::writing_mode mode) : fWidth(0), fMode(mode) {}
     void beginLine() override {}
-    void runInfo(const RunInfo& info) override { fWidth += info.fAdvance.fX; }
+    void runInfo(const RunInfo& info) override {
+        if (fMode == litehtml::writing_mode_horizontal_tb) {
+            fWidth += info.fAdvance.fX;
+        } else {
+            fWidth += info.fAdvance.fY;
+        }
+    }
     void commitRunInfo() override {}
     Buffer runBuffer(const RunInfo& info) override {
         fCurrentRunOffsets.resize(info.glyphCount);
@@ -66,7 +78,12 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
     }
     void commitRunBuffer(const RunInfo& info) override {
         for (size_t i = 0; i < info.glyphCount; ++i) {
-            float advance = std::abs(fCurrentRunPositions[i + 1].fX - fCurrentRunPositions[i].fX);
+            float advance;
+            if (fMode == litehtml::writing_mode_horizontal_tb) {
+                advance = std::abs(fCurrentRunPositions[i + 1].fX - fCurrentRunPositions[i].fX);
+            } else {
+                advance = std::abs(fCurrentRunPositions[i + 1].fY - fCurrentRunPositions[i].fY);
+            }
             fGlyphs.push_back({fCurrentRunOffsets[i], advance});
         }
     }
@@ -83,6 +100,7 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
 
    private:
     double fWidth;
+    litehtml::writing_mode fMode;
     std::vector<uint32_t> fCurrentRunOffsets;
     std::vector<SkPoint> fCurrentRunPositions;
     std::vector<GlyphInfo> fGlyphs;
@@ -131,7 +149,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         }
     }
 
-    OffsetWidthRunHandler handler;
+    OffsetWidthRunHandler handler(mode);
     SatoruFontRunIterator fontRuns(charFonts);
     uint8_t itemLevel = analysis.bidi_level;
     std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
@@ -270,7 +288,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
     if (!shaper) return result;
 
     SkTextBlobBuilderRunHandler blobHandler(text, {0, 0});
-    WidthProxyRunHandler handler(&blobHandler, result);
+    WidthProxyRunHandler handler(&blobHandler, result, mode);
 
     SatoruFontRunIterator fontRuns(charFonts);
     uint8_t itemLevel = analysis.bidi_level;

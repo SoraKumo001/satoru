@@ -183,9 +183,18 @@ void litehtml::line_box::add_item(std::unique_ptr<line_box_item> item)
 	}
 	if(add)
 	{
-		item->place_to(m_left + m_width, m_top);
-		m_width += item->width();
-		m_height = std::max(m_height, item->get_el()->height());
+		if (m_writing_mode == writing_mode_horizontal_tb)
+		{
+			item->place_to(m_left + m_width, m_top);
+			m_width += item->width();
+			m_height = std::max(m_height, item->get_el()->height());
+		}
+		else
+		{
+			item->place_to(m_left, m_top + m_width);
+			m_width += item->get_el()->height();
+			m_height = std::max(m_height, item->get_el()->width());
+		}
 		m_items.emplace_back(std::move(item));
 	} else
 	{
@@ -896,9 +905,20 @@ bool litehtml::line_box::can_hold(const std::unique_ptr<line_box_item>& item, wh
 			return true;
 		}
 
-		if (m_left + m_width + item->width() > m_right)
+		if (m_writing_mode == writing_mode_horizontal_tb)
 		{
-			return false;
+			if (m_left + m_width + item->width() > m_right)
+			{
+				return false;
+			}
+		}
+		else
+		{
+			// For vertical writing, m_right is actually the bottom boundary (height limit)
+			if (m_top + m_width + item->get_el()->height() > m_right)
+			{
+				return false;
+			}
 		}
 	}
 

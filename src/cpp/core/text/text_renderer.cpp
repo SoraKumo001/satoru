@@ -77,7 +77,8 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
                 if (is_vertical) {
                     float center_x = (float)tx + m_currentStyle.line_width / 2.0f;
                     float gx = center_x - m_currentStyle.fi->desc.size / 2.0f;
-                    float gy = (float)ty + (float)m_currentStyle.fi->fm_ascent + run.positions[i].fX;
+                    float gy =
+                        (float)ty + m_currentStyle.fi->desc.size * 0.92f + run.positions[i].fX;
 
                     if (m_currentStyle.is_vertical_punctuation) {
                         // Offset punctuation to the top-right
@@ -240,7 +241,8 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
         while (
             end < analysis.chars.size() && analysis.chars[end].font == analysis.chars[start].font &&
             analysis.chars[end].is_vertical_upright == analysis.chars[start].is_vertical_upright &&
-            analysis.chars[end].is_vertical_punctuation == analysis.chars[start].is_vertical_punctuation) {
+            analysis.chars[end].is_vertical_punctuation ==
+                analysis.chars[start].is_vertical_punctuation) {
             end++;
         }
 
@@ -270,7 +272,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         float center_x = (float)current_tx + line_thickness / 2.0f;
                         if (is_upright) {
                             gx = center_x - fi->desc.size / 2.0f;
-                            gy = (float)current_ty + (float)fi->fm_ascent + run.positions[i].fX;
+                            gy = (float)current_ty + fi->desc.size * 0.92f + run.positions[i].fX;
                             if (is_punctuation) {
                                 gx += (float)fi->desc.size * 0.6f;
                                 gy -= (float)fi->desc.size * 0.6f;
@@ -374,7 +376,8 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
                             float gx = center_x - fi->desc.size / 2.0f;
-                            float gy = (float)current_ty + (float)fi->fm_ascent + run.positions[i].fX;
+                            float gy =
+                                (float)current_ty + fi->desc.size * 0.92f + run.positions[i].fX;
                             if (is_punctuation) {
                                 gx += (float)fi->desc.size * 0.6f;
                                 gy -= (float)fi->desc.size * 0.6f;

@@ -23,6 +23,7 @@ struct font_info {
     std::vector<class SkFont *> fonts;
     int fm_ascent;
     int fm_height;
+    float fm_ascent_raw;
     bool fake_bold;
     bool is_rtl;
     std::set<char32_t> used_codepoints;

@@ -43,6 +43,9 @@ class UnicodeService {
     SkUnicode* getSkUnicode() const { return m_unicode.get(); }
     sk_sp<SkUnicode> getSkUnicodeSp() const { return m_unicode; }
 
+    // Vertical writing support
+    char32_t getVerticalSubstitution(char32_t u) const;
+
    private:
     sk_sp<SkUnicode> m_unicode;
     mutable LruCache<std::string, std::vector<char>> m_lineBreakCache;

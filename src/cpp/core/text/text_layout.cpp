@@ -231,6 +231,10 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
         ca.codepoint = unicode.decodeUtf8(&p);
         ca.len = p - prev_p;
 
+        if (mode != litehtml::writing_mode_horizontal_tb) {
+            ca.codepoint = unicode.getVerticalSubstitution(ca.codepoint);
+        }
+
         if (usedCodepoints) usedCodepoints->insert(ca.codepoint);
 
         ca.is_emoji = unicode.isEmoji(ca.codepoint);

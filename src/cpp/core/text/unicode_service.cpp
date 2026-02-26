@@ -132,4 +132,47 @@ void UnicodeService::getLineBreaks(const char* text, size_t len, const char* lan
 
 void UnicodeService::clearCache() { m_lineBreakCache.clear(); }
 
+char32_t UnicodeService::getVerticalSubstitution(char32_t u) const {
+    // Basic Vertical Forms (U+FE10 to U+FE19)
+    // Small Form Variants (U+FE50 to U+FE6B) - skip these for now
+    // CJK Compatibility Forms (U+FE30 to U+FE4F)
+
+    switch (u) {
+        // Punctuation
+        case 0x3001: return 0xFE11; // IDEOGRAPHIC COMMA (、)
+        case 0x3002: return 0xFE12; // IDEOGRAPHIC FULL STOP (。)
+        case 0xFF0C: return 0xFE10; // FULLWIDTH COMMA (，)
+        case 0xFF0E: return 0xFE12; // FULLWIDTH FULL STOP (．)
+        case 0xFF1A: return 0xFE13; // FULLWIDTH COLON (：)
+        case 0xFF1B: return 0xFE14; // FULLWIDTH SEMICOLON (；)
+        case 0xFF01: return 0xFE15; // FULLWIDTH EXCLAMATION MARK (！)
+        case 0xFF1F: return 0xFE16; // FULLWIDTH QUESTION MARK (？)
+        case 0x2026: return 0xFE19; // HORIZONTAL ELLIPSIS (…)
+        case 0x2014: return 0xFE31; // EM DASH (—)
+
+        // Brackets
+        case 0x3008: return 0xFE3F; // LEFT ANGLE BRACKET (〈)
+        case 0x3009: return 0xFE40; // RIGHT ANGLE BRACKET (〉)
+        case 0x300A: return 0xFE41; // LEFT DOUBLE ANGLE BRACKET (《)
+        case 0x300B: return 0xFE42; // RIGHT DOUBLE ANGLE BRACKET (》)
+        case 0x300C: return 0xFE43; // LEFT CORNER BRACKET (「)
+        case 0x300D: return 0xFE44; // RIGHT CORNER BRACKET (」)
+        case 0x300E: return 0xFE45; // LEFT WHITE CORNER BRACKET (『)
+        case 0x300F: return 0xFE46; // RIGHT WHITE CORNER BRACKET (』)
+        case 0x3010: return 0xFE3B; // LEFT BLACK LENTICULAR BRACKET (【)
+        case 0x3011: return 0xFE3C; // RIGHT BLACK LENTICULAR BRACKET (】)
+        case 0xFF08: return 0xFE35; // FULLWIDTH LEFT PARENTHESIS (（)
+        case 0xFF09: return 0xFE36; // FULLWIDTH RIGHT PARENTHESIS (）)
+        case 0xFF3B: return 0xFE47; // FULLWIDTH LEFT SQUARE BRACKET (［)
+        case 0xFF3D: return 0xFE48; // FULLWIDTH RIGHT SQUARE BRACKET (］)
+        case 0xFF5B: return 0xFE37; // FULLWIDTH LEFT CURLY BRACKET (｛)
+        case 0xFF5D: return 0xFE38; // FULLWIDTH RIGHT CURLY BRACKET (｝)
+
+        // Prolonged sound mark (Chouon)
+        case 0x30FC: return 0xFE31; // KATAKANA-HIRAGANA PROLONGED SOUND MARK (ー)
+
+        default: return u;
+    }
+}
+
 }  // namespace satoru

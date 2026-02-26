@@ -528,16 +528,25 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 			cixx += offj;
 			if ((counter + 1) == int(m_items.size()))
 				cixx += 0.99f;
-			lbi->pos().x += (pixel_t) cixx;
+			if (m_writing_mode == writing_mode_horizontal_tb)
+				lbi->pos().x += (pixel_t) cixx;
+			else
+				lbi->pos().y += (pixel_t) cixx;
 		}
 		counter++;
 		if ((m_text_align == text_align_right || spacing_x != 0) && counter == int(m_items.size()))
 		{
 			// Forcible justify the last element to the right side for text align right and justify;
-			lbi->pos().x = m_right - lbi->pos().width;
+			if (m_writing_mode == writing_mode_horizontal_tb)
+				lbi->pos().x = m_right - lbi->pos().width;
+			else
+				lbi->pos().y = m_right - lbi->get_el()->height();
 		} else if (shift_x != 0)
 		{
-			lbi->pos().x += shift_x;
+			if (m_writing_mode == writing_mode_horizontal_tb)
+				lbi->pos().x += shift_x;
+			else
+				lbi->pos().y += shift_x;
 		}
 
 		// Calculate new baseline for inline start/continue
@@ -790,21 +799,38 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 
 		if(current_context.start_lbi)
 		{
-			lbi->pos().y = m_top + top_shift + current_context.baseline - lbi->get_el()->get_last_baseline() +
-						   lbi->get_el()->content_offset_top();
+			if (m_writing_mode == writing_mode_horizontal_tb)
+			{
+				lbi->pos().y = m_top + top_shift + current_context.baseline - lbi->get_el()->get_last_baseline() +
+							lbi->get_el()->content_offset_top();
+			}
+			else
+			{
+				lbi->pos().x = m_left - (top_shift + current_context.baseline - lbi->get_el()->get_last_baseline() +
+							lbi->get_el()->content_offset_top()) - lbi->get_el()->width();
+			}
 		} else if(is_one_of(lbi->get_el()->css().get_vertical_align(), va_top, va_bottom) && lbi->get_type() == line_box_item::type_text_part)
 		{
 			if(lbi->get_el()->css().get_vertical_align() == va_top)
 			{
-				lbi->pos().y = m_top + lbi->get_el()->content_offset_top();
+				if (m_writing_mode == writing_mode_horizontal_tb)
+					lbi->pos().y = m_top + lbi->get_el()->content_offset_top();
+				else
+					lbi->pos().x = m_left - lbi->get_el()->width() - lbi->get_el()->content_offset_left();
 			} else
 			{
-				lbi->pos().y = m_top + m_height - (lbi->bottom() - lbi->top()) + lbi->get_el()->content_offset_bottom();
+				if (m_writing_mode == writing_mode_horizontal_tb)
+					lbi->pos().y = m_top + m_height - (lbi->bottom() - lbi->top()) + lbi->get_el()->content_offset_bottom();
+				else
+					lbi->pos().x = m_left - m_height + lbi->get_el()->content_offset_right();
 			}
 		} else
 		{
 			// move element to the correct position
-			lbi->pos().y = m_top + top_shift + (lbi->pos().y - 0); // lbi->pos().y is relative to baseline 0
+			if (m_writing_mode == writing_mode_horizontal_tb)
+				lbi->pos().y = m_top + top_shift + (lbi->pos().y - 0); // lbi->pos().y is relative to baseline 0
+			else
+				lbi->pos().x = m_left - (top_shift + (lbi->pos().y - 0)) - lbi->get_el()->width();
 		}
 
         lbi->get_el()->apply_relative_shift(containing_block_size);

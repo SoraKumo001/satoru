@@ -91,14 +91,14 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
 
     std::string text_str = text;
     if (overflow == litehtml::text_overflow_ellipsis) {
-        double available_width = pos.width;
-        bool forced = (pos.width < 1.0f);
+        double available_size = (mode == litehtml::writing_mode_horizontal_tb) ? pos.width : pos.height;
+        bool forced = (available_size < 1.0f);
         double margin = forced ? 0.0f : 2.0f;
 
         if (forced || TextLayout::measureText(ctx, text, fi, mode, -1.0, nullptr).width >
-                          available_width + margin) {
+                          available_size + margin) {
             text_str =
-                TextLayout::ellipsizeText(ctx, text, fi, mode, (double)available_width, usedCodepoints);
+                TextLayout::ellipsizeText(ctx, text, fi, mode, (double)available_size, usedCodepoints);
         }
     }
 
@@ -189,8 +189,16 @@ double TextRenderer::drawTextInternal(
         while (it.experimentalNext(&run)) {
             for (int i = 0; i < run.count; ++i) {
                 auto pathOpt = run.font.getPath(run.glyphs[i]);
-                float gx = run.positions[i].fX + (float)tx;
-                float gy = run.positions[i].fY + (float)ty;
+                float gx, gy;
+                if (mode == litehtml::writing_mode_horizontal_tb) {
+                    gx = run.positions[i].fX + (float)tx;
+                    gy = run.positions[i].fY + (float)ty;
+                } else {
+                    // Vertical writing: run.positions[i].fY is the inline advance
+                    // We need to shift X by font ascent to align with the line box
+                    gx = (float)tx + run.positions[i].fX;
+                    gy = (float)ty + run.positions[i].fY;
+                }
 
                 if (pathOpt.has_value() && !pathOpt.value().isEmpty()) {
                     int glyphIdx = -1;

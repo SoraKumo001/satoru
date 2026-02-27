@@ -215,6 +215,31 @@ class SvgScanner {
     size_t getPos() const { return pos; }
 };
 
+static litehtml::border_radiuses get_adjusted_radius(const litehtml::background_layer &layer) {
+    litehtml::position intersect_box = layer.border_box.intersect(layer.clip_box);
+    if (intersect_box.width <= 0 || intersect_box.height <= 0) {
+        return {};
+    }
+
+    litehtml::border_radiuses rad = layer.border_radius;
+    float offset_l = std::max(0.0f, (float)intersect_box.x - (float)layer.border_box.x);
+    float offset_t = std::max(0.0f, (float)intersect_box.y - (float)layer.border_box.y);
+    float offset_r = std::max(0.0f, (float)layer.border_box.right() - (float)intersect_box.right());
+    float offset_b =
+        std::max(0.0f, (float)layer.border_box.bottom() - (float)intersect_box.bottom());
+
+    rad.top_left_x = std::max(0.0f, rad.top_left_x - offset_l);
+    rad.top_left_y = std::max(0.0f, rad.top_left_y - offset_t);
+    rad.top_right_x = std::max(0.0f, rad.top_right_x - offset_r);
+    rad.top_right_y = std::max(0.0f, rad.top_right_y - offset_t);
+    rad.bottom_right_x = std::max(0.0f, rad.bottom_right_x - offset_r);
+    rad.bottom_right_y = std::max(0.0f, rad.bottom_right_y - offset_b);
+    rad.bottom_left_x = std::max(0.0f, rad.bottom_left_x - offset_l);
+    rad.bottom_left_y = std::max(0.0f, rad.bottom_left_y - offset_b);
+
+    return rad;
+}
+
 static void serializeFastTag(std::string &out, const FastTag &tag) {
     out.append("<");
     if (tag.closing) out.append("/");
@@ -398,33 +423,27 @@ static std::string generateDefs(const container_skia &render_container,
 
     const auto &conics = render_container.get_used_conic_gradients();
     for (size_t i = 0; i < conics.size(); ++i) {
-        if (has_radius(conics[i].layer.border_radius)) {
-            defs << "<clipPath id=\"clip-gradient-1-" << (i + 1) << "\">";
-            defs << "<path d=\""
-                 << path_from_rrect(conics[i].layer.border_box, conics[i].layer.border_radius)
-                 << "\" />";
-            defs << "</clipPath>";
-        }
+        defs << "<clipPath id=\"clip-gradient-1-" << (i + 1) << "\">";
+        defs << "<path d=\""
+             << path_from_rrect(conics[i].layer.clip_box, get_adjusted_radius(conics[i].layer))
+             << "\" />";
+        defs << "</clipPath>";
     }
     const auto &radials = render_container.get_used_radial_gradients();
     for (size_t i = 0; i < radials.size(); ++i) {
-        if (has_radius(radials[i].layer.border_radius)) {
-            defs << "<clipPath id=\"clip-gradient-2-" << (i + 1) << "\">";
-            defs << "<path d=\""
-                 << path_from_rrect(radials[i].layer.border_box, radials[i].layer.border_radius)
-                 << "\" />";
-            defs << "</clipPath>";
-        }
+        defs << "<clipPath id=\"clip-gradient-2-" << (i + 1) << "\">";
+        defs << "<path d=\""
+             << path_from_rrect(radials[i].layer.clip_box, get_adjusted_radius(radials[i].layer))
+             << "\" />";
+        defs << "</clipPath>";
     }
     const auto &linears = render_container.get_used_linear_gradients();
     for (size_t i = 0; i < linears.size(); ++i) {
-        if (has_radius(linears[i].layer.border_radius)) {
-            defs << "<clipPath id=\"clip-gradient-3-" << (i + 1) << "\">";
-            defs << "<path d=\""
-                 << path_from_rrect(linears[i].layer.border_box, linears[i].layer.border_radius)
-                 << "\" />";
-            defs << "</clipPath>";
-        }
+        defs << "<clipPath id=\"clip-gradient-3-" << (i + 1) << "\">";
+        defs << "<path d=\""
+             << path_from_rrect(linears[i].layer.clip_box, get_adjusted_radius(linears[i].layer))
+             << "\" />";
+        defs << "</clipPath>";
     }
 
     const auto &filters = render_container.get_used_filters();
@@ -1136,10 +1155,9 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                                           bitmapToDataUrl(bitmap) + "\"");
                             if (opacity < 1.0f)
                                 result.append(" opacity=\"" + std::to_string(opacity) + "\"");
-                            if (has_radius(border_radius))
-                                result.append(" clip-path=\"url(#clip-gradient-" +
-                                              std::to_string((int)mtag) + "-" +
-                                              std::to_string(fullIndex) + ")\"");
+                            result.append(" clip-path=\"url(#clip-gradient-" +
+                                          std::to_string((int)mtag) + "-" +
+                                          std::to_string(fullIndex) + ")\"");
                             result.append(" />");
                             replaced = true;
                         }

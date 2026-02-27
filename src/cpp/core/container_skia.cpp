@@ -263,6 +263,30 @@ std::string trim(const std::string &s) {
     auto end = s.find_last_not_of(" \t\r\n'\"");
     return s.substr(start, end - start + 1);
 }
+
+SkRRect get_background_rrect(const litehtml::background_layer &layer) {
+    litehtml::position intersect_box = layer.border_box.intersect(layer.clip_box);
+    if (intersect_box.width <= 0 || intersect_box.height <= 0) {
+        return SkRRect::MakeEmpty();
+    }
+
+    litehtml::border_radiuses rad = layer.border_radius;
+    float offset_l = std::max(0.0f, intersect_box.x - layer.border_box.x);
+    float offset_t = std::max(0.0f, intersect_box.y - layer.border_box.y);
+    float offset_r = std::max(0.0f, layer.border_box.right() - intersect_box.right());
+    float offset_b = std::max(0.0f, layer.border_box.bottom() - intersect_box.bottom());
+
+    rad.top_left_x = std::max(0.0f, rad.top_left_x - offset_l);
+    rad.top_left_y = std::max(0.0f, rad.top_left_y - offset_t);
+    rad.top_right_x = std::max(0.0f, rad.top_right_x - offset_r);
+    rad.top_right_y = std::max(0.0f, rad.top_right_y - offset_t);
+    rad.bottom_right_x = std::max(0.0f, rad.bottom_right_x - offset_r);
+    rad.bottom_right_y = std::max(0.0f, rad.bottom_right_y - offset_b);
+    rad.bottom_left_x = std::max(0.0f, rad.bottom_left_x - offset_l);
+    rad.bottom_left_y = std::max(0.0f, rad.bottom_left_y - offset_b);
+
+    return make_rrect(intersect_box, rad);
+}
 }  // namespace
 
 container_skia::container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context,
@@ -515,8 +539,23 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
 
         // Use background layer's clip_box as primary clipping
         draw.has_clip = true;
-        draw.clip_pos = layer.clip_box;
-        draw.clip_radius = layer.border_radius;  // TODO: Should we adjust radius for clip_box?
+        litehtml::position intersect_box = layer.border_box.intersect(layer.clip_box);
+        draw.clip_pos = intersect_box;
+        
+        float offset_l = std::max(0.0f, intersect_box.x - layer.border_box.x);
+        float offset_t = std::max(0.0f, intersect_box.y - layer.border_box.y);
+        float offset_r = std::max(0.0f, layer.border_box.right() - intersect_box.right());
+        float offset_b = std::max(0.0f, layer.border_box.bottom() - intersect_box.bottom());
+
+        draw.clip_radius = layer.border_radius;
+        draw.clip_radius.top_left_x = std::max(0.0f, draw.clip_radius.top_left_x - offset_l);
+        draw.clip_radius.top_left_y = std::max(0.0f, draw.clip_radius.top_left_y - offset_t);
+        draw.clip_radius.top_right_x = std::max(0.0f, draw.clip_radius.top_right_x - offset_r);
+        draw.clip_radius.top_right_y = std::max(0.0f, draw.clip_radius.top_right_y - offset_t);
+        draw.clip_radius.bottom_right_x = std::max(0.0f, draw.clip_radius.bottom_right_x - offset_r);
+        draw.clip_radius.bottom_right_y = std::max(0.0f, draw.clip_radius.bottom_right_y - offset_b);
+        draw.clip_radius.bottom_left_x = std::max(0.0f, draw.clip_radius.bottom_left_x - offset_l);
+        draw.clip_radius.bottom_left_y = std::max(0.0f, draw.clip_radius.bottom_left_y - offset_b);
 
         m_usedImageDraws.push_back(draw);
         int index = (int)m_usedImageDraws.size();
@@ -536,7 +575,7 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
 
             m_canvas->save();
             // Clip to layer.clip_box which respects background-clip
-            m_canvas->clipRRect(make_rrect(layer.clip_box, layer.border_radius), true);
+            m_canvas->clipRRect(get_background_rrect(layer), true);
 
             SkRect dst =
                 SkRect::MakeXYWH((float)layer.origin_box.x, (float)layer.origin_box.y,
@@ -596,7 +635,7 @@ void container_skia::draw_solid_fill(litehtml::uint_ptr hdc,
     SkPaint p;
     p.setColor(SkColorSetARGB(color.alpha, color.red, color.green, color.blue));
     p.setAntiAlias(true);
-    m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
+    m_canvas->drawRRect(get_background_rrect(layer), p);
 }
 
 void container_skia::draw_linear_gradient(
@@ -613,7 +652,7 @@ void container_skia::draw_linear_gradient(
         int index = (int)m_usedLinearGradients.size();
         SkPaint p;
         p.setColor(make_magic_color(satoru::MagicTagExtended::LinearGradient, index));
-        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
+        m_canvas->drawRRect(get_background_rrect(layer), p);
     } else {
         SkPoint pts[2] = {SkPoint::Make((float)gradient.start.x, (float)gradient.start.y),
                           SkPoint::Make((float)gradient.end.x, (float)gradient.end.y)};
@@ -629,7 +668,7 @@ void container_skia::draw_linear_gradient(
         SkPaint p;
         p.setShader(SkShaders::LinearGradient(pts, grad));
         p.setAntiAlias(true);
-        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
+        m_canvas->drawRRect(get_background_rrect(layer), p);
     }
 }
 
@@ -647,7 +686,7 @@ void container_skia::draw_radial_gradient(
         int index = (int)m_usedRadialGradients.size();
         SkPaint p;
         p.setColor(make_magic_color(satoru::MagicTagExtended::RadialGradient, index));
-        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
+        m_canvas->drawRRect(get_background_rrect(layer), p);
     } else {
         SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
         float rx = (float)gradient.radius.x, ry = (float)gradient.radius.y;
@@ -668,7 +707,7 @@ void container_skia::draw_radial_gradient(
         SkPaint p;
         p.setShader(SkShaders::RadialGradient(center, rx > 0 ? rx : 0.001f, grad, &matrix));
         p.setAntiAlias(true);
-        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
+        m_canvas->drawRRect(get_background_rrect(layer), p);
     }
 }
 
@@ -686,7 +725,7 @@ void container_skia::draw_conic_gradient(
         int index = (int)m_usedConicGradients.size();
         SkPaint p;
         p.setColor(make_magic_color(satoru::MagicTagExtended::ConicGradient, index));
-        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
+        m_canvas->drawRRect(get_background_rrect(layer), p);
     } else {
         SkPoint center = SkPoint::Make((float)gradient.position.x, (float)gradient.position.y);
         std::vector<SkColor4f> colors;
@@ -713,7 +752,7 @@ void container_skia::draw_conic_gradient(
         SkPaint p;
         p.setShader(SkShaders::SweepGradient(center, grad, &matrix));
         p.setAntiAlias(true);
-        m_canvas->drawRRect(make_rrect(layer.border_box, layer.border_radius), p);
+        m_canvas->drawRRect(get_background_rrect(layer), p);
     }
 }
 

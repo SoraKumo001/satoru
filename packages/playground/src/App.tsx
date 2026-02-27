@@ -10,15 +10,47 @@ const satoru = createSatoruWorker({
 });
 
 const App: React.FC = () => {
-  const [html, setHtml] = useState<string>("");
-  const [width, setWidth] = useState<number>(588);
-  const [format, setFormat] = useState<"svg" | "png" | "webp" | "pdf">("svg");
-  const [textToPaths, setTextToPaths] = useState<boolean>(true);
+  // Initialize state from URL parameters
+  const [html, setHtml] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("value") || "";
+  });
+
+  const [width, setWidth] = useState<number>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const w = params.get("width");
+    return w ? parseInt(w) : 588;
+  });
+
+  const [format, setFormat] = useState<"svg" | "png" | "webp" | "pdf">(() => {
+    const params = new URLSearchParams(window.location.search);
+    const f = params.get("format");
+    return f && ["svg", "png", "webp", "pdf"].includes(f) ? (f as any) : "svg";
+  });
+
+  const [textToPaths, setTextToPaths] = useState<boolean>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("textToPaths");
+    return t !== null ? t === "true" : true;
+  });
+
   const [assetList, setAssetList] = useState<string[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<string>("");
-  const [fontMapJson, setFontMapJson] = useState<string>(
-    JSON.stringify(DEFAULT_FONT_MAP, null, 2),
-  );
+
+  const [fontMapJson, setFontMapJson] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const initialFontMap = params.get("fontMap");
+    if (initialFontMap) {
+      try {
+        const parsed = JSON.parse(initialFontMap);
+        return JSON.stringify(parsed, null, 2);
+      } catch (e) {
+        // ignore
+      }
+    }
+    return JSON.stringify(DEFAULT_FONT_MAP, null, 2);
+  });
+
   const [isRendering, setIsRendering] = useState<boolean>(false);
   const [renderResult, setRenderResult] = useState<string | Uint8Array | null>(
     null,
@@ -28,6 +60,9 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const latestRenderId = useRef<number>(0);
+  const autoRunTimer = useRef<number | null>(null);
+  const shouldRenderImmediately = useRef<boolean>(false);
 
   // Initialize Satoru Worker
   useEffect(() => {
@@ -37,33 +72,6 @@ const App: React.FC = () => {
       import: "default",
     });
     setAssetList(Object.keys(assetFiles).map((path) => path.split("/").pop()!));
-
-    const params = new URLSearchParams(window.location.search);
-    const initialWidth = params.get("width");
-    if (initialWidth) setWidth(parseInt(initialWidth));
-
-    const initialFormat = params.get("format");
-    if (
-      initialFormat &&
-      ["svg", "png", "webp", "pdf"].includes(initialFormat)
-    ) {
-      setFormat(initialFormat as any);
-    }
-
-    const initialTextToPaths = params.get("textToPaths");
-    if (initialTextToPaths !== null) {
-      setTextToPaths(initialTextToPaths === "true");
-    }
-
-    const initialFontMap = params.get("fontMap");
-    if (initialFontMap) {
-      try {
-        const parsed = JSON.parse(initialFontMap);
-        setFontMapJson(JSON.stringify(parsed, null, 2));
-      } catch (e) {
-        // ignore
-      }
-    }
 
     // Handle browser back/forward
     const handlePopState = () => {
@@ -123,7 +131,24 @@ const App: React.FC = () => {
       changed = true;
     }
 
-    if (selectedAsset) syncParam("asset", selectedAsset);
+    if (selectedAsset) {
+      syncParam("asset", selectedAsset);
+      if (url.searchParams.has("value")) {
+        url.searchParams.delete("value");
+        changed = true;
+      }
+    } else {
+      if (url.searchParams.has("asset")) {
+        url.searchParams.delete("asset");
+        changed = true;
+      }
+      if (html) {
+        syncParam("value", html);
+      } else if (url.searchParams.has("value")) {
+        url.searchParams.delete("value");
+        changed = true;
+      }
+    }
 
     try {
       const currentMap = JSON.parse(fontMapJson);
@@ -140,12 +165,41 @@ const App: React.FC = () => {
     if (changed) {
       window.history.replaceState({}, "", url.toString());
     }
+  }, [width, format, textToPaths, selectedAsset, html]);
 
-    // Auto-generate when parameters change (if HTML is loaded)
+  // Auto-run render when specific parameters change
+  useEffect(() => {
+    // If no HTML, nothing to do
+    if (!html) return;
+
+    const run = () => handleConvert(html);
+
+    if (shouldRenderImmediately.current) {
+      shouldRenderImmediately.current = false;
+      if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
+      run();
+    } else {
+      if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
+      autoRunTimer.current = window.setTimeout(() => {
+        run();
+        autoRunTimer.current = null;
+      }, 500);
+    }
+
+    return () => {
+      if (autoRunTimer.current) {
+        clearTimeout(autoRunTimer.current);
+      }
+    };
+  }, [width, textToPaths, html]);
+
+  // Immediate render when format changes
+  useEffect(() => {
     if (html) {
+      if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
       handleConvert(html);
     }
-  }, [width, format, textToPaths, selectedAsset]);
+  }, [format]);
 
   // Update iframe preview
   useEffect(() => {
@@ -156,11 +210,38 @@ const App: React.FC = () => {
       if (doc) {
         doc.open();
         const baseTag = `<base href="${window.location.origin}${window.location.pathname}assets/">`;
+        // Hide scrollbars inside iframe
+        const styleTag = `<style>body { overflow: hidden; } html { overflow: hidden; }</style>`;
         const htmlWithBase = html.includes("<head>")
-          ? html.replace("<head>", `<head>${baseTag}`)
-          : baseTag + html;
+          ? html.replace("<head>", `<head>${baseTag}${styleTag}`)
+          : baseTag + styleTag + html;
         doc.write(htmlWithBase);
         doc.close();
+
+        // Adjust height to fit content
+        const resizeIframe = () => {
+          if (iframeRef.current && iframeRef.current.contentWindow) {
+            const body = iframeRef.current.contentWindow.document.body;
+            const html =
+              iframeRef.current.contentWindow.document.documentElement;
+            // Get the maximum height to ensure no scrollbars
+            const height = Math.max(
+              body.scrollHeight,
+              body.offsetHeight,
+              html.clientHeight,
+              html.scrollHeight,
+              html.offsetHeight,
+            );
+            iframeRef.current.style.height = `${height}px`;
+          }
+        };
+
+        // Resize immediately and on load (for images)
+        resizeIframe();
+        iframeRef.current.onload = resizeIframe;
+        // Also set a timeout to catch layout shifts
+        setTimeout(resizeIframe, 100);
+        setTimeout(resizeIframe, 500);
       }
     }
   }, [html]);
@@ -170,6 +251,9 @@ const App: React.FC = () => {
     if (assetList.length === 0) return;
 
     const params = new URLSearchParams(window.location.search);
+    // If we have a direct value, don't load defaults
+    if (params.has("value")) return;
+
     const initialAsset = params.get("asset") || "01-layout.html";
 
     if (assetList.includes(initialAsset)) {
@@ -185,6 +269,7 @@ const App: React.FC = () => {
     try {
       const resp = await fetch(`assets/${name}`);
       const text = await resp.text();
+      shouldRenderImmediately.current = true;
       setHtml(text);
       setSelectedAsset(name);
     } catch (e) {
@@ -193,8 +278,16 @@ const App: React.FC = () => {
   };
 
   const handleConvert = async (overrideHtml?: string) => {
+    // Cancel pending auto-run
+    if (autoRunTimer.current) {
+      clearTimeout(autoRunTimer.current);
+      autoRunTimer.current = null;
+    }
+
     const currentHtml = overrideHtml !== undefined ? overrideHtml : html;
     if (!satoru || !currentHtml) return;
+
+    const requestId = ++latestRenderId.current;
 
     setIsRendering(true);
     setError(null);
@@ -214,7 +307,7 @@ const App: React.FC = () => {
         console.warn("Invalid fontMap JSON, using default");
       }
 
-      console.log("[Satoru] Rendering via Worker");
+      console.log(`[Satoru] Rendering via Worker (ID: ${requestId})`);
       const result = await satoru.render({
         value: currentHtml,
         width,
@@ -223,6 +316,7 @@ const App: React.FC = () => {
         fontMap,
         logLevel: LogLevel.Info,
         onLog: (level, message) => {
+          if (requestId !== latestRenderId.current) return;
           const prefix = "[Satoru Worker]";
           switch (level) {
             case LogLevel.Debug:
@@ -242,6 +336,7 @@ const App: React.FC = () => {
         css: "body { margin: 8px; }",
         baseUrl: `${window.location.origin}${window.location.pathname}assets/`,
         resolveResource: async (resource, defaultResolver) => {
+          if (requestId !== latestRenderId.current) return new Uint8Array();
           console.log(
             `[Playground] Resolving: ${resource.url} (${resource.type})`,
           );
@@ -264,6 +359,11 @@ const App: React.FC = () => {
         },
       });
 
+      if (requestId !== latestRenderId.current) {
+        console.log(`[Satoru] Render result discarded (ID: ${requestId})`);
+        return;
+      }
+
       const endTime = performance.now();
       setRenderTime(endTime - startTime);
       console.log("[Satoru] Render Complete");
@@ -280,10 +380,13 @@ const App: React.FC = () => {
         setObjectUrl(URL.createObjectURL(blob));
       }
     } catch (e: any) {
+      if (requestId !== latestRenderId.current) return;
       console.error("Conversion failed:", e);
       setError(e.message);
     } finally {
-      setIsRendering(false);
+      if (requestId === latestRenderId.current) {
+        setIsRendering(false);
+      }
     }
   };
 
@@ -412,7 +515,7 @@ const App: React.FC = () => {
             background: "white",
           }}
         >
-          <legend style={{ fontWeight: "bold" }}>Font Mapping (JSON)</legend>
+          <legend style={{ fontWeight: "bold" }}>Font Mapping (default)</legend>
           <textarea
             value={fontMapJson}
             onChange={(e) => setFontMapJson(e.target.value)}
@@ -463,7 +566,10 @@ const App: React.FC = () => {
         <h3>HTML Input:</h3>
         <textarea
           value={html}
-          onChange={(e) => setHtml(e.target.value)}
+          onChange={(e) => {
+            setHtml(e.target.value);
+            setSelectedAsset("");
+          }}
           style={{
             width: "100%",
             height: "150px",
@@ -543,7 +649,7 @@ const App: React.FC = () => {
               borderRadius: "4px",
               height: "800px",
               background: "white",
-              overflowY: "hidden",
+              overflowY: "auto",
               overflowX: "auto",
               boxSizing: "border-box",
             }}
@@ -553,8 +659,9 @@ const App: React.FC = () => {
               title="preview"
               style={{
                 width: `${width}px`,
-                height: "100%",
+                minHeight: "100%",
                 border: "none",
+                display: "block",
               }}
             />
           </div>

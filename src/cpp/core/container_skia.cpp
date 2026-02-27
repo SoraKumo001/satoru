@@ -23,6 +23,8 @@
 #include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkGradient.h"
 #include "include/effects/SkImageFilters.h"
+#include "include/effects/SkColorMatrix.h"
+#include "include/effects/SkRuntimeEffect.h"
 #include "litehtml/css_parser.h"
 #include "litehtml/el_table.h"
 #include "litehtml/el_td.h"
@@ -38,8 +40,35 @@ vector<css_token_vector> parse_comma_separated_list(const css_token_vector &toke
 
 void container_skia::push_backdrop_filter(litehtml::uint_ptr hdc,
                                           const std::shared_ptr<litehtml::render_item> &el) {
-    if (!m_canvas || el->src_el()->css().get_backdrop_filter().empty() || m_tagging) return;
+    if (!m_canvas || el->src_el()->css().get_backdrop_filter().empty()) return;
     flush();
+
+    if (m_tagging) {
+        backdrop_filter_info info;
+        info.tokens = el->src_el()->css().get_backdrop_filter();
+
+        litehtml::position el_pos_abs = el->get_placement();
+        info.box_pos.x = (int)(el_pos_abs.x - el->padding_left() - el->border_left());
+        info.box_pos.y = (int)(el_pos_abs.y - el->padding_top() - el->border_top());
+        info.box_pos.width = (int)(el->pos().width + el->padding_left() + el->padding_right() +
+                                   el->border_left() + el->border_right());
+        info.box_pos.height = (int)(el->pos().height + el->padding_top() + el->padding_bottom() +
+                                    el->border_top() + el->border_bottom());
+
+        info.box_radius = el->src_el()->css().get_borders().radius.calc_percents(info.box_pos.width,
+                                                                                 info.box_pos.height);
+        info.opacity = get_current_opacity();
+
+        m_usedBackdropFilters.push_back(info);
+        int index = (int)m_usedBackdropFilters.size();
+
+        SkPaint p;
+        p.setColor(make_magic_color(satoru::MagicTag::BackdropFilterPush, index));
+
+        // Draw a tiny rectangle with magic color to signal the push
+        m_canvas->drawRect(SkRect::MakeXYWH(0, 0, 0.001f, 0.001f), p);
+        return;
+    }
 
     sk_sp<SkImageFilter> last_filter = nullptr;
 
@@ -55,6 +84,119 @@ void container_skia::push_backdrop_filter(litehtml::uint_ptr hdc,
                     if (sigma > 0) {
                         last_filter = SkImageFilters::Blur(sigma, sigma, last_filter);
                     }
+                }
+            } else if (name == "brightness") {
+                if (!args.empty() && !args[0].empty()) {
+                    float amount = 1.0f;
+                    if (args[0][0].type == litehtml::NUMBER || args[0][0].type == litehtml::PERCENTAGE) {
+                        amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                    }
+                    SkColorMatrix cm;
+                    float mat[20] = {
+                        amount, 0, 0, 0, 0,
+                        0, amount, 0, 0, 0,
+                        0, 0, amount, 0, 0,
+                        0, 0, 0, 1, 0
+                    };
+                    cm.setRowMajor(mat);
+                    last_filter = SkImageFilters::ColorFilter(SkColorFilters::Matrix(cm), last_filter);
+                }
+            } else if (name == "contrast") {
+                if (!args.empty() && !args[0].empty()) {
+                    float amount = 1.0f;
+                    if (args[0][0].type == litehtml::NUMBER || args[0][0].type == litehtml::PERCENTAGE) {
+                        amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                    }
+                    float intercept = -(0.5f * amount) + 0.5f;
+                    SkColorMatrix cm;
+                    float mat[20] = {
+                        amount, 0, 0, 0, intercept,
+                        0, amount, 0, 0, intercept,
+                        0, 0, amount, 0, intercept,
+                        0, 0, 0, 1, 0
+                    };
+                    cm.setRowMajor(mat);
+                    last_filter = SkImageFilters::ColorFilter(SkColorFilters::Matrix(cm), last_filter);
+                }
+            } else if (name == "grayscale") {
+                if (!args.empty() && !args[0].empty()) {
+                    float amount = 0.0f;
+                    if (args[0][0].type == litehtml::NUMBER || args[0][0].type == litehtml::PERCENTAGE) {
+                        amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                    }
+                    SkColorMatrix cm;
+                    cm.setSaturation(1.0f - amount);
+                    last_filter = SkImageFilters::ColorFilter(SkColorFilters::Matrix(cm), last_filter);
+                }
+            } else if (name == "sepia") {
+                if (!args.empty() && !args[0].empty()) {
+                    float amount = 0.0f;
+                    if (args[0][0].type == litehtml::NUMBER || args[0][0].type == litehtml::PERCENTAGE) {
+                        amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                    }
+                    SkColorMatrix cm;
+                    float mat[20] = {
+                        0.393f + 0.607f * (1.0f - amount), 0.769f - 0.769f * (1.0f - amount), 0.189f - 0.189f * (1.0f - amount), 0, 0,
+                        0.349f - 0.349f * (1.0f - amount), 0.686f + 0.314f * (1.0f - amount), 0.168f - 0.168f * (1.0f - amount), 0, 0,
+                        0.272f - 0.272f * (1.0f - amount), 0.534f - 0.534f * (1.0f - amount), 0.131f + 0.869f * (1.0f - amount), 0, 0,
+                        0, 0, 0, 1, 0
+                    };
+                    cm.setRowMajor(mat);
+                    last_filter = SkImageFilters::ColorFilter(SkColorFilters::Matrix(cm), last_filter);
+                }
+            } else if (name == "saturate") {
+                if (!args.empty() && !args[0].empty()) {
+                    float amount = 1.0f;
+                    if (args[0][0].type == litehtml::NUMBER || args[0][0].type == litehtml::PERCENTAGE) {
+                        amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                    }
+                    SkColorMatrix cm;
+                    cm.setSaturation(amount);
+                    last_filter = SkImageFilters::ColorFilter(SkColorFilters::Matrix(cm), last_filter);
+                }
+            } else if (name == "hue-rotate") {
+                if (!args.empty() && !args[0].empty()) {
+                    float angle = 0.0f;
+                    if (args[0][0].type == litehtml::DIMENSION) {
+                        angle = args[0][0].n.number;
+                    }
+                    // SkColorMatrix doesn't have direct hue rotation helpers, use setRowMajor with rotation matrix
+                    // For brevity, using a standard hue rotation matrix calculation (simplified)
+                    float c = cosf(angle * SK_ScalarPI / 180.0f);
+                    float s = sinf(angle * SK_ScalarPI / 180.0f);
+                    SkColorMatrix cm;
+                    float mat[20] = {
+                        0.213f + c * 0.787f - s * 0.213f, 0.715f - c * 0.715f - s * 0.715f, 0.072f - c * 0.072f + s * 0.928f, 0, 0,
+                        0.213f - c * 0.213f + s * 0.143f, 0.715f + c * 0.285f + s * 0.140f, 0.072f - c * 0.072f - s * 0.283f, 0, 0,
+                        0.213f - c * 0.213f - s * 0.787f, 0.715f - c * 0.715f + s * 0.715f, 0.072f + c * 0.928f + s * 0.072f, 0, 0,
+                        0, 0, 0, 1, 0
+                    };
+                    cm.setRowMajor(mat);
+                    last_filter = SkImageFilters::ColorFilter(SkColorFilters::Matrix(cm), last_filter);
+                }
+            } else if (name == "invert") {
+                if (!args.empty() && !args[0].empty()) {
+                    float amount = 0.0f;
+                    if (args[0][0].type == litehtml::NUMBER || args[0][0].type == litehtml::PERCENTAGE) {
+                        amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                    }
+                    SkColorMatrix cm;
+                    float mat[20] = {
+                        1.0f - 2.0f * amount, 0, 0, 0, amount,
+                        0, 1.0f - 2.0f * amount, 0, 0, amount,
+                        0, 0, 1.0f - 2.0f * amount, 0, amount,
+                        0, 0, 0, 1, 0
+                    };
+                    cm.setRowMajor(mat);
+                    last_filter = SkImageFilters::ColorFilter(SkColorFilters::Matrix(cm), last_filter);
+                }
+            } else if (name == "opacity") {
+                if (!args.empty() && !args[0].empty()) {
+                    float amount = 1.0f;
+                    if (args[0][0].type == litehtml::NUMBER || args[0][0].type == litehtml::PERCENTAGE) {
+                        amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                    }
+                    last_filter = SkImageFilters::ColorFilter(SkColorFilters::Blend(SkColorSetARGB((U8CPU)(amount * 255), 255, 255, 255), SkBlendMode::kDstIn), last_filter);
                 }
             }
         }
@@ -88,10 +230,13 @@ void container_skia::push_backdrop_filter(litehtml::uint_ptr hdc,
 
 void container_skia::pop_backdrop_filter(litehtml::uint_ptr hdc) {
     if (m_canvas) {
+        flush();
         if (m_tagging) {
+            SkPaint p;
+            p.setColor(make_magic_color(satoru::MagicTag::BackdropFilterPop));
+            m_canvas->drawRect(SkRect::MakeXYWH(0, 0, 0.001f, 0.001f), p);
             return;
         }
-        flush();
         m_canvas->restore();  // for saveLayer
         m_canvas->restore();  // for clip's save
     }

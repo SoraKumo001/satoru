@@ -35,6 +35,7 @@ class container_skia : public litehtml::document_container {
     std::vector<linear_gradient_info> m_usedLinearGradients;
     std::vector<text_draw_info> m_usedTextDraws;
     std::vector<filter_info> m_usedFilters;
+    std::vector<backdrop_filter_info> m_usedBackdropFilters;
 
     std::set<char32_t> m_usedCodepoints;
     std::set<font_request> m_requestedFontAttributes;
@@ -106,6 +107,7 @@ class container_skia : public litehtml::document_container {
         m_usedTextDraws.clear();
         m_usedInlineSvgs.clear();
         m_usedFilters.clear();
+        m_usedBackdropFilters.clear();
         m_usedClips.clear();
         m_usedClipPaths.clear();
         m_usedGlyphs.clear();
@@ -140,6 +142,9 @@ class container_skia : public litehtml::document_container {
     const std::vector<text_shadow_info> &get_used_text_shadows() const { return m_usedTextShadows; }
     const std::vector<text_draw_info> &get_used_text_draws() const { return m_usedTextDraws; }
     const std::vector<filter_info> &get_used_filters() const { return m_usedFilters; }
+    const std::vector<backdrop_filter_info> &get_used_backdrop_filters() const {
+        return m_usedBackdropFilters;
+    }
     const std::vector<clip_info> &get_used_clips() const { return m_usedClips; }
     const std::vector<clip_path_info> &get_used_clip_paths() const { return m_usedClipPaths; }
     const std::vector<SkPath> &get_used_glyphs() const { return m_usedGlyphs; }

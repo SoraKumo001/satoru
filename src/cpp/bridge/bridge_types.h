@@ -133,6 +133,13 @@ struct filter_info {
     float opacity;
 };
 
+struct backdrop_filter_info {
+    litehtml::css_token_vector tokens;
+    litehtml::position box_pos;
+    litehtml::border_radiuses box_radius;
+    float opacity;
+};
+
 struct clip_info {
     litehtml::position pos;
     litehtml::border_radiuses radius;

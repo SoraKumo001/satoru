@@ -518,6 +518,174 @@ static std::string generateDefs(const container_skia &render_container,
         defs << "</filter>";
     }
 
+    const auto &backdropFilters = render_container.get_used_backdrop_filters();
+    for (size_t i = 0; i < backdropFilters.size(); ++i) {
+        const auto &f = backdropFilters[i];
+        int index = (int)(i + 1);
+
+        // Generate clip path for the backdrop-filter area
+        defs << "<clipPath id=\"backdrop-clip-" << index << "\">";
+        defs << "<path d=\"" << path_from_rrect(f.box_pos, f.box_radius) << "\" />";
+        defs << "</clipPath>";
+
+        // Generate filter
+        defs << "<filter id=\"backdrop-filter-" << index
+             << "\" x=\"-100%\" y=\"-100%\" width=\"300%\" height=\"300%\">";
+
+        std::string currentIn = "SourceGraphic";
+        int resIdx = 0;
+
+        for (const auto &tok : f.tokens) {
+            if (tok.type == litehtml::CV_FUNCTION) {
+                std::string name = litehtml::lowcase(tok.name);
+                auto args = litehtml::parse_comma_separated_list(tok.value);
+
+                if (name == "blur") {
+                    if (!args.empty() && !args[0].empty()) {
+                        litehtml::css_length len;
+                        len.from_token(args[0][0], litehtml::f_length | litehtml::f_positive);
+                        float sigma = len.val();
+                        if (sigma > 0) {
+                            std::string nextIn = "res-" + std::to_string(++resIdx);
+                            defs << "<feGaussianBlur in=\"" << currentIn << "\" stdDeviation=\""
+                                 << sigma << "\" result=\"" << nextIn << "\"/>";
+                            currentIn = nextIn;
+                        }
+                    }
+                } else if (name == "brightness") {
+                    if (!args.empty() && !args[0].empty()) {
+                        float amount = 1.0f;
+                        if (args[0][0].type == litehtml::NUMBER ||
+                            args[0][0].type == litehtml::PERCENTAGE) {
+                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                        }
+                        std::string nextIn = "res-" + std::to_string(++resIdx);
+                        defs << "<feColorMatrix in=\"" << currentIn << "\" type=\"matrix\" values=\""
+                             << amount << " 0 0 0 0  0 " << amount << " 0 0 0  0 0 " << amount
+                             << " 0 0  0 0 0 1 0\" result=\"" << nextIn << "\"/>";
+                        currentIn = nextIn;
+                    }
+                } else if (name == "contrast") {
+                    if (!args.empty() && !args[0].empty()) {
+                        float amount = 1.0f;
+                        if (args[0][0].type == litehtml::NUMBER ||
+                            args[0][0].type == litehtml::PERCENTAGE) {
+                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                        }
+                        float intercept = -(0.5f * amount) + 0.5f;
+                        std::string nextIn = "res-" + std::to_string(++resIdx);
+                        defs << "<feComponentTransfer in=\"" << currentIn << "\" result=\"" << nextIn << "\">"
+                             << "<feFuncR type=\"linear\" slope=\"" << amount << "\" intercept=\"" << intercept << "\"/>"
+                             << "<feFuncG type=\"linear\" slope=\"" << amount << "\" intercept=\"" << intercept << "\"/>"
+                             << "<feFuncB type=\"linear\" slope=\"" << amount << "\" intercept=\"" << intercept << "\"/>"
+                             << "</feComponentTransfer>";
+                        currentIn = nextIn;
+                    }
+                } else if (name == "grayscale") {
+                    if (!args.empty() && !args[0].empty()) {
+                        float amount = 0.0f;
+                        if (args[0][0].type == litehtml::NUMBER ||
+                            args[0][0].type == litehtml::PERCENTAGE) {
+                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                        }
+                        float r = 0.2126f + 0.7874f * (1.0f - amount);
+                        float g = 0.7152f - 0.7152f * (1.0f - amount);
+                        float b = 0.0722f - 0.0722f * (1.0f - amount);
+                        float r2 = 0.2126f - 0.2126f * (1.0f - amount);
+                        float g2 = 0.7152f + 0.2848f * (1.0f - amount);
+                        float b2 = 0.0722f - 0.0722f * (1.0f - amount);
+                        float r3 = 0.2126f - 0.2126f * (1.0f - amount);
+                        float g3 = 0.7152f - 0.7152f * (1.0f - amount);
+                        float b3 = 0.0722f + 0.9278f * (1.0f - amount);
+                        std::string nextIn = "res-" + std::to_string(++resIdx);
+                        defs << "<feColorMatrix in=\"" << currentIn << "\" type=\"matrix\" values=\""
+                             << r << " " << g << " " << b << " 0 0  "
+                             << r2 << " " << g2 << " " << b2 << " 0 0  "
+                             << r3 << " " << g3 << " " << b3 << " 0 0  "
+                             << "0 0 0 1 0\" result=\"" << nextIn << "\"/>";
+                        currentIn = nextIn;
+                    }
+                } else if (name == "sepia") {
+                    if (!args.empty() && !args[0].empty()) {
+                        float amount = 0.0f;
+                        if (args[0][0].type == litehtml::NUMBER ||
+                            args[0][0].type == litehtml::PERCENTAGE) {
+                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                        }
+                        float r = 0.393f + 0.607f * (1.0f - amount);
+                        float g = 0.769f - 0.769f * (1.0f - amount);
+                        float b = 0.189f - 0.189f * (1.0f - amount);
+                        float r2 = 0.349f - 0.349f * (1.0f - amount);
+                        float g2 = 0.686f + 0.314f * (1.0f - amount);
+                        float b2 = 0.168f - 0.168f * (1.0f - amount);
+                        float r3 = 0.272f - 0.272f * (1.0f - amount);
+                        float g3 = 0.534f - 0.534f * (1.0f - amount);
+                        float b3 = 0.131f + 0.869f * (1.0f - amount);
+                        std::string nextIn = "res-" + std::to_string(++resIdx);
+                        defs << "<feColorMatrix in=\"" << currentIn << "\" type=\"matrix\" values=\""
+                             << r << " " << g << " " << b << " 0 0  "
+                             << r2 << " " << g2 << " " << b2 << " 0 0  "
+                             << r3 << " " << g3 << " " << b3 << " 0 0  "
+                             << "0 0 0 1 0\" result=\"" << nextIn << "\"/>";
+                        currentIn = nextIn;
+                    }
+                } else if (name == "saturate") {
+                    if (!args.empty() && !args[0].empty()) {
+                        float amount = 1.0f;
+                        if (args[0][0].type == litehtml::NUMBER ||
+                            args[0][0].type == litehtml::PERCENTAGE) {
+                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                        }
+                        std::string nextIn = "res-" + std::to_string(++resIdx);
+                        defs << "<feColorMatrix in=\"" << currentIn << "\" type=\"saturate\" values=\""
+                             << amount << "\" result=\"" << nextIn << "\"/>";
+                        currentIn = nextIn;
+                    }
+                } else if (name == "hue-rotate") {
+                    if (!args.empty() && !args[0].empty()) {
+                        float angle = 0.0f;
+                        if (args[0][0].type == litehtml::DIMENSION) {
+                            angle = args[0][0].n.number;
+                        }
+                        std::string nextIn = "res-" + std::to_string(++resIdx);
+                        defs << "<feColorMatrix in=\"" << currentIn << "\" type=\"hueRotate\" values=\""
+                             << angle << "\" result=\"" << nextIn << "\"/>";
+                        currentIn = nextIn;
+                    }
+                } else if (name == "invert") {
+                    if (!args.empty() && !args[0].empty()) {
+                        float amount = 0.0f;
+                        if (args[0][0].type == litehtml::NUMBER ||
+                            args[0][0].type == litehtml::PERCENTAGE) {
+                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                        }
+                        std::string nextIn = "res-" + std::to_string(++resIdx);
+                        defs << "<feComponentTransfer in=\"" << currentIn << "\" result=\"" << nextIn << "\">"
+                             << "<feFuncR type=\"table\" tableValues=\"" << amount << " " << (1.0f - amount) << "\"/>"
+                             << "<feFuncG type=\"table\" tableValues=\"" << amount << " " << (1.0f - amount) << "\"/>"
+                             << "<feFuncB type=\"table\" tableValues=\"" << amount << " " << (1.0f - amount) << "\"/>"
+                             << "</feComponentTransfer>";
+                        currentIn = nextIn;
+                    }
+                } else if (name == "opacity") {
+                    if (!args.empty() && !args[0].empty()) {
+                        float amount = 1.0f;
+                        if (args[0][0].type == litehtml::NUMBER ||
+                            args[0][0].type == litehtml::PERCENTAGE) {
+                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                        }
+                        std::string nextIn = "res-" + std::to_string(++resIdx);
+                        defs << "<feComponentTransfer in=\"" << currentIn << "\" result=\"" << nextIn << "\">"
+                             << "<feFuncA type=\"linear\" slope=\"" << amount << "\"/>"
+                             << "</feComponentTransfer>";
+                        currentIn = nextIn;
+                    }
+                }
+            }
+        }
+        defs << "</filter>";
+    }
+
     const auto &clips = render_container.get_used_clips();
     for (size_t i = 0; i < clips.size(); ++i) {
         const auto &c = clips[i];
@@ -560,6 +728,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
     const auto &linears = container.get_used_linear_gradients();
     const auto &textDraws = container.get_used_text_draws();
     const auto &filters = container.get_used_filters();
+    const auto &backdropFilters = container.get_used_backdrop_filters();
 
     SvgScanner scanner(svg);
     bool defsInjected = false;
@@ -667,6 +836,21 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                         }
                         break;
                     case satoru::MagicTag::FilterPop:
+                        result.append("</g>");
+                        replaced = true;
+                        break;
+                    case satoru::MagicTag::BackdropFilterPush:
+                        if (fullIndex > 0 && fullIndex <= (int)backdropFilters.size()) {
+                            result.append("<g style=\"backdrop-filter: url(#backdrop-filter-" +
+                                          std::to_string(fullIndex) +
+                                          "); -webkit-backdrop-filter: url(#backdrop-filter-" +
+                                          std::to_string(fullIndex) + ")\"");
+                            result.append(" clip-path=\"url(#backdrop-clip-" +
+                                          std::to_string(fullIndex) + ")\">");
+                            replaced = true;
+                        }
+                        break;
+                    case satoru::MagicTag::BackdropFilterPop:
                         result.append("</g>");
                         replaced = true;
                         break;

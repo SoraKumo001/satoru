@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-std::string clean_font_name(const char *name) {
+std::string clean_font_name(const char* name) {
     if (!name) return "";
     std::string s = name;
     std::string result;
@@ -15,9 +15,9 @@ std::string clean_font_name(const char *name) {
     return result;
 }
 
-std::string base64_encode(const uint8_t *data, size_t len) {
+std::string base64_encode(const uint8_t* data, size_t len) {
     std::string out;
-    const char *chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const char* chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     int val = 0, valb = -6;
     for (size_t i = 0; i < len; i++) {
         val = (val << 8) + data[i];
@@ -32,11 +32,11 @@ std::string base64_encode(const uint8_t *data, size_t len) {
     return out;
 }
 
-std::vector<uint8_t> base64_decode(const std::string &in) {
+std::vector<uint8_t> base64_decode(const std::string& in) {
     std::vector<uint8_t> out;
     static const std::vector<int> T = [] {
         std::vector<int> t(256, -1);
-        const char *chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        const char* chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
         for (int i = 0; i < 64; i++) t[(unsigned char)chars[i]] = i;
         return t;
     }();
@@ -54,7 +54,7 @@ std::vector<uint8_t> base64_decode(const std::string &in) {
     return out;
 }
 
-std::string url_decode(const std::string &in) {
+std::string url_decode(const std::string& in) {
     std::string out;
     out.reserve(in.size());
     for (size_t i = 0; i < in.size(); ++i) {
@@ -82,7 +82,7 @@ std::string url_decode(const std::string &in) {
     return out;
 }
 
-SkRRect make_rrect(const litehtml::position &pos, const litehtml::border_radiuses &radius) {
+SkRRect make_rrect(const litehtml::position& pos, const litehtml::border_radiuses& radius) {
     SkRect rect = SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height);
     SkVector rad[4] = {{(float)radius.top_left_x, (float)radius.top_left_y},
                        {(float)radius.top_right_x, (float)radius.top_right_y},

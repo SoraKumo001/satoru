@@ -3,10 +3,7 @@
 #include <linebreak.h>
 #include <utf8proc.h>
 
-#include <algorithm>
 #include <vector>
-
-#include "bridge/bridge_types.h"
 
 class SkBreakIterator_Satoru : public SkBreakIterator {
    public:

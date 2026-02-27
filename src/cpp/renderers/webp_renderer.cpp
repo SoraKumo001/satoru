@@ -10,11 +10,9 @@
 #include "include/core/SkImageInfo.h"
 #include "include/core/SkStream.h"
 #include "include/encode/SkWebpEncoder.h"
-#include "litehtml.h"
-#include "utils/skia_utils.h"
 
-sk_sp<SkData> renderDocumentToWebp(SatoruInstance *inst, int width, int height,
-                                   const RenderOptions &renderOptions) {
+sk_sp<SkData> renderDocumentToWebp(SatoruInstance* inst, int width, int height,
+                                   const RenderOptions& renderOptions) {
     if (!inst->doc || !inst->render_container) return nullptr;
 
     int content_height = (height > 0) ? height : (int)inst->doc->height();
@@ -47,8 +45,8 @@ sk_sp<SkData> renderDocumentToWebp(SatoruInstance *inst, int width, int height,
     return nullptr;
 }
 
-sk_sp<SkData> renderHtmlToWebp(const char *html, int width, int height, SatoruContext &context,
-                               const char *master_css) {
+sk_sp<SkData> renderHtmlToWebp(const char* html, int width, int height, SatoruContext& context,
+                               const char* master_css) {
     int initial_height = (height > 0) ? height : 3000;
     container_skia container(width, initial_height, nullptr, context, nullptr, false);
 

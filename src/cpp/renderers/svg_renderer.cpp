@@ -3,10 +3,7 @@
 #include <litehtml/master_css.h>
 
 #include <cstdio>
-#include <iomanip>
-#include <map>
 #include <memory>
-#include <set>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -31,25 +28,25 @@
 #include "utils/skia_utils.h"
 
 namespace litehtml {
-std::vector<css_token_vector> parse_comma_separated_list(const css_token_vector &tokens);
+std::vector<css_token_vector> parse_comma_separated_list(const css_token_vector& tokens);
 }
 
 namespace {
-static std::string bitmapToDataUrl(const SkBitmap &bitmap) {
+static std::string bitmapToDataUrl(const SkBitmap& bitmap) {
     SkDynamicMemoryWStream stream;
     if (!SkPngEncoder::Encode(&stream, bitmap.pixmap(), {})) return "";
     sk_sp<SkData> data = stream.detachAsData();
-    return "data:image/png;base64," + base64_encode((const uint8_t *)data->data(), data->size());
+    return "data:image/png;base64," + base64_encode((const uint8_t*)data->data(), data->size());
 }
 
-static bool has_radius(const litehtml::border_radiuses &r) {
+static bool has_radius(const litehtml::border_radiuses& r) {
     return r.top_left_x > 0 || r.top_left_y > 0 || r.top_right_x > 0 || r.top_right_y > 0 ||
            r.bottom_right_x > 0 || r.bottom_right_y > 0 || r.bottom_left_x > 0 ||
            r.bottom_left_y > 0;
 }
 
-static std::string path_from_rrect(const litehtml::position &pos,
-                                   const litehtml::border_radiuses &r) {
+static std::string path_from_rrect(const litehtml::position& pos,
+                                   const litehtml::border_radiuses& r) {
     SkRRect rrect = make_rrect(pos, r);
 
     SkPathBuilder pathBuilder;
@@ -73,7 +70,7 @@ struct FastTag {
     bool selfClosing = false;
 
     std::string_view getAttr(std::string_view attrName) const {
-        for (const auto &a : attrs) {
+        for (const auto& a : attrs) {
             if (a.name == attrName) return a.value;
         }
         return {};
@@ -90,14 +87,14 @@ struct FastTag {
 
     satoru::DecodedMagicTag getMagicTag() const {
         std::string_view colorVal;
-        for (const auto &a : attrs) {
+        for (const auto& a : attrs) {
             if (a.name == "fill") {
                 colorVal = a.value;
                 break;
             }
         }
         if (colorVal.empty()) {
-            for (const auto &a : attrs) {
+            for (const auto& a : attrs) {
                 if (a.name == "style") {
                     size_t f = a.value.find("fill:");
                     if (f != std::string_view::npos) {
@@ -215,7 +212,7 @@ class SvgScanner {
     size_t getPos() const { return pos; }
 };
 
-static litehtml::border_radiuses get_adjusted_radius(const litehtml::background_layer &layer) {
+static litehtml::border_radiuses get_adjusted_radius(const litehtml::background_layer& layer) {
     litehtml::position intersect_box = layer.border_box.intersect(layer.clip_box);
     if (intersect_box.width <= 0 || intersect_box.height <= 0) {
         return {};
@@ -240,11 +237,11 @@ static litehtml::border_radiuses get_adjusted_radius(const litehtml::background_
     return rad;
 }
 
-static void serializeFastTag(std::string &out, const FastTag &tag) {
+static void serializeFastTag(std::string& out, const FastTag& tag) {
     out.append("<");
     if (tag.closing) out.append("/");
     out.append(tag.name);
-    for (const auto &attr : tag.attrs) {
+    for (const auto& attr : tag.attrs) {
         out.append(" ");
         out.append(attr.name);
         if (attr.value.data()) {
@@ -257,7 +254,7 @@ static void serializeFastTag(std::string &out, const FastTag &tag) {
     out.append(">");
 }
 
-static void processTextDraw(FastTag &info, std::string &out, const text_draw_info &drawInfo) {
+static void processTextDraw(FastTag& info, std::string& out, const text_draw_info& drawInfo) {
     std::string textColor = "rgb(" + std::to_string((int)drawInfo.color.red) + "," +
                             std::to_string((int)drawInfo.color.green) + "," +
                             std::to_string((int)drawInfo.color.blue) + ")";
@@ -275,7 +272,7 @@ static void processTextDraw(FastTag &info, std::string &out, const text_draw_inf
     out.append(std::to_string(opacity));
     out.append("\"");
 
-    for (const auto &attr : info.attrs) {
+    for (const auto& attr : info.attrs) {
         if (attr.name == "font-weight" || attr.name == "font-style" || attr.name == "fill" ||
             attr.name == "fill-opacity")
             continue;
@@ -293,8 +290,8 @@ static void processTextDraw(FastTag &info, std::string &out, const text_draw_inf
     out.append(">");
 }
 
-static std::string generateDefs(const container_skia &render_container,
-                                const SatoruContext &context, const RenderOptions &options) {
+static std::string generateDefs(const container_skia& render_container,
+                                const SatoruContext& context, const RenderOptions& options) {
     std::stringstream defs;
 
     if (!options.svgTextToPaths) {
@@ -304,9 +301,9 @@ static std::string generateDefs(const container_skia &render_container,
         }
     }
 
-    const auto &shadows = render_container.get_used_shadows();
+    const auto& shadows = render_container.get_used_shadows();
     for (size_t i = 0; i < shadows.size(); ++i) {
-        const auto &s = shadows[i];
+        const auto& s = shadows[i];
         int index = (int)(i + 1);
         defs << "<filter id=\"shadow-" << index
              << "\" x=\"-100%\" y=\"-100%\" width=\"300%\" height=\"300%\">";
@@ -342,15 +339,15 @@ static std::string generateDefs(const container_skia &render_container,
         defs << "</filter>";
     }
 
-    const auto &textShadows = render_container.get_used_text_shadows();
+    const auto& textShadows = render_container.get_used_text_shadows();
     for (size_t i = 0; i < textShadows.size(); ++i) {
-        const auto &ts = textShadows[i];
+        const auto& ts = textShadows[i];
         int index = (int)(i + 1);
         defs << "<filter id=\"text-shadow-" << index
              << "\" x=\"-100%\" y=\"-100%\" width=\"300%\" height=\"300%\">";
 
         for (size_t si = 0; si < ts.shadows.size(); ++si) {
-            const auto &s = ts.shadows[si];
+            const auto& s = ts.shadows[si];
             std::string resultName = "shadow-" + std::to_string(si);
             std::string floodColor = "rgb(" + std::to_string((int)s.color.red) + "," +
                                      std::to_string((int)s.color.green) + "," +
@@ -376,9 +373,9 @@ static std::string generateDefs(const container_skia &render_container,
              << "</filter>";
     }
 
-    const auto &images = render_container.get_used_image_draws();
+    const auto& images = render_container.get_used_image_draws();
     for (size_t i = 0; i < images.size(); ++i) {
-        const auto &draw = images[i];
+        const auto& draw = images[i];
         int index = (int)(i + 1);
         if (draw.has_clip) {
             defs << "<clipPath id=\"clip-img-" << index << "\">";
@@ -421,7 +418,7 @@ static std::string generateDefs(const container_skia &render_container,
         }
     }
 
-    const auto &conics = render_container.get_used_conic_gradients();
+    const auto& conics = render_container.get_used_conic_gradients();
     for (size_t i = 0; i < conics.size(); ++i) {
         defs << "<clipPath id=\"clip-gradient-1-" << (i + 1) << "\">";
         defs << "<path d=\""
@@ -429,7 +426,7 @@ static std::string generateDefs(const container_skia &render_container,
              << "\" />";
         defs << "</clipPath>";
     }
-    const auto &radials = render_container.get_used_radial_gradients();
+    const auto& radials = render_container.get_used_radial_gradients();
     for (size_t i = 0; i < radials.size(); ++i) {
         defs << "<clipPath id=\"clip-gradient-2-" << (i + 1) << "\">";
         defs << "<path d=\""
@@ -437,7 +434,7 @@ static std::string generateDefs(const container_skia &render_container,
              << "\" />";
         defs << "</clipPath>";
     }
-    const auto &linears = render_container.get_used_linear_gradients();
+    const auto& linears = render_container.get_used_linear_gradients();
     for (size_t i = 0; i < linears.size(); ++i) {
         defs << "<clipPath id=\"clip-gradient-3-" << (i + 1) << "\">";
         defs << "<path d=\""
@@ -446,9 +443,9 @@ static std::string generateDefs(const container_skia &render_container,
         defs << "</clipPath>";
     }
 
-    const auto &filters = render_container.get_used_filters();
+    const auto& filters = render_container.get_used_filters();
     for (size_t i = 0; i < filters.size(); ++i) {
-        const auto &f = filters[i];
+        const auto& f = filters[i];
         int index = (int)(i + 1);
         defs << "<filter id=\"filter-" << index
              << "\" x=\"-100%\" y=\"-100%\" width=\"300%\" height=\"300%\">";
@@ -456,7 +453,7 @@ static std::string generateDefs(const container_skia &render_container,
         std::string currentIn = "SourceGraphic";
         int resIdx = 0;
 
-        for (const auto &tok : f.tokens) {
+        for (const auto& tok : f.tokens) {
             if (tok.type == litehtml::CV_FUNCTION) {
                 std::string name = litehtml::lowcase(tok.name);
                 auto args = litehtml::parse_comma_separated_list(tok.value);
@@ -478,7 +475,7 @@ static std::string generateDefs(const container_skia &render_container,
                         float dx = 0, dy = 0, blur = 0;
                         litehtml::web_color color = litehtml::web_color::black;
                         int ti = 0;
-                        for (const auto &t : args[0]) {
+                        for (const auto& t : args[0]) {
                             if (t.type == litehtml::WHITESPACE) continue;
                             if (ti == 0) {
                                 litehtml::css_length l;
@@ -537,9 +534,9 @@ static std::string generateDefs(const container_skia &render_container,
         defs << "</filter>";
     }
 
-    const auto &backdropFilters = render_container.get_used_backdrop_filters();
+    const auto& backdropFilters = render_container.get_used_backdrop_filters();
     for (size_t i = 0; i < backdropFilters.size(); ++i) {
-        const auto &f = backdropFilters[i];
+        const auto& f = backdropFilters[i];
         int index = (int)(i + 1);
 
         // Generate clip path for the backdrop-filter area
@@ -554,7 +551,7 @@ static std::string generateDefs(const container_skia &render_container,
         std::string currentIn = "SourceGraphic";
         int resIdx = 0;
 
-        for (const auto &tok : f.tokens) {
+        for (const auto& tok : f.tokens) {
             if (tok.type == litehtml::CV_FUNCTION) {
                 std::string name = litehtml::lowcase(tok.name);
                 auto args = litehtml::parse_comma_separated_list(tok.value);
@@ -576,12 +573,14 @@ static std::string generateDefs(const container_skia &render_container,
                         float amount = 1.0f;
                         if (args[0][0].type == litehtml::NUMBER ||
                             args[0][0].type == litehtml::PERCENTAGE) {
-                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                            amount = args[0][0].n.number /
+                                     (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
                         }
                         std::string nextIn = "res-" + std::to_string(++resIdx);
-                        defs << "<feColorMatrix in=\"" << currentIn << "\" type=\"matrix\" values=\""
-                             << amount << " 0 0 0 0  0 " << amount << " 0 0 0  0 0 " << amount
-                             << " 0 0  0 0 0 1 0\" result=\"" << nextIn << "\"/>";
+                        defs << "<feColorMatrix in=\"" << currentIn
+                             << "\" type=\"matrix\" values=\"" << amount << " 0 0 0 0  0 " << amount
+                             << " 0 0 0  0 0 " << amount << " 0 0  0 0 0 1 0\" result=\"" << nextIn
+                             << "\"/>";
                         currentIn = nextIn;
                     }
                 } else if (name == "contrast") {
@@ -589,14 +588,19 @@ static std::string generateDefs(const container_skia &render_container,
                         float amount = 1.0f;
                         if (args[0][0].type == litehtml::NUMBER ||
                             args[0][0].type == litehtml::PERCENTAGE) {
-                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                            amount = args[0][0].n.number /
+                                     (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
                         }
                         float intercept = -(0.5f * amount) + 0.5f;
                         std::string nextIn = "res-" + std::to_string(++resIdx);
-                        defs << "<feComponentTransfer in=\"" << currentIn << "\" result=\"" << nextIn << "\">"
-                             << "<feFuncR type=\"linear\" slope=\"" << amount << "\" intercept=\"" << intercept << "\"/>"
-                             << "<feFuncG type=\"linear\" slope=\"" << amount << "\" intercept=\"" << intercept << "\"/>"
-                             << "<feFuncB type=\"linear\" slope=\"" << amount << "\" intercept=\"" << intercept << "\"/>"
+                        defs << "<feComponentTransfer in=\"" << currentIn << "\" result=\""
+                             << nextIn << "\">"
+                             << "<feFuncR type=\"linear\" slope=\"" << amount << "\" intercept=\""
+                             << intercept << "\"/>"
+                             << "<feFuncG type=\"linear\" slope=\"" << amount << "\" intercept=\""
+                             << intercept << "\"/>"
+                             << "<feFuncB type=\"linear\" slope=\"" << amount << "\" intercept=\""
+                             << intercept << "\"/>"
                              << "</feComponentTransfer>";
                         currentIn = nextIn;
                     }
@@ -605,7 +609,8 @@ static std::string generateDefs(const container_skia &render_container,
                         float amount = 0.0f;
                         if (args[0][0].type == litehtml::NUMBER ||
                             args[0][0].type == litehtml::PERCENTAGE) {
-                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                            amount = args[0][0].n.number /
+                                     (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
                         }
                         float r = 0.2126f + 0.7874f * (1.0f - amount);
                         float g = 0.7152f - 0.7152f * (1.0f - amount);
@@ -617,10 +622,10 @@ static std::string generateDefs(const container_skia &render_container,
                         float g3 = 0.7152f - 0.7152f * (1.0f - amount);
                         float b3 = 0.0722f + 0.9278f * (1.0f - amount);
                         std::string nextIn = "res-" + std::to_string(++resIdx);
-                        defs << "<feColorMatrix in=\"" << currentIn << "\" type=\"matrix\" values=\""
-                             << r << " " << g << " " << b << " 0 0  "
-                             << r2 << " " << g2 << " " << b2 << " 0 0  "
-                             << r3 << " " << g3 << " " << b3 << " 0 0  "
+                        defs << "<feColorMatrix in=\"" << currentIn
+                             << "\" type=\"matrix\" values=\"" << r << " " << g << " " << b
+                             << " 0 0  " << r2 << " " << g2 << " " << b2 << " 0 0  " << r3 << " "
+                             << g3 << " " << b3 << " 0 0  "
                              << "0 0 0 1 0\" result=\"" << nextIn << "\"/>";
                         currentIn = nextIn;
                     }
@@ -629,7 +634,8 @@ static std::string generateDefs(const container_skia &render_container,
                         float amount = 0.0f;
                         if (args[0][0].type == litehtml::NUMBER ||
                             args[0][0].type == litehtml::PERCENTAGE) {
-                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                            amount = args[0][0].n.number /
+                                     (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
                         }
                         float r = 0.393f + 0.607f * (1.0f - amount);
                         float g = 0.769f - 0.769f * (1.0f - amount);
@@ -641,10 +647,10 @@ static std::string generateDefs(const container_skia &render_container,
                         float g3 = 0.534f - 0.534f * (1.0f - amount);
                         float b3 = 0.131f + 0.869f * (1.0f - amount);
                         std::string nextIn = "res-" + std::to_string(++resIdx);
-                        defs << "<feColorMatrix in=\"" << currentIn << "\" type=\"matrix\" values=\""
-                             << r << " " << g << " " << b << " 0 0  "
-                             << r2 << " " << g2 << " " << b2 << " 0 0  "
-                             << r3 << " " << g3 << " " << b3 << " 0 0  "
+                        defs << "<feColorMatrix in=\"" << currentIn
+                             << "\" type=\"matrix\" values=\"" << r << " " << g << " " << b
+                             << " 0 0  " << r2 << " " << g2 << " " << b2 << " 0 0  " << r3 << " "
+                             << g3 << " " << b3 << " 0 0  "
                              << "0 0 0 1 0\" result=\"" << nextIn << "\"/>";
                         currentIn = nextIn;
                     }
@@ -653,11 +659,13 @@ static std::string generateDefs(const container_skia &render_container,
                         float amount = 1.0f;
                         if (args[0][0].type == litehtml::NUMBER ||
                             args[0][0].type == litehtml::PERCENTAGE) {
-                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                            amount = args[0][0].n.number /
+                                     (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
                         }
                         std::string nextIn = "res-" + std::to_string(++resIdx);
-                        defs << "<feColorMatrix in=\"" << currentIn << "\" type=\"saturate\" values=\""
-                             << amount << "\" result=\"" << nextIn << "\"/>";
+                        defs << "<feColorMatrix in=\"" << currentIn
+                             << "\" type=\"saturate\" values=\"" << amount << "\" result=\""
+                             << nextIn << "\"/>";
                         currentIn = nextIn;
                     }
                 } else if (name == "hue-rotate") {
@@ -667,8 +675,9 @@ static std::string generateDefs(const container_skia &render_container,
                             angle = args[0][0].n.number;
                         }
                         std::string nextIn = "res-" + std::to_string(++resIdx);
-                        defs << "<feColorMatrix in=\"" << currentIn << "\" type=\"hueRotate\" values=\""
-                             << angle << "\" result=\"" << nextIn << "\"/>";
+                        defs << "<feColorMatrix in=\"" << currentIn
+                             << "\" type=\"hueRotate\" values=\"" << angle << "\" result=\""
+                             << nextIn << "\"/>";
                         currentIn = nextIn;
                     }
                 } else if (name == "invert") {
@@ -676,13 +685,18 @@ static std::string generateDefs(const container_skia &render_container,
                         float amount = 0.0f;
                         if (args[0][0].type == litehtml::NUMBER ||
                             args[0][0].type == litehtml::PERCENTAGE) {
-                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                            amount = args[0][0].n.number /
+                                     (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
                         }
                         std::string nextIn = "res-" + std::to_string(++resIdx);
-                        defs << "<feComponentTransfer in=\"" << currentIn << "\" result=\"" << nextIn << "\">"
-                             << "<feFuncR type=\"table\" tableValues=\"" << amount << " " << (1.0f - amount) << "\"/>"
-                             << "<feFuncG type=\"table\" tableValues=\"" << amount << " " << (1.0f - amount) << "\"/>"
-                             << "<feFuncB type=\"table\" tableValues=\"" << amount << " " << (1.0f - amount) << "\"/>"
+                        defs << "<feComponentTransfer in=\"" << currentIn << "\" result=\""
+                             << nextIn << "\">"
+                             << "<feFuncR type=\"table\" tableValues=\"" << amount << " "
+                             << (1.0f - amount) << "\"/>"
+                             << "<feFuncG type=\"table\" tableValues=\"" << amount << " "
+                             << (1.0f - amount) << "\"/>"
+                             << "<feFuncB type=\"table\" tableValues=\"" << amount << " "
+                             << (1.0f - amount) << "\"/>"
                              << "</feComponentTransfer>";
                         currentIn = nextIn;
                     }
@@ -691,10 +705,12 @@ static std::string generateDefs(const container_skia &render_container,
                         float amount = 1.0f;
                         if (args[0][0].type == litehtml::NUMBER ||
                             args[0][0].type == litehtml::PERCENTAGE) {
-                            amount = args[0][0].n.number / (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
+                            amount = args[0][0].n.number /
+                                     (args[0][0].type == litehtml::PERCENTAGE ? 100.0f : 1.0f);
                         }
                         std::string nextIn = "res-" + std::to_string(++resIdx);
-                        defs << "<feComponentTransfer in=\"" << currentIn << "\" result=\"" << nextIn << "\">"
+                        defs << "<feComponentTransfer in=\"" << currentIn << "\" result=\""
+                             << nextIn << "\">"
                              << "<feFuncA type=\"linear\" slope=\"" << amount << "\"/>"
                              << "</feComponentTransfer>";
                         currentIn = nextIn;
@@ -705,18 +721,18 @@ static std::string generateDefs(const container_skia &render_container,
         defs << "</filter>";
     }
 
-    const auto &clips = render_container.get_used_clips();
+    const auto& clips = render_container.get_used_clips();
     for (size_t i = 0; i < clips.size(); ++i) {
-        const auto &c = clips[i];
+        const auto& c = clips[i];
         int index = (int)(i + 1);
         defs << "<clipPath id=\"clip-path-" << index << "\">";
         defs << "<path d=\"" << path_from_rrect(c.pos, c.radius) << "\" />";
         defs << "</clipPath>";
     }
 
-    const auto &clipPaths = render_container.get_used_clip_paths();
+    const auto& clipPaths = render_container.get_used_clip_paths();
     for (size_t i = 0; i < clipPaths.size(); ++i) {
-        const auto &cp = clipPaths[i];
+        const auto& cp = clipPaths[i];
         int index = (int)(i + 1);
         defs << "<clipPath id=\"adv-clip-path-" << index << "\">";
         SkPath path = container_skia::parse_clip_path(cp.tokens, cp.pos);
@@ -725,7 +741,7 @@ static std::string generateDefs(const container_skia &render_container,
         defs << "</clipPath>";
     }
 
-    const auto &glyphs = render_container.get_used_glyphs();
+    const auto& glyphs = render_container.get_used_glyphs();
     for (size_t i = 0; i < glyphs.size(); ++i) {
         defs << "<path id=\"glyph-" << (i + 1) << "\" d=\""
              << SkParsePath::ToSVGString(glyphs[i]).c_str() << "\" />";
@@ -734,20 +750,20 @@ static std::string generateDefs(const container_skia &render_container,
     return defs.str();
 }
 
-static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
-                               const container_skia &container, const RenderOptions &options) {
+static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
+                               const container_skia& container, const RenderOptions& options) {
     std::string result;
     result.reserve(svg.size() + 8192);
 
-    const auto &shadows = container.get_used_shadows();
-    const auto &textShadows = container.get_used_text_shadows();
-    const auto &images = container.get_used_image_draws();
-    const auto &conics = container.get_used_conic_gradients();
-    const auto &radials = container.get_used_radial_gradients();
-    const auto &linears = container.get_used_linear_gradients();
-    const auto &textDraws = container.get_used_text_draws();
-    const auto &filters = container.get_used_filters();
-    const auto &backdropFilters = container.get_used_backdrop_filters();
+    const auto& shadows = container.get_used_shadows();
+    const auto& textShadows = container.get_used_text_shadows();
+    const auto& images = container.get_used_image_draws();
+    const auto& conics = container.get_used_conic_gradients();
+    const auto& radials = container.get_used_radial_gradients();
+    const auto& linears = container.get_used_linear_gradients();
+    const auto& textDraws = container.get_used_text_draws();
+    const auto& filters = container.get_used_filters();
+    const auto& backdropFilters = container.get_used_backdrop_filters();
 
     SvgScanner scanner(svg);
     bool defsInjected = false;
@@ -790,7 +806,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                             result.append(tag.name);
                             result.append(" filter=\"url(#shadow-" + std::to_string(fullIndex) +
                                           ")\" fill=\"black\"");
-                            for (const auto &a : tag.attrs) {
+                            for (const auto& a : tag.attrs) {
                                 if (a.name != "filter" && a.name != "fill" && a.name != "style" &&
                                     a.name != "fill-opacity") {
                                     result.append(" ");
@@ -807,7 +823,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                         break;
                     case satoru::MagicTag::TextShadow:
                         if (fullIndex > 0 && fullIndex <= (int)textShadows.size()) {
-                            const auto &tsh = textShadows[fullIndex - 1];
+                            const auto& tsh = textShadows[fullIndex - 1];
                             std::string filterId = "text-shadow-" + std::to_string(fullIndex);
                             std::string textColor =
                                 "rgb(" + std::to_string((int)tsh.text_color.red) + "," +
@@ -818,7 +834,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                             result.append(tag.name);
                             result.append(" filter=\"url(#" + filterId + ")\" fill=\"" + textColor +
                                           "\" fill-opacity=\"" + std::to_string(opacity) + "\"");
-                            for (const auto &a : tag.attrs) {
+                            for (const auto& a : tag.attrs) {
                                 if (a.name != "filter" && a.name != "fill" &&
                                     a.name != "fill-opacity" && a.name != "style") {
                                     result.append(" ");
@@ -845,7 +861,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                         break;
                     case satoru::MagicTag::FilterPush:
                         if (fullIndex > 0 && fullIndex <= (int)filters.size()) {
-                            const auto &finfo = filters[fullIndex - 1];
+                            const auto& finfo = filters[fullIndex - 1];
                             result.append("<g filter=\"url(#filter-" + std::to_string(fullIndex) +
                                           ")\"");
                             if (finfo.opacity < 1.0f)
@@ -905,10 +921,10 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                     case satoru::MagicTag::GlyphPath:
                         if (fullIndex > 0 &&
                             fullIndex <= (int)container.get_used_glyph_draws().size()) {
-                            const auto &drawInfo = container.get_used_glyph_draws()[fullIndex - 1];
+                            const auto& drawInfo = container.get_used_glyph_draws()[fullIndex - 1];
                             result.append("<use href=\"#glyph-" +
                                           std::to_string(drawInfo.glyph_index) + "\"");
-                            for (const auto &a : tag.attrs) {
+                            for (const auto& a : tag.attrs) {
                                 if (a.name == "x" || a.name == "y" || a.name == "transform") {
                                     result.append(" ");
                                     result.append(a.name);
@@ -920,7 +936,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                             if (drawInfo.style_tag == (int)satoru::MagicTag::TextDraw &&
                                 drawInfo.style_index > 0 &&
                                 drawInfo.style_index <= (int)textDraws.size()) {
-                                const auto &td = textDraws[drawInfo.style_index - 1];
+                                const auto& td = textDraws[drawInfo.style_index - 1];
                                 std::string textColor = "rgb(" + std::to_string((int)td.color.red) +
                                                         "," + std::to_string((int)td.color.green) +
                                                         "," + std::to_string((int)td.color.blue) +
@@ -931,7 +947,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                             } else if (drawInfo.style_tag == (int)satoru::MagicTag::TextShadow &&
                                        drawInfo.style_index > 0 &&
                                        drawInfo.style_index <= (int)textShadows.size()) {
-                                const auto &tsh = textShadows[drawInfo.style_index - 1];
+                                const auto& tsh = textShadows[drawInfo.style_index - 1];
                                 std::string textColor =
                                     "rgb(" + std::to_string((int)tsh.text_color.red) + "," +
                                     std::to_string((int)tsh.text_color.green) + "," +
@@ -955,7 +971,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                 switch (mtag) {
                     case satoru::MagicTagExtended::ImageDraw:
                         if (fullIndex > 0 && fullIndex <= (int)images.size()) {
-                            const auto &draw = images[fullIndex - 1];
+                            const auto& draw = images[fullIndex - 1];
                             auto it = context.imageCache.find(draw.url);
                             if (it != context.imageCache.end() && it->second.skImage) {
                                 std::string dataUrl;
@@ -1024,7 +1040,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                         bool ok = false;
                         if (mtag == satoru::MagicTagExtended::ConicGradient && fullIndex > 0 &&
                             fullIndex <= (int)conics.size()) {
-                            const auto &gradInfo = conics[fullIndex - 1];
+                            const auto& gradInfo = conics[fullIndex - 1];
                             border_box = gradInfo.layer.border_box;
                             border_radius = gradInfo.layer.border_radius;
                             opacity = gradInfo.opacity;
@@ -1035,19 +1051,24 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                                 bitmapCanvas.clear(SK_ColorTRANSPARENT);
 
                                 SkBitmap tileBitmap;
-                                if (gradInfo.layer.origin_box.width > 0 && gradInfo.layer.origin_box.height > 0) {
-                                    tileBitmap.allocN32Pixels((int)gradInfo.layer.origin_box.width,
-                                                              (int)gradInfo.layer.origin_box.height);
+                                if (gradInfo.layer.origin_box.width > 0 &&
+                                    gradInfo.layer.origin_box.height > 0) {
+                                    tileBitmap.allocN32Pixels(
+                                        (int)gradInfo.layer.origin_box.width,
+                                        (int)gradInfo.layer.origin_box.height);
                                     SkCanvas tileCanvas(tileBitmap);
                                     tileCanvas.clear(SK_ColorTRANSPARENT);
 
-                                    SkPoint center = SkPoint::Make(
-                                        (float)gradInfo.gradient.position.x - (float)gradInfo.layer.origin_box.x,
-                                        (float)gradInfo.gradient.position.y - (float)gradInfo.layer.origin_box.y);
+                                    SkPoint center =
+                                        SkPoint::Make((float)gradInfo.gradient.position.x -
+                                                          (float)gradInfo.layer.origin_box.x,
+                                                      (float)gradInfo.gradient.position.y -
+                                                          (float)gradInfo.layer.origin_box.y);
                                     std::vector<SkColor4f> colors;
                                     std::vector<float> pos_vec;
-                                    for (size_t i = 0; i < gradInfo.gradient.color_points.size(); ++i) {
-                                        const auto &stop = gradInfo.gradient.color_points[i];
+                                    for (size_t i = 0; i < gradInfo.gradient.color_points.size();
+                                         ++i) {
+                                        const auto& stop = gradInfo.gradient.color_points[i];
                                         colors.push_back(
                                             {stop.color.red / 255.0f, stop.color.green / 255.0f,
                                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
@@ -1058,10 +1079,10 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                                     }
                                     if (!pos_vec.empty() && pos_vec.back() > 1.0f) {
                                         float max_val = pos_vec.back();
-                                        for (auto &p : pos_vec) p /= max_val;
+                                        for (auto& p : pos_vec) p /= max_val;
                                         pos_vec.back() = 1.0f;
                                     }
-                                    
+
                                     SkGradient sk_grad(
                                         SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
                                                            SkTileMode::kClamp),
@@ -1072,26 +1093,32 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                                     SkPaint p;
                                     p.setShader(SkShaders::SweepGradient(center, sk_grad, &matrix));
                                     p.setAntiAlias(true);
-                                    tileCanvas.drawRect(SkRect::MakeWH((float)gradInfo.layer.origin_box.width,
-                                                                         (float)gradInfo.layer.origin_box.height),
-                                                          p);
+                                    tileCanvas.drawRect(
+                                        SkRect::MakeWH((float)gradInfo.layer.origin_box.width,
+                                                       (float)gradInfo.layer.origin_box.height),
+                                        p);
 
                                     SkTileMode tileX = SkTileMode::kRepeat;
                                     SkTileMode tileY = SkTileMode::kRepeat;
-                                    if (gradInfo.layer.repeat == litehtml::background_repeat_no_repeat) {
+                                    if (gradInfo.layer.repeat ==
+                                        litehtml::background_repeat_no_repeat) {
                                         tileX = tileY = SkTileMode::kDecal;
-                                    } else if (gradInfo.layer.repeat == litehtml::background_repeat_repeat_x) {
+                                    } else if (gradInfo.layer.repeat ==
+                                               litehtml::background_repeat_repeat_x) {
                                         tileY = SkTileMode::kDecal;
-                                    } else if (gradInfo.layer.repeat == litehtml::background_repeat_repeat_y) {
+                                    } else if (gradInfo.layer.repeat ==
+                                               litehtml::background_repeat_repeat_y) {
                                         tileX = SkTileMode::kDecal;
                                     }
 
                                     SkMatrix repeatMatrix;
-                                    repeatMatrix.setTranslate((float)gradInfo.layer.origin_box.x - (float)border_box.x,
-                                                              (float)gradInfo.layer.origin_box.y - (float)border_box.y);
+                                    repeatMatrix.setTranslate(
+                                        (float)gradInfo.layer.origin_box.x - (float)border_box.x,
+                                        (float)gradInfo.layer.origin_box.y - (float)border_box.y);
 
                                     SkPaint repeatPaint;
-                                    repeatPaint.setShader(tileBitmap.makeShader(tileX, tileY, SkSamplingOptions(), &repeatMatrix));
+                                    repeatPaint.setShader(tileBitmap.makeShader(
+                                        tileX, tileY, SkSamplingOptions(), &repeatMatrix));
                                     bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width,
                                                                          (float)border_box.height),
                                                           repeatPaint);
@@ -1100,7 +1127,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                             }
                         } else if (mtag == satoru::MagicTagExtended::RadialGradient &&
                                    fullIndex > 0 && fullIndex <= (int)radials.size()) {
-                            const auto &gradInfo = radials[fullIndex - 1];
+                            const auto& gradInfo = radials[fullIndex - 1];
                             border_box = gradInfo.layer.border_box;
                             border_radius = gradInfo.layer.border_radius;
                             opacity = gradInfo.opacity;
@@ -1112,20 +1139,24 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
 
                                 // Create a tile bitmap for the origin_box
                                 SkBitmap tileBitmap;
-                                if (gradInfo.layer.origin_box.width > 0 && gradInfo.layer.origin_box.height > 0) {
-                                    tileBitmap.allocN32Pixels((int)gradInfo.layer.origin_box.width,
-                                                              (int)gradInfo.layer.origin_box.height);
+                                if (gradInfo.layer.origin_box.width > 0 &&
+                                    gradInfo.layer.origin_box.height > 0) {
+                                    tileBitmap.allocN32Pixels(
+                                        (int)gradInfo.layer.origin_box.width,
+                                        (int)gradInfo.layer.origin_box.height);
                                     SkCanvas tileCanvas(tileBitmap);
                                     tileCanvas.clear(SK_ColorTRANSPARENT);
 
-                                    SkPoint center = SkPoint::Make(
-                                        (float)gradInfo.gradient.position.x - (float)gradInfo.layer.origin_box.x,
-                                        (float)gradInfo.gradient.position.y - (float)gradInfo.layer.origin_box.y);
+                                    SkPoint center =
+                                        SkPoint::Make((float)gradInfo.gradient.position.x -
+                                                          (float)gradInfo.layer.origin_box.x,
+                                                      (float)gradInfo.gradient.position.y -
+                                                          (float)gradInfo.layer.origin_box.y);
                                     float rx = (float)gradInfo.gradient.radius.x,
                                           ry = (float)gradInfo.gradient.radius.y;
                                     std::vector<SkColor4f> colors;
                                     std::vector<float> pos_vec;
-                                    for (const auto &stop : gradInfo.gradient.color_points) {
+                                    for (const auto& stop : gradInfo.gradient.color_points) {
                                         colors.push_back(
                                             {stop.color.red / 255.0f, stop.color.green / 255.0f,
                                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
@@ -1133,7 +1164,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                                     }
                                     SkMatrix matrix;
                                     matrix.setScale(1.0f, ry / rx, center.x(), center.y());
-                                    
+
                                     SkGradient sk_grad(
                                         SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
                                                            SkTileMode::kClamp),
@@ -1142,27 +1173,33 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                                     p.setShader(
                                         SkShaders::RadialGradient(center, rx, sk_grad, &matrix));
                                     p.setAntiAlias(true);
-                                    tileCanvas.drawRect(SkRect::MakeWH((float)gradInfo.layer.origin_box.width,
-                                                                         (float)gradInfo.layer.origin_box.height),
-                                                          p);
+                                    tileCanvas.drawRect(
+                                        SkRect::MakeWH((float)gradInfo.layer.origin_box.width,
+                                                       (float)gradInfo.layer.origin_box.height),
+                                        p);
 
                                     // Draw the tile tiled into the main bitmap
                                     SkTileMode tileX = SkTileMode::kRepeat;
                                     SkTileMode tileY = SkTileMode::kRepeat;
-                                    if (gradInfo.layer.repeat == litehtml::background_repeat_no_repeat) {
+                                    if (gradInfo.layer.repeat ==
+                                        litehtml::background_repeat_no_repeat) {
                                         tileX = tileY = SkTileMode::kDecal;
-                                    } else if (gradInfo.layer.repeat == litehtml::background_repeat_repeat_x) {
+                                    } else if (gradInfo.layer.repeat ==
+                                               litehtml::background_repeat_repeat_x) {
                                         tileY = SkTileMode::kDecal;
-                                    } else if (gradInfo.layer.repeat == litehtml::background_repeat_repeat_y) {
+                                    } else if (gradInfo.layer.repeat ==
+                                               litehtml::background_repeat_repeat_y) {
                                         tileX = SkTileMode::kDecal;
                                     }
 
                                     SkMatrix repeatMatrix;
-                                    repeatMatrix.setTranslate((float)gradInfo.layer.origin_box.x - (float)border_box.x,
-                                                              (float)gradInfo.layer.origin_box.y - (float)border_box.y);
+                                    repeatMatrix.setTranslate(
+                                        (float)gradInfo.layer.origin_box.x - (float)border_box.x,
+                                        (float)gradInfo.layer.origin_box.y - (float)border_box.y);
 
                                     SkPaint repeatPaint;
-                                    repeatPaint.setShader(tileBitmap.makeShader(tileX, tileY, SkSamplingOptions(), &repeatMatrix));
+                                    repeatPaint.setShader(tileBitmap.makeShader(
+                                        tileX, tileY, SkSamplingOptions(), &repeatMatrix));
                                     bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width,
                                                                          (float)border_box.height),
                                                           repeatPaint);
@@ -1171,7 +1208,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                             }
                         } else if (mtag == satoru::MagicTagExtended::LinearGradient &&
                                    fullIndex > 0 && fullIndex <= (int)linears.size()) {
-                            const auto &gradInfo = linears[fullIndex - 1];
+                            const auto& gradInfo = linears[fullIndex - 1];
                             border_box = gradInfo.layer.border_box;
                             border_radius = gradInfo.layer.border_radius;
                             opacity = gradInfo.opacity;
@@ -1182,28 +1219,32 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                                 bitmapCanvas.clear(SK_ColorTRANSPARENT);
 
                                 SkBitmap tileBitmap;
-                                if (gradInfo.layer.origin_box.width > 0 && gradInfo.layer.origin_box.height > 0) {
-                                    tileBitmap.allocN32Pixels((int)gradInfo.layer.origin_box.width,
-                                                              (int)gradInfo.layer.origin_box.height);
+                                if (gradInfo.layer.origin_box.width > 0 &&
+                                    gradInfo.layer.origin_box.height > 0) {
+                                    tileBitmap.allocN32Pixels(
+                                        (int)gradInfo.layer.origin_box.width,
+                                        (int)gradInfo.layer.origin_box.height);
                                     SkCanvas tileCanvas(tileBitmap);
                                     tileCanvas.clear(SK_ColorTRANSPARENT);
 
                                     SkPoint pts[2] = {
-                                        SkPoint::Make(
-                                            (float)gradInfo.gradient.start.x - (float)gradInfo.layer.origin_box.x,
-                                            (float)gradInfo.gradient.start.y - (float)gradInfo.layer.origin_box.y),
-                                        SkPoint::Make(
-                                            (float)gradInfo.gradient.end.x - (float)gradInfo.layer.origin_box.x,
-                                            (float)gradInfo.gradient.end.y - (float)gradInfo.layer.origin_box.y)};
+                                        SkPoint::Make((float)gradInfo.gradient.start.x -
+                                                          (float)gradInfo.layer.origin_box.x,
+                                                      (float)gradInfo.gradient.start.y -
+                                                          (float)gradInfo.layer.origin_box.y),
+                                        SkPoint::Make((float)gradInfo.gradient.end.x -
+                                                          (float)gradInfo.layer.origin_box.x,
+                                                      (float)gradInfo.gradient.end.y -
+                                                          (float)gradInfo.layer.origin_box.y)};
                                     std::vector<SkColor4f> colors;
                                     std::vector<float> pos_vec;
-                                    for (const auto &stop : gradInfo.gradient.color_points) {
+                                    for (const auto& stop : gradInfo.gradient.color_points) {
                                         colors.push_back(
                                             {stop.color.red / 255.0f, stop.color.green / 255.0f,
                                              stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
                                         pos_vec.push_back(stop.offset);
                                     }
-                                    
+
                                     SkGradient sk_grad(
                                         SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
                                                            SkTileMode::kClamp),
@@ -1211,26 +1252,32 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                                     SkPaint p;
                                     p.setShader(SkShaders::LinearGradient(pts, sk_grad));
                                     p.setAntiAlias(true);
-                                    tileCanvas.drawRect(SkRect::MakeWH((float)gradInfo.layer.origin_box.width,
-                                                                         (float)gradInfo.layer.origin_box.height),
-                                                          p);
+                                    tileCanvas.drawRect(
+                                        SkRect::MakeWH((float)gradInfo.layer.origin_box.width,
+                                                       (float)gradInfo.layer.origin_box.height),
+                                        p);
 
                                     SkTileMode tileX = SkTileMode::kRepeat;
                                     SkTileMode tileY = SkTileMode::kRepeat;
-                                    if (gradInfo.layer.repeat == litehtml::background_repeat_no_repeat) {
+                                    if (gradInfo.layer.repeat ==
+                                        litehtml::background_repeat_no_repeat) {
                                         tileX = tileY = SkTileMode::kDecal;
-                                    } else if (gradInfo.layer.repeat == litehtml::background_repeat_repeat_x) {
+                                    } else if (gradInfo.layer.repeat ==
+                                               litehtml::background_repeat_repeat_x) {
                                         tileY = SkTileMode::kDecal;
-                                    } else if (gradInfo.layer.repeat == litehtml::background_repeat_repeat_y) {
+                                    } else if (gradInfo.layer.repeat ==
+                                               litehtml::background_repeat_repeat_y) {
                                         tileX = SkTileMode::kDecal;
                                     }
 
                                     SkMatrix repeatMatrix;
-                                    repeatMatrix.setTranslate((float)gradInfo.layer.origin_box.x - (float)border_box.x,
-                                                              (float)gradInfo.layer.origin_box.y - (float)border_box.y);
+                                    repeatMatrix.setTranslate(
+                                        (float)gradInfo.layer.origin_box.x - (float)border_box.x,
+                                        (float)gradInfo.layer.origin_box.y - (float)border_box.y);
 
                                     SkPaint repeatPaint;
-                                    repeatPaint.setShader(tileBitmap.makeShader(tileX, tileY, SkSamplingOptions(), &repeatMatrix));
+                                    repeatPaint.setShader(tileBitmap.makeShader(
+                                        tileX, tileY, SkSamplingOptions(), &repeatMatrix));
                                     bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width,
                                                                          (float)border_box.height),
                                                           repeatPaint);
@@ -1265,7 +1312,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
             bool isSvg = tag.isTag("svg");
             if (tag.isTag("image") && !tag.closing) {
                 bool hasPreserve = false;
-                for (const auto &a : tag.attrs) {
+                for (const auto& a : tag.attrs) {
                     if (a.name == "preserveAspectRatio") {
                         hasPreserve = true;
                         break;
@@ -1273,7 +1320,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                 }
                 if (!hasPreserve) {
                     result.append("<image preserveAspectRatio=\"none\"");
-                    for (const auto &a : tag.attrs) {
+                    for (const auto& a : tag.attrs) {
                         result.append(" ");
                         result.append(a.name);
                         result.append("=\"");
@@ -1305,8 +1352,8 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
 }
 }  // namespace
 
-std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height,
-                                const RenderOptions &options) {
+std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
+                                const RenderOptions& options) {
     if (!inst->doc || !inst->render_container) return "";
 
     int content_height = (height > 0) ? height : (int)inst->doc->height();
@@ -1334,28 +1381,28 @@ std::string renderDocumentToSvg(SatoruInstance *inst, int width, int height,
 
     canvas.reset();
     sk_sp<SkData> data = stream.detachAsData();
-    std::string_view svg((const char *)data->data(), data->size());
+    std::string_view svg((const char*)data->data(), data->size());
 
     return finalizeSvg(svg, inst->context, *inst->render_container, options);
 }
 
 static void dump_elements_recursive(litehtml::element::ptr el) {
     if (!el) return;
-    const char *tag = el->get_tagName();
+    const char* tag = el->get_tagName();
     if (tag && strcmp(tag, "div") == 0) {
         auto attrs = el->css().dump_get_attrs();
-        for (const auto &attr : attrs) {
+        for (const auto& attr : attrs) {
             SATORU_LOG_INFO("SVG DIV [%s] CSS ATTR: %s = %s", tag, std::get<0>(attr).c_str(),
                             std::get<1>(attr).c_str());
         }
     }
-    for (auto &child : el->children()) {
+    for (auto& child : el->children()) {
         dump_elements_recursive(child);
     }
 }
 
-std::string renderHtmlToSvg(const char *html, int width, int height, SatoruContext &context,
-                            const char *master_css, const RenderOptions &options) {
+std::string renderHtmlToSvg(const char* html, int width, int height, SatoruContext& context,
+                            const char* master_css, const RenderOptions& options) {
     int initial_height = (height > 0) ? height : 3000;
     container_skia container(width, initial_height, nullptr, context, nullptr, false);
 
@@ -1395,7 +1442,7 @@ std::string renderHtmlToSvg(const char *html, int width, int height, SatoruConte
 
     canvas.reset();
     sk_sp<SkData> data = stream.detachAsData();
-    std::string_view svg((const char *)data->data(), data->size());
+    std::string_view svg((const char*)data->data(), data->size());
 
     return finalizeSvg(svg, context, container, options);
 }

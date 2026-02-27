@@ -13,22 +13,21 @@
 #include "include/core/SkStream.h"
 #include "include/docs/SkPDFDocument.h"
 #include "include/encode/SkJpegEncoder.h"
-#include "utils/skia_utils.h"
 
 namespace {
 std::unique_ptr<SkCodec> PdfJpegDecoder(sk_sp<const SkData> data) {
     return SkJpegDecoder::Decode(std::move(data), nullptr, nullptr);
 }
 
-bool PdfJpegEncoder(SkWStream *dst, const SkPixmap &src, int quality) {
+bool PdfJpegEncoder(SkWStream* dst, const SkPixmap& src, int quality) {
     SkJpegEncoder::Options options;
     options.fQuality = quality;
     return SkJpegEncoder::Encode(dst, src, options);
 }
 }  // namespace
 
-sk_sp<SkData> renderDocumentToPdf(SatoruInstance *inst, int width, int height,
-                                  const RenderOptions &options) {
+sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height,
+                                  const RenderOptions& options) {
     if (!inst->doc || !inst->render_container) return nullptr;
 
     SkDynamicMemoryWStream stream;
@@ -44,7 +43,7 @@ sk_sp<SkData> renderDocumentToPdf(SatoruInstance *inst, int width, int height,
     int content_height = (height > 0) ? height : (int)inst->doc->height();
     if (content_height < 1) content_height = 1;
 
-    SkCanvas *canvas = pdf_doc->beginPage((SkScalar)width, (SkScalar)content_height);
+    SkCanvas* canvas = pdf_doc->beginPage((SkScalar)width, (SkScalar)content_height);
     if (canvas) {
         inst->render_container->reset();
         inst->render_container->set_canvas(canvas);
@@ -61,8 +60,8 @@ sk_sp<SkData> renderDocumentToPdf(SatoruInstance *inst, int width, int height,
     return stream.detachAsData();
 }
 
-sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string> &htmls, int width, int height,
-                               SatoruContext &context, const char *master_css) {
+sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width, int height,
+                               SatoruContext& context, const char* master_css) {
     if (htmls.empty()) return nullptr;
 
     SkDynamicMemoryWStream stream;
@@ -78,7 +77,7 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string> &htmls, int width,
     std::string css = master_css ? master_css : litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";
 
-    for (const auto &html : htmls) {
+    for (const auto& html : htmls) {
         // Measure pass
         container_skia measure_container(width, height > 0 ? height : 3000, nullptr, context,
                                          nullptr, false);
@@ -91,7 +90,7 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string> &htmls, int width,
         int content_height = (height > 0) ? height : (int)measure_doc->height();
         if (content_height < 1) content_height = 1;
 
-        SkCanvas *canvas = pdf_doc->beginPage((SkScalar)width, (SkScalar)content_height);
+        SkCanvas* canvas = pdf_doc->beginPage((SkScalar)width, (SkScalar)content_height);
         if (!canvas) continue;
 
         // Render pass

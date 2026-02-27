@@ -2,7 +2,6 @@
 #define SATORU_LRU_CACHE_H
 
 #include <list>
-#include <stdexcept>
 #include <unordered_map>
 
 namespace satoru {

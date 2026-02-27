@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .box {
+            width: 100px;
+            height: 100px;
+            border: 20px solid rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            margin: 20px;
+            border-radius: 40px;
+            display: inline-block;
+            vertical-align: top;
+        }
+        .solid { background-color: #ff0000; }
+        .linear { background-image: linear-gradient(to right, #ff0000, #0000ff); }
+        .radial { background-image: radial-gradient(circle, #ff0000, #0000ff); }
+        
+        .clip-border { background-clip: border-box; }
+        .clip-padding { background-clip: padding-box; }
+        .clip-content { background-clip: content-box; }
+    </style>
+</head>
+<body style="background: white;">
+    <h2>Solid Color</h2>
+    <div class="box solid clip-border"></div>
+    <div class="box solid clip-padding"></div>
+    <div class="box solid clip-content"></div>
+
+    <h2>Linear Gradient</h2>
+    <div class="box linear clip-border"></div>
+    <div class="box linear clip-padding"></div>
+    <div class="box linear clip-content"></div>
+
+    <h2>Radial Gradient</h2>
+    <div class="box radial clip-border"></div>
+    <div class="box radial clip-padding"></div>
+    <div class="box radial clip-content"></div>
+</body>
+</html>

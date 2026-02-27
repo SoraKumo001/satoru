@@ -1033,40 +1033,70 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                                                       (int)border_box.height);
                                 SkCanvas bitmapCanvas(bitmap);
                                 bitmapCanvas.clear(SK_ColorTRANSPARENT);
-                                SkPoint center = SkPoint::Make(
-                                    (float)gradInfo.gradient.position.x - (float)border_box.x,
-                                    (float)gradInfo.gradient.position.y - (float)border_box.y);
-                                std::vector<SkColor4f> colors;
-                                std::vector<float> pos_vec;
-                                for (size_t i = 0; i < gradInfo.gradient.color_points.size(); ++i) {
-                                    const auto &stop = gradInfo.gradient.color_points[i];
-                                    colors.push_back(
-                                        {stop.color.red / 255.0f, stop.color.green / 255.0f,
-                                         stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
-                                    float offset = stop.offset;
-                                    if (i > 0 && offset <= pos_vec.back())
-                                        offset = pos_vec.back() + 0.00001f;
-                                    pos_vec.push_back(offset);
+
+                                SkBitmap tileBitmap;
+                                if (gradInfo.layer.origin_box.width > 0 && gradInfo.layer.origin_box.height > 0) {
+                                    tileBitmap.allocN32Pixels((int)gradInfo.layer.origin_box.width,
+                                                              (int)gradInfo.layer.origin_box.height);
+                                    SkCanvas tileCanvas(tileBitmap);
+                                    tileCanvas.clear(SK_ColorTRANSPARENT);
+
+                                    SkPoint center = SkPoint::Make(
+                                        (float)gradInfo.gradient.position.x - (float)gradInfo.layer.origin_box.x,
+                                        (float)gradInfo.gradient.position.y - (float)gradInfo.layer.origin_box.y);
+                                    std::vector<SkColor4f> colors;
+                                    std::vector<float> pos_vec;
+                                    for (size_t i = 0; i < gradInfo.gradient.color_points.size(); ++i) {
+                                        const auto &stop = gradInfo.gradient.color_points[i];
+                                        colors.push_back(
+                                            {stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                             stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                                        float offset = stop.offset;
+                                        if (i > 0 && offset <= pos_vec.back())
+                                            offset = pos_vec.back() + 0.00001f;
+                                        pos_vec.push_back(offset);
+                                    }
+                                    if (!pos_vec.empty() && pos_vec.back() > 1.0f) {
+                                        float max_val = pos_vec.back();
+                                        for (auto &p : pos_vec) p /= max_val;
+                                        pos_vec.back() = 1.0f;
+                                    }
+                                    
+                                    SkGradient sk_grad(
+                                        SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
+                                                           SkTileMode::kClamp),
+                                        SkGradient::Interpolation());
+                                    SkMatrix matrix;
+                                    matrix.setRotate(gradInfo.gradient.angle - 90.0f, center.x(),
+                                                     center.y());
+                                    SkPaint p;
+                                    p.setShader(SkShaders::SweepGradient(center, sk_grad, &matrix));
+                                    p.setAntiAlias(true);
+                                    tileCanvas.drawRect(SkRect::MakeWH((float)gradInfo.layer.origin_box.width,
+                                                                         (float)gradInfo.layer.origin_box.height),
+                                                          p);
+
+                                    SkTileMode tileX = SkTileMode::kRepeat;
+                                    SkTileMode tileY = SkTileMode::kRepeat;
+                                    if (gradInfo.layer.repeat == litehtml::background_repeat_no_repeat) {
+                                        tileX = tileY = SkTileMode::kDecal;
+                                    } else if (gradInfo.layer.repeat == litehtml::background_repeat_repeat_x) {
+                                        tileY = SkTileMode::kDecal;
+                                    } else if (gradInfo.layer.repeat == litehtml::background_repeat_repeat_y) {
+                                        tileX = SkTileMode::kDecal;
+                                    }
+
+                                    SkMatrix repeatMatrix;
+                                    repeatMatrix.setTranslate((float)gradInfo.layer.origin_box.x - (float)border_box.x,
+                                                              (float)gradInfo.layer.origin_box.y - (float)border_box.y);
+
+                                    SkPaint repeatPaint;
+                                    repeatPaint.setShader(tileBitmap.makeShader(tileX, tileY, SkSamplingOptions(), &repeatMatrix));
+                                    bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width,
+                                                                         (float)border_box.height),
+                                                          repeatPaint);
+                                    ok = true;
                                 }
-                                if (!pos_vec.empty() && pos_vec.back() > 1.0f) {
-                                    float max_val = pos_vec.back();
-                                    for (auto &p : pos_vec) p /= max_val;
-                                    pos_vec.back() = 1.0f;
-                                }
-                                SkGradient sk_grad(
-                                    SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
-                                                       SkTileMode::kClamp),
-                                    SkGradient::Interpolation());
-                                SkMatrix matrix;
-                                matrix.setRotate(gradInfo.gradient.angle - 90.0f, center.x(),
-                                                 center.y());
-                                SkPaint p;
-                                p.setShader(SkShaders::SweepGradient(center, sk_grad, &matrix));
-                                p.setAntiAlias(true);
-                                bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width,
-                                                                     (float)border_box.height),
-                                                      p);
-                                ok = true;
                             }
                         } else if (mtag == satoru::MagicTagExtended::RadialGradient &&
                                    fullIndex > 0 && fullIndex <= (int)radials.size()) {
@@ -1079,33 +1109,65 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                                                       (int)border_box.height);
                                 SkCanvas bitmapCanvas(bitmap);
                                 bitmapCanvas.clear(SK_ColorTRANSPARENT);
-                                SkPoint center = SkPoint::Make(
-                                    (float)gradInfo.gradient.position.x - (float)border_box.x,
-                                    (float)gradInfo.gradient.position.y - (float)border_box.y);
-                                float rx = (float)gradInfo.gradient.radius.x,
-                                      ry = (float)gradInfo.gradient.radius.y;
-                                std::vector<SkColor4f> colors;
-                                std::vector<float> pos_vec;
-                                for (const auto &stop : gradInfo.gradient.color_points) {
-                                    colors.push_back(
-                                        {stop.color.red / 255.0f, stop.color.green / 255.0f,
-                                         stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
-                                    pos_vec.push_back(stop.offset);
+
+                                // Create a tile bitmap for the origin_box
+                                SkBitmap tileBitmap;
+                                if (gradInfo.layer.origin_box.width > 0 && gradInfo.layer.origin_box.height > 0) {
+                                    tileBitmap.allocN32Pixels((int)gradInfo.layer.origin_box.width,
+                                                              (int)gradInfo.layer.origin_box.height);
+                                    SkCanvas tileCanvas(tileBitmap);
+                                    tileCanvas.clear(SK_ColorTRANSPARENT);
+
+                                    SkPoint center = SkPoint::Make(
+                                        (float)gradInfo.gradient.position.x - (float)gradInfo.layer.origin_box.x,
+                                        (float)gradInfo.gradient.position.y - (float)gradInfo.layer.origin_box.y);
+                                    float rx = (float)gradInfo.gradient.radius.x,
+                                          ry = (float)gradInfo.gradient.radius.y;
+                                    std::vector<SkColor4f> colors;
+                                    std::vector<float> pos_vec;
+                                    for (const auto &stop : gradInfo.gradient.color_points) {
+                                        colors.push_back(
+                                            {stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                             stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                                        pos_vec.push_back(stop.offset);
+                                    }
+                                    SkMatrix matrix;
+                                    matrix.setScale(1.0f, ry / rx, center.x(), center.y());
+                                    
+                                    SkGradient sk_grad(
+                                        SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
+                                                           SkTileMode::kClamp),
+                                        SkGradient::Interpolation());
+                                    SkPaint p;
+                                    p.setShader(
+                                        SkShaders::RadialGradient(center, rx, sk_grad, &matrix));
+                                    p.setAntiAlias(true);
+                                    tileCanvas.drawRect(SkRect::MakeWH((float)gradInfo.layer.origin_box.width,
+                                                                         (float)gradInfo.layer.origin_box.height),
+                                                          p);
+
+                                    // Draw the tile tiled into the main bitmap
+                                    SkTileMode tileX = SkTileMode::kRepeat;
+                                    SkTileMode tileY = SkTileMode::kRepeat;
+                                    if (gradInfo.layer.repeat == litehtml::background_repeat_no_repeat) {
+                                        tileX = tileY = SkTileMode::kDecal;
+                                    } else if (gradInfo.layer.repeat == litehtml::background_repeat_repeat_x) {
+                                        tileY = SkTileMode::kDecal;
+                                    } else if (gradInfo.layer.repeat == litehtml::background_repeat_repeat_y) {
+                                        tileX = SkTileMode::kDecal;
+                                    }
+
+                                    SkMatrix repeatMatrix;
+                                    repeatMatrix.setTranslate((float)gradInfo.layer.origin_box.x - (float)border_box.x,
+                                                              (float)gradInfo.layer.origin_box.y - (float)border_box.y);
+
+                                    SkPaint repeatPaint;
+                                    repeatPaint.setShader(tileBitmap.makeShader(tileX, tileY, SkSamplingOptions(), &repeatMatrix));
+                                    bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width,
+                                                                         (float)border_box.height),
+                                                          repeatPaint);
+                                    ok = true;
                                 }
-                                SkMatrix matrix;
-                                matrix.setScale(1.0f, ry / rx, center.x(), center.y());
-                                SkGradient sk_grad(
-                                    SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
-                                                       SkTileMode::kClamp),
-                                    SkGradient::Interpolation());
-                                SkPaint p;
-                                p.setShader(
-                                    SkShaders::RadialGradient(center, rx, sk_grad, &matrix));
-                                p.setAntiAlias(true);
-                                bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width,
-                                                                     (float)border_box.height),
-                                                      p);
-                                ok = true;
                             }
                         } else if (mtag == satoru::MagicTagExtended::LinearGradient &&
                                    fullIndex > 0 && fullIndex <= (int)linears.size()) {
@@ -1118,32 +1180,62 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext &context,
                                                       (int)border_box.height);
                                 SkCanvas bitmapCanvas(bitmap);
                                 bitmapCanvas.clear(SK_ColorTRANSPARENT);
-                                SkPoint pts[2] = {
-                                    SkPoint::Make(
-                                        (float)gradInfo.gradient.start.x - (float)border_box.x,
-                                        (float)gradInfo.gradient.start.y - (float)border_box.y),
-                                    SkPoint::Make(
-                                        (float)gradInfo.gradient.end.x - (float)border_box.x,
-                                        (float)gradInfo.gradient.end.y - (float)border_box.y)};
-                                std::vector<SkColor4f> colors;
-                                std::vector<float> pos_vec;
-                                for (const auto &stop : gradInfo.gradient.color_points) {
-                                    colors.push_back(
-                                        {stop.color.red / 255.0f, stop.color.green / 255.0f,
-                                         stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
-                                    pos_vec.push_back(stop.offset);
+
+                                SkBitmap tileBitmap;
+                                if (gradInfo.layer.origin_box.width > 0 && gradInfo.layer.origin_box.height > 0) {
+                                    tileBitmap.allocN32Pixels((int)gradInfo.layer.origin_box.width,
+                                                              (int)gradInfo.layer.origin_box.height);
+                                    SkCanvas tileCanvas(tileBitmap);
+                                    tileCanvas.clear(SK_ColorTRANSPARENT);
+
+                                    SkPoint pts[2] = {
+                                        SkPoint::Make(
+                                            (float)gradInfo.gradient.start.x - (float)gradInfo.layer.origin_box.x,
+                                            (float)gradInfo.gradient.start.y - (float)gradInfo.layer.origin_box.y),
+                                        SkPoint::Make(
+                                            (float)gradInfo.gradient.end.x - (float)gradInfo.layer.origin_box.x,
+                                            (float)gradInfo.gradient.end.y - (float)gradInfo.layer.origin_box.y)};
+                                    std::vector<SkColor4f> colors;
+                                    std::vector<float> pos_vec;
+                                    for (const auto &stop : gradInfo.gradient.color_points) {
+                                        colors.push_back(
+                                            {stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                             stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                                        pos_vec.push_back(stop.offset);
+                                    }
+                                    
+                                    SkGradient sk_grad(
+                                        SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
+                                                           SkTileMode::kClamp),
+                                        SkGradient::Interpolation());
+                                    SkPaint p;
+                                    p.setShader(SkShaders::LinearGradient(pts, sk_grad));
+                                    p.setAntiAlias(true);
+                                    tileCanvas.drawRect(SkRect::MakeWH((float)gradInfo.layer.origin_box.width,
+                                                                         (float)gradInfo.layer.origin_box.height),
+                                                          p);
+
+                                    SkTileMode tileX = SkTileMode::kRepeat;
+                                    SkTileMode tileY = SkTileMode::kRepeat;
+                                    if (gradInfo.layer.repeat == litehtml::background_repeat_no_repeat) {
+                                        tileX = tileY = SkTileMode::kDecal;
+                                    } else if (gradInfo.layer.repeat == litehtml::background_repeat_repeat_x) {
+                                        tileY = SkTileMode::kDecal;
+                                    } else if (gradInfo.layer.repeat == litehtml::background_repeat_repeat_y) {
+                                        tileX = SkTileMode::kDecal;
+                                    }
+
+                                    SkMatrix repeatMatrix;
+                                    repeatMatrix.setTranslate((float)gradInfo.layer.origin_box.x - (float)border_box.x,
+                                                              (float)gradInfo.layer.origin_box.y - (float)border_box.y);
+
+                                    SkPaint repeatPaint;
+                                    repeatPaint.setShader(tileBitmap.makeShader(tileX, tileY, SkSamplingOptions(), &repeatMatrix));
+                                    bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width,
+                                                                         (float)border_box.height),
+                                                          repeatPaint);
+                                    ok = true;
                                 }
-                                SkGradient sk_grad(
-                                    SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
-                                                       SkTileMode::kClamp),
-                                    SkGradient::Interpolation());
-                                SkPaint p;
-                                p.setShader(SkShaders::LinearGradient(pts, sk_grad));
-                                p.setAntiAlias(true);
-                                bitmapCanvas.drawRect(SkRect::MakeWH((float)border_box.width,
-                                                                     (float)border_box.height),
-                                                      p);
-                                ok = true;
                             }
                         }
                         if (ok) {

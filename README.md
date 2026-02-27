@@ -269,9 +269,8 @@ pnpm --filter visual-test test
 - [x] **Radial Gradients**: Support for complex `radial-gradient` syntax.
 - [x] **Font Subsetting**: Optimizing Wasm memory by loading only required glyphs.
 - [x] **Vertical Writing Support (Writing Modes)**:
-- [ ] **Table Layout Refinement**: Improve accuracy for complex `rowspan`/`colspan` and nested tables (Target: 07-table.html mismatch reduction).
 - [x] **SVG Backdrop Filter**: Implement `backdrop-filter` support in the SVG vector pipeline using SVG filters.
-- [ ] **Clip Radius Optimization**: Adjust `border-radius` correctly when clipping with `background-clip` in `container_skia`.
+- [x] **Clip Radius Optimization**: Adjust `border-radius` correctly when clipping with `background-clip` in `container_skia`.
 
 ---
 

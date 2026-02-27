@@ -35,7 +35,10 @@ const App: React.FC = () => {
   });
 
   const [assetList, setAssetList] = useState<string[]>([]);
-  const [selectedAsset, setSelectedAsset] = useState<string>("");
+  const [selectedAsset, setSelectedAsset] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("asset") || "";
+  });
 
   const [fontMapJson, setFontMapJson] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -257,7 +260,7 @@ const App: React.FC = () => {
     const initialAsset = params.get("asset") || "01-layout.html";
 
     if (assetList.includes(initialAsset)) {
-      if (selectedAsset !== initialAsset) {
+      if (selectedAsset !== initialAsset || !html) {
         loadAsset(initialAsset);
       }
     } else if (!selectedAsset) {

@@ -80,6 +80,48 @@ class WritingModeContext {
 
     litehtml::writing_mode mode() const { return m_mode; }
 
+    pixel_t inline_start(const litehtml::margins& m) const {
+        return is_vertical() ? m.top : m.left;
+    }
+    pixel_t inline_end(const litehtml::margins& m) const {
+        return is_vertical() ? m.bottom : m.right;
+    }
+    pixel_t block_start(const litehtml::margins& m) const {
+        switch (m_mode) {
+            case litehtml::writing_mode_vertical_rl: return m.right;
+            case litehtml::writing_mode_vertical_lr: return m.left;
+            default: return m.top;
+        }
+    }
+    pixel_t block_end(const litehtml::margins& m) const {
+        switch (m_mode) {
+            case litehtml::writing_mode_vertical_rl: return m.left;
+            case litehtml::writing_mode_vertical_lr: return m.right;
+            default: return m.bottom;
+        }
+    }
+
+    void set_inline_start(litehtml::margins& m, pixel_t val) const {
+        if (is_vertical()) m.top = val; else m.left = val;
+    }
+    void set_inline_end(litehtml::margins& m, pixel_t val) const {
+        if (is_vertical()) m.bottom = val; else m.right = val;
+    }
+    void set_block_start(litehtml::margins& m, pixel_t val) const {
+        switch (m_mode) {
+            case litehtml::writing_mode_vertical_rl: m.right = val; break;
+            case litehtml::writing_mode_vertical_lr: m.left = val; break;
+            default: m.top = val; break;
+        }
+    }
+    void set_block_end(litehtml::margins& m, pixel_t val) const {
+        switch (m_mode) {
+            case litehtml::writing_mode_vertical_rl: m.left = val; break;
+            case litehtml::writing_mode_vertical_lr: m.right = val; break;
+            default: m.bottom = val; break;
+        }
+    }
+
    private:
     litehtml::writing_mode m_mode;
     pixel_t m_container_width;

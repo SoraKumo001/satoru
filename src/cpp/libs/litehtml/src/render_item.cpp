@@ -1642,6 +1642,11 @@ litehtml::pixel_t litehtml::render_item::get_predefined_height(pixel_t parent_he
 
 
 
+satoru::WritingModeContext litehtml::render_item::get_wm_context() const
+{
+	return satoru::WritingModeContext(css().get_writing_mode(), m_cached_cb_context.width, m_cached_cb_context.height);
+}
+
 void litehtml::render_item::place_logical(pixel_t inline_pos, pixel_t block_pos, const containing_block_context& cb_context, formatting_context* fmt_ctx)
 {
 	writing_mode wm = cb_context.mode;
@@ -1661,230 +1666,46 @@ void litehtml::render_item::place_logical(pixel_t inline_pos, pixel_t block_pos,
 
 litehtml::pixel_t litehtml::render_item::inline_size() const
 {
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_pos.width + m_margins.width() + m_borders.width() + m_padding.width();
-	}
-	return m_pos.height + m_margins.height() + m_borders.height() + m_padding.height();
+	auto wm = get_wm_context();
+	return wm.to_logical(m_pos.width + m_margins.width() + m_borders.width() + m_padding.width(),
+						 m_pos.height + m_margins.height() + m_borders.height() + m_padding.height()).inline_size;
 }
 
 litehtml::pixel_t litehtml::render_item::block_size() const
 {
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_pos.height + m_margins.height() + m_borders.height() + m_padding.height();
-	}
-	return m_pos.width + m_margins.width() + m_borders.width() + m_padding.width();
+	auto wm = get_wm_context();
+	return wm.to_logical(m_pos.width + m_margins.width() + m_borders.width() + m_padding.width(),
+						 m_pos.height + m_margins.height() + m_borders.height() + m_padding.height()).block_size;
 }
 
-litehtml::pixel_t litehtml::render_item::margin_inline_start() const
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_margins.left;
-	}
-	return m_margins.top;
-}
+litehtml::pixel_t litehtml::render_item::margin_inline_start() const { return get_wm_context().inline_start(m_margins); }
+litehtml::pixel_t litehtml::render_item::margin_inline_end() const   { return get_wm_context().inline_end(m_margins); }
+litehtml::pixel_t litehtml::render_item::margin_block_start() const  { return get_wm_context().block_start(m_margins); }
+litehtml::pixel_t litehtml::render_item::margin_block_end() const    { return get_wm_context().block_end(m_margins); }
 
-litehtml::pixel_t litehtml::render_item::margin_inline_end() const
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_margins.right;
-	}
-	return m_margins.bottom;
-}
+litehtml::pixel_t litehtml::render_item::padding_inline_start() const { return get_wm_context().inline_start(m_padding); }
+litehtml::pixel_t litehtml::render_item::padding_inline_end() const   { return get_wm_context().inline_end(m_padding); }
+litehtml::pixel_t litehtml::render_item::padding_block_start() const  { return get_wm_context().block_start(m_padding); }
+litehtml::pixel_t litehtml::render_item::padding_block_end() const    { return get_wm_context().block_end(m_padding); }
 
-litehtml::pixel_t litehtml::render_item::margin_block_start() const
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_margins.top;
-	}
-	if (css().get_writing_mode() == writing_mode_vertical_rl)
-	{
-		return m_margins.right;
-	}
-	return m_margins.left; // vertical-lr
-}
+litehtml::pixel_t litehtml::render_item::border_inline_start() const { return get_wm_context().inline_start(m_borders); }
+litehtml::pixel_t litehtml::render_item::border_inline_end() const   { return get_wm_context().inline_end(m_borders); }
+litehtml::pixel_t litehtml::render_item::border_block_start() const  { return get_wm_context().block_start(m_borders); }
+litehtml::pixel_t litehtml::render_item::border_block_end() const    { return get_wm_context().block_end(m_borders); }
 
-litehtml::pixel_t litehtml::render_item::margin_block_end() const
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_margins.bottom;
-	}
-	if (css().get_writing_mode() == writing_mode_vertical_rl)
-	{
-		return m_margins.left;
-	}
-	return m_margins.right; // vertical-lr
-}
+void litehtml::render_item::margin_inline_start(pixel_t val) { get_wm_context().set_inline_start(m_margins, val); }
+void litehtml::render_item::margin_inline_end(pixel_t val)   { get_wm_context().set_inline_end(m_margins, val); }
+void litehtml::render_item::margin_block_start(pixel_t val)  { get_wm_context().set_block_start(m_margins, val); }
+void litehtml::render_item::margin_block_end(pixel_t val)    { get_wm_context().set_block_end(m_margins, val); }
 
-litehtml::pixel_t litehtml::render_item::padding_inline_start() const
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_padding.left;
-	}
-	return m_padding.top;
-}
+void litehtml::render_item::padding_inline_start(pixel_t val) { get_wm_context().set_inline_start(m_padding, val); }
+void litehtml::render_item::padding_inline_end(pixel_t val)   { get_wm_context().set_inline_end(m_padding, val); }
+void litehtml::render_item::padding_block_start(pixel_t val)  { get_wm_context().set_block_start(m_padding, val); }
+void litehtml::render_item::padding_block_end(pixel_t val)    { get_wm_context().set_block_end(m_padding, val); }
 
-litehtml::pixel_t litehtml::render_item::padding_inline_end() const
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_padding.right;
-	}
-	return m_padding.bottom;
-}
-
-litehtml::pixel_t litehtml::render_item::padding_block_start() const
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_padding.top;
-	}
-	if (css().get_writing_mode() == writing_mode_vertical_rl)
-	{
-		return m_padding.right;
-	}
-	return m_padding.left;
-}
-
-litehtml::pixel_t litehtml::render_item::padding_block_end() const
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_padding.bottom;
-	}
-	if (css().get_writing_mode() == writing_mode_vertical_rl)
-	{
-		return m_padding.left;
-	}
-	return m_padding.right;
-}
-
-litehtml::pixel_t litehtml::render_item::border_inline_start() const
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_borders.left;
-	}
-	return m_borders.top;
-}
-
-litehtml::pixel_t litehtml::render_item::border_inline_end() const
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_borders.right;
-	}
-	return m_borders.bottom;
-}
-
-litehtml::pixel_t litehtml::render_item::border_block_start() const
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_borders.top;
-	}
-	if (css().get_writing_mode() == writing_mode_vertical_rl)
-	{
-		return m_borders.right;
-	}
-	return m_borders.left;
-}
-
-litehtml::pixel_t litehtml::render_item::border_block_end() const
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb)
-	{
-		return m_borders.bottom;
-	}
-	if (css().get_writing_mode() == writing_mode_vertical_rl)
-	{
-		return m_borders.left;
-	}
-	return m_borders.right;
-}
-
-void litehtml::render_item::margin_inline_start(pixel_t val)
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_margins.left = val;
-	else m_margins.top = val;
-}
-
-void litehtml::render_item::margin_inline_end(pixel_t val)
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_margins.right = val;
-	else m_margins.bottom = val;
-}
-
-void litehtml::render_item::margin_block_start(pixel_t val)
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_margins.top = val;
-	else if (css().get_writing_mode() == writing_mode_vertical_rl) m_margins.right = val;
-	else m_margins.left = val;
-}
-
-void litehtml::render_item::margin_block_end(pixel_t val)
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_margins.bottom = val;
-	else if (css().get_writing_mode() == writing_mode_vertical_rl) m_margins.left = val;
-	else m_margins.right = val;
-}
-
-void litehtml::render_item::padding_inline_start(pixel_t val)
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_padding.left = val;
-	else m_padding.top = val;
-}
-
-void litehtml::render_item::padding_inline_end(pixel_t val)
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_padding.right = val;
-	else m_padding.bottom = val;
-}
-
-void litehtml::render_item::padding_block_start(pixel_t val)
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_padding.top = val;
-	else if (css().get_writing_mode() == writing_mode_vertical_rl) m_padding.right = val;
-	else m_padding.left = val;
-}
-
-void litehtml::render_item::padding_block_end(pixel_t val)
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_padding.bottom = val;
-	else if (css().get_writing_mode() == writing_mode_vertical_rl) m_padding.left = val;
-	else m_padding.right = val;
-}
-
-void litehtml::render_item::border_inline_start(pixel_t val)
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_borders.left = val;
-	else m_borders.top = val;
-}
-
-void litehtml::render_item::border_inline_end(pixel_t val)
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_borders.right = val;
-	else m_borders.bottom = val;
-}
-
-void litehtml::render_item::border_block_start(pixel_t val)
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_borders.top = val;
-	else if (css().get_writing_mode() == writing_mode_vertical_rl) m_borders.right = val;
-	else m_borders.left = val;
-}
-
-void litehtml::render_item::border_block_end(pixel_t val)
-{
-	if (css().get_writing_mode() == writing_mode_horizontal_tb) m_borders.bottom = val;
-	else if (css().get_writing_mode() == writing_mode_vertical_rl) m_borders.left = val;
-	else m_borders.right = val;
-}
+void litehtml::render_item::border_inline_start(pixel_t val) { get_wm_context().set_inline_start(m_borders, val); }
+void litehtml::render_item::border_inline_end(pixel_t val)   { get_wm_context().set_inline_end(m_borders, val); }
+void litehtml::render_item::border_block_start(pixel_t val)  { get_wm_context().set_block_start(m_borders, val); }
+void litehtml::render_item::border_block_end(pixel_t val)    { get_wm_context().set_block_end(m_borders, val); }
 
 

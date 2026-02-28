@@ -21,6 +21,7 @@ This section defines the core rules for an agent's behavior within this project.
 
 ### 1.4 Serena Tool Constraints
 
+- **execute_shell_command**: Use of `execute_shell_command` is strictly prohibited. Use `run_shell_command` instead.
 - **serena\_\_read_file**: Use of `serena__read_file` is strictly prohibited. Use `read_text_file` or other alternative tools instead.
 - **replace_content**: Use of `replace_content` is strictly prohibited. Use `edit_file` or other alternative tools instead.
 - **find_symbol**: Use of `find_symbol` is strictly prohibited. Use `get_symbols_overview` and `read_text_file` with line numbers or other alternative tools instead.

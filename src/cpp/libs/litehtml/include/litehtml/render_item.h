@@ -169,6 +169,8 @@ namespace litehtml
         pixel_t inline_size() const;
         pixel_t block_size() const;
 
+        satoru::WritingModeContext get_wm_context() const;
+
         pixel_t margin_inline_start() const;
         pixel_t margin_inline_end() const;
         pixel_t margin_block_start() const;

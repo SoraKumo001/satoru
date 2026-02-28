@@ -13,22 +13,22 @@ namespace litehtml
 		std::list<floated_box> m_floats_right;
 		pixel_pixel_cache m_cache_line_left;
 		pixel_pixel_cache m_cache_line_right;
-		pixel_t m_current_top;
-		pixel_t m_current_left;
+		pixel_t m_current_block_pos;
+		pixel_t m_current_inline_pos;
 		writing_mode m_writing_mode;
 
 	public:
-		formatting_context(writing_mode mode = writing_mode_horizontal_tb) : m_current_top(0), m_current_left(0), m_writing_mode(mode)	{}
+		formatting_context(writing_mode mode = writing_mode_horizontal_tb) : m_current_block_pos(0), m_current_inline_pos(0), m_writing_mode(mode)	{}
 
 		void push_position(pixel_t x, pixel_t y)
 		{
-			m_current_left += x;
-			m_current_top += y;
+			m_current_inline_pos += x;
+			m_current_block_pos += y;
 		}
 		void pop_position(pixel_t x, pixel_t y)
 		{
-			m_current_left -= x;
-			m_current_top -= y;
+			m_current_inline_pos -= x;
+			m_current_block_pos -= y;
 		}
 
 		void add_float(const std::shared_ptr<render_item> &el, pixel_t min_width, int context);

@@ -170,11 +170,11 @@ litehtml::pixel_t litehtml::formatting_context::get_right_floats_height() const
 	return h - m_current_block_pos;
 }
 
-litehtml::pixel_t litehtml::formatting_context::get_line_left(pixel_t y )
+litehtml::pixel_t litehtml::formatting_context::get_line_left(pixel_t block_pos )
 {
-	y += m_current_block_pos;
+	block_pos += m_current_block_pos;
 
-	if(m_cache_line_left.is_valid && m_cache_line_left.hash == y)
+	if(m_cache_line_left.is_valid && m_cache_line_left.hash == block_pos)
 	{
 		if(m_cache_line_left.val - m_current_inline_pos < 0)
 		{
@@ -186,53 +186,45 @@ litehtml::pixel_t litehtml::formatting_context::get_line_left(pixel_t y )
 	pixel_t w = 0;
 	for(const auto& fb : m_floats_left)
 	{
-		if (y >= fb.pos.top() && y < fb.pos.bottom())
+		if (block_pos >= fb.pos.top() && block_pos < fb.pos.bottom())
 		{
 			w = std::max(w, fb.pos.right());
-			if (w < fb.pos.right())
-			{
-				break;
-			}
 		}
 	}
-	m_cache_line_left.set_value(y, w);
+	m_cache_line_left.set_value(block_pos, w);
 	w -= m_current_inline_pos;
 	if(w < 0) return 0;
 	return w;
 }
 
-litehtml::pixel_t litehtml::formatting_context::get_line_right(pixel_t y, pixel_t def_right )
+litehtml::pixel_t litehtml::formatting_context::get_line_right(pixel_t block_pos, pixel_t def_inline_end )
 {
-	y += m_current_block_pos;
-	def_right += m_current_inline_pos;
-	if(m_cache_line_right.is_valid && m_cache_line_right.hash == y)
+	block_pos += m_current_block_pos;
+	def_inline_end += m_current_inline_pos;
+	if(m_cache_line_right.is_valid && m_cache_line_right.hash == block_pos)
 	{
 		if(m_cache_line_right.is_default)
 		{
-			return def_right - m_current_inline_pos;
+			return def_inline_end - m_current_inline_pos;
 		} else
 		{
-			pixel_t w = std::min(m_cache_line_right.val, def_right) - m_current_inline_pos;
+			pixel_t w = std::min(m_cache_line_right.val, def_inline_end) - m_current_inline_pos;
 			if(w < 0) return 0;
 			return w;
 		}
 	}
 
-	pixel_t w = def_right;
+	pixel_t w = def_inline_end;
 	m_cache_line_right.is_default = true;
 	for(const auto& fb : m_floats_right)
 	{
-		if(y >= fb.pos.top() && y < fb.pos.bottom())
+		if(block_pos >= fb.pos.top() && block_pos < fb.pos.bottom())
 		{
 			w = std::min(w, fb.pos.left());
 			m_cache_line_right.is_default = false;
-			if(w > fb.pos.left())
-			{
-				break;
-			}
 		}
 	}
-	m_cache_line_right.set_value(y, w);
+	m_cache_line_right.set_value(block_pos, w);
 	w -= m_current_inline_pos;
 	if(w < 0) return 0;
 	return w;

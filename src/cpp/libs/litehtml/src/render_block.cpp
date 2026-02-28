@@ -212,12 +212,12 @@ litehtml::pixel_t litehtml::render_item_block::_measure(const containing_block_c
 	containing_block_context self_size = m_self_size;
 	
 	// If the block has max-inline-size, we should restrict the available inline-size for children
-	if (self_size.max_width.type != containing_block_context::cbc_value_type_none)
+	if (self_size.max_inline_size().type != containing_block_context::cbc_value_type_none)
 	{
-		if (self_size.render_width > self_size.max_width)
+		if (self_size.render_inline_size() > self_size.max_inline_size())
 		{
-			self_size.render_width = self_size.max_width;
-			self_size.width = self_size.render_width;
+			self_size.render_inline_size() = self_size.max_inline_size();
+			self_size.inline_size() = self_size.render_inline_size();
 		}
 	}
 
@@ -235,118 +235,126 @@ litehtml::pixel_t litehtml::render_item_block::_measure(const containing_block_c
 		}
 	}
 
-	// Set block inline-size
+	// Set block inline-size (and physical width/height)
 	if(!(containing_block_size.size_mode & containing_block_context::size_mode_content))
 	{
-		if(self_size.render_width.type == containing_block_context::cbc_value_type_absolute)
+		if(self_size.render_inline_size().type == containing_block_context::cbc_value_type_absolute)
 		{
-			ret_inline_size = m_pos.width = self_size.render_width;
-		} else
-		{
-			m_pos.width = self_size.render_width;
+			ret_inline_size = self_size.render_inline_size();
 		}
+        if (self_size.mode == writing_mode_horizontal_tb)
+            m_pos.width = self_size.render_inline_size();
+        else
+            m_pos.height = self_size.render_inline_size();
 	} else
 	{
-		if (self_size.width.type != containing_block_context::cbc_value_type_auto)
-		{
-			m_pos.width = self_size.render_width;
-		} else
-		{
-			m_pos.width = ret_inline_size;
-		}
+		pixel_t calculated_size = (self_size.inline_size().type != containing_block_context::cbc_value_type_auto) ? (pixel_t)self_size.render_inline_size() : ret_inline_size;
 
 		if (containing_block_size.size_mode & containing_block_context::size_mode_exact_width)
 		{
-			if(m_pos.width != (pixel_t) self_size.render_width)
-			{
-				m_pos.width = self_size.render_width;
-			}
+			calculated_size = self_size.render_inline_size();
 		}
-		if(self_size.render_width.type == containing_block_context::cbc_value_type_absolute && ret_inline_size > self_size.render_width)
+		if(self_size.render_inline_size().type == containing_block_context::cbc_value_type_absolute && ret_inline_size > self_size.render_inline_size())
 		{
-			ret_inline_size = self_size.render_width;
+			ret_inline_size = self_size.render_inline_size();
 		}
+        
+        if (self_size.mode == writing_mode_horizontal_tb)
+            m_pos.width = calculated_size;
+        else
+            m_pos.height = calculated_size;
 	}
 
 	// Fix inline-size with max-inline-size attribute
-	if(self_size.max_width.type != containing_block_context::cbc_value_type_none)
+	if(self_size.max_inline_size().type != containing_block_context::cbc_value_type_none)
 	{
-		if(m_pos.width > self_size.max_width)
+        pixel_t& physical_inline_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.width : m_pos.height;
+		if(physical_inline_size > self_size.max_inline_size())
 		{
-			m_pos.width = self_size.max_width;
+			physical_inline_size = self_size.max_inline_size();
 		}
 	}
 	
 	// The returned inline-size should not exceed the element's actual inline-size
-	ret_inline_size = std::min(ret_inline_size, m_pos.width);
+    pixel_t current_inline_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.width : m_pos.height;
+	ret_inline_size = std::min(ret_inline_size, current_inline_size);
 
 	// Fix inline-size with min-inline-size attribute
-	if(self_size.min_width.type != containing_block_context::cbc_value_type_none)
+	if(self_size.min_inline_size().type != containing_block_context::cbc_value_type_none)
 	{
-		if(m_pos.width < self_size.min_width)
+        pixel_t& physical_inline_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.width : m_pos.height;
+		if(physical_inline_size < self_size.min_inline_size())
 		{
-			m_pos.width = self_size.min_width;
+			physical_inline_size = self_size.min_inline_size();
 		}
-	} else if(m_pos.width < 0)
-	{
-		m_pos.width = 0;
-	}
+	} else {
+        pixel_t& physical_inline_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.width : m_pos.height;
+        if(physical_inline_size < 0) physical_inline_size = 0;
+    }
 
 	// Set block-size
-	if (self_size.render_height.type != containing_block_context::cbc_value_type_auto &&
+	if (self_size.render_block_size().type != containing_block_context::cbc_value_type_auto &&
 	    (!(containing_block_size.size_mode & containing_block_context::size_mode_content) ||
          src_el()->css().get_display() == display_table_cell))
 	{
+        pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
 		if (src_el()->css().get_display() == display_table_cell)
 		{
-			m_pos.height = std::max(m_pos.height, (pixel_t)self_size.render_height);
+			physical_block_size = std::max(physical_block_size, (pixel_t)self_size.render_block_size());
 		}
 		else
 		{
-			m_pos.height = self_size.render_height;
+			physical_block_size = self_size.render_block_size();
 		}
 	} else if(!css().get_aspect_ratio().is_auto())
 	{
 		aspect_ratio ar = css().get_aspect_ratio();
-		m_pos.height = m_pos.width * ar.height / ar.width;
+        if (self_size.mode == writing_mode_horizontal_tb)
+    		m_pos.height = m_pos.width * ar.height / ar.width;
+        else
+            m_pos.width = m_pos.height * ar.width / ar.height;
 	} else if (src_el()->is_block_formatting_context())
 	{
 		// add the floats' height to the block height
 		pixel_t floats_block_size = fmt_ctx->get_floats_height();
-		if (floats_block_size > m_pos.height)
+        pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
+		if (floats_block_size > physical_block_size)
 		{
-			m_pos.height = floats_block_size;
+			physical_block_size = floats_block_size;
 		}
 	}
 	if(containing_block_size.size_mode & containing_block_context::size_mode_content)
 	{
-		if(self_size.render_height.type == containing_block_context::cbc_value_type_absolute)
+		if(self_size.render_block_size().type == containing_block_context::cbc_value_type_absolute)
 		{
-			if(m_pos.height > self_size.render_height)
+            pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
+			if(physical_block_size > self_size.render_block_size())
 			{
-				m_pos.height = self_size.render_height;
+				physical_block_size = self_size.render_block_size();
 			}
 		}
 	}
 
 	// Fix block-size with min-block-size attribute
-	if(self_size.min_height.type != containing_block_context::cbc_value_type_none)
+	if(self_size.min_block_size().type != containing_block_context::cbc_value_type_none)
 	{
-		if(m_pos.height < self_size.min_height)
+        pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
+		if(physical_block_size < self_size.min_block_size())
 		{
-			m_pos.height = self_size.min_height;
+			physical_block_size = self_size.min_block_size();
 		}
-	} else if(m_pos.height < 0)
-	{
-		m_pos.height = 0;
-	}
+	} else {
+        pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
+        if(physical_block_size < 0) physical_block_size = 0;
+    }
 
 	// Fix block-size with max-block-size attribute
-	if(self_size.max_height.type != containing_block_context::cbc_value_type_none)
+	if(self_size.max_block_size().type != containing_block_context::cbc_value_type_none)
 	{
-		if(m_pos.height > self_size.max_height)
+        pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
+		if(physical_block_size > self_size.max_block_size())
 		{
-			m_pos.height = self_size.max_height;
+			physical_block_size = self_size.max_block_size();
 		}
 	}
 
@@ -358,14 +366,15 @@ litehtml::pixel_t litehtml::render_item_block::_measure(const containing_block_c
             size sz;
             string list_image_baseurl = src_el()->css().get_list_style_image_baseurl();
             src_el()->get_document()->container()->get_image_size(list_image.c_str(), list_image_baseurl.c_str(), sz);
-            if (m_pos.height < sz.height)
+            pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
+            if (physical_block_size < sz.height)
             {
-			m_pos.height = sz.height;
+			    physical_block_size = sz.height;
             }
         }
     }
 
-	return ret_inline_size + content_offset_width();
+	return ret_inline_size + content_offset_inline(get_wm_context());
 }
 
 void litehtml::render_item_block::_place(pixel_t inline_pos, pixel_t block_pos, const containing_block_context &containing_block_size, formatting_context* fmt_ctx)
@@ -373,12 +382,12 @@ void litehtml::render_item_block::_place(pixel_t inline_pos, pixel_t block_pos, 
 	containing_block_context self_size = m_self_size;
 	
 	// If the block has max-inline-size, we should restrict the available inline-size for children
-	if (self_size.max_width.type != containing_block_context::cbc_value_type_none)
+	if (self_size.max_inline_size().type != containing_block_context::cbc_value_type_none)
 	{
-		if (self_size.render_width > self_size.max_width)
+		if (self_size.render_inline_size() > self_size.max_inline_size())
 		{
-			self_size.render_width = self_size.max_width;
-			self_size.width = self_size.render_width;
+			self_size.render_inline_size() = self_size.max_inline_size();
+			self_size.inline_size() = self_size.render_inline_size();
 		}
 	}
 
@@ -389,78 +398,91 @@ void litehtml::render_item_block::_place(pixel_t inline_pos, pixel_t block_pos, 
 	// Set block inline-size
 	if(!(containing_block_size.size_mode & containing_block_context::size_mode_content))
 	{
-		m_pos.width = self_size.render_width;
+        if (self_size.mode == writing_mode_horizontal_tb)
+		    m_pos.width = self_size.render_inline_size();
+        else
+            m_pos.height = self_size.render_inline_size();
 	} else
 	{
-		if (self_size.width.type != containing_block_context::cbc_value_type_auto)
+        pixel_t& physical_inline_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.width : m_pos.height;
+		if (self_size.inline_size().type != containing_block_context::cbc_value_type_auto)
 		{
-			m_pos.width = self_size.render_width;
+			physical_inline_size = self_size.render_inline_size();
 		}
 		if (containing_block_size.size_mode & containing_block_context::size_mode_exact_width)
 		{
-			m_pos.width = self_size.render_width;
+			physical_inline_size = self_size.render_inline_size();
 		}
 	}
 
 	// Fix inline-size with max-inline-size attribute
-	if(self_size.max_width.type != containing_block_context::cbc_value_type_none)
+	if(self_size.max_inline_size().type != containing_block_context::cbc_value_type_none)
 	{
-		if(m_pos.width > self_size.max_width)
+        pixel_t& physical_inline_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.width : m_pos.height;
+		if(physical_inline_size > self_size.max_inline_size())
 		{
-			m_pos.width = self_size.max_width;
+			physical_inline_size = self_size.max_inline_size();
 		}
 	}
 	
 	// Fix inline-size with min-inline-size attribute
-	if(self_size.min_width.type != containing_block_context::cbc_value_type_none)
+	if(self_size.min_inline_size().type != containing_block_context::cbc_value_type_none)
 	{
-		if(m_pos.width < self_size.min_width)
+        pixel_t& physical_inline_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.width : m_pos.height;
+		if(physical_inline_size < self_size.min_inline_size())
 		{
-			m_pos.width = self_size.min_width;
+			physical_inline_size = self_size.min_inline_size();
 		}
 	}
 
 	// Set block-size
-	if (self_size.render_height.type != containing_block_context::cbc_value_type_auto &&
+	if (self_size.render_block_size().type != containing_block_context::cbc_value_type_auto &&
 	    (!(containing_block_size.size_mode & containing_block_context::size_mode_content) ||
          src_el()->css().get_display() == display_table_cell))
 	{
+        pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
 		if (src_el()->css().get_display() == display_table_cell)
 		{
-			m_pos.height = std::max(m_pos.height, (pixel_t)self_size.render_height);
+			physical_block_size = std::max(physical_block_size, (pixel_t)self_size.render_block_size());
 		}
 		else
 		{
-			m_pos.height = self_size.render_height;
+			physical_block_size = self_size.render_block_size();
 		}
 	} else if(!css().get_aspect_ratio().is_auto())
 	{
 		aspect_ratio ar = css().get_aspect_ratio();
-		m_pos.height = m_pos.width * ar.height / ar.width;
+        if (self_size.mode == writing_mode_horizontal_tb)
+    		m_pos.height = m_pos.width * ar.height / ar.width;
+        else
+            m_pos.width = m_pos.height * ar.width / ar.height;
 	} else if (src_el()->is_block_formatting_context())
 	{
 		pixel_t floats_block_size = fmt_ctx->get_floats_height();
-		if (floats_block_size > m_pos.height)
+        pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
+		if (floats_block_size > physical_block_size)
 		{
-			m_pos.height = floats_block_size;
+			physical_block_size = floats_block_size;
 		}
 	}
 
 	// Fix block-size with min-block-size attribute
-	if(self_size.min_height.type != containing_block_context::cbc_value_type_none)
+	if(self_size.min_block_size().type != containing_block_context::cbc_value_type_none)
 	{
-		if(m_pos.height < self_size.min_height)
+        pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
+		if(physical_block_size < self_size.min_block_size())
 		{
-			m_pos.height = self_size.min_height;
+			physical_block_size = self_size.min_block_size();
 		}
 	}
 
 	// Fix block-size with max-block-size attribute
-	if(self_size.max_height.type != containing_block_context::cbc_value_type_none)
+	if(self_size.max_block_size().type != containing_block_context::cbc_value_type_none)
 	{
-		if(m_pos.height > self_size.max_height)
+        pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
+		if(physical_block_size > self_size.max_block_size())
 		{
-			m_pos.height = self_size.max_height;
+			physical_block_size = self_size.max_block_size();
 		}
 	}
 }

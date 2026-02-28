@@ -513,6 +513,18 @@ namespace litehtml
                 typed_pixel& render_block_size() { return mode == writing_mode_horizontal_tb ? render_height : render_width; }
                 const typed_pixel& render_block_size() const { return mode == writing_mode_horizontal_tb ? render_height : render_width; }
 
+                typed_pixel& min_inline_size() { return mode == writing_mode_horizontal_tb ? min_width : min_height; }
+                const typed_pixel& min_inline_size() const { return mode == writing_mode_horizontal_tb ? min_width : min_height; }
+
+                typed_pixel& max_inline_size() { return mode == writing_mode_horizontal_tb ? max_width : max_height; }
+                const typed_pixel& max_inline_size() const { return mode == writing_mode_horizontal_tb ? max_width : max_height; }
+
+                typed_pixel& min_block_size() { return mode == writing_mode_horizontal_tb ? min_height : min_width; }
+                const typed_pixel& min_block_size() const { return mode == writing_mode_horizontal_tb ? min_height : min_width; }
+
+                typed_pixel& max_block_size() { return mode == writing_mode_horizontal_tb ? max_height : max_width; }
+                const typed_pixel& max_block_size() const { return mode == writing_mode_horizontal_tb ? max_height : max_width; }
+
                 int context_idx;
                 uint32_t size_mode;
                 writing_mode mode;

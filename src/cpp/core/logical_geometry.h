@@ -117,6 +117,31 @@ class WritingModeContext {
         return is_vertical() ? css.get_max_width() : css.get_max_height();
     }
 
+    litehtml::containing_block_context update_logical(const litehtml::containing_block_context& cb,
+                                                      std::optional<litehtml::containing_block_context::typed_pixel> inline_size,
+                                                      std::optional<litehtml::containing_block_context::typed_pixel> block_size) const {
+        litehtml::containing_block_context ret = cb;
+        if (inline_size) {
+            if (is_vertical()) {
+                ret.height = *inline_size;
+                ret.render_height = *inline_size;
+            } else {
+                ret.width = *inline_size;
+                ret.render_width = *inline_size;
+            }
+        }
+        if (block_size) {
+            if (is_vertical()) {
+                ret.width = *block_size;
+                ret.render_width = *block_size;
+            } else {
+                ret.height = *block_size;
+                ret.render_height = *block_size;
+            }
+        }
+        return ret;
+    }
+
     pixel_t inline_start(const litehtml::margins& m) const {
         return is_vertical() ? m.top : m.left;
     }

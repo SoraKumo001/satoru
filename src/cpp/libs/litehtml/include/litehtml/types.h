@@ -567,6 +567,16 @@ namespace litehtml
                         return ret;
                 }
 
+                containing_block_context new_height(pixel_t h, uint32_t _size_mode = size_mode_normal) const
+                {
+                        containing_block_context ret = *this;
+                        pixel_t diff = (pixel_t)ret.height - (pixel_t)ret.render_height;
+                        ret.render_height = h;
+                        ret.height = h + diff;
+                        ret.size_mode = _size_mode;
+                        return ret;
+                }
+
                 containing_block_context new_width_height(pixel_t w, pixel_t h, uint32_t _size_mode = size_mode_normal) const
                 {
                 containing_block_context ret = *this;

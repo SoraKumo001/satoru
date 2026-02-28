@@ -73,6 +73,17 @@ class WritingModeContext {
         return {width, height};
     }
 
+    logical_pos to_logical_pos(pixel_t x, pixel_t y, pixel_t width, pixel_t height) const {
+        switch (m_mode) {
+            case litehtml::writing_mode_vertical_rl:
+                return {y, m_container_width - x - width};
+            case litehtml::writing_mode_vertical_lr:
+                return {y, x};
+            default:
+                return {x, y};
+        }
+    }
+
     bool is_vertical() const {
         return m_mode == litehtml::writing_mode_vertical_rl ||
                m_mode == litehtml::writing_mode_vertical_lr;

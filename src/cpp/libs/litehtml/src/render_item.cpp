@@ -1649,19 +1649,9 @@ satoru::WritingModeContext litehtml::render_item::get_wm_context() const
 
 void litehtml::render_item::place_logical(pixel_t inline_pos, pixel_t block_pos, const containing_block_context& cb_context, formatting_context* fmt_ctx)
 {
-	writing_mode wm = cb_context.mode;
-	if (wm == writing_mode_horizontal_tb)
-	{
-		place(inline_pos, block_pos, cb_context, fmt_ctx);
-	}
-	else if (wm == writing_mode_vertical_rl)
-	{
-		place((pixel_t)cb_context.width - block_pos - block_size(), inline_pos, cb_context, fmt_ctx);
-	}
-	else if (wm == writing_mode_vertical_lr)
-	{
-		place(block_pos, inline_pos, cb_context, fmt_ctx);
-	}
+	auto wm = get_wm_context();
+	position phys = wm.to_physical(satoru::logical_pos(inline_pos, block_pos), satoru::logical_size(inline_size(), block_size()));
+	place(phys.x, phys.y, cb_context, fmt_ctx);
 }
 
 litehtml::pixel_t litehtml::render_item::inline_size() const

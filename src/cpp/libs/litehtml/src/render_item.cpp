@@ -1655,26 +1655,46 @@ void litehtml::render_item::inline_shift(pixel_t delta)
     }
 }
 
+litehtml::pixel_t litehtml::render_item::inline_start_pos(const satoru::WritingModeContext& wm) const
+{
+	return wm.is_vertical() ? m_pos.y : m_pos.x;
+}
+
+litehtml::pixel_t litehtml::render_item::inline_end_pos(const satoru::WritingModeContext& wm) const
+{
+	return inline_start_pos(wm) + (wm.is_vertical() ? m_pos.height : m_pos.width);
+}
+
+litehtml::pixel_t litehtml::render_item::block_start_pos(const satoru::WritingModeContext& wm) const
+{
+	if (wm.mode() == writing_mode_vertical_rl)
+		return wm.container_width() - m_pos.x - m_pos.width;
+	return wm.is_vertical() ? m_pos.x : m_pos.y;
+}
+
+litehtml::pixel_t litehtml::render_item::block_end_pos(const satoru::WritingModeContext& wm) const
+{
+	return block_start_pos(wm) + (wm.is_vertical() ? m_pos.width : m_pos.height);
+}
+
 litehtml::pixel_t litehtml::render_item::inline_start_pos() const
 {
-	return get_wm_context().is_vertical() ? m_pos.y : m_pos.x;
+	return inline_start_pos(get_wm_context());
 }
 
 litehtml::pixel_t litehtml::render_item::inline_end_pos() const
 {
-	return inline_start_pos() + inline_size();
+	return inline_end_pos(get_wm_context());
 }
 
 litehtml::pixel_t litehtml::render_item::block_start_pos() const
 {
-	if (css().get_writing_mode() == writing_mode_vertical_rl)
-		return m_cached_cb_context.width - m_pos.x - m_pos.width;
-	return get_wm_context().is_vertical() ? m_pos.x : m_pos.y;
+	return block_start_pos(get_wm_context());
 }
 
 litehtml::pixel_t litehtml::render_item::block_end_pos() const
 {
-	return block_start_pos() + block_size();
+	return block_end_pos(get_wm_context());
 }
 
 litehtml::pixel_t litehtml::render_item::get_predefined_width(pixel_t parent_width) const
@@ -1708,8 +1728,8 @@ satoru::WritingModeContext litehtml::render_item::get_wm_context() const
 
 void litehtml::render_item::place_logical(pixel_t inline_pos, pixel_t block_pos, const containing_block_context& cb_context, formatting_context* fmt_ctx)
 {
-	auto wm = get_wm_context();
-	position phys = wm.to_physical(satoru::logical_pos(inline_pos, block_pos), satoru::logical_size(inline_size(), block_size()));
+	satoru::WritingModeContext wm(cb_context.mode, cb_context.width, cb_context.height);
+	position phys = wm.to_physical(satoru::logical_pos(inline_pos, block_pos), satoru::logical_size(width(), height()));
 	place(phys.x, phys.y, cb_context, fmt_ctx);
 }
 
@@ -1723,6 +1743,18 @@ litehtml::pixel_t litehtml::render_item::inline_size() const
 litehtml::pixel_t litehtml::render_item::block_size() const
 {
 	auto wm = get_wm_context();
+	return wm.to_logical(m_pos.width + m_margins.width() + m_borders.width() + m_padding.width(),
+						 m_pos.height + m_margins.height() + m_borders.height() + m_padding.height()).block_size;
+}
+
+litehtml::pixel_t litehtml::render_item::inline_size(const satoru::WritingModeContext& wm) const
+{
+	return wm.to_logical(m_pos.width + m_margins.width() + m_borders.width() + m_padding.width(),
+						 m_pos.height + m_margins.height() + m_borders.height() + m_padding.height()).inline_size;
+}
+
+litehtml::pixel_t litehtml::render_item::block_size(const satoru::WritingModeContext& wm) const
+{
 	return wm.to_logical(m_pos.width + m_margins.width() + m_borders.width() + m_padding.width(),
 						 m_pos.height + m_margins.height() + m_borders.height() + m_padding.height()).block_size;
 }

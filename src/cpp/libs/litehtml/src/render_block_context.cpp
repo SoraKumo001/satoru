@@ -11,6 +11,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
     pixel_t last_block_margin = 0;
 	std::shared_ptr<render_item> last_margin_el;
     bool is_first = true;
+    satoru::WritingModeContext wm = get_wm_context();
     for (const auto& el : m_children)
     {
         // we don't need to process absolute and fixed positioned element on the second pass
@@ -154,7 +155,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
                     max_inline_size = rw;
 				}
 				margin_block_start(block_start_margin);
-                block_offset += el->block_size();
+                block_offset += el->block_size(wm);
                 last_block_margin = el->margin_block_end();
 				last_margin_el = el;
                 is_first = false;

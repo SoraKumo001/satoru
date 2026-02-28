@@ -490,11 +490,12 @@ void litehtml::render_item_block::_place(pixel_t inline_pos, pixel_t block_pos, 
 void litehtml::render_item_block::apply_vertical_align()
 {
     pixel_t content_block_end = 0;
+    satoru::WritingModeContext wm = get_wm_context();
     for (const auto& el : m_children)
     {
         if (el->src_el()->css().get_display() != display_none)
         {
-            content_block_end = std::max(content_block_end, el->block_end_pos());
+            content_block_end = std::max(content_block_end, el->block_end_pos(wm));
         }
     }
 

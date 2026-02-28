@@ -168,6 +168,8 @@ namespace litehtml
 
         pixel_t inline_size() const;
         pixel_t block_size() const;
+        pixel_t inline_size(const satoru::WritingModeContext& wm) const;
+        pixel_t block_size(const satoru::WritingModeContext& wm) const;
 
         satoru::WritingModeContext get_wm_context() const;
 
@@ -580,6 +582,11 @@ namespace litehtml
         virtual void block_shift(pixel_t shift);
         virtual void inline_shift(pixel_t shift);
         virtual void y_shift(pixel_t shift) { block_shift(shift); }
+
+        pixel_t inline_start_pos(const satoru::WritingModeContext& wm) const;
+        pixel_t inline_end_pos(const satoru::WritingModeContext& wm) const;
+        pixel_t block_start_pos(const satoru::WritingModeContext& wm) const;
+        pixel_t block_end_pos(const satoru::WritingModeContext& wm) const;
 
         pixel_t inline_start_pos() const;
         pixel_t inline_end_pos() const;

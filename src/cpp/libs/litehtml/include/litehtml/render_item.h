@@ -557,7 +557,15 @@ namespace litehtml
         bool is_point_inside( pixel_t x, pixel_t y ) const;
         void dump(litehtml::dumper& cout);
                 position get_placement() const;
-        virtual void y_shift(pixel_t shift);
+        virtual void block_shift(pixel_t shift);
+        virtual void inline_shift(pixel_t shift);
+        virtual void y_shift(pixel_t shift) { block_shift(shift); }
+
+        pixel_t inline_start_pos() const;
+        pixel_t inline_end_pos() const;
+        pixel_t block_start_pos() const;
+        pixel_t block_end_pos() const;
+
         /**
          * Returns the boxes of rendering element. All coordinates are absolute
          *

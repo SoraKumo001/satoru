@@ -1460,17 +1460,20 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
                                                 containing_block_context::size_mode_exact_width | 
                                                 containing_block_context::size_mode_exact_height);
 	ret.context_idx = cb_context.context_idx + 1;
+
+	// Initial logical sizes from parent
 	ret.width.value = ret.max_width.value = cb_context.width.value - content_offset_width();
 	if(src_el()->css().get_position() != element_position_absolute && src_el()->css().get_position() != element_position_fixed)
 	{
 		ret.height.value = cb_context.height.value - content_offset_height();
 	}
 
-	// Calculate width if css property is not auto
-	// We have to use auto value for display_table_cell also.
+	auto par = parent();
+	bool is_flex_child = par && (par->css().get_display() == display_flex || par->css().get_display() == display_inline_flex);
+
+	// Calculate width (physical width, but conceptually inline-size in horizontal-tb)
 	if (src_el()->css().get_display() != display_table_cell)
 	{
-		auto par = parent();
 		if(cb_context.size_mode & containing_block_context::size_mode_exact_width)
 		{
 			ret.width.value = cb_context.width;
@@ -1478,11 +1481,14 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 		} else
 		{
 			auto *width = &css().get_width();
-			if(par && (par->css().get_display() == display_flex || par->css().get_display() == display_inline_flex))
+			if(is_flex_child)
 			{
+				// In Flexbox, if flex-basis is set, width/height might be overridden
 				if(!css().get_flex_basis().is_predefined() && css().get_flex_basis().val() >= 0)
 				{
-					if(par->css().get_flex_direction() == flex_direction_row || par->css().get_flex_direction() == flex_direction_row_reverse)
+					auto flex_dir = par->css().get_flex_direction();
+					bool is_main_axis_width = (flex_dir == flex_direction_row || flex_dir == flex_direction_row_reverse);
+					if(is_main_axis_width)
 					{
 						ret.width.type = containing_block_context::cbc_value_type_auto;
 						ret.width.value = 0;
@@ -1501,9 +1507,8 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 		}
 	}
 
-	// Calculate height if css property is not auto
+	// Calculate height (physical height, but conceptually block-size in horizontal-tb)
 	{
-		auto par = parent();
 		if(cb_context.size_mode & containing_block_context::size_mode_exact_height)
 		{
 			ret.height.value = cb_context.height;
@@ -1511,11 +1516,13 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 		} else
 		{
 			auto *height = &css().get_height();
-			if(par && (par->css().get_display() == display_flex || par->css().get_display() == display_inline_flex))
+			if(is_flex_child)
 			{
 				if(!css().get_flex_basis().is_predefined() && css().get_flex_basis().val() >= 0)
 				{
-					if(par->css().get_flex_direction() == flex_direction_column || par->css().get_flex_direction() == flex_direction_column_reverse)
+					auto flex_dir = par->css().get_flex_direction();
+					bool is_main_axis_height = (flex_dir == flex_direction_column || flex_dir == flex_direction_column_reverse);
+					if(is_main_axis_height)
 					{
 						ret.height.type = containing_block_context::cbc_value_type_auto;
 						ret.height.value = 0;
@@ -1552,20 +1559,19 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 	ret.render_width = ret.width;
 	ret.render_height = ret.height;
 
+	// Min/Max widths (physical width = inline-size in horizontal-tb)
 	calc_cb_length(src_el()->css().get_min_width(), cb_context.width, ret.min_width);
 	calc_cb_length(src_el()->css().get_max_width(), cb_context.width, ret.max_width);
 
+	// Min/Max heights (physical height = block-size in horizontal-tb)
 	calc_cb_length(src_el()->css().get_min_height(), cb_context.height, ret.min_height);
 	calc_cb_length(src_el()->css().get_max_height(), cb_context.height, ret.max_height);
 
 	// Fix box sizing
+	// Physical width adjustment (inline-size)
 	if(ret.width.type != containing_block_context::cbc_value_type_auto)
 	{
 		ret.render_width = std::max(0.0f, (pixel_t)ret.width - box_sizing_width());
-	}
-	if(ret.height.type != containing_block_context::cbc_value_type_auto)
-	{
-		ret.render_height = std::max(0.0f, (pixel_t)ret.height - box_sizing_height());
 	}
 	if(ret.min_width.type != containing_block_context::cbc_value_type_none)
 	{
@@ -1574,6 +1580,12 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 	if(ret.max_width.type != containing_block_context::cbc_value_type_none)
 	{
 		ret.max_width.value = std::max(0.0f, (pixel_t)ret.max_width.value - box_sizing_width());
+	}
+
+	// Physical height adjustment (block-size)
+	if(ret.height.type != containing_block_context::cbc_value_type_auto)
+	{
+		ret.render_height = std::max(0.0f, (pixel_t)ret.height - box_sizing_height());
 	}
 	if(ret.min_height.type != containing_block_context::cbc_value_type_none)
 	{
@@ -1613,9 +1625,36 @@ std::tuple<litehtml::pixel_t, litehtml::pixel_t> litehtml::render_item::element_
 	return {offset_x, offset_y};
 }
 
-void litehtml::render_item::y_shift(pixel_t delta)
+void litehtml::render_item::block_shift(pixel_t delta)
 {
 	m_pos.y += delta;
+}
+
+void litehtml::render_item::inline_shift(pixel_t delta)
+{
+	m_pos.x += delta;
+}
+
+litehtml::pixel_t litehtml::render_item::inline_start_pos() const
+{
+	return get_wm_context().is_vertical() ? m_pos.y : m_pos.x;
+}
+
+litehtml::pixel_t litehtml::render_item::inline_end_pos() const
+{
+	return inline_start_pos() + inline_size();
+}
+
+litehtml::pixel_t litehtml::render_item::block_start_pos() const
+{
+	if (css().get_writing_mode() == writing_mode_vertical_rl)
+		return m_cached_cb_context.width - m_pos.x - m_pos.width;
+	return get_wm_context().is_vertical() ? m_pos.x : m_pos.y;
+}
+
+litehtml::pixel_t litehtml::render_item::block_end_pos() const
+{
+	return block_start_pos() + block_size();
 }
 
 litehtml::pixel_t litehtml::render_item::get_predefined_width(pixel_t parent_width) const

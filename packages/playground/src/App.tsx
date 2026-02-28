@@ -22,6 +22,13 @@ const App: React.FC = () => {
     return w ? parseInt(w) : 588;
   });
 
+  const [height, setHeight] = useState<number | "auto">(() => {
+    const params = new URLSearchParams(window.location.search);
+    const h = params.get("height");
+    if (h === "auto") return "auto";
+    return h ? parseInt(h) : "auto";
+  });
+
   const [format, setFormat] = useState<"svg" | "png" | "webp" | "pdf">(() => {
     const params = new URLSearchParams(window.location.search);
     const f = params.get("format");
@@ -81,11 +88,16 @@ const App: React.FC = () => {
       const p = new URLSearchParams(window.location.search);
       const asset = p.get("asset");
       const w = p.get("width");
+      const h = p.get("height");
       const f = p.get("format");
       const t = p.get("textToPaths");
 
       if (w) setWidth(parseInt(w));
       else setWidth(588); // Default
+
+      if (h === "auto") setHeight("auto");
+      else if (h) setHeight(parseInt(h));
+      else setHeight("auto");
 
       if (f && ["svg", "png", "webp", "pdf"].includes(f)) {
         setFormat(f as any);
@@ -125,6 +137,7 @@ const App: React.FC = () => {
     };
 
     syncParam("width", width.toString());
+    syncParam("height", height.toString());
     syncParam("format", format);
 
     if (format === "svg") {
@@ -168,7 +181,7 @@ const App: React.FC = () => {
     if (changed) {
       window.history.replaceState({}, "", url.toString());
     }
-  }, [width, format, textToPaths, selectedAsset, html]);
+  }, [width, height, format, textToPaths, selectedAsset, html]);
 
   // Auto-run render when specific parameters change
   useEffect(() => {
@@ -194,7 +207,7 @@ const App: React.FC = () => {
         clearTimeout(autoRunTimer.current);
       }
     };
-  }, [width, textToPaths, html]);
+  }, [width, height, textToPaths, html]);
 
   // Immediate render when format changes
   useEffect(() => {
@@ -224,18 +237,22 @@ const App: React.FC = () => {
         // Adjust height to fit content
         const resizeIframe = () => {
           if (iframeRef.current && iframeRef.current.contentWindow) {
+            if (height !== "auto") {
+              iframeRef.current.style.height = `${height}px`;
+              return;
+            }
             const body = iframeRef.current.contentWindow.document.body;
             const html =
               iframeRef.current.contentWindow.document.documentElement;
             // Get the maximum height to ensure no scrollbars
-            const height = Math.max(
+            const heightValue = Math.max(
               body.scrollHeight,
               body.offsetHeight,
               html.clientHeight,
               html.scrollHeight,
               html.offsetHeight,
             );
-            iframeRef.current.style.height = `${height}px`;
+            iframeRef.current.style.height = `${heightValue}px`;
           }
         };
 
@@ -247,7 +264,7 @@ const App: React.FC = () => {
         setTimeout(resizeIframe, 500);
       }
     }
-  }, [html]);
+  }, [html, height, width]);
 
   // Handle asset selection (Initial or when assetList is loaded)
   useEffect(() => {
@@ -314,6 +331,7 @@ const App: React.FC = () => {
       const result = await satoru.render({
         value: currentHtml,
         width,
+        height: height === "auto" ? 0 : height,
         format,
         textToPaths,
         fontMap,
@@ -470,17 +488,40 @@ const App: React.FC = () => {
           <div
             style={{ display: "flex", flexDirection: "column", gap: "10px" }}
           >
-            <label>
-              Width:{" "}
-              <input
-                type="number"
-                value={width}
-                onChange={(e) => {
-                  setWidth(parseInt(e.target.value) || 0);
-                }}
-                style={{ width: "80px" }}
-              />
-            </label>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <label>
+                Width:{" "}
+                <input
+                  type="number"
+                  value={width}
+                  onChange={(e) => {
+                    setWidth(parseInt(e.target.value) || 0);
+                  }}
+                  style={{ width: "80px" }}
+                />
+              </label>
+              <label>
+                Height:{" "}
+                <input
+                  type="number"
+                  value={height === "auto" ? "" : height}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setHeight(val === "" ? "auto" : parseInt(val));
+                  }}
+                  disabled={height === "auto"}
+                  style={{ width: "80px" }}
+                />
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <input
+                  type="checkbox"
+                  checked={height === "auto"}
+                  onChange={(e) => setHeight(e.target.checked ? "auto" : 800)}
+                />{" "}
+                Auto
+              </label>
+            </div>
             <label>
               Format:{" "}
               <select

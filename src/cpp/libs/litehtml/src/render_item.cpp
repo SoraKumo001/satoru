@@ -177,19 +177,19 @@ void litehtml::render_item::apply_relative_shift(const containing_block_context 
         css_offsets offsets = src_el()->css().get_offsets();
         if (!offsets.left.is_predefined())
         {
-            m_pos.x += offsets.left.calc_percent(containing_block_size.width);
+            inline_shift(offsets.left.calc_percent(containing_block_size.inline_size()));
         }
         else if (!offsets.right.is_predefined())
         {
-            m_pos.x -= offsets.right.calc_percent(containing_block_size.width);
+            inline_shift(-offsets.right.calc_percent(containing_block_size.inline_size()));
         }
         if (!offsets.top.is_predefined())
         {
-            m_pos.y += offsets.top.calc_percent(containing_block_size.height);
+            block_shift(offsets.top.calc_percent(containing_block_size.block_size()));
         }
         else if (!offsets.bottom.is_predefined())
         {
-            m_pos.y -= offsets.bottom.calc_percent(containing_block_size.height);
+            block_shift(-offsets.bottom.calc_percent(containing_block_size.block_size()));
         }
     }
 }

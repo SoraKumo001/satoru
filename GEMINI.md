@@ -66,6 +66,11 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
   - **clip-path**: Full support for basic shapes (`circle`, `ellipse`, `inset`, `polygon`) and `path()` via Skia's path operations.
   - **backdrop-filter**: Implemented using `saveLayer` and Skia image filters (e.g., `blur()`).
   - **Gradients**: Enhanced `radial-gradient` support with focal point and spread methods.
+- **Coordinate Systems & Writing Modes**:
+  - **Logical Coordinates**: Used during layout and high-level logic. Includes `inline` (along text flow) and `block` (perpendicular to text flow) axes.
+  - **Physical Coordinates**: Skia's native coordinate system (x: left-to-right, y: top-to-bottom).
+  - **WritingModeContext**: Core utility (`src/cpp/core/logical_geometry.h`) for bidirectional mapping between logical and physical spaces.
+  - **Integration**: `litehtml::render_item` uses logical metrics for box model properties (margins, padding, borders). `TextRenderer` leverages this for writing-mode-independent glyph positioning and decoration drawing.
 - **SVG Pipeline v2**:
   - **High-Performance Stream Parser**: FSM-based parser for efficient drawing command stream processing.
   - **Structural Metadata**: Preserves CSS classes and IDs in SVG output for post-processing.

@@ -132,11 +132,11 @@ namespace litehtml
 			line_box_item*	start_lbi = nullptr;
 		};
 
-        pixel_t					m_top;
-        pixel_t					m_left;
-        pixel_t					m_right;
-        pixel_t					m_height;
-        pixel_t					m_width;
+        pixel_t					m_block_pos;
+        pixel_t					m_inline_pos;
+        pixel_t					m_inline_end;
+        pixel_t					m_block_size;
+        pixel_t					m_inline_size;
 		css_line_height_t		m_default_line_height;
         font_metrics			m_font_metrics;
         pixel_t					m_baseline;
@@ -148,12 +148,12 @@ namespace litehtml
 		writing_mode m_writing_mode;
 		std::list< std::unique_ptr<line_box_item> > m_items;
     public:
-        line_box(pixel_t top, pixel_t left, pixel_t right, const css_line_height_t& line_height, const font_metrics& fm, text_align align, direction dir, text_overflow text_overflow, overflow overflow, writing_mode mode) :
-				m_top(top),
-				m_left(left),
-				m_right(right),
-				m_height(0),
-				m_width(0),
+        line_box(pixel_t block_pos, pixel_t inline_pos, pixel_t inline_end, const css_line_height_t& line_height, const font_metrics& fm, text_align align, direction dir, text_overflow text_overflow, overflow overflow, writing_mode mode) :
+				m_block_pos(block_pos),
+				m_inline_pos(inline_pos),
+				m_inline_end(inline_end),
+				m_block_size(0),
+				m_inline_size(0),
 				m_default_line_height(line_height),
 				m_font_metrics(fm),
 				m_baseline(0),
@@ -166,21 +166,26 @@ namespace litehtml
 		{
         }
 
-        pixel_t bottom() const { if(m_writing_mode == writing_mode_horizontal_tb) return m_top + height(); return m_top + width(); }
-        pixel_t top() const { return m_top; }
+        pixel_t block_pos() const { return m_block_pos; }
+        pixel_t inline_pos() const { return m_inline_pos; }
+        pixel_t block_size() const { return m_block_size; }
+        pixel_t inline_size() const { return m_inline_size; }
+
+        pixel_t bottom() const { if(m_writing_mode == writing_mode_horizontal_tb) return m_block_pos + block_size(); return m_block_pos + inline_size(); }
+        pixel_t top() const { return m_block_pos; }
         pixel_t right() const {
-            if(m_writing_mode == writing_mode_horizontal_tb) return m_left + width();
-            if(m_writing_mode == writing_mode_vertical_rl || m_writing_mode == writing_mode_sideways_rl) return m_left;
-            return m_left + height();
+            if(m_writing_mode == writing_mode_horizontal_tb) return m_inline_pos + inline_size();
+            if(m_writing_mode == writing_mode_vertical_rl || m_writing_mode == writing_mode_sideways_rl) return m_inline_pos;
+            return m_inline_pos + block_size();
         }
         pixel_t left() const {
-            if(m_writing_mode == writing_mode_horizontal_tb) return m_left;
-            if(m_writing_mode == writing_mode_vertical_rl || m_writing_mode == writing_mode_sideways_rl) return m_left - height();
-            return m_left;
+            if(m_writing_mode == writing_mode_horizontal_tb) return m_inline_pos;
+            if(m_writing_mode == writing_mode_vertical_rl || m_writing_mode == writing_mode_sideways_rl) return m_inline_pos - block_size();
+            return m_inline_pos;
         }
-        pixel_t		height() const  { return m_height;				}
-        pixel_t	 	width() const	{ return m_width;				}
-		pixel_t	 	line_right() const	{ return m_right;			}
+        pixel_t		height() const  { return m_block_size;				}
+        pixel_t	 	width() const	{ return m_inline_size;				}
+		pixel_t	 	line_right() const	{ return m_inline_end;			}
 		pixel_t	 	min_width() const	{ return m_min_width;		}
 
         void				set_text_overflow(text_overflow overflow) { m_text_overflow = overflow; }

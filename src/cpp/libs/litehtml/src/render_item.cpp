@@ -1474,7 +1474,7 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 	auto par = parent();
 	bool is_flex_child = par && (par->css().get_display() == display_flex || par->css().get_display() == display_inline_flex);
 
-	// Calculate width (physical width, but conceptually inline-size in horizontal-tb)
+	// Calculate width
 	if (src_el()->css().get_display() != display_table_cell)
 	{
 		if(cb_context.size_mode & containing_block_context::size_mode_exact_width)
@@ -1501,7 +1501,9 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 			}
 			if(width)
 			{
-				calc_cb_length(*width, cb_context.width, ret.width);
+                // Mapping physical width to child's logical axis
+                const containing_block_context::typed_pixel& parent_ref_size = (ret.mode == writing_mode_horizontal_tb) ? cb_context.width : cb_context.height;
+				calc_cb_length(*width, parent_ref_size, ret.width);
 			}
 		}
 		if (ret.width.type != containing_block_context::cbc_value_type_auto && (src_el()->css().get_display() == display_table || src_el()->is_root()))
@@ -1510,7 +1512,7 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 		}
 	}
 
-	// Calculate height (physical height, but conceptually block-size in horizontal-tb)
+	// Calculate height
 	{
 		if(cb_context.size_mode & containing_block_context::size_mode_exact_height)
 		{
@@ -1535,7 +1537,9 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
 			}
 			if(height)
 			{
-				calc_cb_length(*height, cb_context.height, ret.height);
+                // Mapping physical height to child's logical axis
+                const containing_block_context::typed_pixel& parent_ref_size = (ret.mode == writing_mode_horizontal_tb) ? cb_context.height : cb_context.width;
+				calc_cb_length(*height, parent_ref_size, ret.height);
 			}
 		}
 		if (ret.height.type != containing_block_context::cbc_value_type_auto && (src_el()->css().get_display() == display_table || src_el()->is_root()))

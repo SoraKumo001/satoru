@@ -5,6 +5,11 @@
 #include "css_properties.h"
 #include "types.h"
 
+namespace satoru
+{
+    class WritingModeContext;
+}
+
 namespace litehtml
 {
     class render_item;
@@ -61,6 +66,12 @@ namespace litehtml
 		virtual pixel_t bottom() const;
 		virtual pixel_t right() const;
 		virtual pixel_t left() const;
+
+        virtual pixel_t inline_size(const satoru::WritingModeContext& wm) const;
+        virtual pixel_t block_size(const satoru::WritingModeContext& wm) const;
+        virtual pixel_t inline_pos(const satoru::WritingModeContext& wm) const;
+        virtual pixel_t block_pos(const satoru::WritingModeContext& wm) const;
+
 		virtual element_type get_type() const	{ return type_text_part; }
 		virtual pixel_t get_rendered_min_width() const	{ return m_rendered_min_width; }
 		virtual void set_rendered_min_width(pixel_t min_width) { m_rendered_min_width = min_width; }

@@ -231,6 +231,26 @@ namespace litehtml
             return content_block_start() + content_block_end();
         }
 
+        pixel_t content_offset_inline(const satoru::WritingModeContext& wm) const
+        {
+            return wm.is_vertical() ? content_offset_height() : content_offset_width();
+        }
+
+        pixel_t content_offset_block(const satoru::WritingModeContext& wm) const
+        {
+            return wm.is_vertical() ? content_offset_width() : content_offset_height();
+        }
+
+        pixel_t box_sizing_inline(const satoru::WritingModeContext& wm) const
+        {
+            return wm.is_vertical() ? box_sizing_height() : box_sizing_width();
+        }
+
+        pixel_t box_sizing_block(const satoru::WritingModeContext& wm) const
+        {
+            return wm.is_vertical() ? box_sizing_width() : box_sizing_height();
+        }
+
         pixel_t padding_top() const
         {
             return m_padding.top;

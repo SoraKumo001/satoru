@@ -31,6 +31,11 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 			break;
 	}
 
+	if (self_size.mode != writing_mode_horizontal_tb)
+	{
+		is_main_inline = !is_main_inline;
+	}
+
 	pixel_t container_main_size = is_main_inline ? self_size.render_inline_size() : self_size.render_block_size();
 
 	bool single_line = css().get_flex_wrap() == flex_wrap_nowrap;

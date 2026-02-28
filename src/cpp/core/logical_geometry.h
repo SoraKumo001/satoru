@@ -89,6 +89,9 @@ class WritingModeContext {
                m_mode == litehtml::writing_mode_vertical_lr;
     }
 
+    pixel_t container_width() const { return m_container_width; }
+    pixel_t container_height() const { return m_container_height; }
+
     litehtml::writing_mode mode() const { return m_mode; }
 
     litehtml::containing_block_context::typed_pixel inline_size(const litehtml::containing_block_context& cb) const {

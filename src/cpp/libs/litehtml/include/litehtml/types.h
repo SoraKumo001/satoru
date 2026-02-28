@@ -500,29 +500,22 @@ namespace litehtml
                 typed_pixel min_height;
                 typed_pixel max_height;
 
+                // Logical Aliases (mapped to physical based on writing mode)
+                typed_pixel& inline_size() { return mode == writing_mode_horizontal_tb ? width : height; }
+                const typed_pixel& inline_size() const { return mode == writing_mode_horizontal_tb ? width : height; }
+                
+                typed_pixel& block_size() { return mode == writing_mode_horizontal_tb ? height : width; }
+                const typed_pixel& block_size() const { return mode == writing_mode_horizontal_tb ? height : width; }
+
+                typed_pixel& render_inline_size() { return mode == writing_mode_horizontal_tb ? render_width : render_height; }
+                const typed_pixel& render_inline_size() const { return mode == writing_mode_horizontal_tb ? render_width : render_height; }
+
+                typed_pixel& render_block_size() { return mode == writing_mode_horizontal_tb ? render_height : render_width; }
+                const typed_pixel& render_block_size() const { return mode == writing_mode_horizontal_tb ? render_height : render_width; }
+
                 int context_idx;
                 uint32_t size_mode;
                 writing_mode mode;
-
-                typed_pixel inline_size() const
-                {
-                    return mode == writing_mode_horizontal_tb ? width : height;
-                }
-
-                typed_pixel block_size() const
-                {
-                    return mode == writing_mode_horizontal_tb ? height : width;
-                }
-
-                pixel_t render_inline_size() const
-                {
-                    return mode == writing_mode_horizontal_tb ? (pixel_t)render_width : (pixel_t)render_height;
-                }
-
-                pixel_t render_block_size() const
-                {
-                    return mode == writing_mode_horizontal_tb ? (pixel_t)render_height : (pixel_t)render_width;
-                }
 
                 containing_block_context() :
                                 width(0, cbc_value_type_auto),

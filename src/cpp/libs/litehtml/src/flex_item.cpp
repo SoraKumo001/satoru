@@ -255,8 +255,18 @@ bool litehtml::flex_item_row_direction::apply_cross_auto_margins(pixel_t cross_s
 		{
 			if(auto_margin_cross_start)
 			{
-				el->get_margins().left = margin; // Note: RL might need adjustment
-				el->pos().x = el->content_offset_left();
+                // In vertical-rl, "cross-start" is physically left, but logical block-start is right.
+                // However, litehtml's flex engine treats cross-start as the start of the cross axis.
+                // For vertical-rl, cross axis is physical X.
+				el->get_margins().left = margin;
+                if (m_container_wm.mode() == writing_mode_vertical_rl)
+                {
+                    // This will be handled by set_cross_position calling with appropriate cross_start
+                }
+                else
+                {
+                    el->pos().x = el->content_offset_left();
+                }
 			}
 			if(auto_margin_cross_end) el->get_margins().right = margin;
 		} else
@@ -275,18 +285,32 @@ bool litehtml::flex_item_row_direction::apply_cross_auto_margins(pixel_t cross_s
 
 void litehtml::flex_item_row_direction::set_main_position(pixel_t pos)
 {
-	if (m_container_wm.is_vertical())
-		el->pos().y = pos + el->content_offset_top();
-	else
-		el->pos().x = pos + el->content_offset_left();
+    // Inline axis
+    if (m_container_wm.is_vertical())
+        el->pos().y = pos + el->content_offset_top();
+    else
+        el->pos().x = pos + el->content_offset_left();
 }
 
 void litehtml::flex_item_row_direction::set_cross_position(pixel_t pos)
 {
-	if (m_container_wm.is_vertical())
-		el->pos().x = pos + el->content_offset_left();
-	else
-		el->pos().y = pos + el->content_offset_top();
+    // Block axis
+    if (m_container_wm.is_vertical())
+    {
+        // For vertical-rl, the physical X is calculated from the right edge.
+        if (m_container_wm.mode() == writing_mode_vertical_rl)
+        {
+            el->pos().x = m_container_wm.container_width() - pos - get_el_cross_size() + el->content_offset_left();
+        }
+        else
+        {
+            el->pos().x = pos + el->content_offset_left();
+        }
+    }
+    else
+    {
+        el->pos().y = pos + el->content_offset_top();
+    }
 }
 
 void litehtml::flex_item_row_direction::layout_item(litehtml::flex_line &ln,
@@ -294,57 +318,35 @@ void litehtml::flex_item_row_direction::layout_item(litehtml::flex_line &ln,
 													   litehtml::formatting_context *fmt_ctx)
 {
 	containing_block_context child_cb = self_size;
-	if (m_container_wm.is_vertical())
-	{
-		child_cb.height = main_size - el->content_offset_height() + el->box_sizing_height();
-		child_cb.render_height = child_cb.height;
-	} else
-	{
-		child_cb.width = main_size - el->content_offset_width() + el->box_sizing_width();
-		child_cb.render_width = child_cb.width;
-	}
+    child_cb.inline_size() = main_size - el->content_offset_inline(m_container_wm) + el->box_sizing_inline(m_container_wm);
+    child_cb.render_inline_size() = child_cb.inline_size();
 
 	bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
 	const css_length& cross_prop = m_container_wm.is_vertical() ? el->css().get_width() : el->css().get_height();
 
 	if (stretch && cross_prop.is_predefined())
 	{
-		if (m_container_wm.is_vertical())
-		{
-			child_cb.width = ln.cross_size - el->content_offset_width() + el->box_sizing_width();
-			child_cb.render_width = child_cb.width;
-		} else
-		{
-			child_cb.height = ln.cross_size - el->content_offset_height() + el->box_sizing_height();
-			child_cb.render_height = child_cb.height;
-		}
+        child_cb.block_size() = ln.cross_size - el->content_offset_block(m_container_wm) + el->box_sizing_block(m_container_wm);
+        child_cb.render_block_size() = child_cb.block_size();
 		child_cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;
 	} else {
-		if (m_container_wm.is_vertical())
-		{
-			if(self_size.width.type == containing_block_context::cbc_value_type_auto)
-			{
-				child_cb.width.type = containing_block_context::cbc_value_type_auto;
-				child_cb.render_width.type = containing_block_context::cbc_value_type_auto;
-			} else
-			{
-				child_cb.width = self_size.render_width;
-				child_cb.render_width = self_size.render_width;
-			}
-			child_cb.size_mode = containing_block_context::size_mode_exact_height;
-		} else
-		{
-			if(self_size.height.type == containing_block_context::cbc_value_type_auto)
-			{
-				child_cb.height.type = containing_block_context::cbc_value_type_auto;
-				child_cb.render_height.type = containing_block_context::cbc_value_type_auto;
-			} else
-			{
-				child_cb.height = self_size.render_height;
-				child_cb.render_height = self_size.render_height;
-			}
-			child_cb.size_mode = containing_block_context::size_mode_exact_width;
-		}
+        if (child_cb.block_size().type == containing_block_context::cbc_value_type_auto)
+        {
+            child_cb.block_size().type = containing_block_context::cbc_value_type_auto;
+            child_cb.render_block_size().type = containing_block_context::cbc_value_type_auto;
+        } else
+        {
+            child_cb.block_size() = self_size.render_block_size();
+            child_cb.render_block_size() = self_size.render_block_size();
+        }
+        
+        if (m_container_wm.is_vertical())
+        {
+            child_cb.size_mode = containing_block_context::size_mode_exact_height;
+        } else
+        {
+            child_cb.size_mode = containing_block_context::size_mode_exact_width;
+        }
 		if (cross_prop.is_predefined())
 		{
 			child_cb.size_mode |= containing_block_context::size_mode_content;
@@ -557,7 +559,15 @@ bool litehtml::flex_item_column_direction::apply_cross_auto_margins(pixel_t cros
 			if(auto_margin_cross_start)
 			{
 				el->get_margins().left = margin;
-				el->pos().x = el->content_offset_left();
+                if (m_container_wm.mode() == writing_mode_vertical_rl)
+                {
+                    // For vertical-rl, cross axis is physical X, but in column direction, cross axis is Inline.
+                    // This will be handled by set_cross_position
+                }
+                else
+                {
+                    el->pos().x = el->content_offset_left();
+                }
 			}
 			if(auto_margin_cross_end) el->get_margins().right = margin;
 		}
@@ -568,18 +578,35 @@ bool litehtml::flex_item_column_direction::apply_cross_auto_margins(pixel_t cros
 
 void litehtml::flex_item_column_direction::set_main_position(pixel_t pos)
 {
-	if (m_container_wm.is_vertical())
-		el->pos().x = pos + el->content_offset_left();
-	else
-		el->pos().y = pos + el->content_offset_top();
+    // Inline axis
+    if (m_container_wm.is_vertical())
+    {
+        if (m_container_wm.mode() == writing_mode_vertical_rl)
+        {
+            el->pos().x = m_container_wm.container_width() - pos - get_el_main_size() + el->content_offset_left();
+        }
+        else
+        {
+            el->pos().x = pos + el->content_offset_left();
+        }
+    }
+    else
+    {
+        el->pos().y = pos + el->content_offset_top();
+    }
 }
 
 void litehtml::flex_item_column_direction::set_cross_position(pixel_t pos)
 {
-	if (m_container_wm.is_vertical())
-		el->pos().y = pos + el->content_offset_top();
-	else
-		el->pos().x = pos + el->content_offset_left();
+    // Block axis
+    if (m_container_wm.is_vertical())
+    {
+        el->pos().y = pos + el->content_offset_top();
+    }
+    else
+    {
+        el->pos().x = pos + el->content_offset_left();
+    }
 }
 
 void litehtml::flex_item_column_direction::layout_item(litehtml::flex_line &ln,

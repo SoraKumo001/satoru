@@ -98,6 +98,25 @@ class WritingModeContext {
         return is_vertical() ? cb.width : cb.height;
     }
 
+    const litehtml::css_length& get_inline_size(const litehtml::css_properties& css) const {
+        return is_vertical() ? css.get_height() : css.get_width();
+    }
+    const litehtml::css_length& get_block_size(const litehtml::css_properties& css) const {
+        return is_vertical() ? css.get_width() : css.get_height();
+    }
+    const litehtml::css_length& get_min_inline_size(const litehtml::css_properties& css) const {
+        return is_vertical() ? css.get_min_height() : css.get_min_width();
+    }
+    const litehtml::css_length& get_min_block_size(const litehtml::css_properties& css) const {
+        return is_vertical() ? css.get_min_width() : css.get_min_height();
+    }
+    const litehtml::css_length& get_max_inline_size(const litehtml::css_properties& css) const {
+        return is_vertical() ? css.get_max_height() : css.get_max_width();
+    }
+    const litehtml::css_length& get_max_block_size(const litehtml::css_properties& css) const {
+        return is_vertical() ? css.get_max_width() : css.get_max_height();
+    }
+
     pixel_t inline_start(const litehtml::margins& m) const {
         return is_vertical() ? m.top : m.left;
     }
@@ -112,6 +131,27 @@ class WritingModeContext {
         }
     }
     pixel_t block_end(const litehtml::margins& m) const {
+        switch (m_mode) {
+            case litehtml::writing_mode_vertical_rl: return m.left;
+            case litehtml::writing_mode_vertical_lr: return m.right;
+            default: return m.bottom;
+        }
+    }
+
+    const litehtml::css_length& inline_start(const litehtml::css_margins& m) const {
+        return is_vertical() ? m.top : m.left;
+    }
+    const litehtml::css_length& inline_end(const litehtml::css_margins& m) const {
+        return is_vertical() ? m.bottom : m.right;
+    }
+    const litehtml::css_length& block_start(const litehtml::css_margins& m) const {
+        switch (m_mode) {
+            case litehtml::writing_mode_vertical_rl: return m.right;
+            case litehtml::writing_mode_vertical_lr: return m.left;
+            default: return m.top;
+        }
+    }
+    const litehtml::css_length& block_end(const litehtml::css_margins& m) const {
         switch (m_mode) {
             case litehtml::writing_mode_vertical_rl: return m.left;
             case litehtml::writing_mode_vertical_lr: return m.right;

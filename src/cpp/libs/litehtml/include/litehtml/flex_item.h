@@ -96,6 +96,52 @@ namespace litehtml
 		pixel_t get_last_baseline(baseline::_baseline_type type) const;
 		pixel_t get_first_baseline(baseline::_baseline_type type) const;
 
+		pixel_t get_el_main_offset() const
+		{
+			return m_container_wm.inline_start(el->get_margins()) + m_container_wm.inline_end(el->get_margins()) +
+				   m_container_wm.inline_start(el->get_paddings()) + m_container_wm.inline_end(el->get_paddings()) +
+				   m_container_wm.inline_start(el->get_borders()) + m_container_wm.inline_end(el->get_borders());
+		}
+
+		pixel_t get_el_cross_offset() const
+		{
+			return m_container_wm.block_start(el->get_margins()) + m_container_wm.block_end(el->get_margins()) +
+				   m_container_wm.block_start(el->get_paddings()) + m_container_wm.block_end(el->get_paddings()) +
+				   m_container_wm.block_start(el->get_borders()) + m_container_wm.block_end(el->get_borders());
+		}
+
+		pixel_t get_el_main_render_offset() const
+		{
+			return m_container_wm.inline_start(el->get_paddings()) + m_container_wm.inline_end(el->get_paddings()) +
+				   m_container_wm.inline_start(el->get_borders()) + m_container_wm.inline_end(el->get_borders());
+		}
+
+		pixel_t get_el_cross_render_offset() const
+		{
+			return m_container_wm.block_start(el->get_paddings()) + m_container_wm.block_end(el->get_paddings()) +
+				   m_container_wm.block_start(el->get_borders()) + m_container_wm.block_end(el->get_borders());
+		}
+
+		pixel_t get_el_main_content_offset() const
+		{
+			return m_container_wm.inline_start(el->get_paddings()) + m_container_wm.inline_end(el->get_paddings()) +
+				   m_container_wm.inline_start(el->get_borders()) + m_container_wm.inline_end(el->get_borders());
+		}
+
+		pixel_t get_el_main_box_sizing_offset() const
+		{
+			if (el->css().get_box_sizing() == box_sizing_border_box)
+				return get_el_main_render_offset();
+			return 0;
+		}
+
+		pixel_t get_el_cross_box_sizing_offset() const
+		{
+			if (el->css().get_box_sizing() == box_sizing_border_box)
+				return get_el_cross_render_offset();
+			return 0;
+		}
+
 	protected:
 		virtual void direction_specific_init(const litehtml::containing_block_context &self_size,
 											 litehtml::formatting_context *fmt_ctx) = 0;

@@ -269,8 +269,10 @@ pnpm --filter visual-test test
 - [x] **Radial Gradients**: Support for complex `radial-gradient` syntax.
 - [x] **Font Subsetting**: Optimizing Wasm memory by loading only required glyphs.
 - [ ] **Vertical Writing Support (Writing Modes)**:
-  - [ ] Refactor Flexbox engine to use Logical Properties (`inline`/`block`) and abstract axis mapping.
-  - [ ] Implement `place_logical` throughout `litehtml` layout passes to ensure orthogonal flow compatibility.
+  - [ ] **Phase 1: Infrastructure Logicalization**: Expand `containing_block_context` with logical sizes and implement complete logical setters/methods in `render_item` (e.g., `place_logical`).
+  - [ ] **Phase 2: Layout Engine Refactoring (Flexbox focus)**: Transition `flex_item` and `flex_line` to pure logical axis mapping (`Main`/`Cross`), decoupling layout logic from physical `width`/`height`.
+  - [ ] **Phase 3: Physical Mapping & Sync**: Centralize logical-to-physical coordinate conversion within `render_item` based on `writing-mode`.
+  - [ ] **Phase 4: Validation & Zero-Regression**: Ensure "Horizontal Identity" (0-bit diff for horizontal-tb) across all existing visual tests while establishing vertical baselines.
 - [x] **SVG Backdrop Filter**: Implement `backdrop-filter` support in the SVG vector pipeline using SVG filters.
 - [x] **Clip Radius Optimization**: Adjust `border-radius` correctly when clipping with `background-clip` in `container_skia`.
 

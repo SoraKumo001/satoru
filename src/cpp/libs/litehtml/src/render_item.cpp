@@ -64,6 +64,9 @@ void litehtml::render_item::place(pixel_t x, pixel_t y, const containing_block_c
 	m_pos.x = x + content_left;
 	m_pos.y = y + content_top;
 
+	m_cached_cb_context.width = containing_block_size.width;
+	m_cached_cb_context.height = containing_block_size.height;
+
 	if (m_cached_cb_context != containing_block_size)
 	{
 		m_cached_cb_context = containing_block_size;
@@ -1627,12 +1630,29 @@ std::tuple<litehtml::pixel_t, litehtml::pixel_t> litehtml::render_item::element_
 
 void litehtml::render_item::block_shift(pixel_t delta)
 {
-	m_pos.y += delta;
+    if (get_wm_context().is_vertical())
+    {
+        if (css().get_writing_mode() == writing_mode_vertical_rl)
+            m_pos.x -= delta;
+        else
+            m_pos.x += delta;
+    }
+    else
+    {
+        m_pos.y += delta;
+    }
 }
 
 void litehtml::render_item::inline_shift(pixel_t delta)
 {
-	m_pos.x += delta;
+    if (get_wm_context().is_vertical())
+    {
+        m_pos.y += delta;
+    }
+    else
+    {
+        m_pos.x += delta;
+    }
 }
 
 litehtml::pixel_t litehtml::render_item::inline_start_pos() const

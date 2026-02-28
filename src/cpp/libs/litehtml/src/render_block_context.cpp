@@ -146,7 +146,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 					pixel_t auto_margin = el->calc_auto_margins(inline_available_size);
 					if(auto_margin != 0)
 					{
-						el->pos().x += auto_margin;
+						el->inline_shift(auto_margin);
 					}
 				}
                 if (rw > max_inline_size)

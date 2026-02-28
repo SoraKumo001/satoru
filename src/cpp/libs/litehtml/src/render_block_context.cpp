@@ -168,15 +168,17 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
         }
     }
 
+    pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
+
     if (self_size.height.type != containing_block_context::cbc_value_type_auto  && self_size.height > 0)
     {
-        if(self_size.mode == writing_mode_horizontal_tb) m_pos.height = self_size.height; else m_pos.width = self_size.width;
+        physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? (pixel_t)self_size.height : (pixel_t)self_size.width;
         if(src_el()->css().get_display() == display_table_cell)
         {
-            if(self_size.mode == writing_mode_horizontal_tb) m_pos.height = std::max(m_pos.height, block_offset); else m_pos.width = std::max(m_pos.width, block_offset);
+            physical_block_size = std::max(physical_block_size, block_offset);
             if(collapse_bottom_margin())
             {
-                if(self_size.mode == writing_mode_horizontal_tb) m_pos.height -= last_block_margin; else m_pos.width -= last_block_margin;
+                physical_block_size -= last_block_margin;
                 if(margin_block_end() < last_block_margin)
                 {
                     margin_block_end(last_block_margin);
@@ -189,10 +191,10 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
         }
     } else
     {
-        if(self_size.mode == writing_mode_horizontal_tb) m_pos.height = block_offset; else m_pos.width = block_offset;
+        physical_block_size = block_offset;
         if(collapse_bottom_margin())
         {
-            if(self_size.mode == writing_mode_horizontal_tb) m_pos.height -= last_block_margin; else m_pos.width -= last_block_margin;
+            physical_block_size -= last_block_margin;
             if(margin_block_end() < last_block_margin)
             {
                 margin_block_end(last_block_margin);
@@ -209,22 +211,24 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 
 litehtml::pixel_t litehtml::render_item_block_context::get_first_baseline()
 {
+    satoru::WritingModeContext wm = get_wm_context();
 	if(m_children.empty())
 	{
-		return height() - margin_bottom();
+		return block_size(wm) - margin_block_end();
 	}
 	const auto &item = m_children.front();
-	return content_offset_top() + item->top() + item->get_first_baseline();
+	return content_offset_block(wm) + item->block_start_pos(wm) + item->get_first_baseline();
 }
 
 litehtml::pixel_t litehtml::render_item_block_context::get_last_baseline()
 {
+    satoru::WritingModeContext wm = get_wm_context();
 	if(m_children.empty())
 	{
-		return height() - margin_bottom();
+		return block_size(wm) - margin_block_end();
 	}
 	const auto &item = m_children.back();
-	return content_offset_top() + item->top() + item->get_last_baseline();
+	return content_offset_block(wm) + item->block_start_pos(wm) + item->get_last_baseline();
 }
 
 

@@ -4,6 +4,8 @@
 #include "formatting_context.h"
 #include "render_item.h"
 
+#include "../../../core/logical_geometry.h"
+
 namespace litehtml
 {
 	class flex_line;
@@ -23,6 +25,7 @@ namespace litehtml
 	{
 	public:
 		std::shared_ptr<render_item> el;
+		satoru::WritingModeContext m_container_wm;
 
 		// All sizes should be interpreted as outer/margin-box sizes.
 		pixel_t flex_base_size;
@@ -50,6 +53,7 @@ namespace litehtml
 
 		explicit flex_item(std::shared_ptr<render_item> &_el) :
 				el(_el),
+				m_container_wm(writing_mode_horizontal_tb, 0, 0),
 				flex_base_size(0),
 				hypothetical_main_size(0),
 				main_size(0),

@@ -91,6 +91,13 @@ class WritingModeContext {
 
     litehtml::writing_mode mode() const { return m_mode; }
 
+    litehtml::containing_block_context::typed_pixel inline_size(const litehtml::containing_block_context& cb) const {
+        return is_vertical() ? cb.height : cb.width;
+    }
+    litehtml::containing_block_context::typed_pixel block_size(const litehtml::containing_block_context& cb) const {
+        return is_vertical() ? cb.width : cb.height;
+    }
+
     pixel_t inline_start(const litehtml::margins& m) const {
         return is_vertical() ? m.top : m.left;
     }

@@ -22,13 +22,29 @@ namespace litehtml
 
 		void push_position(pixel_t x, pixel_t y)
 		{
-			m_current_inline_pos += x;
-			m_current_block_pos += y;
+            if (m_writing_mode != writing_mode_horizontal_tb)
+            {
+                m_current_inline_pos += y;
+                m_current_block_pos += x;
+            }
+            else
+            {
+                m_current_inline_pos += x;
+                m_current_block_pos += y;
+            }
 		}
 		void pop_position(pixel_t x, pixel_t y)
 		{
-			m_current_inline_pos -= x;
-			m_current_block_pos -= y;
+            if (m_writing_mode != writing_mode_horizontal_tb)
+            {
+                m_current_inline_pos -= y;
+                m_current_block_pos -= x;
+            }
+            else
+            {
+                m_current_inline_pos -= x;
+                m_current_block_pos -= y;
+            }
 		}
 
 		void add_float(const std::shared_ptr<render_item> &el, pixel_t min_width, int context);

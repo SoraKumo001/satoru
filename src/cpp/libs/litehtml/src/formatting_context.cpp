@@ -5,10 +5,16 @@
 void litehtml::formatting_context::add_float(const std::shared_ptr<render_item> &el, pixel_t min_width, int context)
 {
 	floated_box fb;
-	fb.pos.x		= el->left() + m_current_inline_pos;
-	fb.pos.y		= el->top() + m_current_block_pos;
-	fb.pos.width	= el->width();
-	fb.pos.height	= el->height();
+    satoru::WritingModeContext wm(m_writing_mode, 0, 0); // Temporary context for mapping
+
+    // Calculate logical position relative to BFC origin
+    pixel_t el_inline_offset = el->inline_start_pos();
+    pixel_t el_block_offset  = el->block_start_pos();
+
+	fb.pos.x		= el_inline_offset + m_current_inline_pos;
+	fb.pos.y		= el_block_offset + m_current_block_pos;
+	fb.pos.width	= el->inline_size();
+	fb.pos.height	= el->block_size();
 	fb.float_side	= el->src_el()->css().get_float();
 	fb.clear_floats	= el->src_el()->css().get_clear();
 	fb.el			= el;

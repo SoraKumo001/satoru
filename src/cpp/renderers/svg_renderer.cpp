@@ -1387,18 +1387,18 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
     return finalizeSvg(svg, inst->context, *inst->render_container, options);
 }
 
-static void dump_elements_recursive(litehtml::element::ptr el) {
+static void dump_render_items_recursive(std::shared_ptr<litehtml::render_item> el, int depth) {
     if (!el) return;
-    const char* tag = el->get_tagName();
-    if (tag && strcmp(tag, "div") == 0) {
-        auto attrs = el->css().dump_get_attrs();
-        for (const auto& attr : attrs) {
-            SATORU_LOG_INFO("SVG DIV [%s] CSS ATTR: %s = %s", tag, std::get<0>(attr).c_str(),
-                            std::get<1>(attr).c_str());
-        }
-    }
+    const char* tag = el->src_el()->get_tagName();
+    auto pos = el->pos();
+    litehtml::position abs_pos = el->calc_placement(0, 0);
+
+    SATORU_LOG_INFO("RENDER_ITEM [%s] ABS_POS: x=%f, y=%f, w=%f, h=%f (depth=%d)",
+                    tag ? tag : "text/anon", (float)abs_pos.x, (float)abs_pos.y, (float)pos.width,
+                    (float)pos.height, depth);
+
     for (auto& child : el->children()) {
-        dump_elements_recursive(child);
+        dump_render_items_recursive(child, depth + 1);
     }
 }
 
@@ -1414,8 +1414,8 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
     if (!doc) return "";
     doc->render(width);
 
-    if (doc->root()) {
-        dump_elements_recursive(doc->root());
+    if (doc->root_render()) {
+        dump_render_items_recursive(doc->root_render(), 0);
     }
 
     int content_height = (height > 0) ? height : (int)doc->height();

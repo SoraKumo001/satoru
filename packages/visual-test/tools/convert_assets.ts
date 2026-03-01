@@ -33,7 +33,26 @@ async function main() {
     }
   }
 
-  const files = args.filter((a) => !a.startsWith("-"));
+  let height: number | undefined = undefined;
+  const heightIdx = args.findIndex((a) => a === "--height");
+  if (heightIdx !== -1 && args[heightIdx + 1]) {
+    height = parseInt(args[heightIdx + 1]);
+  } else {
+    const heightArg = args.find((a) => a.startsWith("--height="));
+    if (heightArg) {
+      height = parseInt(heightArg.split("=")[1]);
+    }
+  }
+
+  const files = args.filter((a, i) => {
+    if (a.startsWith("-")) return false;
+    // Check if the previous argument was a flag that takes a value
+    if (i > 0) {
+      const prev = args[i - 1];
+      if (prev === "--width" || prev === "--height") return false;
+    }
+    return true;
+  });
 
   if (files.length === 0) {
     const assetsDirFiles = fs
@@ -106,6 +125,7 @@ async function main() {
           const result = await satoru.render({
             value: html,
             width,
+            height,
             format,
             baseUrl: fileDir,
             css: "body { margin: 8px; }",

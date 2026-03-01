@@ -6,7 +6,7 @@ import {
 } from "satoru-render/workers";
 
 const satoru = createSatoruWorker({
-  maxParallel: 2,
+  maxParallel: 1,
 });
 
 type Params = {
@@ -70,7 +70,6 @@ const App: React.FC = () => {
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const latestRenderId = useRef<number>(0);
-  const autoRunTimer = useRef<number | null>(null);
   const shouldRenderImmediately = useRef<boolean>(false);
 
   // Initialize Satoru Worker
@@ -137,38 +136,10 @@ const App: React.FC = () => {
   };
 
   // Auto-run render when specific parameters change
-  // useEffect(() => {
-  //   // If no HTML, nothing to do
-  //   if (!html) return;
-
-  //   const run = () => handleConvert(html);
-
-  //   if (shouldRenderImmediately.current) {
-  //     shouldRenderImmediately.current = false;
-  //     if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
-  //     run();
-  //   } else {
-  //     if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
-  //     autoRunTimer.current = window.setTimeout(() => {
-  //       run();
-  //       autoRunTimer.current = null;
-  //     }, 500);
-  //   }
-
-  //   return () => {
-  //     if (autoRunTimer.current) {
-  //       clearTimeout(autoRunTimer.current);
-  //     }
-  //   };
-  // }, [width, height, textToPaths, html]);
-
-  // Immediate render when format changes
-  // useEffect(() => {
-  //   if (params.value) {
-  //     if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
-  //     handleConvert(params.value);
-  //   }
-  // }, [params.format]);
+  useEffect(() => {
+    const t = setTimeout(handleConvert, 500);
+    return () => clearTimeout(t);
+  }, [params]);
 
   // Update iframe preview
   useEffect(() => {
@@ -241,16 +212,12 @@ const App: React.FC = () => {
       console.error("Failed to load asset", e);
     }
   };
+  const property = useRef({ isRender: false });
 
-  const handleConvert = async (overrideHtml?: string) => {
-    // Cancel pending auto-run
-    if (autoRunTimer.current) {
-      clearTimeout(autoRunTimer.current);
-      autoRunTimer.current = null;
-    }
-
-    const currentHtml =
-      overrideHtml !== undefined ? overrideHtml : params.value;
+  const handleConvert = async () => {
+    if (property.current.isRender) return;
+    console.log("start");
+    const currentHtml = params.value;
     if (!satoru || !currentHtml) return;
 
     const requestId = ++latestRenderId.current;
@@ -326,6 +293,7 @@ const App: React.FC = () => {
           return data;
         },
       });
+      property.current.isRender = false;
 
       if (requestId !== latestRenderId.current) {
         console.log(`[Satoru] Render result discarded (ID: ${requestId})`);

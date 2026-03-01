@@ -102,16 +102,25 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	/////////////////////////////////////////////////////////////////
 	/// Calculate free cross size
 	/////////////////////////////////////////////////////////////////
-	if (is_main_inline)
+	if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 	{
-		if (self_size.block_size().type != containing_block_context::cbc_value_type_auto)
+		if (is_main_inline)
 		{
-			free_cross_size = self_size.render_block_size() - sum_cross_size;
+			if (self_size.block_size().type != containing_block_context::cbc_value_type_auto)
+			{
+				free_cross_size = self_size.render_block_size() - sum_cross_size;
+			}
+		} else
+		{
+			free_cross_size = self_size.render_inline_size() - sum_cross_size;
+			max_inline_size = sum_cross_size;
 		}
 	} else
 	{
-		free_cross_size = self_size.render_inline_size() - sum_cross_size;
-		max_inline_size = sum_cross_size;
+		if (!is_main_inline)
+		{
+			max_inline_size = sum_cross_size;
+		}
 	}
 
 	/////////////////////////////////////////////////////////////////
@@ -222,30 +231,51 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	/// Align flex items in flex lines
 	/////////////////////////////////////////////////////////////////
 	pixel_t max_block_size = 0;
-	for(auto &ln : m_lines)
+	if (self_size.size_mode & containing_block_context::size_mode_measure)
 	{
-		pixel_t bs = ln.calculate_items_position(container_main_size,
-									justify_content,
-									is_main_inline,
-									self_size,
-									fmt_ctx);
-		max_block_size = std::max(max_block_size, bs);
+		for (auto& ln : m_lines)
+		{
+			pixel_t bs = ln.calculate_items_position(is_main_inline ? ln.main_size : container_main_size,
+				flex_justify_content_start,
+				is_main_inline,
+				self_size,
+				fmt_ctx);
+			max_block_size = std::max(max_block_size, bs);
+		}
+	}
+	else
+	{
+		for (auto& ln : m_lines)
+		{
+			pixel_t bs = ln.calculate_items_position(container_main_size,
+				justify_content,
+				is_main_inline,
+				self_size,
+				fmt_ctx);
+			max_block_size = std::max(max_block_size, bs);
+		}
 	}
 
+	// Set physical positions based on writing mode and direction
 	if (self_size.mode == writing_mode_horizontal_tb)
 	{
-		m_pos.height = max_block_size;
-		if (self_size.height.type != containing_block_context::cbc_value_type_auto && self_size.height > 0)
-		{
-			m_pos.height = self_size.height;
-		}
-	} else
+		m_pos.width = is_main_inline ? container_main_size : sum_cross_size;
+		m_pos.height = is_main_inline ? sum_cross_size : container_main_size;
+	}
+	else
 	{
-		m_pos.width = max_block_size;
-		if (self_size.width.type != containing_block_context::cbc_value_type_auto && self_size.width > 0)
-		{
-			m_pos.width = self_size.width;
-		}
+		m_pos.width = is_main_inline ? sum_cross_size : container_main_size;
+		m_pos.height = is_main_inline ? container_main_size : sum_cross_size;
+	}
+
+	// Override with explicit sizes if provided
+	if (self_size.width.type != containing_block_context::cbc_value_type_auto && self_size.width > 0)
+	{
+		m_pos.width = self_size.width;
+	}
+	if (self_size.height.type != containing_block_context::cbc_value_type_auto && self_size.height > 0)
+	{
+		m_pos.height = self_size.height;
 	}
 
 	if (!(self_size.size_mode & containing_block_context::size_mode_measure))

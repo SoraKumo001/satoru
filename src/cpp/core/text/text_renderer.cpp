@@ -77,13 +77,16 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
                 if (is_vertical) {
                     float center_x = (float)tx + m_currentStyle.line_width / 2.0f;
                     float gx = center_x - m_currentStyle.fi->desc.size / 2.0f;
-                    float gy =
-                        (float)ty + m_currentStyle.fi->desc.size * 0.92f + run.positions[i].fX;
+                    float baseline_adj = m_currentStyle.is_vertical_punctuation ? m_currentStyle.fi->desc.size * 0.20f : m_currentStyle.fi->desc.size * 0.92f;
+                    float gy = (float)ty + baseline_adj + run.positions[i].fX;
 
                     if (m_currentStyle.is_vertical_punctuation) {
                         // Offset punctuation to the top-right
-                        gx += (float)m_currentStyle.fi->desc.size * 0.6f;
-                        gy -= (float)m_currentStyle.fi->desc.size * 0.6f;
+                        if (m_currentStyle.mode == litehtml::writing_mode_vertical_rl) {
+                            gx += (float)m_currentStyle.fi->desc.size * 0.25f;
+                        } else {
+                            gx -= (float)m_currentStyle.fi->desc.size * 0.25f;
+                        }
                     }
 
                     builder_run.pos[i * 2] = gx;
@@ -271,23 +274,26 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                     float rotation = 0;
 
                     if (is_vertical) {
-                        float inline_offset = run.positions[i].fX;
+                        float logical_inline_start = (float)(current_ty - pos.y);
+                        float inline_offset = logical_inline_start + run.positions[i].fX;
                         if (is_upright) {
                             // Upright: glyph's horizontal center aligned to line's block center
-                            // and glyph's vertical position adjusted by ascent.
                             float block_offset = (float)pos.width / 2.0f - fi->desc.size / 2.0f;
-                            float baseline_adj = fi->desc.size * 0.92f;
+                            float baseline_adj = is_punctuation ? fi->desc.size * 0.20f : fi->desc.size * 0.92f;
 
                             logical_pos lp(inline_offset + baseline_adj, block_offset);
-                            if (is_punctuation) {
-                                lp.inline_offset -= (float)fi->desc.size * 0.6f;
-                                lp.block_offset += (float)fi->desc.size * 0.6f;
-                            }
-
                             litehtml::position phys =
                                 wm_ctx.to_physical(lp, satoru::logical_size(0, (pixel_t)fi->desc.size));
                             gx = (float)pos.x + phys.x;
                             gy = (float)pos.y + phys.y;
+
+                            if (is_punctuation) {
+                                if (mode == litehtml::writing_mode_vertical_rl) {
+                                    gx += (float)fi->desc.size * 0.25f;
+                                } else {
+                                    gx -= (float)fi->desc.size * 0.25f;
+                                }
+                            }
                         } else {
                             // Sideways: glyph rotated 90deg CW
                             float block_offset = (float)pos.width / 2.0f - fi->desc.size * 0.40f;
@@ -386,30 +392,38 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 SkTextBlob::Iter it(*shaped.blob);
                 SkTextBlob::Iter::ExperimentalRun run;
                 while (it.experimentalNext(&run)) {
+                    float logical_run_start = (float)(current_ty - pos.y);
                     if (is_upright) {
                         auto builder_run = builder.allocRunPos(run.font, run.count);
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
-                            float inline_offset = run.positions[i].fX;
+                            float inline_offset = logical_run_start + run.positions[i].fX;
                             float block_offset = (float)pos.width / 2.0f - fi->desc.size / 2.0f;
-                            float baseline_adj = fi->desc.size * 0.92f;
+                            float baseline_adj = is_punctuation ? fi->desc.size * 0.20f : fi->desc.size * 0.92f;
 
                             logical_pos lp(inline_offset + baseline_adj, block_offset);
-                            if (is_punctuation) {
-                                lp.inline_offset -= (float)fi->desc.size * 0.6f;
-                                lp.block_offset += (float)fi->desc.size * 0.6f;
-                            }
-
                             litehtml::position phys =
                                 wm_ctx.to_physical(lp, satoru::logical_size(0, (pixel_t)fi->desc.size));
-                            builder_run.pos[i * 2] = (float)pos.x + phys.x;
-                            builder_run.pos[i * 2 + 1] = (float)pos.y + phys.y;
+                            
+                            float gx = (float)pos.x + phys.x;
+                            float gy = (float)pos.y + phys.y;
+
+                            if (is_punctuation) {
+                                if (mode == litehtml::writing_mode_vertical_rl) {
+                                    gx += (float)fi->desc.size * 0.25f;
+                                } else {
+                                    gx -= (float)fi->desc.size * 0.25f;
+                                }
+                            }
+
+                            builder_run.pos[i * 2] = gx;
+                            builder_run.pos[i * 2 + 1] = gy;
                         }
                     } else {
                         auto builder_run = builder.allocRunRSXform(run.font, run.count);
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
-                            float inline_offset = run.positions[i].fX;
+                            float inline_offset = logical_run_start + run.positions[i].fX;
                             float block_offset = (float)pos.width / 2.0f - fi->desc.size * 0.40f;
 
                             logical_pos lp(inline_offset, block_offset);

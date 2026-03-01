@@ -350,10 +350,10 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 				satoru::WritingModeContext wm(self_size.mode, m_pos.width, m_pos.height);
 				satoru::logical_pos pos = is_main_inline ? satoru::logical_pos(static_main, static_cross) : satoru::logical_pos(static_cross, static_main);
 				satoru::logical_size sz(el->inline_size(), el->block_size());
-				litehtml::position phys = wm.to_physical(pos, sz);
+				litehtml::position phys_pos = wm.to_physical(pos, sz);
 
-				el->pos().x = phys.x + el->content_offset_left();
-				el->pos().y = phys.y + el->content_offset_top();
+				el->pos().x = phys_pos.x + el->content_offset_left();
+				el->pos().y = phys_pos.y + el->content_offset_top();
 			}
 		}
 	}

@@ -272,7 +272,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             while (it.experimentalNext(&run)) {
                 for (int i = 0; i < run.count; ++i) {
                     auto pathOpt = run.font.getPath(run.glyphs[i]);
-                    float gx, gy;
+                    float phys_x, phys_y;
                     float rotation = 0;
 
                     if (is_vertical) {
@@ -284,33 +284,33 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                             float baseline_adj =
                                 is_punctuation ? fi->desc.size * 0.30f : fi->desc.size * 0.92f;
 
-                            logical_pos lp(inline_offset + baseline_adj, block_offset);
-                            litehtml::position phys = wm_ctx.to_physical(
-                                lp, satoru::logical_size(0, (pixel_t)fi->desc.size));
-                            gx = (float)pos.x + phys.x;
-                            gy = (float)pos.y + phys.y;
+                            logical_pos logical_p(inline_offset + baseline_adj, block_offset);
+                            litehtml::position phys_rel_pos = wm_ctx.to_physical(
+                                logical_p, satoru::logical_size(0, (pixel_t)fi->desc.size));
+                            phys_x = (float)pos.x + phys_rel_pos.x;
+                            phys_y = (float)pos.y + phys_rel_pos.y;
 
                             if (is_punctuation) {
                                 if (mode == litehtml::writing_mode_vertical_rl) {
-                                    gx += (float)fi->desc.size * 0.55f;
+                                    phys_x += (float)fi->desc.size * 0.55f;
                                 } else {
-                                    gx += (float)fi->desc.size * 0.55f;
+                                    phys_x += (float)fi->desc.size * 0.55f;
                                 }
                             }
                         } else {
                             // Sideways: glyph rotated 90deg CW
                             float block_offset = (float)pos.width / 2.0f - fi->desc.size * 0.40f;
-                            logical_pos lp(inline_offset, block_offset);
+                            logical_pos logical_p(inline_offset, block_offset);
 
-                            litehtml::position phys = wm_ctx.to_physical(
-                                lp, satoru::logical_size(0, (pixel_t)fi->desc.size));
-                            gx = (float)pos.x + phys.x;
-                            gy = (float)pos.y + phys.y;
+                            litehtml::position phys_rel_pos = wm_ctx.to_physical(
+                                logical_p, satoru::logical_size(0, (pixel_t)fi->desc.size));
+                            phys_x = (float)pos.x + phys_rel_pos.x;
+                            phys_y = (float)pos.y + phys_rel_pos.y;
                             rotation = 90.0f;
                         }
                     } else {
-                        gx = run.positions[i].fX + (float)current_tx;
-                        gy = run.positions[i].fY + (float)current_ty;
+                        phys_x = run.positions[i].fX + (float)current_tx;
+                        phys_y = run.positions[i].fY + (float)current_ty;
                     }
 
                     if (pathOpt.has_value() && !pathOpt.value().isEmpty()) {
@@ -339,7 +339,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         glyphPaint.setColor(make_magic_color(MagicTag::GlyphPath, drawIdx));
 
                         canvas->save();
-                        canvas->translate(gx, gy);
+                        canvas->translate(phys_x, phys_y);
                         if (rotation != 0) canvas->rotate(rotation);
                         canvas->drawPath(path, glyphPaint);
                         canvas->restore();
@@ -360,7 +360,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                                 auto img = surface->makeImageSnapshot();
 
                                 canvas->save();
-                                canvas->translate(gx, gy);
+                                canvas->translate(phys_x, phys_y);
                                 if (rotation != 0) canvas->rotate(rotation);
                                 SkRect dst =
                                     SkRect::MakeXYWH(bounds.fLeft, bounds.fTop, (float)w, (float)h);
@@ -405,23 +405,23 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                             float baseline_adj =
                                 is_punctuation ? fi->desc.size * 0.30f : fi->desc.size * 0.92f;
 
-                            logical_pos lp(inline_offset + baseline_adj, block_offset);
-                            litehtml::position phys = wm_ctx.to_physical(
-                                lp, satoru::logical_size(0, (pixel_t)fi->desc.size));
+                            logical_pos logical_p(inline_offset + baseline_adj, block_offset);
+                            litehtml::position phys_rel_pos = wm_ctx.to_physical(
+                                logical_p, satoru::logical_size(0, (pixel_t)fi->desc.size));
 
-                            float gx = (float)pos.x + phys.x;
-                            float gy = (float)pos.y + phys.y;
+                            float phys_x = (float)pos.x + phys_rel_pos.x;
+                            float phys_y = (float)pos.y + phys_rel_pos.y;
 
                             if (is_punctuation) {
                                 if (mode == litehtml::writing_mode_vertical_rl) {
-                                    gx += (float)fi->desc.size * 0.55f;
+                                    phys_x += (float)fi->desc.size * 0.55f;
                                 } else {
-                                    gx += (float)fi->desc.size * 0.55f;
+                                    phys_x += (float)fi->desc.size * 0.55f;
                                 }
                             }
 
-                            builder_run.pos[i * 2] = gx;
-                            builder_run.pos[i * 2 + 1] = gy;
+                            builder_run.pos[i * 2] = phys_x;
+                            builder_run.pos[i * 2 + 1] = phys_y;
                         }
                     } else {
                         auto builder_run = builder.allocRunRSXform(run.font, run.count);
@@ -430,13 +430,13 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                             float inline_offset = logical_run_start + run.positions[i].fX;
                             float block_offset = (float)pos.width / 2.0f - fi->desc.size * 0.40f;
 
-                            logical_pos lp(inline_offset, block_offset);
-                            litehtml::position phys = wm_ctx.to_physical(
-                                lp, satoru::logical_size(0, (pixel_t)fi->desc.size));
+                            logical_pos logical_p(inline_offset, block_offset);
+                            litehtml::position phys_rel_pos = wm_ctx.to_physical(
+                                logical_p, satoru::logical_size(0, (pixel_t)fi->desc.size));
 
                             // Rotate 90 deg CW: cos=0, sin=1
-                            builder_run.xforms()[i] =
-                                SkRSXform::Make(0, 1, (float)pos.x + phys.x, (float)pos.y + phys.y);
+                            builder_run.xforms()[i] = SkRSXform::Make(
+                                0, 1, (float)pos.x + phys_rel_pos.x, (float)pos.y + phys_rel_pos.y);
                         }
                     }
                 }
@@ -480,12 +480,12 @@ void TextRenderer::drawDecoration(SkCanvas* canvas, font_info* fi, const litehtm
     WritingModeContext wm_ctx(mode, pos.width, pos.height);
 
     auto draw_logical_line = [&](float block_offset) {
-        logical_pos start(0, block_offset);
-        logical_pos end(inline_size, block_offset);
+        logical_pos logical_start(0, block_offset);
+        logical_pos logical_end(inline_size, block_offset);
         logical_size size(0, 0);  // lines have no size for context mapping
 
-        litehtml::position p_start = wm_ctx.to_physical(start, size);
-        litehtml::position p_end = wm_ctx.to_physical(end, size);
+        litehtml::position phys_start = wm_ctx.to_physical(logical_start, size);
+        litehtml::position phys_end = wm_ctx.to_physical(logical_end, size);
 
         if (fi->desc.decoration_style == litehtml::text_decoration_style_dotted) {
             float intervals[] = {thickness, thickness};
@@ -497,10 +497,12 @@ void TextRenderer::drawDecoration(SkCanvas* canvas, font_info* fi, const litehtm
 
         if (fi->desc.decoration_style == litehtml::text_decoration_style_double) {
             float gap = thickness + 1.0f;
-            canvas->drawLine((float)pos.x + p_start.x, (float)pos.y + p_start.y - gap / 2,
-                             (float)pos.x + p_end.x, (float)pos.y + p_end.y - gap / 2, dec_paint);
-            canvas->drawLine((float)pos.x + p_start.x, (float)pos.y + p_start.y + gap / 2,
-                             (float)pos.x + p_end.x, (float)pos.y + p_end.y + gap / 2, dec_paint);
+            canvas->drawLine((float)pos.x + phys_start.x, (float)pos.y + phys_start.y - gap / 2,
+                             (float)pos.x + phys_end.x, (float)pos.y + phys_end.y - gap / 2,
+                             dec_paint);
+            canvas->drawLine((float)pos.x + phys_start.x, (float)pos.y + phys_start.y + gap / 2,
+                             (float)pos.x + phys_end.x, (float)pos.y + phys_end.y + gap / 2,
+                             dec_paint);
         } else if (fi->desc.decoration_style == litehtml::text_decoration_style_wavy) {
             // Wavy lines look better if slightly thicker than straight lines
             dec_paint.setStrokeWidth(thickness * 1.5f);
@@ -519,32 +521,33 @@ void TextRenderer::drawDecoration(SkCanvas* canvas, font_info* fi, const litehtm
             for (float i = start_i; i < inline_size; i += wave_wavelength) {
                 // First half cycle (up)
                 {
-                    logical_pos lp1(i, block_offset);
-                    logical_pos lp2(i + wave_wavelength / 4.0f, block_offset + wave_amplitude);
-                    logical_pos lp3(i + wave_wavelength / 2.0f, block_offset);
+                    logical_pos logical_p1(i, block_offset);
+                    logical_pos logical_p2(i + wave_wavelength / 4.0f,
+                                           block_offset + wave_amplitude);
+                    logical_pos logical_p3(i + wave_wavelength / 2.0f, block_offset);
 
-                    litehtml::position p1 = wm_ctx.to_physical(lp1, size);
-                    litehtml::position p2 = wm_ctx.to_physical(lp2, size);
-                    litehtml::position p3 = wm_ctx.to_physical(lp3, size);
+                    litehtml::position phys_p1 = wm_ctx.to_physical(logical_p1, size);
+                    litehtml::position phys_p2 = wm_ctx.to_physical(logical_p2, size);
+                    litehtml::position phys_p3 = wm_ctx.to_physical(logical_p3, size);
 
                     if (first) {
-                        wavy_builder.moveTo((float)pos.x + p1.x, (float)pos.y + p1.y);
+                        wavy_builder.moveTo((float)pos.x + phys_p1.x, (float)pos.y + phys_p1.y);
                         first = false;
                     }
-                    wavy_builder.quadTo((float)pos.x + p2.x, (float)pos.y + p2.y,
-                                        (float)pos.x + p3.x, (float)pos.y + p3.y);
+                    wavy_builder.quadTo((float)pos.x + phys_p2.x, (float)pos.y + phys_p2.y,
+                                        (float)pos.x + phys_p3.x, (float)pos.y + phys_p3.y);
                 }
                 // Second half cycle (down)
                 {
-                    logical_pos lp2(i + 3.0f * wave_wavelength / 4.0f,
-                                    block_offset - wave_amplitude);
-                    logical_pos lp3(i + wave_wavelength, block_offset);
+                    logical_pos logical_p2(i + 3.0f * wave_wavelength / 4.0f,
+                                           block_offset - wave_amplitude);
+                    logical_pos logical_p3(i + wave_wavelength, block_offset);
 
-                    litehtml::position p2 = wm_ctx.to_physical(lp2, size);
-                    litehtml::position p3 = wm_ctx.to_physical(lp3, size);
+                    litehtml::position phys_p2 = wm_ctx.to_physical(logical_p2, size);
+                    litehtml::position phys_p3 = wm_ctx.to_physical(logical_p3, size);
 
-                    wavy_builder.quadTo((float)pos.x + p2.x, (float)pos.y + p2.y,
-                                        (float)pos.x + p3.x, (float)pos.y + p3.y);
+                    wavy_builder.quadTo((float)pos.x + phys_p2.x, (float)pos.y + phys_p2.y,
+                                        (float)pos.x + phys_p3.x, (float)pos.y + phys_p3.y);
                 }
             }
 
@@ -560,8 +563,8 @@ void TextRenderer::drawDecoration(SkCanvas* canvas, font_info* fi, const litehtm
             canvas->drawPath(wavy_builder.detach(), dec_paint);
             canvas->restore();
         } else {
-            canvas->drawLine((float)pos.x + p_start.x, (float)pos.y + p_start.y,
-                             (float)pos.x + p_end.x, (float)pos.y + p_end.y, dec_paint);
+            canvas->drawLine((float)pos.x + phys_start.x, (float)pos.y + phys_start.y,
+                             (float)pos.x + phys_end.x, (float)pos.y + phys_end.y, dec_paint);
         }
     };
 

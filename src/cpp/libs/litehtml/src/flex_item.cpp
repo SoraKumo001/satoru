@@ -289,9 +289,9 @@ void litehtml::flex_item_row_direction::finalize_position(pixel_t container_widt
     m_container_wm.update_container_size(container_width, container_height);
     satoru::logical_pos pos(main_pos, cross_pos);
     satoru::logical_size size(get_el_main_size(), get_el_cross_size());
-    litehtml::position phys = m_container_wm.to_physical(pos, size);
-    el->pos().x = phys.x + el->content_offset_left();
-    el->pos().y = phys.y + el->content_offset_top();
+    litehtml::position phys_pos = m_container_wm.to_physical(pos, size);
+    el->pos().x = phys_pos.x + el->content_offset_left();
+    el->pos().y = phys_pos.y + el->content_offset_top();
 }
 
 void litehtml::flex_item_row_direction::layout_item(litehtml::flex_line &ln,
@@ -560,9 +560,9 @@ void litehtml::flex_item_column_direction::finalize_position(pixel_t container_w
     m_container_wm.update_container_size(container_width, container_height);
     satoru::logical_pos pos(cross_pos, main_pos);
     satoru::logical_size size(get_el_cross_size(), get_el_main_size());
-    litehtml::position phys = m_container_wm.to_physical(pos, size);
-    el->pos().x = phys.x + el->content_offset_left();
-    el->pos().y = phys.y + el->content_offset_top();
+    litehtml::position phys_pos = m_container_wm.to_physical(pos, size);
+    el->pos().x = phys_pos.x + el->content_offset_left();
+    el->pos().y = phys_pos.y + el->content_offset_top();
 }
 
 void litehtml::flex_item_column_direction::layout_item(litehtml::flex_line &ln,

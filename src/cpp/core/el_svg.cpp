@@ -36,7 +36,7 @@ class SatoruResourceProvider : public skresources::ResourceProvider {
         : m_imageCache(imageCache) {}
 
     sk_sp<skresources::ImageAsset> loadImageAsset(const char path[], const char name[],
-                                                   const char id[]) const override {
+                                                  const char id[]) const override {
         std::string full_path;
         if (path && path[0]) {
             full_path = path;

@@ -242,18 +242,18 @@ const App: React.FC = () => {
               return;
             }
             const body = iframeRef.current.contentWindow.document.body;
-            const html =
+            const docEl =
               iframeRef.current.contentWindow.document.documentElement;
 
-            if (!body || !html) return;
+            if (!body || !docEl) return;
 
             // Get the maximum height to ensure no scrollbars
             const heightValue = Math.max(
               body.scrollHeight,
               body.offsetHeight,
-              html.clientHeight,
-              html.scrollHeight,
-              html.offsetHeight,
+              docEl.clientHeight,
+              docEl.scrollHeight,
+              docEl.offsetHeight,
             );
             iframeRef.current.style.height = `${heightValue}px`;
           }

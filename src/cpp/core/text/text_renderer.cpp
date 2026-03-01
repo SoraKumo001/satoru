@@ -5,6 +5,7 @@
 #include "bridge/magic_tags.h"
 #include "core/logical_geometry.h"
 #include "core/satoru_context.h"
+#include "core/text/tagging_context.h"
 #include "core/text/text_decoration_renderer.h"
 #include "core/text/text_layout.h"
 #include "core/text/text_types.h"
@@ -14,8 +15,6 @@
 #include "include/core/SkFont.h"
 #include "include/core/SkMaskFilter.h"
 #include "include/core/SkPaint.h"
-#include "include/core/SkPathBuilder.h"
-#include "include/core/SkSurface.h"
 #include "include/core/SkTextBlob.h"
 #include "include/effects/SkDashPathEffect.h"
 #include "modules/skshaper/include/SkShaper.h"
@@ -269,10 +268,10 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             SkTextBlob::Iter it(*shaped.blob);
             SkTextBlob::Iter::ExperimentalRun run;
             WritingModeContext wm_ctx(mode, pos.width, pos.height);
+            TaggingContext tagging_ctx(canvas, usedGlyphs, usedGlyphDraws, styleTag, styleIndex);
 
             while (it.experimentalNext(&run)) {
                 for (int i = 0; i < run.count; ++i) {
-                    auto pathOpt = run.font.getPath(run.glyphs[i]);
                     float phys_x, phys_y;
                     float rotation = 0;
 
@@ -314,63 +313,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         phys_y = run.positions[i].fY + (float)current_ty;
                     }
 
-                    if (pathOpt.has_value() && !pathOpt.value().isEmpty()) {
-                        int glyphIdx = -1;
-                        const SkPath& path = pathOpt.value();
-                        for (size_t gi = 0; gi < usedGlyphs.size(); ++gi) {
-                            if (usedGlyphs[gi] == path) {
-                                glyphIdx = (int)gi + 1;
-                                break;
-                            }
-                        }
-                        if (glyphIdx == -1) {
-                            usedGlyphs.push_back(path);
-                            glyphIdx = (int)usedGlyphs.size();
-                        }
-
-                        glyph_draw_info drawInfo;
-                        drawInfo.glyph_index = glyphIdx;
-                        drawInfo.style_tag = styleTag;
-                        drawInfo.style_index = styleIndex;
-
-                        usedGlyphDraws.push_back(drawInfo);
-                        int drawIdx = (int)usedGlyphDraws.size();
-
-                        SkPaint glyphPaint = paint;
-                        glyphPaint.setColor(make_magic_color(MagicTag::GlyphPath, drawIdx));
-
-                        canvas->save();
-                        canvas->translate(phys_x, phys_y);
-                        if (rotation != 0) canvas->rotate(rotation);
-                        canvas->drawPath(path, glyphPaint);
-                        canvas->restore();
-                    } else {
-                        SkRect bounds = run.font.getBounds(run.glyphs[i], &paint);
-                        int w = (int)ceilf(bounds.width());
-                        int h = (int)ceilf(bounds.height());
-                        if (w > 0 && h > 0) {
-                            SkImageInfo info =
-                                SkImageInfo::MakeN32Premul(w, h, SkColorSpace::MakeSRGB());
-                            auto surface = SkSurfaces::Raster(info);
-                            if (surface) {
-                                auto tmpCanvas = surface->getCanvas();
-                                tmpCanvas->clear(SK_ColorTRANSPARENT);
-                                tmpCanvas->drawSimpleText(&run.glyphs[i], sizeof(uint16_t),
-                                                          SkTextEncoding::kGlyphID, -bounds.fLeft,
-                                                          -bounds.fTop, run.font, paint);
-                                auto img = surface->makeImageSnapshot();
-
-                                canvas->save();
-                                canvas->translate(phys_x, phys_y);
-                                if (rotation != 0) canvas->rotate(rotation);
-                                SkRect dst =
-                                    SkRect::MakeXYWH(bounds.fLeft, bounds.fTop, (float)w, (float)h);
-                                canvas->drawImageRect(img, dst,
-                                                      SkSamplingOptions(SkFilterMode::kLinear));
-                                canvas->restore();
-                            }
-                        }
-                    }
+                    tagging_ctx.drawGlyph(run.font, run.glyphs[i], phys_x, phys_y, rotation, paint);
                 }
             }
         } else if (batcher && fi->desc.text_shadow.empty() &&

@@ -47,7 +47,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
                 pixel_t inline_offset  = 0;
 				pixel_t inline_available_size = self_size.render_inline_size();
 				pixel_t line_right	= self_size.render_inline_size();
-				pixel_t block_start_margin = m_margins.top;
+				pixel_t block_start_margin = margin_block_start();
 
                 el->calc_outlines(self_size.width);
 
@@ -78,7 +78,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 					if(el->margin_block_start() > 0)
 					{
 						block_offset -= el->margin_block_start();
-						if (el->margin_block_start() > margin_block_start())
+						if (el->margin_block_start() > block_start_margin)
 						{
 							block_start_margin = el->margin_block_start();
 						}

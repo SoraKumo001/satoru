@@ -490,11 +490,12 @@ namespace litehtml
 
         bool collapse_top_margin() const
         {
-            return m_borders.top == 0 &&
-                   m_padding.top == 0 &&
+            auto wm = get_wm_context();
+            return wm.block_start(m_borders) == 0 &&
+                   wm.block_start(m_padding) == 0 &&
                    m_element->in_normal_flow() &&
                    m_element->css().get_float() == float_none &&
-                   m_margins.top >= 0 &&
+                   wm.block_start(m_margins) >= 0 &&
                                    !is_flex_item() &&
                    !is_root() &&
                    !is_one_of(css().get_overflow(), overflow_hidden, overflow_scroll, overflow_auto);
@@ -502,11 +503,12 @@ namespace litehtml
 
         bool collapse_bottom_margin() const
         {
-            return m_borders.bottom == 0 &&
-                   m_padding.bottom == 0 &&
+            auto wm = get_wm_context();
+            return wm.block_end(m_borders) == 0 &&
+                   wm.block_end(m_padding) == 0 &&
                    m_element->in_normal_flow() &&
                    m_element->css().get_float() == float_none &&
-                   m_margins.bottom >= 0 &&
+                   wm.block_end(m_margins) >= 0 &&
                    !is_root() &&
                    !is_one_of(css().get_overflow(), overflow_hidden, overflow_scroll, overflow_auto);
         }

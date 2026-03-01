@@ -78,16 +78,16 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
     {
         if (collapse_top_margin())
         {
-            pixel_t old_top = m_margins.top;
-            m_margins.top = std::max(m_line_boxes.front()->top_margin(), m_margins.top);
-            if (m_margins.top != old_top)
+            pixel_t old_block_start = margin_block_start();
+            margin_block_start(std::max(m_line_boxes.front()->top_margin(), old_block_start));
+            if (margin_block_start() != old_block_start)
             {
-                fmt_ctx->update_floats(m_margins.top - old_top, shared_from_this());
+                fmt_ctx->update_floats(margin_block_start() - old_block_start, shared_from_this());
             }
         }
         if (collapse_bottom_margin())
         {
-            m_margins.bottom = std::max(m_line_boxes.back()->bottom_margin(), m_margins.bottom);
+            margin_block_end(std::max(m_line_boxes.back()->bottom_margin(), margin_block_end()));
 			if (self_size.mode == writing_mode_horizontal_tb)
 				m_pos.height = m_line_boxes.back()->bottom() - m_line_boxes.back()->bottom_margin();
 			else
@@ -418,9 +418,10 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
         {
             if(collapse_top_margin())
             {
-                pixel_t shift = item->get_el()->margin_top();
+                pixel_t shift = item->get_el()->margin_block_start();
                 if(shift >= 0)
-                {                    line_ctx.top -= shift;
+                {
+					line_ctx.top -= shift;
                     m_line_boxes.back()->y_shift(-shift);
                 }
             }
@@ -429,9 +430,9 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
             pixel_t shift = 0;
             pixel_t prev_margin = m_line_boxes[m_line_boxes.size() - 2]->bottom_margin();
 
-            if(prev_margin > item->get_el()->margin_top())
+            if(prev_margin > item->get_el()->margin_block_start())
             {
-                shift = item->get_el()->margin_top();
+                shift = item->get_el()->margin_block_start();
             } else
             {
                 shift = prev_margin;

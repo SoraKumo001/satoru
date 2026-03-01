@@ -30,10 +30,10 @@ litehtml::render_item::render_item(std::shared_ptr<element>  _src_el) :
 
 litehtml::pixel_t litehtml::render_item::measure(const containing_block_context& containing_block_size, formatting_context* fmt_ctx)
 {
-	if (m_cached_parent_width != containing_block_size.width)
+	if (m_cached_parent_width != (pixel_t)containing_block_size.inline_size())
 	{
-		calc_outlines(containing_block_size.width);
-		m_cached_parent_width = containing_block_size.width;
+		calc_outlines(containing_block_size.inline_size());
+		m_cached_parent_width = containing_block_size.inline_size();
 		m_is_measured = false;
 	}
 
@@ -120,52 +120,53 @@ void litehtml::render_item::calc_outlines( pixel_t parent_width )
 
 litehtml::pixel_t litehtml::render_item::calc_auto_margins(pixel_t parent_width)
 {
+	auto wm = get_wm_context();
     if (src_el()->is_block_box() &&
         src_el()->css().get_position() != element_position_absolute &&
         src_el()->css().get_float() == float_none)
     {
-        pixel_t old_margin_left = m_margins.left;
-if (src_el()->css().get_margins().left.is_predefined() && src_el()->css().get_margins().right.is_predefined())
-{
-pixel_t el_width = m_pos.width + m_borders.left + m_borders.right + m_padding.left + m_padding.right;
-if (el_width <= parent_width)
-{
-m_margins.left = (parent_width - el_width) / 2;
-    m_margins.right = (parent_width - el_width) - m_margins.left;
-}
-else
-{
-m_margins.left = 0;
-    m_margins.right = 0;
-}
-}
-else if (src_el()->css().get_margins().left.is_predefined() && !src_el()->css().get_margins().right.is_predefined())
-{
-pixel_t el_width = m_pos.width + m_borders.left + m_borders.right + m_padding.left + m_padding.right + m_margins.right;
-m_margins.left = parent_width - el_width;
-if (m_margins.left < 0) m_margins.left = 0;
-}
-else if (!src_el()->css().get_margins().left.is_predefined() && src_el()->css().get_margins().right.is_predefined())
-{
-    pixel_t el_width = m_pos.width + m_borders.left + m_borders.right + m_padding.left + m_padding.right + m_margins.left;
-m_margins.right = parent_width - el_width;
-if (m_margins.right < 0) m_margins.right = 0;
-}
-else
-    {
-    direction dir = direction_ltr;
+        pixel_t old_margin_start = margin_inline_start();
+		if (wm.inline_start(src_el()->css().get_margins()).is_predefined() && wm.inline_end(src_el()->css().get_margins()).is_predefined())
+		{
+			pixel_t el_inline_size = inline_size() - margin_inline_start() - margin_inline_end();
+			if (el_inline_size <= parent_width)
+			{
+				margin_inline_start((parent_width - el_inline_size) / 2);
+				margin_inline_end((parent_width - el_inline_size) - margin_inline_start());
+			}
+			else
+			{
+				margin_inline_start(0);
+				margin_inline_end(0);
+			}
+		}
+		else if (wm.inline_start(src_el()->css().get_margins()).is_predefined() && !wm.inline_end(src_el()->css().get_margins()).is_predefined())
+		{
+			pixel_t el_inline_size = inline_size() - margin_inline_start();
+			margin_inline_start(parent_width - el_inline_size);
+			if (margin_inline_start() < 0) margin_inline_start(0);
+		}
+		else if (!wm.inline_start(src_el()->css().get_margins()).is_predefined() && wm.inline_end(src_el()->css().get_margins()).is_predefined())
+		{
+			pixel_t el_inline_size = inline_size() - margin_inline_end();
+			margin_inline_end(parent_width - el_inline_size);
+			if (margin_inline_end() < 0) margin_inline_end(0);
+		}
+		else
+		{
+			direction dir = direction_ltr;
             if (src_el()->parent())
             {
                 dir = src_el()->parent()->get_direction();
             }
             if (dir == direction_rtl)
             {
-                pixel_t el_width = m_pos.width + m_borders.left + m_borders.right + m_padding.left + m_padding.right + m_margins.right;
-                m_margins.left = parent_width - el_width;
-                if (m_margins.left < 0) m_margins.left = 0;
+				pixel_t el_inline_size = inline_size() - margin_inline_start();
+				margin_inline_start(parent_width - el_inline_size);
+				if (margin_inline_start() < 0) margin_inline_start(0);
             }
         }
-        return m_margins.left - old_margin_left;
+        return margin_inline_start() - old_margin_start;
     }
     return 0;
 }
@@ -1733,7 +1734,7 @@ satoru::WritingModeContext litehtml::render_item::get_wm_context() const
 void litehtml::render_item::place_logical(pixel_t inline_pos, pixel_t block_pos, const containing_block_context& cb_context, formatting_context* fmt_ctx)
 {
 	satoru::WritingModeContext wm(cb_context.mode, cb_context.width, cb_context.height);
-	position phys = wm.to_physical(satoru::logical_pos(inline_pos, block_pos), satoru::logical_size(width(), height()));
+	position phys = wm.to_physical(satoru::logical_pos(inline_pos, block_pos), wm.to_logical(width(), height()));
 	place(phys.x, phys.y, cb_context, fmt_ctx);
 }
 

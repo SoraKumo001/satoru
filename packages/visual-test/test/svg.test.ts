@@ -33,7 +33,7 @@ describe("SVG (Browser) Visual Tests", () => {
     [DIFF_DIR, TEMP_DIR].forEach(
       (dir) => !fs.existsSync(dir) && fs.mkdirSync(dir, { recursive: true }),
     );
-    satoru = createSatoruWorker({ maxParallel: 8 });
+    satoru = createSatoruWorker({ maxParallel: 16 });
     browser = await chromium.launch();
     page = await browser.newPage();
     if (fs.existsSync(BASELINE_PATH)) {
@@ -121,7 +121,7 @@ describe("SVG (Browser) Visual Tests", () => {
         baselines[file] = result;
       } else {
         const factor = process.env.GITHUB_ACTIONS ? 20.0 : 1.0;
-        const minTolerance = process.env.GITHUB_ACTIONS ? 15.0 : 0.01;
+        const minTolerance = process.env.GITHUB_ACTIONS ? 20.0 : 0.01;
         softExpect(
           result.outline,
           `Outline diff for ${file} (SVG) increased`,

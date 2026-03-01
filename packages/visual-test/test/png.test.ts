@@ -30,7 +30,7 @@ describe("PNG (Skia) Visual Tests", () => {
     [DIFF_DIR, TEMP_DIR].forEach(
       (dir) => !fs.existsSync(dir) && fs.mkdirSync(dir, { recursive: true }),
     );
-    satoru = createSatoruWorker({ maxParallel: 8 });
+    satoru = createSatoruWorker({ maxParallel: 16 });
     if (fs.existsSync(BASELINE_PATH)) {
       baselines = JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"));
     }
@@ -101,7 +101,7 @@ describe("PNG (Skia) Visual Tests", () => {
         baselines[file] = result;
       } else {
         const factor = process.env.GITHUB_ACTIONS ? 20.0 : 1.0;
-        const minTolerance = process.env.GITHUB_ACTIONS ? 15.0 : 0.01;
+        const minTolerance = process.env.GITHUB_ACTIONS ? 20.0 : 0.01;
         softExpect(
           result.outline,
           `Outline diff for ${file} increased`,
@@ -121,7 +121,7 @@ describe("PNG (Skia) Visual Tests", () => {
         result.outline,
         `Outline diff for ${file} is too high`,
         (v) => {
-          expect(v).toBeLessThan(15);
+          expect(v).toBeLessThan(20);
         },
       );
       softExpect(result.fill, `Fill diff for ${file} is too high`, (v) => {

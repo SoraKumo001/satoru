@@ -502,9 +502,63 @@ void TextRenderer::drawDecoration(SkCanvas* canvas, font_info* fi, const litehtm
             canvas->drawLine((float)pos.x + p_start.x, (float)pos.y + p_start.y + gap / 2,
                              (float)pos.x + p_end.x, (float)pos.y + p_end.y + gap / 2, dec_paint);
         } else if (fi->desc.decoration_style == litehtml::text_decoration_style_wavy) {
-            // TODO: Wavy line logicalization if needed, currently skipping complex logic
-            canvas->drawLine((float)pos.x + p_start.x, (float)pos.y + p_start.y,
-                             (float)pos.x + p_end.x, (float)pos.y + p_end.y, dec_paint);
+            // Wavy lines look better if slightly thicker than straight lines
+            dec_paint.setStrokeWidth(thickness * 1.5f);
+
+            float wave_wavelength = std::max(8.0f, thickness * 8.0f);
+            float wave_amplitude = std::max(4.0f, thickness * 4.0f);
+
+            // Use physical coordinate as a phase reference for seamless connection across chunks
+            bool is_vertical = wm_ctx.is_vertical();
+            float phase_ref = is_vertical ? (float)pos.y : (float)pos.x;
+            float start_i = -fmodf(phase_ref, wave_wavelength);
+
+            SkPathBuilder wavy_builder;
+            bool first = true;
+
+            for (float i = start_i; i < inline_size; i += wave_wavelength) {
+                // First half cycle (up)
+                {
+                    logical_pos lp1(i, block_offset);
+                    logical_pos lp2(i + wave_wavelength / 4.0f, block_offset + wave_amplitude);
+                    logical_pos lp3(i + wave_wavelength / 2.0f, block_offset);
+
+                    litehtml::position p1 = wm_ctx.to_physical(lp1, size);
+                    litehtml::position p2 = wm_ctx.to_physical(lp2, size);
+                    litehtml::position p3 = wm_ctx.to_physical(lp3, size);
+
+                    if (first) {
+                        wavy_builder.moveTo((float)pos.x + p1.x, (float)pos.y + p1.y);
+                        first = false;
+                    }
+                    wavy_builder.quadTo((float)pos.x + p2.x, (float)pos.y + p2.y,
+                                        (float)pos.x + p3.x, (float)pos.y + p3.y);
+                }
+                // Second half cycle (down)
+                {
+                    logical_pos lp2(i + 3.0f * wave_wavelength / 4.0f,
+                                    block_offset - wave_amplitude);
+                    logical_pos lp3(i + wave_wavelength, block_offset);
+
+                    litehtml::position p2 = wm_ctx.to_physical(lp2, size);
+                    litehtml::position p3 = wm_ctx.to_physical(lp3, size);
+
+                    wavy_builder.quadTo((float)pos.x + p2.x, (float)pos.y + p2.y,
+                                        (float)pos.x + p3.x, (float)pos.y + p3.y);
+                }
+            }
+
+            canvas->save();
+            // Clip to ensure waves don't bleed into adjacent characters or outside the line
+            if (is_vertical) {
+                canvas->clipRect(
+                    SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, inline_size));
+            } else {
+                canvas->clipRect(
+                    SkRect::MakeXYWH((float)pos.x, (float)pos.y, inline_size, (float)pos.height));
+            }
+            canvas->drawPath(wavy_builder.detach(), dec_paint);
+            canvas->restore();
         } else {
             canvas->drawLine((float)pos.x + p_start.x, (float)pos.y + p_start.y,
                              (float)pos.x + p_end.x, (float)pos.y + p_end.y, dec_paint);

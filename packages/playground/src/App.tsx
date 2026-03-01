@@ -244,6 +244,9 @@ const App: React.FC = () => {
             const body = iframeRef.current.contentWindow.document.body;
             const html =
               iframeRef.current.contentWindow.document.documentElement;
+
+            if (!body || !html) return;
+
             // Get the maximum height to ensure no scrollbars
             const heightValue = Math.max(
               body.scrollHeight,

@@ -101,7 +101,7 @@ const App: React.FC = () => {
     window.addEventListener("popstate", handlePopState);
 
     return () => {
-      satoru.close();
+      // satoru.close();
       window.removeEventListener("popstate", handlePopState);
     };
   }, []);
@@ -139,6 +139,7 @@ const App: React.FC = () => {
   // Auto-run render when specific parameters change
   useEffect(() => {
     const oldParams = memoryParam.current;
+    if (oldParams === params) return;
     memoryParam.current = params;
 
     if (
@@ -230,10 +231,8 @@ const App: React.FC = () => {
 
   const handleConvert = async () => {
     if (property.current.isRender) return;
-    console.log("start");
     const currentHtml = params.value;
     if (!satoru || !currentHtml) return;
-
     const requestId = ++latestRenderId.current;
 
     setIsRendering(true);
@@ -316,7 +315,6 @@ const App: React.FC = () => {
 
       const endTime = performance.now();
       setRenderTime(endTime - startTime);
-      console.log("[Satoru] Render Complete");
       setRenderResult(result);
 
       if (result instanceof Uint8Array) {

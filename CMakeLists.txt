@@ -239,6 +239,7 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/src/pdf/*.cpp"
     "${skia_SOURCE_DIR}/src/pathops/*.cpp"
     "${skia_SOURCE_DIR}/modules/svg/src/*.cpp"
+    "${skia_SOURCE_DIR}/modules/skresources/src/*.cpp"
     "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper.cpp"
     "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper_primitive.cpp"
     "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper_harfbuzz.cpp"
@@ -256,6 +257,7 @@ target_include_directories(skia_lib PUBLIC
     "${skia_SOURCE_DIR}"
     "${WUFFS_RELEASE_DIR}"
     "${skia_SOURCE_DIR}/modules/svg/include"
+    "${skia_SOURCE_DIR}/modules/skresources/include"
     "${skia_SOURCE_DIR}/modules/skshaper/include"
     "${skia_SOURCE_DIR}/modules/skunicode/include"
 )

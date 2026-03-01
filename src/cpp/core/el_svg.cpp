@@ -1,5 +1,6 @@
 #include "el_svg.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <sstream>
 #include <unordered_map>
@@ -9,11 +10,58 @@
 #include "include/core/SkStream.h"
 #include "libs/litehtml/include/litehtml/render_image.h"
 #include "libs/litehtml/include/litehtml/render_item.h"
+#include "modules/skresources/include/SkResources.h"
 #include "modules/svg/include/SkSVGDOM.h"
 
 namespace litehtml {
 
 namespace {
+
+class SatoruImageAsset : public skresources::ImageAsset {
+   public:
+    SatoruImageAsset(sk_sp<SkImage> image) : fImage(std::move(image)) {}
+    bool isMultiFrame() override { return false; }
+    skresources::ImageAsset::FrameData getFrameData(float t) override {
+        return {fImage, SkSamplingOptions(), SkMatrix::I(),
+                skresources::ImageAsset::SizeFit::kFill};
+    }
+
+   private:
+    sk_sp<SkImage> fImage;
+};
+
+class SatoruResourceProvider : public skresources::ResourceProvider {
+   public:
+    SatoruResourceProvider(const std::map<std::string, image_info>& imageCache)
+        : m_imageCache(imageCache) {}
+
+    sk_sp<skresources::ImageAsset> loadImageAsset(const char path[], const char name[],
+                                                   const char id[]) const override {
+        std::string full_path;
+        if (path && path[0]) {
+            full_path = path;
+            if (name && name[0]) {
+                full_path += "/";
+                full_path += name;
+            }
+        } else if (name && name[0]) {
+            full_path = name;
+        }
+
+        if (full_path.empty()) return nullptr;
+
+        auto it = m_imageCache.find(full_path);
+        if (it != m_imageCache.end() && it->second.skImage) {
+            return sk_make_sp<SatoruImageAsset>(it->second.skImage);
+        }
+
+        return nullptr;
+    }
+
+   private:
+    const std::map<std::string, image_info>& m_imageCache;
+};
+
 const std::unordered_map<std::string, std::string>& get_svg_tag_mapping() {
     static const std::unordered_map<std::string, std::string> mapping = {
         {"clippath", "clipPath"},
@@ -169,6 +217,8 @@ void el_svg::write_element(std::ostream& os, const element::ptr& el) const {
     std::string tag_name = map_tag(el->get_tagName());
     os << "<" << tag_name;
 
+    bool is_image_or_use = (tag_name == "image" || tag_name == "use");
+
     auto tag_ptr = std::dynamic_pointer_cast<html_tag>(el);
     if (tag_ptr) {
         const auto& attrs = html_tag_accessor::get_attrs(tag_ptr.get());
@@ -183,15 +233,23 @@ void el_svg::write_element(std::ostream& os, const element::ptr& el) const {
         bool stroke_attr_written = false;
         for (auto const& attr : attrs) {
             std::string attr_name = map_attr(attr.first);
+            std::string attr_val = attr.second;
+            // Remove newlines and tabs from attribute values (common in base64 data URLs)
+            attr_val.erase(std::remove(attr_val.begin(), attr_val.end(), '\n'), attr_val.end());
+            attr_val.erase(std::remove(attr_val.begin(), attr_val.end(), '\r'), attr_val.end());
+            attr_val.erase(std::remove(attr_val.begin(), attr_val.end(), '\t'), attr_val.end());
+
             if (attr_name == "stroke") {
                 if (stroke_width_is_zero) {
                     os << " stroke=\"none\"";
                 } else {
-                    os << " stroke=\"" << attr.second << "\"";
+                    os << " stroke=\"" << attr_val << "\"";
                 }
                 stroke_attr_written = true;
-            } else {
-                os << " " << attr_name << "=\"" << attr.second << "\"";
+            } else if (is_image_or_use && (attr_name == "href" || attr_name == "xlink:href")) {
+                os << " xlink:href=\"" << attr_val << "\"";
+            } else if (attr_name != "xmlns" && attr_name != "xmlns:xlink") {
+                os << " " << attr_name << "=\"" << attr_val << "\"";
             }
         }
         if (stroke_width_is_zero && !stroke_attr_written) {
@@ -234,6 +292,12 @@ std::string el_svg::reconstruct_xml(int x, int y) const {
     bool stroke_attr_written = false;
     for (auto const& attr : m_attrs) {
         std::string attr_name = map_attr(attr.first);
+        std::string attr_val = attr.second;
+        // Remove newlines and tabs
+        attr_val.erase(std::remove(attr_val.begin(), attr_val.end(), '\n'), attr_val.end());
+        attr_val.erase(std::remove(attr_val.begin(), attr_val.end(), '\r'), attr_val.end());
+        attr_val.erase(std::remove(attr_val.begin(), attr_val.end(), '\t'), attr_val.end());
+
         if (attr_name == "xmlns" || attr_name == "xmlns:xlink" || attr_name == "x" ||
             attr_name == "y" || attr_name == "width" || attr_name == "height" ||
             attr_name == "viewBox")
@@ -242,11 +306,13 @@ std::string el_svg::reconstruct_xml(int x, int y) const {
             if (stroke_width_is_zero) {
                 ss << " stroke=\"none\"";
             } else {
-                ss << " stroke=\"" << attr.second << "\"";
+                ss << " stroke=\"" << attr_val << "\"";
             }
             stroke_attr_written = true;
+        } else if (attr_name == "href" || attr_name == "xlink:href") {
+            ss << " xlink:href=\"" << attr_val << "\"";
         } else {
-            ss << " " << attr_name << "=\"" << attr.second << "\"";
+            ss << " " << attr_name << "=\"" << attr_val << "\"";
         }
     }
     if (stroke_width_is_zero && !stroke_attr_written) {
@@ -306,7 +372,15 @@ void el_svg::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position* clip,
             SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height), p);
     } else {
         SkMemoryStream stream(xml.c_str(), xml.size());
-        auto svg_dom = SkSVGDOM::MakeFromStream(stream);
+        auto resource_provider =
+            sk_make_sp<SatoruResourceProvider>(container->get_context().imageCache);
+        auto proxy_rp = skresources::DataURIResourceProviderProxy::Make(
+            resource_provider, skresources::ImageDecodeStrategy::kPreDecode);
+
+        SkSVGDOM::Builder builder;
+        builder.setResourceProvider(proxy_rp);
+        auto svg_dom = builder.make(stream);
+
         if (svg_dom) {
             canvas->save();
             canvas->translate((float)pos.x, (float)pos.y);

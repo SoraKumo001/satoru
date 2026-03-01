@@ -155,8 +155,11 @@ void SatoruInstance::layout_document(int width) {
 static void scan_image_sizes(litehtml::element::ptr el, SatoruContext &context) {
     if (!el) return;
     const char *tag = el->get_tagName();
-    if (tag && strcmp(tag, "img") == 0) {
+    if (tag && (strcmp(tag, "img") == 0 || strcmp(tag, "image") == 0)) {
         const char *src = el->get_attr("src");
+        if (!src) src = el->get_attr("href");
+        if (!src) src = el->get_attr("xlink:href");
+
         const char *w_str = el->get_attr("width");
         const char *h_str = el->get_attr("height");
         if (src && w_str && h_str) {

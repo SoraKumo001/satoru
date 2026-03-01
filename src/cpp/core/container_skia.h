@@ -119,6 +119,7 @@ class container_skia : public litehtml::document_container {
 
     SkCanvas *get_canvas() const { return m_canvas; }
     bool is_tagging() const { return m_tagging; }
+    SatoruContext &get_context() { return m_context; }
 
     int add_inline_svg(const std::string &xml, const litehtml::position &pos) {
         m_usedInlineSvgs.push_back(xml);

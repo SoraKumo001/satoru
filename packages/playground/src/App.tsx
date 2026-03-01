@@ -93,7 +93,7 @@ const App: React.FC = () => {
         textToPaths: t !== null ? t === "true" : true,
       });
 
-      if (a && a !== params.asset) {
+      if (a) {
         loadAsset(a);
       }
     };
@@ -104,7 +104,7 @@ const App: React.FC = () => {
       satoru.close();
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [params]);
+  }, []);
   const updateParams = (
     params: Record<string, string | number | boolean | undefined>,
   ) => {
@@ -135,10 +135,24 @@ const App: React.FC = () => {
     }));
   };
 
+  const memoryParam = useRef<Params>(null);
   // Auto-run render when specific parameters change
   useEffect(() => {
-    const t = setTimeout(handleConvert, 500);
-    return () => clearTimeout(t);
+    const oldParams = memoryParam.current;
+    memoryParam.current = params;
+
+    if (
+      !oldParams ||
+      oldParams["asset"] !== params["asset"] ||
+      (["width", "height", "value"] as (keyof Params)[]).every(
+        (v) => oldParams[v] === params[v],
+      )
+    ) {
+      handleConvert();
+    } else {
+      const t = setTimeout(handleConvert, 500);
+      return () => clearTimeout(t);
+    }
   }, [params]);
 
   // Update iframe preview

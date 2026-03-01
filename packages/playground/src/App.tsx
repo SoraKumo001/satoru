@@ -6,45 +6,44 @@ import {
 } from "satoru-render/workers";
 
 const satoru = createSatoruWorker({
-  maxParallel: 1,
+  maxParallel: 2,
 });
 
+type Params = {
+  asset?: string;
+  width: number;
+  height?: number;
+  format: "svg" | "png" | "webp" | "pdf";
+  textToPaths: boolean;
+  value?: string | null;
+};
+
 const App: React.FC = () => {
+  const [assetList] = useState<string[]>(() => {
+    const assetFiles = import.meta.glob("../../../assets/*.html", {
+      query: "?url",
+      import: "default",
+    });
+    return Object.keys(assetFiles).map((path) => path.split("/").pop()!);
+  });
   // Initialize state from URL parameters
-  const [html, setHtml] = useState<string>(() => {
+  const [params, setParams] = useState<Params>(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get("value") || "";
-  });
-
-  const [width, setWidth] = useState<number>(() => {
-    const params = new URLSearchParams(window.location.search);
+    const a = params.get("asset");
     const w = params.get("width");
-    return w ? parseInt(w) : 588;
-  });
-
-  const [height, setHeight] = useState<number | "auto">(() => {
-    const params = new URLSearchParams(window.location.search);
     const h = params.get("height");
-    if (h === "auto") return "auto";
-    return h ? parseInt(h) : "auto";
-  });
-
-  const [format, setFormat] = useState<"svg" | "png" | "webp" | "pdf">(() => {
-    const params = new URLSearchParams(window.location.search);
     const f = params.get("format");
-    return f && ["svg", "png", "webp", "pdf"].includes(f) ? (f as any) : "svg";
-  });
-
-  const [textToPaths, setTextToPaths] = useState<boolean>(() => {
-    const params = new URLSearchParams(window.location.search);
     const t = params.get("textToPaths");
-    return t !== null ? t === "true" : true;
-  });
-
-  const [assetList, setAssetList] = useState<string[]>([]);
-  const [selectedAsset, setSelectedAsset] = useState<string>(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("asset") || "";
+    const v = params.get("value");
+    return {
+      asset: !v ? a || assetList[0] : undefined,
+      width: w ? parseInt(w) : 588,
+      height: h ? parseInt(h) : undefined,
+      format:
+        f && ["svg", "png", "webp", "pdf"].includes(f) ? (f as any) : "svg",
+      textToPaths: t !== null ? t === "true" : true,
+      value: v,
+    };
   });
 
   const [fontMapJson, setFontMapJson] = useState<string>(() => {
@@ -76,43 +75,27 @@ const App: React.FC = () => {
 
   // Initialize Satoru Worker
   useEffect(() => {
-    // Get asset list
-    const assetFiles = import.meta.glob("../../../assets/*.html", {
-      query: "?url",
-      import: "default",
-    });
-    setAssetList(Object.keys(assetFiles).map((path) => path.split("/").pop()!));
-
     // Handle browser back/forward
     const handlePopState = () => {
       const p = new URLSearchParams(window.location.search);
-      const asset = p.get("asset");
+      const a = p.get("asset");
       const w = p.get("width");
       const h = p.get("height");
       const f = p.get("format");
       const t = p.get("textToPaths");
 
-      if (w) setWidth(parseInt(w));
-      else setWidth(588); // Default
+      setParams({
+        asset: a ?? undefined,
+        value: p.get("value"),
+        width: w ? parseInt(w) : 588,
+        height: h ? parseInt(h) : undefined,
+        format:
+          f && ["svg", "png", "webp", "pdf"].includes(f) ? (f as any) : "svg",
+        textToPaths: t !== null ? t === "true" : true,
+      });
 
-      if (h === "auto") setHeight("auto");
-      else if (h) setHeight(parseInt(h));
-      else setHeight("auto");
-
-      if (f && ["svg", "png", "webp", "pdf"].includes(f)) {
-        setFormat(f as any);
-      } else {
-        setFormat("svg"); // Default
-      }
-
-      if (t !== null) {
-        setTextToPaths(t === "true");
-      } else {
-        setTextToPaths(true); // Default
-      }
-
-      if (asset && asset !== selectedAsset) {
-        loadAsset(asset);
+      if (a && a !== params.asset) {
+        loadAsset(a);
       }
     };
 
@@ -122,104 +105,75 @@ const App: React.FC = () => {
       satoru.close();
       window.removeEventListener("popstate", handlePopState);
     };
-  }, []);
-
-  // Update URL when parameters change
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    let changed = false;
-
-    const syncParam = (key: string, value: string) => {
-      if (url.searchParams.get(key) !== value) {
-        url.searchParams.set(key, value);
-        changed = true;
-      }
-    };
-
-    syncParam("width", width.toString());
-    syncParam("height", height.toString());
-    syncParam("format", format);
-
-    if (format === "svg") {
-      syncParam("textToPaths", textToPaths.toString());
-    } else if (url.searchParams.has("textToPaths")) {
-      url.searchParams.delete("textToPaths");
-      changed = true;
+  }, [params]);
+  const updateParams = (
+    params: Record<string, string | number | boolean | undefined>,
+  ) => {
+    const url = new URL(location.href);
+    const p = url.searchParams;
+    Object.entries(params).forEach(([name, value]) => {
+      if (value) p.set(name, String(value));
+      else p.delete(name);
+    });
+    if (p.get("asset")) {
+      p.delete("value");
     }
 
-    if (selectedAsset) {
-      syncParam("asset", selectedAsset);
-      if (url.searchParams.has("value")) {
-        url.searchParams.delete("value");
-        changed = true;
-      }
-    } else {
-      if (url.searchParams.has("asset")) {
-        url.searchParams.delete("asset");
-        changed = true;
-      }
-      if (html) {
-        syncParam("value", html);
-      } else if (url.searchParams.has("value")) {
-        url.searchParams.delete("value");
-        changed = true;
-      }
-    }
-
-    try {
-      const currentMap = JSON.parse(fontMapJson);
-      if (JSON.stringify(currentMap) !== JSON.stringify(DEFAULT_FONT_MAP)) {
-        syncParam("fontMap", JSON.stringify(currentMap));
-      } else {
-        url.searchParams.delete("fontMap");
-        changed = true;
-      }
-    } catch (e) {
-      // ignore invalid JSON
-    }
-
-    if (changed) {
-      window.history.replaceState({}, "", url.toString());
-    }
-  }, [width, height, format, textToPaths, selectedAsset, html]);
+    const w = p.get("width");
+    const h = p.get("height");
+    const f = p.get("format");
+    const t = p.get("textToPaths");
+    const a = p.get("asset");
+    history.replaceState({}, "", url.toString());
+    setParams((p) => ({
+      width: w ? parseInt(w) : 588,
+      height: h ? parseInt(h) : undefined,
+      format:
+        f && ["svg", "png", "webp", "pdf"].includes(f) ? (f as any) : "svg",
+      textToPaths: t !== null ? t === "true" : true,
+      asset: a ?? undefined,
+      value: params.value !== undefined ? (params.value as string) : p.value,
+    }));
+  };
 
   // Auto-run render when specific parameters change
-  useEffect(() => {
-    // If no HTML, nothing to do
-    if (!html) return;
+  // useEffect(() => {
+  //   // If no HTML, nothing to do
+  //   if (!html) return;
 
-    const run = () => handleConvert(html);
+  //   const run = () => handleConvert(html);
 
-    if (shouldRenderImmediately.current) {
-      shouldRenderImmediately.current = false;
-      if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
-      run();
-    } else {
-      if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
-      autoRunTimer.current = window.setTimeout(() => {
-        run();
-        autoRunTimer.current = null;
-      }, 500);
-    }
+  //   if (shouldRenderImmediately.current) {
+  //     shouldRenderImmediately.current = false;
+  //     if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
+  //     run();
+  //   } else {
+  //     if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
+  //     autoRunTimer.current = window.setTimeout(() => {
+  //       run();
+  //       autoRunTimer.current = null;
+  //     }, 500);
+  //   }
 
-    return () => {
-      if (autoRunTimer.current) {
-        clearTimeout(autoRunTimer.current);
-      }
-    };
-  }, [width, height, textToPaths, html]);
+  //   return () => {
+  //     if (autoRunTimer.current) {
+  //       clearTimeout(autoRunTimer.current);
+  //     }
+  //   };
+  // }, [width, height, textToPaths, html]);
 
   // Immediate render when format changes
-  useEffect(() => {
-    if (html) {
-      if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
-      handleConvert(html);
-    }
-  }, [format]);
+  // useEffect(() => {
+  //   if (params.value) {
+  //     if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
+  //     handleConvert(params.value);
+  //   }
+  // }, [params.format]);
 
   // Update iframe preview
   useEffect(() => {
     if (iframeRef.current) {
+      const html = params.value ?? "";
       const doc =
         iframeRef.current.contentDocument ||
         iframeRef.current.contentWindow?.document;
@@ -237,8 +191,8 @@ const App: React.FC = () => {
         // Adjust height to fit content
         const resizeIframe = () => {
           if (iframeRef.current && iframeRef.current.contentWindow) {
-            if (height !== "auto") {
-              iframeRef.current.style.height = `${height}px`;
+            if (params.height) {
+              iframeRef.current.style.height = `${params.height}px`;
               return;
             }
             const body = iframeRef.current.contentWindow.document.body;
@@ -267,34 +221,22 @@ const App: React.FC = () => {
         setTimeout(resizeIframe, 500);
       }
     }
-  }, [html, height, width]);
+  }, [params]);
 
   // Handle asset selection (Initial or when assetList is loaded)
   useEffect(() => {
-    if (assetList.length === 0) return;
+    if (assetList.length === 0 || !params.asset) return;
 
-    const params = new URLSearchParams(window.location.search);
-    // If we have a direct value, don't load defaults
-    if (params.has("value")) return;
-
-    const initialAsset = params.get("asset") || "01-layout.html";
-
-    if (assetList.includes(initialAsset)) {
-      if (selectedAsset !== initialAsset || !html) {
-        loadAsset(initialAsset);
-      }
-    } else if (!selectedAsset) {
-      loadAsset(assetList[0]);
-    }
-  }, [assetList]);
-
+    const initialAsset =
+      assetList.find((v) => v === params.asset) ?? assetList[0];
+    loadAsset(initialAsset);
+  }, []);
   const loadAsset = async (name: string) => {
     try {
       const resp = await fetch(`assets/${name}`);
       const text = await resp.text();
       shouldRenderImmediately.current = true;
-      setHtml(text);
-      setSelectedAsset(name);
+      updateParams({ asset: name, value: text });
     } catch (e) {
       console.error("Failed to load asset", e);
     }
@@ -307,7 +249,8 @@ const App: React.FC = () => {
       autoRunTimer.current = null;
     }
 
-    const currentHtml = overrideHtml !== undefined ? overrideHtml : html;
+    const currentHtml =
+      overrideHtml !== undefined ? overrideHtml : params.value;
     if (!satoru || !currentHtml) return;
 
     const requestId = ++latestRenderId.current;
@@ -331,14 +274,15 @@ const App: React.FC = () => {
       }
 
       console.log(`[Satoru] Rendering via Worker (ID: ${requestId})`);
+      const { width, height, format, textToPaths } = params;
       const result = await satoru.render({
         value: currentHtml,
         width,
-        height: height === "auto" ? 0 : height,
+        height,
         format,
         textToPaths,
         fontMap,
-        logLevel: LogLevel.Info,
+        // logLevel: LogLevel.Info,
         onLog: (level, message) => {
           if (requestId !== latestRenderId.current) return;
           const prefix = "[Satoru Worker]";
@@ -429,6 +373,7 @@ const App: React.FC = () => {
 
   const handleDownload = () => {
     if (!renderResult) return;
+    const { format } = params;
     const mimeType =
       format === "svg"
         ? "image/svg+xml"
@@ -493,45 +438,62 @@ const App: React.FC = () => {
           >
             <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
               <label>
-                Width:{" "}
-                <input
-                  type="number"
-                  value={width}
-                  onChange={(e) => {
-                    setWidth(parseInt(e.target.value) || 0);
-                  }}
-                  style={{ width: "80px" }}
-                />
+                Width
+                <div style={{ display: "flex" }}>
+                  <input
+                    type="number"
+                    value={params.width}
+                    onChange={(e) => {
+                      updateParams({ width: parseInt(e.target.value) || 0 });
+                    }}
+                    style={{ width: "80px" }}
+                  />
+                </div>
               </label>
+
               <label>
-                Height:{" "}
-                <input
-                  type="number"
-                  value={height === "auto" ? "" : height}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setHeight(val === "" ? "auto" : parseInt(val));
-                  }}
-                  disabled={height === "auto"}
-                  style={{ width: "80px" }}
-                />
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                <input
-                  type="checkbox"
-                  checked={height === "auto"}
-                  onChange={(e) => setHeight(e.target.checked ? "auto" : 800)}
-                />{" "}
-                Auto
+                Height
+                <div style={{ display: "flex" }}>
+                  <input
+                    type="number"
+                    value={params.height ?? 0}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateParams({
+                        height: val === "" ? "auto" : parseInt(val),
+                      });
+                    }}
+                    disabled={!params.height}
+                    style={{ width: "80px" }}
+                  />
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!params.height}
+                      onChange={(e) =>
+                        updateParams(
+                          e.target.checked
+                            ? { height: undefined }
+                            : { height: 800 },
+                        )
+                      }
+                    />{" "}
+                    Auto
+                  </label>
+                </div>
               </label>
             </div>
             <label>
               Format:{" "}
               <select
-                value={format}
-                onChange={(e) =>
-                  setFormat(e.target.value as "svg" | "png" | "webp" | "pdf")
-                }
+                value={params.format}
+                onChange={(e) => updateParams({ format: e.target.value })}
                 style={{ padding: "2px 5px", borderRadius: "4px" }}
               >
                 <option value="svg">SVG (Vector)</option>
@@ -540,12 +502,16 @@ const App: React.FC = () => {
                 <option value="pdf">PDF (Document)</option>
               </select>
             </label>
-            {format === "svg" && (
+            {params.format === "svg" && (
               <label>
                 <input
                   type="checkbox"
-                  checked={textToPaths}
-                  onChange={(e) => setTextToPaths(e.target.checked)}
+                  checked={params.textToPaths}
+                  onChange={(e) =>
+                    updateParams({
+                      textToPaths: e.target.checked || undefined,
+                    })
+                  }
                 />{" "}
                 Convert text to paths
               </label>
@@ -590,7 +556,7 @@ const App: React.FC = () => {
         >
           <legend style={{ fontWeight: "bold" }}>Load Sample Assets</legend>
           <select
-            value={selectedAsset}
+            value={params.asset}
             onChange={(e) => loadAsset(e.target.value)}
             style={{
               padding: "5px",
@@ -612,10 +578,9 @@ const App: React.FC = () => {
       <div style={{ marginBottom: "15px" }}>
         <h3>HTML Input:</h3>
         <textarea
-          value={html}
+          value={params.value ?? undefined}
           onChange={(e) => {
-            setHtml(e.target.value);
-            setSelectedAsset("");
+            updateParams({ value: e.target.value, asset: undefined });
           }}
           style={{
             width: "100%",
@@ -705,7 +670,7 @@ const App: React.FC = () => {
               ref={iframeRef}
               title="preview"
               style={{
-                width: `${width}px`,
+                width: `${params.width}px`,
                 minHeight: "100%",
                 border: "none",
                 display: "block",
@@ -722,7 +687,7 @@ const App: React.FC = () => {
               alignItems: "center",
             }}
           >
-            <h3>{format.toUpperCase()} Render Preview:</h3>
+            <h3>{params.format.toUpperCase()} Render Preview:</h3>
             {renderResult && (
               <button
                 onClick={handleDownload}
@@ -768,31 +733,39 @@ const App: React.FC = () => {
                   backdropFilter: "blur(2px)",
                 }}
               >
-                Rendering {format.toUpperCase()}...
+                Rendering {params.format.toUpperCase()}...
               </div>
             )}
             {!renderResult && !isRendering && (
-              <div style={{ color: "#999", marginTop: "200px" }}>
+              <div
+                style={{
+                  color: "#999",
+                  marginTop: "200px",
+                  textAlign: "center",
+                  width: "100%",
+                }}
+              >
                 Result will appear here
               </div>
             )}
-            {renderResult && format === "svg" && (
+            {renderResult && params.format === "svg" && (
               <div
                 dangerouslySetInnerHTML={{ __html: renderResult as string }}
               />
             )}
-            {objectUrl && (format === "png" || format === "webp") && (
-              <div>
-                <img
-                  src={objectUrl}
-                  alt="render result"
-                  style={{
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-                  }}
-                />
-              </div>
-            )}
-            {objectUrl && format === "pdf" && (
+            {objectUrl &&
+              (params.format === "png" || params.format === "webp") && (
+                <div>
+                  <img
+                    src={objectUrl}
+                    alt="render result"
+                    style={{
+                      boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+                    }}
+                  />
+                </div>
+              )}
+            {objectUrl && params.format === "pdf" && (
               <embed
                 src={objectUrl}
                 type="application/pdf"
@@ -804,7 +777,7 @@ const App: React.FC = () => {
       </div>
 
       <div>
-        <h3>Output Source {format !== "svg" ? "(Base64)" : ""}:</h3>
+        <h3>Output Source {params.format !== "svg" ? "(Base64)" : ""}:</h3>
         <textarea
           value={outputSource}
           readOnly

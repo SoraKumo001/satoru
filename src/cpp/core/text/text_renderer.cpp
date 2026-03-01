@@ -285,7 +285,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                             }
 
                             litehtml::position phys =
-                                wm_ctx.to_physical(lp, satoru::logical_size(0, 0));
+                                wm_ctx.to_physical(lp, satoru::logical_size(0, (pixel_t)fi->desc.size));
                             gx = (float)pos.x + phys.x;
                             gy = (float)pos.y + phys.y;
                         } else {
@@ -294,7 +294,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                             logical_pos lp(inline_offset, block_offset);
 
                             litehtml::position phys =
-                                wm_ctx.to_physical(lp, satoru::logical_size(0, 0));
+                                wm_ctx.to_physical(lp, satoru::logical_size(0, (pixel_t)fi->desc.size));
                             gx = (float)pos.x + phys.x;
                             gy = (float)pos.y + phys.y;
                             rotation = 90.0f;
@@ -401,7 +401,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                             }
 
                             litehtml::position phys =
-                                wm_ctx.to_physical(lp, satoru::logical_size(0, 0));
+                                wm_ctx.to_physical(lp, satoru::logical_size(0, (pixel_t)fi->desc.size));
                             builder_run.pos[i * 2] = (float)pos.x + phys.x;
                             builder_run.pos[i * 2 + 1] = (float)pos.y + phys.y;
                         }
@@ -414,7 +414,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
 
                             logical_pos lp(inline_offset, block_offset);
                             litehtml::position phys =
-                                wm_ctx.to_physical(lp, satoru::logical_size(0, 0));
+                                wm_ctx.to_physical(lp, satoru::logical_size(0, (pixel_t)fi->desc.size));
 
                             // Rotate 90 deg CW: cos=0, sin=1
                             builder_run.xforms()[i] =

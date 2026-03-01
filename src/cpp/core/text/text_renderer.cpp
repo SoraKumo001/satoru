@@ -269,7 +269,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                     auto pathOpt = run.font.getPath(run.glyphs[i]);
                     float gx, gy;
                     float rotation = 0;
-                    
+
                     if (is_vertical) {
                         float inline_offset = run.positions[i].fX;
                         if (is_upright) {
@@ -277,22 +277,24 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                             // and glyph's vertical position adjusted by ascent.
                             float block_offset = (float)pos.width / 2.0f - fi->desc.size / 2.0f;
                             float baseline_adj = fi->desc.size * 0.92f;
-                            
+
                             logical_pos lp(inline_offset + baseline_adj, block_offset);
                             if (is_punctuation) {
                                 lp.inline_offset -= (float)fi->desc.size * 0.6f;
                                 lp.block_offset += (float)fi->desc.size * 0.6f;
                             }
-                            
-                            litehtml::position phys = wm_ctx.to_physical(lp, satoru::logical_size(0, 0));
+
+                            litehtml::position phys =
+                                wm_ctx.to_physical(lp, satoru::logical_size(0, 0));
                             gx = (float)pos.x + phys.x;
                             gy = (float)pos.y + phys.y;
                         } else {
                             // Sideways: glyph rotated 90deg CW
                             float block_offset = (float)pos.width / 2.0f - fi->desc.size * 0.40f;
                             logical_pos lp(inline_offset, block_offset);
-                            
-                            litehtml::position phys = wm_ctx.to_physical(lp, satoru::logical_size(0, 0));
+
+                            litehtml::position phys =
+                                wm_ctx.to_physical(lp, satoru::logical_size(0, 0));
                             gx = (float)pos.x + phys.x;
                             gy = (float)pos.y + phys.y;
                             rotation = 90.0f;
@@ -391,14 +393,15 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                             float inline_offset = run.positions[i].fX;
                             float block_offset = (float)pos.width / 2.0f - fi->desc.size / 2.0f;
                             float baseline_adj = fi->desc.size * 0.92f;
-                            
+
                             logical_pos lp(inline_offset + baseline_adj, block_offset);
                             if (is_punctuation) {
                                 lp.inline_offset -= (float)fi->desc.size * 0.6f;
                                 lp.block_offset += (float)fi->desc.size * 0.6f;
                             }
-                            
-                            litehtml::position phys = wm_ctx.to_physical(lp, satoru::logical_size(0, 0));
+
+                            litehtml::position phys =
+                                wm_ctx.to_physical(lp, satoru::logical_size(0, 0));
                             builder_run.pos[i * 2] = (float)pos.x + phys.x;
                             builder_run.pos[i * 2 + 1] = (float)pos.y + phys.y;
                         }
@@ -408,12 +411,14 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         for (int i = 0; i < run.count; ++i) {
                             float inline_offset = run.positions[i].fX;
                             float block_offset = (float)pos.width / 2.0f - fi->desc.size * 0.40f;
-                            
+
                             logical_pos lp(inline_offset, block_offset);
-                            litehtml::position phys = wm_ctx.to_physical(lp, satoru::logical_size(0, 0));
-                            
+                            litehtml::position phys =
+                                wm_ctx.to_physical(lp, satoru::logical_size(0, 0));
+
                             // Rotate 90 deg CW: cos=0, sin=1
-                            builder_run.xforms()[i] = SkRSXform::Make(0, 1, (float)pos.x + phys.x, (float)pos.y + phys.y);
+                            builder_run.xforms()[i] =
+                                SkRSXform::Make(0, 1, (float)pos.x + phys.x, (float)pos.y + phys.y);
                         }
                     }
                 }

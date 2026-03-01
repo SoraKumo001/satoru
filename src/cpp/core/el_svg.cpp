@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <sstream>
+#include <unordered_map>
 
 #include "container_skia.h"
 #include "include/core/SkCanvas.h"
@@ -11,6 +12,84 @@
 #include "modules/svg/include/SkSVGDOM.h"
 
 namespace litehtml {
+
+namespace {
+const std::unordered_map<std::string, std::string>& get_svg_tag_mapping() {
+    static const std::unordered_map<std::string, std::string> mapping = {
+        {"clippath", "clipPath"},
+        {"lineargradient", "linearGradient"},
+        {"radialgradient", "radialGradient"},
+        {"textpath", "textPath"},
+        {"fegausianblur", "feGaussianBlur"},
+        {"fecolormatrix", "feColorMatrix"},
+        {"fecomponenttransfer", "feComponentTransfer"},
+        {"fecomposite", "feComposite"},
+        {"feconvolvematrix", "feConvolveMatrix"},
+        {"fediffuselighting", "feDiffuseLighting"},
+        {"fedisplacementmap", "feDisplacementMap"},
+        {"fedistantlight", "feDistantLight"},
+        {"fedropshadow", "feDropShadow"},
+        {"feflood", "feFlood"},
+        {"fefunca", "feFuncA"},
+        {"fefuncb", "feFuncB"},
+        {"fefuncg", "feFuncG"},
+        {"fefuncr", "feFuncR"},
+        {"feimage", "feImage"},
+        {"femerge", "feMerge"},
+        {"femergenode", "feMergeNode"},
+        {"femorphology", "feMorphology"},
+        {"feoffset", "feOffset"},
+        {"fepointlight", "fePointLight"},
+        {"fespecularlighting", "feSpecularLighting"},
+        {"fespotlight", "feSpotLight"},
+        {"fetile", "feTile"},
+        {"feturbulence", "feTurbulence"},
+        {"foreignobject", "foreignObject"},
+    };
+    return mapping;
+}
+
+const std::unordered_map<std::string, std::string>& get_svg_attr_mapping() {
+    static const std::unordered_map<std::string, std::string> mapping = {
+        {"viewbox", "viewBox"},
+        {"preserveaspectratio", "preserveAspectRatio"},
+        {"gradientunits", "gradientUnits"},
+        {"gradienttransform", "gradientTransform"},
+        {"patternunits", "patternUnits"},
+        {"patterncontentunits", "patternContentUnits"},
+        {"patterntransform", "patternTransform"},
+        {"clippathunits", "clipPathUnits"},
+        {"maskunits", "maskUnits"},
+        {"maskcontentunits", "maskContentUnits"},
+        {"spreadmethod", "spreadMethod"},
+        {"startoffset", "startOffset"},
+        {"pathlength", "pathLength"},
+        {"lengthadjust", "lengthAdjust"},
+        {"textlength", "textLength"},
+        {"stddeviation", "stdDeviation"},
+        {"surfacescale", "surfaceScale"},
+        {"diffuseconstant", "diffuseConstant"},
+        {"specularconstant", "specularConstant"},
+        {"specularexponent", "specularExponent"},
+        {"numoctaves", "numOctaves"},
+        {"basefrequency", "baseFrequency"},
+        {"stitchtiles", "stitchTiles"},
+    };
+    return mapping;
+}
+
+std::string map_tag(const std::string& tag) {
+    auto& m = get_svg_tag_mapping();
+    auto it = m.find(tag);
+    return (it != m.end()) ? it->second : tag;
+}
+
+std::string map_attr(const std::string& attr) {
+    auto& m = get_svg_attr_mapping();
+    auto it = m.find(attr);
+    return (it != m.end()) ? it->second : attr;
+}
+}  // namespace
 
 el_svg::el_svg(const std::shared_ptr<document>& doc) : html_tag(doc) {
     m_css.set_display(display_inline_block);
@@ -87,7 +166,7 @@ void el_svg::write_element(std::ostream& os, const element::ptr& el) const {
     }
     if (el->is_comment()) return;
 
-    const char* tag_name = el->get_tagName();
+    std::string tag_name = map_tag(el->get_tagName());
     os << "<" << tag_name;
 
     auto tag_ptr = std::dynamic_pointer_cast<html_tag>(el);
@@ -103,7 +182,8 @@ void el_svg::write_element(std::ostream& os, const element::ptr& el) const {
 
         bool stroke_attr_written = false;
         for (auto const& attr : attrs) {
-            if (attr.first == "stroke") {
+            std::string attr_name = map_attr(attr.first);
+            if (attr_name == "stroke") {
                 if (stroke_width_is_zero) {
                     os << " stroke=\"none\"";
                 } else {
@@ -111,7 +191,7 @@ void el_svg::write_element(std::ostream& os, const element::ptr& el) const {
                 }
                 stroke_attr_written = true;
             } else {
-                os << " " << attr.first << "=\"" << attr.second << "\"";
+                os << " " << attr_name << "=\"" << attr.second << "\"";
             }
         }
         if (stroke_width_is_zero && !stroke_attr_written) {
@@ -133,12 +213,13 @@ void el_svg::write_element(std::ostream& os, const element::ptr& el) const {
 
 std::string el_svg::reconstruct_xml(int x, int y) const {
     std::stringstream ss;
-    ss << "<svg x=\"" << x << "\" y=\"" << y << "\" xmlns=\"http://www.w3.org/2000/svg\"";
+    ss << "<svg x=\"" << x << "\" y=\"" << y
+       << "\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"";
 
     for (auto const& attr : m_attrs) {
-        if (attr.first == "width" || attr.first == "height" || attr.first == "viewbox") {
-            ss << " " << (attr.first == "viewbox" ? "viewBox" : attr.first) << "=\"" << attr.second
-               << "\"";
+        std::string attr_name = map_attr(attr.first);
+        if (attr_name == "width" || attr_name == "height" || attr_name == "viewBox") {
+            ss << " " << attr_name << "=\"" << attr.second << "\"";
         }
     }
 
@@ -152,10 +233,12 @@ std::string el_svg::reconstruct_xml(int x, int y) const {
 
     bool stroke_attr_written = false;
     for (auto const& attr : m_attrs) {
-        if (attr.first == "xmlns" || attr.first == "x" || attr.first == "y" ||
-            attr.first == "width" || attr.first == "height" || attr.first == "viewbox")
+        std::string attr_name = map_attr(attr.first);
+        if (attr_name == "xmlns" || attr_name == "xmlns:xlink" || attr_name == "x" ||
+            attr_name == "y" || attr_name == "width" || attr_name == "height" ||
+            attr_name == "viewBox")
             continue;
-        if (attr.first == "stroke") {
+        if (attr_name == "stroke") {
             if (stroke_width_is_zero) {
                 ss << " stroke=\"none\"";
             } else {
@@ -163,7 +246,7 @@ std::string el_svg::reconstruct_xml(int x, int y) const {
             }
             stroke_attr_written = true;
         } else {
-            ss << " " << attr.first << "=\"" << attr.second << "\"";
+            ss << " " << attr_name << "=\"" << attr.second << "\"";
         }
     }
     if (stroke_width_is_zero && !stroke_attr_written) {

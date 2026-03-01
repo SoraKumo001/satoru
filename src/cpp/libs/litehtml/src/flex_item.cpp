@@ -89,6 +89,8 @@ void litehtml::flex_item::place(flex_line &ln, pixel_t main_pos,
 				align_stretch(ln, self_size, fmt_ctx);
 				break;
 		}
+	} else {
+		set_cross_position(ln.cross_start);
 	}
 }
 
@@ -229,7 +231,6 @@ void litehtml::flex_item_row_direction::apply_main_auto_margins()
 		if(!auto_margin_main_start.is_default())
 		{
 			el->get_margins().top = auto_margin_main_start;
-			el->pos().y += auto_margin_main_start;
 		}
 		if(!auto_margin_main_end.is_default()) el->get_margins().bottom = auto_margin_main_end;
 	} else
@@ -237,7 +238,6 @@ void litehtml::flex_item_row_direction::apply_main_auto_margins()
 		if(!auto_margin_main_start.is_default())
 		{
 			el->get_margins().left = auto_margin_main_start;
-			el->pos().x += auto_margin_main_start;
 		}
 		if(!auto_margin_main_end.is_default()) el->get_margins().right = auto_margin_main_end;
 	}
@@ -259,14 +259,6 @@ bool litehtml::flex_item_row_direction::apply_cross_auto_margins(pixel_t cross_s
                 // However, litehtml's flex engine treats cross-start as the start of the cross axis.
                 // For vertical-rl, cross axis is physical X.
 				el->get_margins().left = margin;
-                if (m_container_wm.mode() == writing_mode_vertical_rl)
-                {
-                    // This will be handled by set_cross_position calling with appropriate cross_start
-                }
-                else
-                {
-                    el->pos().x = el->content_offset_left();
-                }
 			}
 			if(auto_margin_cross_end) el->get_margins().right = margin;
 		} else
@@ -274,7 +266,6 @@ bool litehtml::flex_item_row_direction::apply_cross_auto_margins(pixel_t cross_s
 			if(auto_margin_cross_start)
 			{
 				el->get_margins().top = margin;
-				el->pos().y = el->content_offset_top();
 			}
 			if(auto_margin_cross_end) el->get_margins().bottom = margin;
 		}
@@ -285,32 +276,22 @@ bool litehtml::flex_item_row_direction::apply_cross_auto_margins(pixel_t cross_s
 
 void litehtml::flex_item_row_direction::set_main_position(pixel_t pos)
 {
-    // Inline axis
-    if (m_container_wm.is_vertical())
-        el->pos().y = pos + el->content_offset_top();
-    else
-        el->pos().x = pos + el->content_offset_left();
+    main_pos = pos;
 }
 
 void litehtml::flex_item_row_direction::set_cross_position(pixel_t pos)
 {
-    // Block axis
-    if (m_container_wm.is_vertical())
-    {
-        // For vertical-rl, the physical X is calculated from the right edge.
-        if (m_container_wm.mode() == writing_mode_vertical_rl)
-        {
-            el->pos().x = m_container_wm.container_width() - pos - get_el_cross_size() + el->content_offset_left();
-        }
-        else
-        {
-            el->pos().x = pos + el->content_offset_left();
-        }
-    }
-    else
-    {
-        el->pos().y = pos + el->content_offset_top();
-    }
+    cross_pos = pos;
+}
+
+void litehtml::flex_item_row_direction::finalize_position(pixel_t container_width, pixel_t container_height)
+{
+    m_container_wm.update_container_size(container_width, container_height);
+    satoru::logical_pos pos(main_pos, cross_pos);
+    satoru::logical_size size(get_el_main_size(), get_el_cross_size());
+    litehtml::position phys = m_container_wm.to_physical(pos, size);
+    el->pos().x = phys.x + el->content_offset_left();
+    el->pos().y = phys.y + el->content_offset_top();
 }
 
 void litehtml::flex_item_row_direction::layout_item(litehtml::flex_line &ln,
@@ -524,7 +505,6 @@ void litehtml::flex_item_column_direction::apply_main_auto_margins()
 		if(!auto_margin_main_start.is_default())
 		{
 			el->get_margins().left = auto_margin_main_start;
-			el->pos().x += auto_margin_main_start;
 		}
 		if(!auto_margin_main_end.is_default()) el->get_margins().right = auto_margin_main_end;
 	} else
@@ -532,7 +512,6 @@ void litehtml::flex_item_column_direction::apply_main_auto_margins()
 		if(!auto_margin_main_start.is_default())
 		{
 			el->get_margins().top = auto_margin_main_start;
-			el->pos().y += auto_margin_main_start;
 		}
 		if(!auto_margin_main_end.is_default()) el->get_margins().bottom = auto_margin_main_end;
 	}
@@ -551,7 +530,6 @@ bool litehtml::flex_item_column_direction::apply_cross_auto_margins(pixel_t cros
 			if(auto_margin_cross_start)
 			{
 				el->get_margins().top = margin;
-				el->pos().y = el->content_offset_top();
 			}
 			if(auto_margin_cross_end) el->get_margins().bottom = margin;
 		} else
@@ -559,15 +537,6 @@ bool litehtml::flex_item_column_direction::apply_cross_auto_margins(pixel_t cros
 			if(auto_margin_cross_start)
 			{
 				el->get_margins().left = margin;
-                if (m_container_wm.mode() == writing_mode_vertical_rl)
-                {
-                    // For vertical-rl, cross axis is physical X, but in column direction, cross axis is Inline.
-                    // This will be handled by set_cross_position
-                }
-                else
-                {
-                    el->pos().x = el->content_offset_left();
-                }
 			}
 			if(auto_margin_cross_end) el->get_margins().right = margin;
 		}
@@ -578,35 +547,22 @@ bool litehtml::flex_item_column_direction::apply_cross_auto_margins(pixel_t cros
 
 void litehtml::flex_item_column_direction::set_main_position(pixel_t pos)
 {
-    // Inline axis
-    if (m_container_wm.is_vertical())
-    {
-        if (m_container_wm.mode() == writing_mode_vertical_rl)
-        {
-            el->pos().x = m_container_wm.container_width() - pos - get_el_main_size() + el->content_offset_left();
-        }
-        else
-        {
-            el->pos().x = pos + el->content_offset_left();
-        }
-    }
-    else
-    {
-        el->pos().y = pos + el->content_offset_top();
-    }
+    main_pos = pos;
 }
 
 void litehtml::flex_item_column_direction::set_cross_position(pixel_t pos)
 {
-    // Block axis
-    if (m_container_wm.is_vertical())
-    {
-        el->pos().y = pos + el->content_offset_top();
-    }
-    else
-    {
-        el->pos().x = pos + el->content_offset_left();
-    }
+    cross_pos = pos;
+}
+
+void litehtml::flex_item_column_direction::finalize_position(pixel_t container_width, pixel_t container_height)
+{
+    m_container_wm.update_container_size(container_width, container_height);
+    satoru::logical_pos pos(cross_pos, main_pos);
+    satoru::logical_size size(get_el_cross_size(), get_el_main_size());
+    litehtml::position phys = m_container_wm.to_physical(pos, size);
+    el->pos().x = phys.x + el->content_offset_left();
+    el->pos().y = phys.y + el->content_offset_top();
 }
 
 void litehtml::flex_item_column_direction::layout_item(litehtml::flex_line &ln,

@@ -44,6 +44,9 @@ namespace litehtml
 		int order;
 		int src_order;
 
+		pixel_t main_pos;
+		pixel_t cross_pos;
+
 		def_value<pixel_t> auto_margin_main_start;
 		def_value<pixel_t> auto_margin_main_end;
 		bool auto_margin_cross_start;
@@ -66,6 +69,8 @@ namespace litehtml
 				clamp_state(flex_clamp_state_unclamped),
 				order(0),
 				src_order(0),
+				main_pos(0),
+				cross_pos(0),
 				auto_margin_main_start(0),
 				auto_margin_main_end(0),
 				auto_margin_cross_start(false),
@@ -87,6 +92,7 @@ namespace litehtml
 		virtual bool apply_cross_auto_margins(pixel_t cross_size) = 0;
 		virtual void set_main_position(pixel_t pos) = 0;
 		virtual void set_cross_position(pixel_t pos) = 0;
+		virtual void finalize_position(pixel_t container_width, pixel_t container_height) = 0;
 		virtual pixel_t get_el_main_size() = 0;
 		virtual pixel_t get_el_cross_size() = 0;
 
@@ -119,6 +125,7 @@ namespace litehtml
 		bool apply_cross_auto_margins(pixel_t cross_size) override;
 		void set_main_position(pixel_t pos) override;
 		void set_cross_position(pixel_t pos) override;
+		void finalize_position(pixel_t container_width, pixel_t container_height) override;
 		pixel_t get_el_main_size() override;
 		pixel_t get_el_cross_size() override;
 
@@ -145,6 +152,7 @@ namespace litehtml
 		bool apply_cross_auto_margins(pixel_t cross_size) override;
 		void set_main_position(pixel_t pos) override;
 		void set_cross_position(pixel_t pos) override;
+		void finalize_position(pixel_t container_width, pixel_t container_height) override;
 		pixel_t get_el_main_size() override;
 		pixel_t get_el_cross_size() override;
 

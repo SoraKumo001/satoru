@@ -603,7 +603,7 @@ litehtml::pixel_t litehtml::flex_line::calculate_items_position(pixel_t containe
                         main_pos += distribute_step;
                         item_remainder -= distribute_step;
                 }
-                height = std::max(height, item->el->bottom());
+                height = std::max(height, item->cross_pos + item->get_el_cross_size());
         }
         return height;
 }

@@ -31,10 +31,10 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 			break;
 	}
 
-	if (self_size.mode != writing_mode_horizontal_tb)
-	{
-		is_main_inline = !is_main_inline;
-	}
+	// if (self_size.mode != writing_mode_horizontal_tb)
+	// {
+	// 	is_main_inline = !is_main_inline;
+	// }
 
 	pixel_t container_main_size = is_main_inline ? self_size.render_inline_size() : self_size.render_block_size();
 
@@ -254,6 +254,14 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 		m_pos.move_to(x, y);
 		m_pos.x += content_offset_left();
 		m_pos.y += content_offset_top();
+
+		for(auto &ln : m_lines)
+		{
+			for(auto &item : ln.items)
+			{
+				item->finalize_position(m_pos.width, m_pos.height);
+			}
+		}
 	}
 
 	for (const auto& el : m_children)
@@ -272,8 +280,8 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 
 			if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 			{
-				pixel_t static_x = 0;
-				pixel_t static_y = 0;
+				pixel_t static_main = 0;
+				pixel_t static_cross = 0;
 
 				auto align_items = css().get_flex_align_items();
 				auto align_self = el->src_el()->css().get_flex_align_self();
@@ -281,58 +289,41 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 
 				auto jc = css().get_flex_justify_content();
 
-				if (is_main_inline)
+				pixel_t align_main_size = is_main_inline ? self_size.render_inline_size() : self_size.render_block_size();
+				pixel_t align_cross_size = is_main_inline ? self_size.render_block_size() : self_size.render_inline_size();
+				pixel_t el_main_size = is_main_inline ? el->inline_size() : el->block_size();
+				pixel_t el_cross_size = is_main_inline ? el->block_size() : el->inline_size();
+
+				switch (jc)
 				{
-					switch (jc)
-					{
-						case flex_justify_content_center:
-							static_x = (self_size.render_inline_size() - el->inline_size()) / 2;
-							break;
-						case flex_justify_content_flex_end:
-						case flex_justify_content_end:
-							static_x = self_size.render_inline_size() - el->inline_size();
-							break;
-						default: break;
-					}
-					switch (align_items)
-					{
-						case flex_align_items_center:
-							static_y = (self_size.render_block_size() - el->block_size()) / 2;
-							break;
-						case flex_align_items_flex_end:
-						case flex_align_items_end:
-							static_y = self_size.render_block_size() - el->block_size();
-							break;
-						default: break;
-					}
-				} else
+					case flex_justify_content_center:
+						static_main = (align_main_size - el_main_size) / 2;
+						break;
+					case flex_justify_content_flex_end:
+					case flex_justify_content_end:
+						static_main = align_main_size - el_main_size;
+						break;
+					default: break;
+				}
+				switch (align_items)
 				{
-					switch (jc)
-					{
-						case flex_justify_content_center:
-							static_y = (self_size.render_block_size() - el->block_size()) / 2;
-							break;
-						case flex_justify_content_flex_end:
-						case flex_justify_content_end:
-							static_y = self_size.render_block_size() - el->block_size();
-							break;
-						default: break;
-					}
-					switch (align_items)
-					{
-						case flex_align_items_center:
-							static_x = (self_size.render_inline_size() - el->inline_size()) / 2;
-							break;
-						case flex_align_items_flex_end:
-						case flex_align_items_end:
-							static_x = self_size.render_inline_size() - el->inline_size();
-							break;
-						default: break;
-					}
+					case flex_align_items_center:
+						static_cross = (align_cross_size - el_cross_size) / 2;
+						break;
+					case flex_align_items_flex_end:
+					case flex_align_items_end:
+						static_cross = align_cross_size - el_cross_size;
+						break;
+					default: break;
 				}
 
-				el->pos().x = static_x + el->content_offset_left();
-				el->pos().y = static_y + el->content_offset_top();
+				satoru::WritingModeContext wm(self_size.mode, m_pos.width, m_pos.height);
+				satoru::logical_pos pos = is_main_inline ? satoru::logical_pos(static_main, static_cross) : satoru::logical_pos(static_cross, static_main);
+				satoru::logical_size sz(el->inline_size(), el->block_size());
+				litehtml::position phys = wm.to_physical(pos, sz);
+
+				el->pos().x = phys.x + el->content_offset_left();
+				el->pos().y = phys.y + el->content_offset_top();
 			}
 		}
 	}
@@ -466,7 +457,7 @@ std::shared_ptr<litehtml::render_item> litehtml::render_item_flex::init()
 
     for (const auto& el : m_children)
     {
-        if(el->src_el()->css().get_display() == display_inline_text)
+        if(el->src_el()->is_inline() || el->src_el()->is_break() || el->src_el()->css().get_display() == display_inline_text || el->src_el()->css().get_display() == display_inline)
         {
             if(!inlines.empty())
             {

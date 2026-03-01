@@ -80,10 +80,6 @@ class TextRenderer {
         bool tagging, std::vector<text_draw_info>& usedTextDraws, std::vector<SkPath>& usedGlyphs,
         std::vector<glyph_draw_info>& usedGlyphDraws, std::set<char32_t>* usedCodepoints,
         TextBatcher* batcher = nullptr, int styleTag = -1, int styleIndex = -1);
-
-    static void drawDecoration(SkCanvas* canvas, font_info* fi, const litehtml::position& pos,
-                               const litehtml::web_color& color, double finalWidth,
-                               litehtml::writing_mode mode);
 };
 
 }  // namespace satoru

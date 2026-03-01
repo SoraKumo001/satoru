@@ -789,7 +789,7 @@ std::vector<scroll_values> document::on_scroll(pixel_t dx, pixel_t dy, pixel_t x
 	{
 		scroll_values sv;
 		sv.dx = hscroll_el->h_scroll(dx);
-		sv.scroll_box = hscroll_el->get_placement();
+		sv.scroll_box = vscroll_el->get_placement();
 		ret.push_back(sv);
 	}
 

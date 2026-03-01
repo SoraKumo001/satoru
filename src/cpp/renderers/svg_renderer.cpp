@@ -1,6 +1,7 @@
 #include "svg_renderer.h"
 
 #include <litehtml/master_css.h>
+#include <litehtml/render_item.h>
 
 #include <cstdio>
 #include <memory>

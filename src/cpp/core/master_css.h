@@ -1,9 +1,9 @@
 #ifndef SATORU_MASTER_CSS_H
 #define SATORU_MASTER_CSS_H
 
-const char *satoru_master_css =
+const char* satoru_master_css =
     "html { display: block; margin: 0; padding: 0; }\n"
-    "body { display: block; margin: 0; padding: 0; font-family: sans-serif;}\n"
+    "body { display: block; margin: 0; padding: 0; overflow: hidden; font-family: sans-serif;}\n"
     "p { display: block; margin: 1em 0; }\n"
     "b, strong { font-weight: bold; }\n"
     "i, em { font-style: italic; }\n"

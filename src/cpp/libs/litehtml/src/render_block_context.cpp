@@ -49,7 +49,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 				pixel_t line_right	= self_size.render_inline_size();
 				pixel_t block_start_margin = margin_block_start();
 
-                el->calc_outlines(self_size.width);
+                el->calc_outlines(self_size.inline_size());
 
 				// Adjust child width for tables and replaced elements with floting blocks width
 				if(el->src_el()->is_replaced() ||
@@ -75,21 +75,21 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 				// Collapse top margin
 				if(is_first && collapse_top_margin())
 				{
-					if(el->margin_block_start() > 0)
+					if(wm.block_start(el->get_margins()) > 0)
 					{
-						block_offset -= el->margin_block_start();
-						if (el->margin_block_start() > block_start_margin)
+						block_offset -= wm.block_start(el->get_margins());
+						if (wm.block_start(el->get_margins()) > block_start_margin)
 						{
-							block_start_margin = el->margin_block_start();
+							block_start_margin = wm.block_start(el->get_margins());
 						}
 					}
 				} else
 				{
-					if(el->margin_block_start() > 0)
+					if(wm.block_start(el->get_margins()) > 0)
 					{
-						if (last_block_margin > el->margin_block_start())
+						if (last_block_margin > wm.block_start(el->get_margins()))
 						{
-							block_offset -= el->margin_block_start();
+							block_offset -= wm.block_start(el->get_margins());
 						} else
 						{
 							block_offset -= last_block_margin;
@@ -132,7 +132,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 							{
 								el->place_logical(ln_left, block_offset, self_size.new_inline_size(inline_available_size), fmt_ctx);
 							}
-							block_offset -= el->margin_block_start();
+							block_offset -= wm.block_start(el->get_margins());
 							// Rollback top margin collapse
 							if(is_first && collapse_top_margin())
 							{
@@ -156,7 +156,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 				}
 				margin_block_start(block_start_margin);
                 block_offset += el->block_size(wm);
-                last_block_margin = el->margin_block_end();
+                last_block_margin = wm.block_end(el->get_margins());
 				last_margin_el = el;
                 is_first = false;
 

@@ -15,7 +15,7 @@ void litehtml::flex_item::init(const litehtml::containing_block_context &self_si
 	shrink = (int) std::nearbyint(el->css().get_flex_shrink() * 1000.0);
 	if(shrink < 0) shrink = 1000;
 
-	el->calc_outlines(self_size.render_width);
+	el->calc_outlines(self_size.render_inline_size());
 	order = el->css().get_order();
 
 	if (el->css().get_flex_align_self() == flex_align_items_auto)

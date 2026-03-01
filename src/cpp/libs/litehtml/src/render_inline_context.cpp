@@ -414,11 +414,12 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
 
     if(!item->get_el()->src_el()->is_inline())
     {
+		satoru::WritingModeContext wm = get_wm_context();
         if(m_line_boxes.size() == 1)
         {
             if(collapse_top_margin())
             {
-                pixel_t shift = item->get_el()->margin_block_start();
+                pixel_t shift = wm.block_start(item->get_el()->get_margins());
                 if(shift >= 0)
                 {
 					line_ctx.top -= shift;
@@ -430,9 +431,9 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
             pixel_t shift = 0;
             pixel_t prev_margin = m_line_boxes[m_line_boxes.size() - 2]->bottom_margin();
 
-            if(prev_margin > item->get_el()->margin_block_start())
+            if(prev_margin > wm.block_start(item->get_el()->get_margins()))
             {
-                shift = item->get_el()->margin_block_start();
+                shift = wm.block_start(item->get_el()->get_margins());
             } else
             {
                 shift = prev_margin;

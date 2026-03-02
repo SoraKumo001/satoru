@@ -206,6 +206,37 @@ void litehtml::render_item_grid::calculate_grid_layout(const containing_block_co
     // Distribute remaining space to fr columns
     if (total_fr > 0)
     {
+        // First, ensure auto columns have at least some minimal width based on items
+        for (auto& item : m_grid_layout.items)
+        {
+            if (item.pos.col_span() == 1)
+            {
+                int col = item.pos.col_start;
+                if (columns_template[col].is_predefined())
+                {
+                    containing_block_context cb = self_size;
+                    cb.render_width = self_size.render_width; // Allow it to take what it needs
+                    cb.width = cb.render_width;
+                    cb.size_mode |= containing_block_context::size_mode_measure;
+                    cb.size_mode |= containing_block_context::size_mode_content;
+
+                    pixel_t min_w = item.el->measure(cb, fmt_ctx);
+                    m_grid_layout.column_widths[col] = std::max(m_grid_layout.column_widths[col], min_w);
+                }
+            }
+        }
+
+        // Recalculate fixed_width including determined auto widths
+        fixed_width = 0;
+        for (int i = 0; i < num_columns; i++)
+        {
+            if (i >= (int)columns_template.size() || columns_template[i].units() != css_units_fr)
+            {
+                fixed_width += m_grid_layout.column_widths[i];
+            }
+        }
+        fixed_width += m_grid_layout.column_gap * (num_columns - 1);
+
         pixel_t remaining_width = self_size.render_width - fixed_width;
         if (remaining_width < 0) remaining_width = 0;
         for (int i = 0; i < (int)columns_template.size(); i++)

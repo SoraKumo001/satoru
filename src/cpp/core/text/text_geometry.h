@@ -5,6 +5,8 @@
 #include "core/logical_geometry.h"
 #include "libs/litehtml/include/litehtml.h"
 
+#include "include/core/SkFont.h"
+
 namespace satoru {
 
 /**
@@ -37,9 +39,10 @@ class TextGeometry {
      * 垂直ならXの微調整)
      * @param is_upright 垂直筆記時に正立（回転なし）させるかどうか
      * @param is_punctuation 句読点（ベースライン調整が必要）かどうか
+     * @param font 描画に使用する SkFont (メトリクス取得用)
      */
     GlyphPlacement getGlyphPlacement(float inline_offset, float block_offset, bool is_upright,
-                                     bool is_punctuation) const;
+                                     bool is_punctuation, const SkFont& font) const;
 
     bool isVertical() const { return m_is_vertical; }
 

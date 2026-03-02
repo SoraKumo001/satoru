@@ -13,6 +13,10 @@ struct logical_size {
 
     logical_size() : inline_size(0), block_size(0) {}
     logical_size(pixel_t is, pixel_t bs) : inline_size(is), block_size(bs) {}
+
+    bool operator==(const logical_size& other) const {
+        return inline_size == other.inline_size && block_size == other.block_size;
+    }
 };
 
 struct logical_pos {
@@ -21,6 +25,33 @@ struct logical_pos {
 
     logical_pos() : inline_offset(0), block_offset(0) {}
     logical_pos(pixel_t io, pixel_t bo) : inline_offset(io), block_offset(bo) {}
+
+    bool operator==(const logical_pos& other) const {
+        return inline_offset == other.inline_offset && block_offset == other.block_offset;
+    }
+
+    logical_pos operator+(const logical_pos& other) const {
+        return {inline_offset + other.inline_offset, block_offset + other.block_offset};
+    }
+};
+
+struct logical_rect {
+    pixel_t inline_offset;
+    pixel_t block_offset;
+    pixel_t inline_size;
+    pixel_t block_size;
+
+    logical_rect() : inline_offset(0), block_offset(0), inline_size(0), block_size(0) {}
+    logical_rect(pixel_t io, pixel_t bo, pixel_t is, pixel_t bs)
+        : inline_offset(io), block_offset(bo), inline_size(is), block_size(bs) {}
+
+    logical_pos pos() const { return {inline_offset, block_offset}; }
+    logical_size size() const { return {inline_size, block_size}; }
+
+    pixel_t inline_start() const { return inline_offset; }
+    pixel_t inline_end() const { return inline_offset + inline_size; }
+    pixel_t block_start() const { return block_offset; }
+    pixel_t block_end() const { return block_offset + block_size; }
 };
 
 struct logical_edges {
@@ -65,6 +96,10 @@ class WritingModeContext {
         return phys;
     }
 
+    litehtml::position to_physical(const logical_rect& rect) const {
+        return to_physical(rect.pos(), rect.size());
+    }
+
     // 物理サイズから論理サイズへの変換
     logical_size to_logical(pixel_t width, pixel_t height) const {
         if (is_vertical()) {
@@ -82,6 +117,12 @@ class WritingModeContext {
             default:
                 return {x, y};
         }
+    }
+
+    logical_rect to_logical(const litehtml::position& pos) const {
+        logical_pos lp = to_logical_pos(pos.x, pos.y, pos.width, pos.height);
+        logical_size ls = to_logical(pos.width, pos.height);
+        return {lp.inline_offset, lp.block_offset, ls.inline_size, ls.block_size};
     }
 
     bool is_vertical() const {

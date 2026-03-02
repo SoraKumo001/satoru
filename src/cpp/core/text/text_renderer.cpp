@@ -66,7 +66,7 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
             memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
             for (int i = 0; i < run.count; ++i) {
                 auto p =
-                    geom.getGlyphPlacement(run.positions[i].fX, run.positions[i].fY, false, false);
+                    geom.getGlyphPlacement(run.positions[i].fX, run.positions[i].fY, false, false, run.font);
                 // Rotate 90 deg CW: cos=0, sin=1
                 builder_run.xforms()[i] = SkRSXform::Make(0, 1, p.x, p.y);
             }
@@ -76,7 +76,7 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
             for (int i = 0; i < run.count; ++i) {
                 auto p = geom.getGlyphPlacement(run.positions[i].fX, run.positions[i].fY,
                                                 m_currentStyle.is_vertical_upright,
-                                                m_currentStyle.is_vertical_punctuation);
+                                                m_currentStyle.is_vertical_punctuation, run.font);
                 builder_run.pos[i * 2] = p.x;
                 builder_run.pos[i * 2 + 1] = p.y;
             }
@@ -259,7 +259,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 for (int i = 0; i < run.count; ++i) {
                     auto p =
                         geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
-                                               run.positions[i].fY, is_upright, is_punctuation);
+                                               run.positions[i].fY, is_upright, is_punctuation, run.font);
                     tagging_ctx.drawGlyph(run.font, run.glyphs[i], p.x, p.y, p.rotation, paint);
                 }
             }
@@ -293,7 +293,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         for (int i = 0; i < run.count; ++i) {
                             auto p =
                                 geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
-                                                       run.positions[i].fY, true, is_punctuation);
+                                                       run.positions[i].fY, true, is_punctuation, run.font);
                             builder_run.pos[i * 2] = p.x;
                             builder_run.pos[i * 2 + 1] = p.y;
                         }
@@ -302,7 +302,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
                             auto p = geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
-                                                            run.positions[i].fY, false, false);
+                                                            run.positions[i].fY, false, false, run.font);
                             // Rotate 90 deg CW: cos=0, sin=1
                             builder_run.xforms()[i] = SkRSXform::Make(0, 1, p.x, p.y);
                         }

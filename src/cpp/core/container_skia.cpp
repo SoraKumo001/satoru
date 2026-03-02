@@ -1768,8 +1768,6 @@ SkPath container_skia::parse_clip_path(const litehtml::css_token_vector& tokens,
 void container_skia::push_clip_path(litehtml::uint_ptr hdc,
                                     const litehtml::css_token_vector& clip_path,
                                     const litehtml::position& pos) {
-    SATORU_LOG_INFO("push_clip_path: tokens count=%d, pos=%d,%d %dx%d", (int)clip_path.size(),
-                    pos.x, pos.y, pos.width, pos.height);
     if (!m_canvas || clip_path.empty()) return;
     flush();
 

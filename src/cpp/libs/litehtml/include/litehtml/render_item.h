@@ -583,7 +583,8 @@ namespace litehtml
                 position get_placement() const;
         virtual void block_shift(pixel_t shift);
         virtual void inline_shift(pixel_t shift);
-        virtual void y_shift(pixel_t shift) { block_shift(shift); }
+        virtual void x_shift(pixel_t shift) { m_pos.x += shift; }
+        virtual void y_shift(pixel_t shift) { m_pos.y += shift; }
 
         pixel_t inline_start_pos(const satoru::WritingModeContext& wm) const;
         pixel_t inline_end_pos(const satoru::WritingModeContext& wm) const;

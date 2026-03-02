@@ -76,6 +76,7 @@ namespace litehtml
 		virtual pixel_t get_rendered_min_width() const	{ return m_rendered_min_width; }
 		virtual void set_rendered_min_width(pixel_t min_width) { m_rendered_min_width = min_width; }
 		virtual void y_shift(pixel_t shift);
+		virtual void x_shift(pixel_t shift);
 
 		void reset_items_height() { m_items_top = m_items_bottom = 0; }
 		void add_item_height(pixel_t item_top, pixel_t item_bottom)
@@ -207,6 +208,7 @@ namespace litehtml
         pixel_t				top_margin() const;
         pixel_t				bottom_margin() const;
         void				y_shift(pixel_t shift);
+        void				x_shift(pixel_t shift);
 		std::list< std::unique_ptr<line_box_item> >	finish(bool last_box, const containing_block_context &containing_block_size);
 		std::list< std::unique_ptr<line_box_item> > new_inline_size(pixel_t left, pixel_t right);
 		std::list< std::unique_ptr<line_box_item> > new_width(pixel_t left, pixel_t right) { return new_inline_size(left, right); }

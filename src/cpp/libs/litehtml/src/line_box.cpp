@@ -77,7 +77,12 @@ litehtml::pixel_t litehtml::line_box_item::block_pos(const satoru::WritingModeCo
 
 void litehtml::line_box_item::y_shift(pixel_t shift)
 {
-	m_element->y_shift(shift);
+m_element->y_shift(shift);
+}
+
+void litehtml::line_box_item::x_shift(pixel_t shift)
+{
+    m_element->x_shift(shift);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -214,7 +219,8 @@ void litehtml::line_box::add_item(std::unique_ptr<line_box_item> item)
 		else
 		{
 			item->place_to(0, m_block_pos + m_inline_size);
-			m_inline_size += item->get_el()->height();
+            pixel_t item_inline_size = item->get_el()->height();
+			m_inline_size += item_inline_size;
 			m_block_size = std::max(m_block_size, item->get_el()->width());
 		}
 		m_items.emplace_back(std::move(item));
@@ -319,7 +325,7 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 		{
 			if (!item->get_el()->skip())
 			{
-				m_inline_size += item->width();
+				m_inline_size += (m_writing_mode == writing_mode_horizontal_tb) ? item->width() : item->get_el()->height();
 			}
 		}
 	}
@@ -399,7 +405,8 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
     {
         m_block_size = m_default_line_height.computed_value;
 		m_baseline = m_font_metrics.base_line();
-        return ret_items;    }
+        return ret_items;
+    }
 
     pixel_t spacing_x = 0;	// Number of pixels to distribute between elements
     pixel_t shift_x = 0;	// Shift elements by X to apply the text-align
@@ -1096,11 +1103,20 @@ litehtml::pixel_t litehtml::line_box::bottom_margin() const
 
 void litehtml::line_box::y_shift( pixel_t shift )
 {
-	m_block_pos += shift;
-	for (auto& el : m_items)
-	{
-		el->y_shift(shift);
-	}
+m_block_pos += shift;
+for (auto& el : m_items)
+{
+el->y_shift(shift);
+}
+}
+
+void litehtml::line_box::x_shift( pixel_t shift )
+{
+  m_inline_pos += shift;
+  for (auto& el : m_items)
+  {
+	  el->x_shift(shift);
+  }
 }
 
 bool litehtml::line_box::is_break_only() const

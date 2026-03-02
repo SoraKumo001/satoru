@@ -540,10 +540,24 @@ pixel_t document::render( pixel_t max_width, render_type rt )
 		position viewport;
 		m_container->get_viewport(viewport);
 		containing_block_context cb_context;
-		cb_context.width = max_width;
-		cb_context.width.type = containing_block_context::cbc_value_type_absolute;
-		cb_context.height = viewport.height;
-		cb_context.height.type = containing_block_context::cbc_value_type_absolute;
+        cb_context.mode = m_root_render->src_el()->css().get_writing_mode();
+
+        if (cb_context.mode == writing_mode_horizontal_tb)
+        {
+		    cb_context.width = max_width;
+		    cb_context.width.type = containing_block_context::cbc_value_type_absolute;
+		    cb_context.height = viewport.height;
+		    cb_context.height.type = containing_block_context::cbc_value_type_absolute;
+        }
+        else
+        {
+            // For vertical writing, the input max_width is mapped to physical height (inline-size)
+            cb_context.height = max_width;
+            cb_context.height.type = containing_block_context::cbc_value_type_absolute;
+            cb_context.width = viewport.width;
+            cb_context.width.type = containing_block_context::cbc_value_type_absolute;
+            cb_context.size_mode |= containing_block_context::size_mode_content;
+        }
 
 		if(rt == render_fixed_only)
 		{

@@ -91,14 +91,35 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
 			if (self_size.mode == writing_mode_horizontal_tb)
 				m_pos.height = m_line_boxes.back()->bottom() - m_line_boxes.back()->bottom_margin();
 			else
+            {
 				m_pos.width = m_line_boxes.front()->right() - m_line_boxes.back()->left();
+                m_pos.height = m_max_line_width;
+            }
         }
         else
         {
 			if (self_size.mode == writing_mode_horizontal_tb)
 				m_pos.height = m_line_boxes.back()->bottom();
 			else
+            {
 				m_pos.width = m_line_boxes.front()->right() - m_line_boxes.back()->left();
+                m_pos.height = m_max_line_width;
+                
+                // Shift lines for vertical-rl to fit into the new width
+                // ONLY when in shrink-to-fit mode (size_mode_content)
+                if ((self_size.mode == writing_mode_vertical_rl || self_size.mode == writing_mode_sideways_rl) && 
+                    (self_size.size_mode & containing_block_context::size_mode_content))
+                {
+                    pixel_t shift = self_size.render_block_size() - m_pos.width;
+                    if (shift != 0)
+                    {
+                        for (auto& box : m_line_boxes)
+                        {
+                            box->x_shift(-shift);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -193,7 +214,7 @@ std::list<std::unique_ptr<litehtml::line_box_item> > litehtml::render_item_inlin
             m_line_boxes.pop_back();
         } else
 		{
-			m_max_line_width = std::max(m_max_line_width, m_line_boxes.back()->min_width());
+			m_max_line_width = std::max(m_max_line_width, m_line_boxes.back()->inline_size());
 		}
     }
     return ret;
@@ -356,7 +377,10 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
     litehtml::size sz;
         item->get_el()->src_el()->get_content_size(sz, line_ctx.right);
             item->get_el()->pos() = sz;
-            item->set_rendered_min_width(sz.width);
+            if (self_size.mode == writing_mode_horizontal_tb)
+                item->set_rendered_min_width(sz.width);
+            else
+                item->set_rendered_min_width(sz.height);
 
             // Detect BiDi level for text part
             string text;

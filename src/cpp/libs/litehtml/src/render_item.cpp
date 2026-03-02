@@ -4,6 +4,11 @@
 #include "document_container.h"
 #include "types.h"
 
+static bool is_orthogonal(litehtml::writing_mode wm1, litehtml::writing_mode wm2)
+{
+    return (wm1 == litehtml::writing_mode_horizontal_tb) != (wm2 == litehtml::writing_mode_horizontal_tb);
+}
+
 litehtml::render_item::render_item(std::shared_ptr<element>  _src_el) :
         m_element(std::move(_src_el)),
         m_skip(false),
@@ -1471,22 +1476,31 @@ pixel_t phys_height = cb_context.height.value;
 
 if (ret.mode == writing_mode_horizontal_tb)
 {
-		ret.width.value = ret.max_width.value = phys_width - content_offset_width();
-		if (src_el()->css().get_position() != element_position_absolute && src_el()->css().get_position() != element_position_fixed)
-		{
-			ret.height.value = phys_height - content_offset_height();
-		}
-	}
-	else
-	{
-		// Vertical: child's logical inline-size (ret.width) maps to parent's physical height
-		// child's logical block-size (ret.height) maps to parent's physical width
-		ret.width.value = ret.max_width.value = phys_height - content_offset_width();
-		if (src_el()->css().get_position() != element_position_absolute && src_el()->css().get_position() != element_position_fixed)
-		{
-			ret.height.value = phys_width - content_offset_height();
-		}
-	}
+ret.width.value = ret.max_width.value = phys_width - content_offset_width();
+if (src_el()->css().get_position() != element_position_absolute && src_el()->css().get_position() != element_position_fixed)
+{
+ret.height.value = phys_height - content_offset_height();
+}
+       if (cb_context.size_mode & containing_block_context::size_mode_content)
+       {
+       ret.width.type = containing_block_context::cbc_value_type_auto;
+       }
+       }
+       else
+       {
+        // Vertical: child's logical inline-size (ret.height) maps to parent's physical height
+       // child's logical block-size (ret.width) maps to parent's physical width
+       ret.height.value = ret.max_height.value = phys_height - content_offset_height();
+       if (src_el()->css().get_position() != element_position_absolute && src_el()->css().get_position() != element_position_fixed)
+       {
+        ret.width.value = phys_width - content_offset_width();
+       }
+             if (cb_context.size_mode & containing_block_context::size_mode_content)
+       {
+           ret.height.type = containing_block_context::cbc_value_type_auto;
+       ret.height.value = 0;
+       }
+       }
 
 	auto par = parent();
 	bool is_flex_child = par && (par->css().get_display() == display_flex || par->css().get_display() == display_inline_flex);
@@ -1518,9 +1532,8 @@ if (ret.mode == writing_mode_horizontal_tb)
 			}
 			if(width)
 			{
-                // Mapping physical width to child's logical axis
-                const containing_block_context::typed_pixel& parent_ref_size = (ret.mode == writing_mode_horizontal_tb) ? cb_context.width : cb_context.height;
-				calc_cb_length(*width, parent_ref_size, ret.width);
+                // Mapping physical width to parent's physical width
+				calc_cb_length(*width, cb_context.width, ret.width);
 			}
 		}
 		if (ret.width.type != containing_block_context::cbc_value_type_auto && (src_el()->css().get_display() == display_table || src_el()->is_root()))
@@ -1554,9 +1567,8 @@ if (ret.mode == writing_mode_horizontal_tb)
 			}
 			if(height)
 			{
-                // Mapping physical height to child's logical axis
-                const containing_block_context::typed_pixel& parent_ref_size = (ret.mode == writing_mode_horizontal_tb) ? cb_context.height : cb_context.width;
-				calc_cb_length(*height, parent_ref_size, ret.height);
+                // Mapping physical height to parent's physical height
+				calc_cb_length(*height, cb_context.height, ret.height);
 			}
 		}
 		if (ret.height.type != containing_block_context::cbc_value_type_auto && (src_el()->css().get_display() == display_table || src_el()->is_root()))

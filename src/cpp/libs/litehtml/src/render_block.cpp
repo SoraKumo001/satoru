@@ -241,9 +241,14 @@ litehtml::pixel_t litehtml::render_item_block::_measure(const containing_block_c
 			ret_inline_size = self_size.render_inline_size();
 		}
         if (self_size.mode == writing_mode_horizontal_tb)
-            m_pos.width = self_size.render_inline_size();
+        {
+            m_pos.width = self_size.render_width;
+        }
         else
-            m_pos.height = self_size.render_inline_size();
+        {
+            // Vertical blocks should fit content height unless height is explicit
+            m_pos.height = ret_inline_size;
+        }
 	} else
 	{
 		pixel_t calculated_size = (self_size.inline_size().type != containing_block_context::cbc_value_type_auto) ? (pixel_t)self_size.render_inline_size() : ret_inline_size;
@@ -397,9 +402,9 @@ void litehtml::render_item_block::_place(pixel_t inline_pos, pixel_t block_pos, 
 	if(!(containing_block_size.size_mode & containing_block_context::size_mode_content))
 	{
         if (self_size.mode == writing_mode_horizontal_tb)
-		    m_pos.width = self_size.render_inline_size();
+            m_pos.width = self_size.render_width;
         else
-            m_pos.height = self_size.render_inline_size();
+            m_pos.height = m_pos.height; // Keep height from _render_content
 	} else
 	{
         pixel_t& physical_inline_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.width : m_pos.height;

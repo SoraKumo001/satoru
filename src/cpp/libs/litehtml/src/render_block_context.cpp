@@ -169,10 +169,11 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
     }
 
     pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
+    const auto& self_block_size = (self_size.mode == writing_mode_horizontal_tb) ? self_size.height : self_size.width;
 
-    if (self_size.height.type != containing_block_context::cbc_value_type_auto  && self_size.height > 0)
+    if (self_block_size.type != containing_block_context::cbc_value_type_auto  && self_block_size > 0)
     {
-        physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? (pixel_t)self_size.height : (pixel_t)self_size.width;
+        physical_block_size = (pixel_t)self_block_size;
         if(src_el()->css().get_display() == display_table_cell)
         {
             physical_block_size = std::max(physical_block_size, block_offset);

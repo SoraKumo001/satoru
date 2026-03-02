@@ -772,6 +772,14 @@ namespace litehtml
                 border_style_outset
         };
 
+#define isolation_strings "auto;isolate"
+
+	enum isolation
+	{
+		isolation_auto,
+		isolation_isolate
+	};
+
 #define  element_float_strings  "none;left;right"
 
         enum element_float

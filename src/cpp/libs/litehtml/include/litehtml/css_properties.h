@@ -129,6 +129,7 @@ namespace litehtml
     word_break m_word_break;
     overflow_wrap m_overflow_wrap;
 
+    isolation m_isolation;
     container_type m_container_type;
     string m_container_name;
 
@@ -211,6 +212,7 @@ namespace litehtml
                        m_backdrop_filter(),
                        m_word_break(word_break_normal),
                        m_overflow_wrap(overflow_wrap_normal),
+                       m_isolation(isolation_auto),
                        m_container_type(container_type_none)
     {
     }
@@ -406,6 +408,9 @@ namespace litehtml
     void set_opacity(float opacity);
 
     aspect_ratio get_aspect_ratio() const;
+
+    isolation get_isolation() const;
+    void set_isolation(isolation m_iso);
 
     container_type get_container_type() const;
     void set_container_type(container_type type);
@@ -1024,6 +1029,16 @@ namespace litehtml
   inline aspect_ratio css_properties::get_aspect_ratio() const
   {
     return m_aspect_ratio;
+  }
+
+  inline isolation css_properties::get_isolation() const
+  {
+    return m_isolation;
+  }
+
+  inline void css_properties::set_isolation(isolation m_iso)
+  {
+    m_isolation = m_iso;
   }
 
   inline container_type css_properties::get_container_type() const

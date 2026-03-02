@@ -354,6 +354,7 @@ namespace litehtml
       _justify_self_,
 
       _caption_side_,
+      _isolation_,
       _order_,
       _filter_,
       _backdrop_filter_,

@@ -907,7 +907,12 @@ void litehtml::render_item::draw_stacking_context( uint_ptr hdc, pixel_t x, pixe
     {
         for(const auto& idx : m_positioned)
         {
-            z_indexes[idx->src_el()->css().get_z_index()];
+            int z_index = 0;
+            if(idx->src_el()->css().get_position() != element_position_static)
+            {
+                z_index = idx->src_el()->css().get_z_index();
+            }
+            z_indexes[z_index] = true;
         }
 
         for(const auto& idx : z_indexes)
@@ -976,6 +981,12 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
         if (el->is_visible())
         {
             bool is_positioned = el->src_el()->is_positioned();
+            int el_z_index = 0;
+            if(el->src_el()->css().get_position() != element_position_static)
+            {
+                el_z_index = el->src_el()->css().get_z_index();
+            }
+
             bool is_active = false;
             bool force_stacking = false;
             bool should_recurse = true;
@@ -983,7 +994,7 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
             switch (flag)
             {
                 case draw_positioned:
-                    if (is_positioned && el->src_el()->css().get_z_index() == zindex)
+                    if (is_positioned && el_z_index == zindex)
                     {
                         is_active = true;
                         force_stacking = true;

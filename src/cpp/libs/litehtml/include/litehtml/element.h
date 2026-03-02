@@ -235,6 +235,7 @@ namespace litehtml
 			!css().get_transform().empty() ||
 			!css().get_filter().empty() ||
 			!css().get_backdrop_filter().empty() ||
+			css().get_isolation() == isolation_isolate ||
 			!css().get_z_index_length().is_predefined())
 		{
 			return true;

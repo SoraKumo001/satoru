@@ -285,8 +285,18 @@ void litehtml::table_grid::distribute_width( pixel_t width, int start, int end )
 				}
 			} else
 			{
-				distribute_columns.back()->width += width;
-				added_width = width;
+				// Chrome-like behavior: distribute equally if no columns have flexibility
+				pixel_t add = width / (pixel_t) distribute_columns.size();
+				for(const auto& column : distribute_columns)
+				{
+					column->width += add;
+					added_width += add;
+				}
+				if(added_width < width)
+				{
+					distribute_columns.front()->width += width - added_width;
+					added_width = width;
+				}
 			}
 		}
 

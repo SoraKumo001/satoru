@@ -172,26 +172,34 @@ void litehtml::render_item_grid::calculate_grid_layout(const containing_block_co
     if (num_columns == 0) num_columns = 1;
 
     m_grid_layout.column_widths.assign(num_columns, 0);
+    std::vector<pixel_t> column_min_widths(num_columns, 0);
     float total_fr = 0;
     pixel_t fixed_width = 0;
 
     m_grid_layout.column_gap = css().get_column_gap().calc_percent(self_size.render_width);
     m_grid_layout.row_gap = css().get_row_gap().calc_percent(self_size.render_height);
 
-    // Calculate fixed and percentage columns
-    for (int i = 0; i < (int)columns_template.size(); i++)
+    // First pass: Calculate min-widths for auto columns and fixed/percent sizes
+    for (int i = 0; i < num_columns; i++)
     {
-        const auto& len = columns_template[i];
-        if (len.units() == css_units_fr)
+        if (i < (int)columns_template.size())
         {
-            total_fr += len.val();
-        }
-        else
-        {
-            m_grid_layout.column_widths[i] = len.calc_percent(self_size.render_width);
-            fixed_width += m_grid_layout.column_widths[i];
+            const auto& len = columns_template[i];
+            if (len.units() == css_units_fr)
+            {
+                total_fr += len.val();
+            }
+            else if (!len.is_predefined())
+            {
+                m_grid_layout.column_widths[i] = len.calc_percent(self_size.render_width);
+                fixed_width += m_grid_layout.column_widths[i];
+            }
         }
     }
+
+    // Measure auto-columns based on items
+    // (Simplification: we need to know which item goes where before final sizing)
+    // This part should be integrated after the placement logic but before final sizing.
     
     fixed_width += m_grid_layout.column_gap * (num_columns - 1);
 

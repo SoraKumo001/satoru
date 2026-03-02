@@ -7,6 +7,7 @@
 #include "core/satoru_context.h"
 #include "core/text/tagging_context.h"
 #include "core/text/text_decoration_renderer.h"
+#include "core/text/text_geometry.h"
 #include "core/text/text_layout.h"
 #include "core/text/text_types.h"
 #include "core/text/unicode_service.h"
@@ -56,47 +57,28 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
     SkTextBlob::Iter it(*blob);
     SkTextBlob::Iter::ExperimentalRun run;
     while (it.experimentalNext(&run)) {
-        bool is_vertical = (m_currentStyle.mode == litehtml::writing_mode_vertical_rl ||
-                            m_currentStyle.mode == litehtml::writing_mode_vertical_lr);
+        litehtml::position line_pos((pixel_t)tx, (pixel_t)ty, (pixel_t)m_currentStyle.line_width,
+                                    0);
+        TextGeometry geom(m_currentStyle.mode, line_pos, m_currentStyle.fi);
 
-        if (is_vertical && !m_currentStyle.is_vertical_upright) {
+        if (geom.isVertical() && !m_currentStyle.is_vertical_upright) {
             auto builder_run = m_builder.allocRunRSXform(run.font, run.count);
             memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
-            float line_thickness = m_currentStyle.line_width;
-            float center_x = (float)tx + line_thickness / 2.0f;
             for (int i = 0; i < run.count; ++i) {
-                float gx = center_x - m_currentStyle.fi->desc.size * 0.40f;
-                float gy = (float)ty + run.positions[i].fX;
+                auto p =
+                    geom.getGlyphPlacement(run.positions[i].fX, run.positions[i].fY, false, false);
                 // Rotate 90 deg CW: cos=0, sin=1
-                builder_run.xforms()[i] = SkRSXform::Make(0, 1, gx, gy);
+                builder_run.xforms()[i] = SkRSXform::Make(0, 1, p.x, p.y);
             }
         } else {
             auto builder_run = m_builder.allocRunPos(run.font, run.count);
             memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
             for (int i = 0; i < run.count; ++i) {
-                if (is_vertical) {
-                    float center_x = (float)tx + m_currentStyle.line_width / 2.0f;
-                    float gx = center_x - m_currentStyle.fi->desc.size / 2.0f;
-                    float baseline_adj = m_currentStyle.is_vertical_punctuation
-                                             ? m_currentStyle.fi->desc.size * 0.35f
-                                             : m_currentStyle.fi->desc.size * 0.92f;
-                    float gy = (float)ty + baseline_adj + run.positions[i].fX;
-
-                    if (m_currentStyle.is_vertical_punctuation) {
-                        // Offset punctuation to the top-right
-                        if (m_currentStyle.mode == litehtml::writing_mode_vertical_rl) {
-                            gx += (float)m_currentStyle.fi->desc.size * 0.55f;
-                        } else {
-                            gx += (float)m_currentStyle.fi->desc.size * 0.55f;
-                        }
-                    }
-
-                    builder_run.pos[i * 2] = gx;
-                    builder_run.pos[i * 2 + 1] = gy;
-                } else {
-                    builder_run.pos[i * 2] = run.positions[i].fX + (float)tx;
-                    builder_run.pos[i * 2 + 1] = run.positions[i].fY + (float)ty;
-                }
+                auto p = geom.getGlyphPlacement(run.positions[i].fX, run.positions[i].fY,
+                                                m_currentStyle.is_vertical_upright,
+                                                m_currentStyle.is_vertical_punctuation);
+                builder_run.pos[i * 2] = p.x;
+                builder_run.pos[i * 2 + 1] = p.y;
             }
         }
     }
@@ -267,53 +249,18 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             if (batcher) batcher->flush();
             SkTextBlob::Iter it(*shaped.blob);
             SkTextBlob::Iter::ExperimentalRun run;
-            WritingModeContext wm_ctx(mode, pos.width, pos.height);
             TaggingContext tagging_ctx(canvas, usedGlyphs, usedGlyphDraws, styleTag, styleIndex);
+            TextGeometry geom(mode, pos, fi);
 
             while (it.experimentalNext(&run)) {
+                float logical_run_start =
+                    is_vertical ? (float)(current_ty - pos.y) : (float)(current_tx - pos.x);
+
                 for (int i = 0; i < run.count; ++i) {
-                    float phys_x, phys_y;
-                    float rotation = 0;
-
-                    if (is_vertical) {
-                        float logical_inline_start = (float)(current_ty - pos.y);
-                        float inline_offset = logical_inline_start + run.positions[i].fX;
-                        if (is_upright) {
-                            // Upright: glyph's horizontal center aligned to line's block center
-                            float block_offset = (float)pos.width / 2.0f - fi->desc.size / 2.0f;
-                            float baseline_adj =
-                                is_punctuation ? fi->desc.size * 0.30f : fi->desc.size * 0.92f;
-
-                            logical_pos logical_p(inline_offset + baseline_adj, block_offset);
-                            litehtml::position phys_rel_pos = wm_ctx.to_physical(
-                                logical_p, satoru::logical_size(0, (pixel_t)fi->desc.size));
-                            phys_x = (float)pos.x + phys_rel_pos.x;
-                            phys_y = (float)pos.y + phys_rel_pos.y;
-
-                            if (is_punctuation) {
-                                if (mode == litehtml::writing_mode_vertical_rl) {
-                                    phys_x += (float)fi->desc.size * 0.55f;
-                                } else {
-                                    phys_x += (float)fi->desc.size * 0.55f;
-                                }
-                            }
-                        } else {
-                            // Sideways: glyph rotated 90deg CW
-                            float block_offset = (float)pos.width / 2.0f - fi->desc.size * 0.40f;
-                            logical_pos logical_p(inline_offset, block_offset);
-
-                            litehtml::position phys_rel_pos = wm_ctx.to_physical(
-                                logical_p, satoru::logical_size(0, (pixel_t)fi->desc.size));
-                            phys_x = (float)pos.x + phys_rel_pos.x;
-                            phys_y = (float)pos.y + phys_rel_pos.y;
-                            rotation = 90.0f;
-                        }
-                    } else {
-                        phys_x = run.positions[i].fX + (float)current_tx;
-                        phys_y = run.positions[i].fY + (float)current_ty;
-                    }
-
-                    tagging_ctx.drawGlyph(run.font, run.glyphs[i], phys_x, phys_y, rotation, paint);
+                    auto p =
+                        geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
+                                               run.positions[i].fY, is_upright, is_punctuation);
+                    tagging_ctx.drawGlyph(run.font, run.glyphs[i], p.x, p.y, p.rotation, paint);
                 }
             }
         } else if (batcher && fi->desc.text_shadow.empty() &&
@@ -334,7 +281,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             if (batcher) batcher->flush();
             canvas->save();
             if (is_vertical) {
-                WritingModeContext wm_ctx(mode, pos.width, pos.height);
+                TextGeometry geom(mode, pos, fi);
                 SkTextBlobBuilder builder;
                 SkTextBlob::Iter it(*shaped.blob);
                 SkTextBlob::Iter::ExperimentalRun run;
@@ -344,43 +291,20 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         auto builder_run = builder.allocRunPos(run.font, run.count);
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
-                            float inline_offset = logical_run_start + run.positions[i].fX;
-                            float block_offset = (float)pos.width / 2.0f - fi->desc.size / 2.0f;
-                            float baseline_adj =
-                                is_punctuation ? fi->desc.size * 0.30f : fi->desc.size * 0.92f;
-
-                            logical_pos logical_p(inline_offset + baseline_adj, block_offset);
-                            litehtml::position phys_rel_pos = wm_ctx.to_physical(
-                                logical_p, satoru::logical_size(0, (pixel_t)fi->desc.size));
-
-                            float phys_x = (float)pos.x + phys_rel_pos.x;
-                            float phys_y = (float)pos.y + phys_rel_pos.y;
-
-                            if (is_punctuation) {
-                                if (mode == litehtml::writing_mode_vertical_rl) {
-                                    phys_x += (float)fi->desc.size * 0.55f;
-                                } else {
-                                    phys_x += (float)fi->desc.size * 0.55f;
-                                }
-                            }
-
-                            builder_run.pos[i * 2] = phys_x;
-                            builder_run.pos[i * 2 + 1] = phys_y;
+                            auto p =
+                                geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
+                                                       run.positions[i].fY, true, is_punctuation);
+                            builder_run.pos[i * 2] = p.x;
+                            builder_run.pos[i * 2 + 1] = p.y;
                         }
                     } else {
                         auto builder_run = builder.allocRunRSXform(run.font, run.count);
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
-                            float inline_offset = logical_run_start + run.positions[i].fX;
-                            float block_offset = (float)pos.width / 2.0f - fi->desc.size * 0.40f;
-
-                            logical_pos logical_p(inline_offset, block_offset);
-                            litehtml::position phys_rel_pos = wm_ctx.to_physical(
-                                logical_p, satoru::logical_size(0, (pixel_t)fi->desc.size));
-
+                            auto p = geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
+                                                            run.positions[i].fY, false, false);
                             // Rotate 90 deg CW: cos=0, sin=1
-                            builder_run.xforms()[i] = SkRSXform::Make(
-                                0, 1, (float)pos.x + phys_rel_pos.x, (float)pos.y + phys_rel_pos.y);
+                            builder_run.xforms()[i] = SkRSXform::Make(0, 1, p.x, p.y);
                         }
                     }
                 }

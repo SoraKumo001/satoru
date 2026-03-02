@@ -7,12 +7,8 @@
 
 namespace satoru {
 
-void TaggingContext::drawGlyph(const SkFont& font,
-                               SkGlyphID glyphId,
-                               float phys_x,
-                               float phys_y,
-                               float rotation,
-                               const SkPaint& basePaint) {
+void TaggingContext::drawGlyph(const SkFont& font, SkGlyphID glyphId, float phys_x, float phys_y,
+                               float rotation, const SkPaint& basePaint) {
     auto pathOpt = font.getPath(glyphId);
 
     if (pathOpt.has_value() && !pathOpt.value().isEmpty()) {
@@ -38,7 +34,7 @@ void TaggingContext::drawGlyph(const SkFont& font,
     } else {
         // Raster glyph fallback (e.g. for color emoji or bitmaps)
         SkRect bounds = font.getBounds(glyphId, &basePaint);
-        
+
         int w = (int)ceilf(bounds.width());
         int h = (int)ceilf(bounds.height());
         if (w > 0 && h > 0) {
@@ -47,9 +43,8 @@ void TaggingContext::drawGlyph(const SkFont& font,
             if (surface) {
                 auto tmpCanvas = surface->getCanvas();
                 tmpCanvas->clear(SK_ColorTRANSPARENT);
-                tmpCanvas->drawSimpleText(&glyphId, sizeof(uint16_t),
-                                          SkTextEncoding::kGlyphID, -bounds.fLeft,
-                                          -bounds.fTop, font, basePaint);
+                tmpCanvas->drawSimpleText(&glyphId, sizeof(uint16_t), SkTextEncoding::kGlyphID,
+                                          -bounds.fLeft, -bounds.fTop, font, basePaint);
                 auto img = surface->makeImageSnapshot();
 
                 m_canvas->save();

@@ -7,9 +7,9 @@
 #include "bridge/bridge_types.h"
 #include "bridge/magic_tags.h"
 #include "include/core/SkCanvas.h"
+#include "include/core/SkFont.h"
 #include "include/core/SkPaint.h"
 #include "include/core/SkPath.h"
-#include "include/core/SkFont.h"
 #include "libs/litehtml/include/litehtml.h"
 
 namespace satoru {
@@ -19,11 +19,8 @@ namespace satoru {
  */
 class TaggingContext {
    public:
-    TaggingContext(SkCanvas* canvas,
-                   std::vector<SkPath>& usedGlyphs,
-                   std::vector<glyph_draw_info>& usedGlyphDraws,
-                   int styleTag,
-                   int styleIndex)
+    TaggingContext(SkCanvas* canvas, std::vector<SkPath>& usedGlyphs,
+                   std::vector<glyph_draw_info>& usedGlyphDraws, int styleTag, int styleIndex)
         : m_canvas(canvas),
           m_usedGlyphs(usedGlyphs),
           m_usedGlyphDraws(usedGlyphDraws),
@@ -33,12 +30,8 @@ class TaggingContext {
     /**
      * 指定された位置にグリフをタグ付きで描画する
      */
-    void drawGlyph(const SkFont& font,
-                   SkGlyphID glyphId,
-                   float phys_x,
-                   float phys_y,
-                   float rotation,
-                   const SkPaint& basePaint);
+    void drawGlyph(const SkFont& font, SkGlyphID glyphId, float phys_x, float phys_y,
+                   float rotation, const SkPaint& basePaint);
 
    private:
     SkCanvas* m_canvas;

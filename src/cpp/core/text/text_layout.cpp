@@ -121,7 +121,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         key.mode = mode;
         key.orientation = fi->desc.orientation;
 
-        if (MeasureResult* cached = ctx->measurementCache.get(key)) {
+        if (MeasureResult* cached = ctx->cacheManager.measureCache.get(key)) {
             MeasureResult res = *cached;
             res.last_safe_pos = text + res.length;
             return res;
@@ -205,7 +205,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
 
     result.last_safe_pos = text + result.length;
     if (canCache) {
-        ctx->measurementCache.put(key, result);
+        ctx->cacheManager.measureCache.put(key, result);
     }
 
     return result;
@@ -219,7 +219,7 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
 
     UnicodeService& unicode = ctx->getUnicodeService();
     analysis.line_breaks.resize(len);
-    unicode.getLineBreaks(text, len, nullptr, analysis.line_breaks);
+    unicode.getLineBreaks(text, len, nullptr, analysis.line_breaks, &ctx->cacheManager);
 
     int baseLevel = fi->is_rtl ? 1 : 0;
     analysis.bidi_level = (uint8_t)unicode.getBidiLevel(text, baseLevel, nullptr);
@@ -291,7 +291,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
     key.mode = mode;
     key.orientation = fi->desc.orientation;
 
-    if (ShapedResult* cached = ctx->shapingCache.get(key)) {
+    if (ShapedResult* cached = ctx->cacheManager.shapingCache.get(key)) {
         if (usedCodepoints) {
             UnicodeService& unicode = ctx->getUnicodeService();
             const char* p = text;
@@ -345,7 +345,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
 
     result.blob = blobHandler.makeBlob();
 
-    ctx->shapingCache.put(key, result);
+    ctx->cacheManager.shapingCache.put(key, result);
     return result;
 }
 
@@ -388,7 +388,7 @@ void TextLayout::splitText(SatoruContext* ctx, const char* text,
     UnicodeService& unicode = ctx->getUnicodeService();
     size_t len = strlen(text);
     std::vector<char> brks;
-    unicode.getLineBreaks(text, len, nullptr, brks);
+    unicode.getLineBreaks(text, len, nullptr, brks, &ctx->cacheManager);
 
     const char* p = text;
     const char* last_p = text;

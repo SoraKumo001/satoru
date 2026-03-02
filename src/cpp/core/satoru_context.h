@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "core/satoru_cache_manager.h"
 #include "core/text/text_types.h"
 #include "core/text/unicode_service.h"
 #include "font_manager.h"
@@ -31,11 +32,9 @@ class SatoruContext {
    public:
     SatoruFontManager fontManager;
     std::map<std::string, image_info> imageCache;
-    satoru::LruCache<satoru::ShapingKey, satoru::ShapedResult, satoru::ShapingKeyHash> shapingCache;
-    satoru::LruCache<satoru::MeasureKey, satoru::MeasureResult, satoru::MeasureKeyHash>
-        measurementCache;
+    satoru::SatoruCacheManager cacheManager;
 
-    SatoruContext() : shapingCache(2000), measurementCache(2000) {}
+    SatoruContext() {}
 
     void init();
 
@@ -71,11 +70,7 @@ class SatoruContext {
         clearImages();
         clearCss();
         m_fontMap.clear();
-        shapingCache.clear();
-        measurementCache.clear();
-        if (m_unicodeService) {
-            m_unicodeService->clearCache();
-        }
+        cacheManager.clearAll();
     }
 
     void setFontMap(const std::map<std::string, std::string> &fontMap) { m_fontMap = fontMap; }

@@ -5,11 +5,12 @@
 
 #include <algorithm>
 
+#include "core/satoru_cache_manager.h"
 #include "utils/skunicode_satoru.h"
 
 namespace satoru {
 
-UnicodeService::UnicodeService() : m_lineBreakCache(1000) { m_unicode = satoru::MakeUnicode(); }
+UnicodeService::UnicodeService() { m_unicode = satoru::MakeUnicode(); }
 
 char32_t UnicodeService::decodeUtf8(const char** ptr) const {
     if (!ptr || !*ptr || !**ptr) return 0;
@@ -119,117 +120,104 @@ bool UnicodeService::shouldBreakGrapheme(char32_t u1, char32_t u2, int* state) c
 }
 
 void UnicodeService::getLineBreaks(const char* text, size_t len, const char* lang,
-                                   std::vector<char>& breaks) const {
+                                   std::vector<char>& breaks,
+                                   SatoruCacheManager* cacheManager) const {
     if (!text || len == 0) {
         breaks.clear();
         return;
     }
 
     std::string key;
-    if (lang && *lang) {
-        key = std::string(lang) + ":" + std::string(text, len);
-    } else {
-        key = std::string(text, len);
-    }
+    if (cacheManager) {
+        if (lang && *lang) {
+            key = std::string(lang) + ":" + std::string(text, len);
+        } else {
+            key = std::string(text, len);
+        }
 
-    if (std::vector<char>* cached = m_lineBreakCache.get(key)) {
-        breaks = *cached;
-        return;
+        if (std::vector<char>* cached = cacheManager->lineBreakCache.get(key)) {
+            breaks = *cached;
+            return;
+        }
     }
 
     breaks.resize(len);
     set_linebreaks_utf8((const unsigned char*)text, len, lang, breaks.data());
-    m_lineBreakCache.put(key, breaks);
+
+    if (cacheManager) {
+        cacheManager->lineBreakCache.put(key, breaks);
+    }
 }
 
-void UnicodeService::clearCache() { m_lineBreakCache.clear(); }
+void UnicodeService::clearCache() {}
 
 char32_t UnicodeService::getVerticalSubstitution(char32_t u) const {
-    // Basic Vertical Forms (U+FE10 to U+FE19)
-    // Small Form Variants (U+FE50 to U+FE6B) - skip these for now
-    // CJK Compatibility Forms (U+FE30 to U+FE4F)
-
     switch (u) {
-        // Punctuation - do NOT substitute here, handled by manual offset in TextRenderer
-        // case 0x3001: return 0xFE11;
-        // case 0x3002: return 0xFE12;
-
-        // EM DASH (—)
         case 0x2014:
             return 0xFE31;
-
-        // Brackets
         case 0x3008:
-            return 0xFE3F;  // LEFT ANGLE BRACKET (〈)
+            return 0xFE3F;  // 〈
         case 0x3009:
-            return 0xFE40;  // RIGHT ANGLE BRACKET (〉)
+            return 0xFE40;  // 〉
         case 0x300A:
-            return 0xFE41;  // LEFT DOUBLE ANGLE BRACKET (《)
+            return 0xFE41;  // 《
         case 0x300B:
-            return 0xFE42;  // RIGHT DOUBLE ANGLE BRACKET (》)
+            return 0xFE42;  // 》
         case 0x300C:
-            return 0xFE43;  // LEFT CORNER BRACKET (「)
+            return 0xFE43;  // 「
         case 0x300D:
-            return 0xFE44;  // RIGHT CORNER BRACKET (」)
+            return 0xFE44;  // 」
         case 0x300E:
-            return 0xFE45;  // LEFT WHITE CORNER BRACKET (『)
+            return 0xFE45;  // 『
         case 0x300F:
-            return 0xFE46;  // RIGHT WHITE CORNER BRACKET (』)
+            return 0xFE46;  // 』
         case 0x3010:
-            return 0xFE3B;  // LEFT BLACK LENTICULAR BRACKET (【)
+            return 0xFE3B;  // 【
         case 0x3011:
-            return 0xFE3C;  // RIGHT BLACK LENTICULAR BRACKET (】)
+            return 0xFE3C;  // 】
         case 0xFF08:
-            return 0xFE35;  // FULLWIDTH LEFT PARENTHESIS (（)
+            return 0xFE35;  // （
         case 0xFF09:
-            return 0xFE36;  // FULLWIDTH RIGHT PARENTHESIS (）)
+            return 0xFE36;  // ）
         case 0xFF3B:
-            return 0xFE47;  // FULLWIDTH LEFT SQUARE BRACKET (［)
+            return 0xFE47;  // ［
         case 0xFF3D:
-            return 0xFE48;  // FULLWIDTH RIGHT SQUARE BRACKET (］)
+            return 0xFE48;  // ］
         case 0xFF5B:
-            return 0xFE37;  // FULLWIDTH LEFT CURLY BRACKET (｛)
+            return 0xFE37;  // ｛
         case 0xFF5D:
-            return 0xFE38;  // FULLWIDTH RIGHT CURLY BRACKET (｝)
-
-        // Prolonged sound mark (Chouon)
+            return 0xFE38;  // ｝
         case 0x30FC:
-            return 0xFE31;  // KATAKANA-HIRAGANA PROLONGED SOUND MARK (ー)
-
+            return 0xFE31;  // ー
         default:
             return u;
     }
 }
 
 bool UnicodeService::isVerticalUpright(char32_t u) const {
-    // Basic CJK Ranges
-    if (u >= 0x2E80 && u <= 0x2EFF) return true;  // CJK Radicals Supplement
-    if (u >= 0x2F00 && u <= 0x2FDF) return true;  // Kangxi Radicals
-    if (u >= 0x2FF0 && u <= 0x2FFF) return true;  // Ideographic Description Characters
-    if (u >= 0x3000 && u <= 0x303F) return true;  // CJK Symbols and Punctuation
-    if (u >= 0x3040 && u <= 0x309F) return true;  // Hiragana
-    if (u >= 0x30A0 && u <= 0x30FF) return true;  // Katakana
-    if (u >= 0x3100 && u <= 0x312F) return true;  // Bopomofo
-    if (u >= 0x3130 && u <= 0x318F) return true;  // Hangul Compatibility Jamo
-    if (u >= 0x3190 && u <= 0x319F) return true;  // Kanbun
-    if (u >= 0x31A0 && u <= 0x31BF) return true;  // Bopomofo Extended
-    if (u >= 0x31C0 && u <= 0x31EF) return true;  // CJK Strokes
-    if (u >= 0x31F0 && u <= 0x31FF) return true;  // Katakana Phonetic Extensions
-    if (u >= 0x3200 && u <= 0x32FF) return true;  // Enclosed CJK Letters and Months
-    if (u >= 0x3300 && u <= 0x33FF) return true;  // CJK Compatibility
-    if (u >= 0x3400 && u <= 0x4DBF) return true;  // CJK Unified Ideographs Extension A
-    if (u >= 0x4E00 && u <= 0x9FFF) return true;  // CJK Unified Ideographs
-    if (u >= 0xAC00 && u <= 0xD7AF) return true;  // Hangul Syllables
-    if (u >= 0xF900 && u <= 0xFAFF) return true;  // CJK Compatibility Ideographs
-    if (u >= 0xFE30 && u <= 0xFE4F) return true;  // CJK Compatibility Forms
-    if (u >= 0xFF00 && u <= 0xFF60) return true;  // Fullwidth Forms (excluding halfwidth)
-    if (u >= 0xFFE0 && u <= 0xFFEE) return true;  // Fullwidth Forms
-
-    // CJK Extensions in Supplementary Plane
+    if (u >= 0x2E80 && u <= 0x2EFF) return true;
+    if (u >= 0x2F00 && u <= 0x2FDF) return true;
+    if (u >= 0x2FF0 && u <= 0x2FFF) return true;
+    if (u >= 0x3000 && u <= 0x303F) return true;
+    if (u >= 0x3040 && u <= 0x309F) return true;
+    if (u >= 0x30A0 && u <= 0x30FF) return true;
+    if (u >= 0x3100 && u <= 0x312F) return true;
+    if (u >= 0x3130 && u <= 0x318F) return true;
+    if (u >= 0x3190 && u <= 0x319F) return true;
+    if (u >= 0x31A0 && u <= 0x31BF) return true;
+    if (u >= 0x31C0 && u <= 0x31EF) return true;
+    if (u >= 0x31F0 && u <= 0x31FF) return true;
+    if (u >= 0x3200 && u <= 0x32FF) return true;
+    if (u >= 0x3300 && u <= 0x33FF) return true;
+    if (u >= 0x3400 && u <= 0x4DBF) return true;
+    if (u >= 0x4E00 && u <= 0x9FFF) return true;
+    if (u >= 0xAC00 && u <= 0xD7AF) return true;
+    if (u >= 0xF900 && u <= 0xFAFF) return true;
+    if (u >= 0xFE30 && u <= 0xFE4F) return true;
+    if (u >= 0xFF00 && u <= 0xFF60) return true;
+    if (u >= 0xFFE0 && u <= 0xFFEE) return true;
     if (u >= 0x20000 && u <= 0x3134F) return true;
-
     if (isEmoji(u)) return true;
-
     return false;
 }
 

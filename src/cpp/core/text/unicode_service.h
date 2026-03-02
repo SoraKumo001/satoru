@@ -12,6 +12,8 @@
 
 namespace satoru {
 
+class SatoruCacheManager;
+
 class UnicodeService {
    public:
     UnicodeService();
@@ -36,8 +38,8 @@ class UnicodeService {
     bool shouldBreakGrapheme(char32_t u1, char32_t u2, int* state) const;
 
     // Line Breaking (wrapper for libunibreak/SkUnicode)
-    void getLineBreaks(const char* text, size_t len, const char* lang,
-                       std::vector<char>& breaks) const;
+    void getLineBreaks(const char* text, size_t len, const char* lang, std::vector<char>& breaks,
+                       SatoruCacheManager* cacheManager = nullptr) const;
 
     // Cache Management
     void clearCache();
@@ -53,7 +55,6 @@ class UnicodeService {
 
    private:
     sk_sp<SkUnicode> m_unicode;
-    mutable LruCache<std::string, std::vector<char>> m_lineBreakCache;
 };
 
 }  // namespace satoru

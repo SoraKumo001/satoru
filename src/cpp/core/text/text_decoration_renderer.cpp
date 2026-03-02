@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "core/logical_canvas.h"
 #include "core/logical_geometry.h"
 #include "include/core/SkPaint.h"
 #include "include/core/SkPathBuilder.h"
@@ -29,14 +30,11 @@ void TextDecorationRenderer::drawDecoration(SkCanvas* canvas, font_info* fi,
     dec_paint.setStyle(SkPaint::kStroke_Style);
 
     WritingModeContext wm_ctx(mode, pos.width, pos.height);
+    LogicalCanvas l_canvas(canvas, wm_ctx, (float)pos.x, (float)pos.y);
 
     auto draw_logical_line = [&](float block_offset) {
         logical_pos logical_start(0, block_offset);
         logical_pos logical_end(inline_size, block_offset);
-        logical_size size(0, 0);  // lines have no size for context mapping
-
-        litehtml::position phys_start = wm_ctx.to_physical(logical_start, size);
-        litehtml::position phys_end = wm_ctx.to_physical(logical_end, size);
 
         if (fi->desc.decoration_style == litehtml::text_decoration_style_dotted) {
             float intervals[] = {thickness, thickness};
@@ -48,12 +46,10 @@ void TextDecorationRenderer::drawDecoration(SkCanvas* canvas, font_info* fi,
 
         if (fi->desc.decoration_style == litehtml::text_decoration_style_double) {
             float gap = thickness + 1.0f;
-            canvas->drawLine((float)pos.x + phys_start.x, (float)pos.y + phys_start.y - gap / 2,
-                             (float)pos.x + phys_end.x, (float)pos.y + phys_end.y - gap / 2,
-                             dec_paint);
-            canvas->drawLine((float)pos.x + phys_start.x, (float)pos.y + phys_start.y + gap / 2,
-                             (float)pos.x + phys_end.x, (float)pos.y + phys_end.y + gap / 2,
-                             dec_paint);
+            l_canvas.drawLine(logical_pos(0, block_offset - gap / 2),
+                              logical_pos(inline_size, block_offset - gap / 2), dec_paint);
+            l_canvas.drawLine(logical_pos(0, block_offset + gap / 2),
+                              logical_pos(inline_size, block_offset + gap / 2), dec_paint);
         } else if (fi->desc.decoration_style == litehtml::text_decoration_style_wavy) {
             dec_paint.setStrokeWidth(thickness * 1.5f);
 
@@ -69,48 +65,41 @@ void TextDecorationRenderer::drawDecoration(SkCanvas* canvas, font_info* fi,
 
             for (float i = start_i; i < inline_size; i += wave_wavelength) {
                 {
-                    logical_pos logical_p1(i, block_offset);
-                    logical_pos logical_p2(i + wave_wavelength / 4.0f,
-                                           block_offset + wave_amplitude);
-                    logical_pos logical_p3(i + wave_wavelength / 2.0f, block_offset);
+                    logical_pos lp1(i, block_offset);
+                    logical_pos lp2(i + wave_wavelength / 4.0f, block_offset + wave_amplitude);
+                    logical_pos lp3(i + wave_wavelength / 2.0f, block_offset);
 
-                    litehtml::position phys_p1 = wm_ctx.to_physical(logical_p1, size);
-                    litehtml::position phys_p2 = wm_ctx.to_physical(logical_p2, size);
-                    litehtml::position phys_p3 = wm_ctx.to_physical(logical_p3, size);
+                    litehtml::position p1 = wm_ctx.to_physical(lp1, logical_size(0, 0));
+                    litehtml::position p2 = wm_ctx.to_physical(lp2, logical_size(0, 0));
+                    litehtml::position p3 = wm_ctx.to_physical(lp3, logical_size(0, 0));
 
                     if (first) {
-                        wavy_builder.moveTo((float)pos.x + phys_p1.x, (float)pos.y + phys_p1.y);
+                        wavy_builder.moveTo((float)pos.x + p1.x, (float)pos.y + p1.y);
                         first = false;
                     }
-                    wavy_builder.quadTo((float)pos.x + phys_p2.x, (float)pos.y + phys_p2.y,
-                                        (float)pos.x + phys_p3.x, (float)pos.y + phys_p3.y);
+                    wavy_builder.quadTo((float)pos.x + p2.x, (float)pos.y + p2.y,
+                                        (float)pos.x + p3.x, (float)pos.y + p3.y);
                 }
                 {
-                    logical_pos logical_p2(i + 3.0f * wave_wavelength / 4.0f,
-                                           block_offset - wave_amplitude);
-                    logical_pos logical_p3(i + wave_wavelength, block_offset);
+                    logical_pos lp2(i + 3.0f * wave_wavelength / 4.0f,
+                                    block_offset - wave_amplitude);
+                    logical_pos lp3(i + wave_wavelength, block_offset);
 
-                    litehtml::position phys_p2 = wm_ctx.to_physical(logical_p2, size);
-                    litehtml::position phys_p3 = wm_ctx.to_physical(logical_p3, size);
+                    litehtml::position p2 = wm_ctx.to_physical(lp2, logical_size(0, 0));
+                    litehtml::position p3 = wm_ctx.to_physical(lp3, logical_size(0, 0));
 
-                    wavy_builder.quadTo((float)pos.x + phys_p2.x, (float)pos.y + phys_p2.y,
-                                        (float)pos.x + phys_p3.x, (float)pos.y + phys_p3.y);
+                    wavy_builder.quadTo((float)pos.x + p2.x, (float)pos.y + p2.y,
+                                        (float)pos.x + p3.x, (float)pos.y + p3.y);
                 }
             }
 
-            canvas->save();
-            if (is_vertical) {
-                canvas->clipRect(
-                    SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, inline_size));
-            } else {
-                canvas->clipRect(
-                    SkRect::MakeXYWH((float)pos.x, (float)pos.y, inline_size, (float)pos.height));
-            }
+            l_canvas.save();
+            l_canvas.clipRect(logical_pos(0, block_offset - wave_amplitude * 2),
+                              logical_size(inline_size, wave_amplitude * 4));
             canvas->drawPath(wavy_builder.detach(), dec_paint);
-            canvas->restore();
+            l_canvas.restore();
         } else {
-            canvas->drawLine((float)pos.x + phys_start.x, (float)pos.y + phys_start.y,
-                             (float)pos.x + phys_end.x, (float)pos.y + phys_end.y, dec_paint);
+            l_canvas.drawLine(logical_start, logical_end, dec_paint);
         }
     };
 

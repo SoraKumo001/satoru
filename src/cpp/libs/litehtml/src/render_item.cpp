@@ -51,14 +51,44 @@ litehtml::pixel_t litehtml::render_item::measure(const containing_block_context&
 	m_self_size = calculate_containing_block_context(containing_block_size);
 	m_is_measured = true;
 
+	pixel_t measured_size = 0;
 	if(src_el()->is_block_formatting_context() || ! fmt_ctx)
 	{
 		formatting_context fmt(css().get_writing_mode());
-		return _measure(containing_block_size, &fmt);
+		measured_size = _measure(containing_block_size, &fmt);
 	} else
 	{
-		return _measure(containing_block_size, fmt_ctx);
+		measured_size = _measure(containing_block_size, fmt_ctx);
 	}
+
+	// Container Queries Support: Detect size change and trigger restyle
+	if (css().get_container_type() != container_type_none)
+	{
+		pixel_t current_w = m_pos.width - m_padding.width() - m_borders.width();
+		pixel_t current_h = m_pos.height - m_padding.height() - m_borders.height();
+
+		if (src_el()->css_w().m_last_container_size.width != current_w ||
+			src_el()->css_w().m_last_container_size.height != current_h)
+		{
+			src_el()->css_w().m_last_container_size.width = current_w;
+			src_el()->css_w().m_last_container_size.height = current_h;
+
+			// Trigger style re-computation for all descendants based on new container size
+			src_el()->compute_styles(true);
+
+			// Re-measure after restyle to apply changes
+			if(src_el()->is_block_formatting_context() || ! fmt_ctx)
+			{
+				formatting_context fmt(css().get_writing_mode());
+				measured_size = _measure(containing_block_size, &fmt);
+			} else
+			{
+				measured_size = _measure(containing_block_size, fmt_ctx);
+			}
+		}
+	}
+
+	return measured_size;
 }
 
 void litehtml::render_item::place(pixel_t x, pixel_t y, const containing_block_context& containing_block_size, formatting_context* fmt_ctx)

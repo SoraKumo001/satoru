@@ -131,10 +131,6 @@ namespace litehtml
 
     container_type m_container_type;
     string m_container_name;
-    struct {
-        pixel_t width = -1;
-        pixel_t height = -1;
-    } m_last_container_size;
 
   private:
     void compute_font(const element *el, const std::shared_ptr<document> &doc);
@@ -432,6 +428,11 @@ namespace litehtml
     const css_token_vector &get_transform_origin() const;
     const css_token_vector &get_filter() const;
     const css_token_vector &get_backdrop_filter() const;
+
+    struct {
+        pixel_t width = -1;
+        pixel_t height = -1;
+    } m_last_container_size;
   };
 
   inline element_position css_properties::get_position() const

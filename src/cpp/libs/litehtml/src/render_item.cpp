@@ -1,4 +1,4 @@
-﻿#include "render_item.h"
+#include "render_item.h"
 #include "document.h"
 #include <typeinfo>
 #include "document_container.h"
@@ -404,10 +404,10 @@ void litehtml::render_item::render_positioned(render_type rt)
 				}
 				if(!min_width.is_predefined())
 				{
-					pixel_t min_width_value = min_width.calc_percent(containing_block_size.width);
-					if(width < min_width_value)
+					pixel_t min_height_value = min_width.calc_percent(containing_block_size.width);
+					if(width < min_height_value)
 					{
-						width = min_width_value;
+						width = min_height_value;
 					}
 				}
 				width += el->content_offset_width();
@@ -1649,75 +1649,6 @@ std::tuple<litehtml::pixel_t, litehtml::pixel_t> litehtml::render_item::element_
 	return {offset_x, offset_y};
 }
 
-void litehtml::render_item::block_shift(pixel_t delta)
-{
-    if (get_wm_context().is_vertical())
-    {
-        if (css().get_writing_mode() == writing_mode_vertical_rl)
-            m_pos.x -= delta;
-        else
-            m_pos.x += delta;
-    }
-    else
-    {
-        m_pos.y += delta;
-    }
-}
-
-void litehtml::render_item::inline_shift(pixel_t delta)
-{
-    if (get_wm_context().is_vertical())
-    {
-        m_pos.y += delta;
-    }
-    else
-    {
-        m_pos.x += delta;
-    }
-}
-
-litehtml::pixel_t litehtml::render_item::inline_start_pos(const satoru::WritingModeContext& wm) const
-{
-	return wm.is_vertical() ? m_pos.y : m_pos.x;
-}
-
-litehtml::pixel_t litehtml::render_item::inline_end_pos(const satoru::WritingModeContext& wm) const
-{
-	return inline_start_pos(wm) + (wm.is_vertical() ? m_pos.height : m_pos.width);
-}
-
-litehtml::pixel_t litehtml::render_item::block_start_pos(const satoru::WritingModeContext& wm) const
-{
-	if (wm.mode() == writing_mode_vertical_rl)
-		return wm.container_width() - m_pos.x - m_pos.width;
-	return wm.is_vertical() ? m_pos.x : m_pos.y;
-}
-
-litehtml::pixel_t litehtml::render_item::block_end_pos(const satoru::WritingModeContext& wm) const
-{
-	return block_start_pos(wm) + (wm.is_vertical() ? m_pos.width : m_pos.height);
-}
-
-litehtml::pixel_t litehtml::render_item::inline_start_pos() const
-{
-	return inline_start_pos(get_wm_context());
-}
-
-litehtml::pixel_t litehtml::render_item::inline_end_pos() const
-{
-	return inline_end_pos(get_wm_context());
-}
-
-litehtml::pixel_t litehtml::render_item::block_start_pos() const
-{
-	return block_start_pos(get_wm_context());
-}
-
-litehtml::pixel_t litehtml::render_item::block_end_pos() const
-{
-	return block_end_pos(get_wm_context());
-}
-
 litehtml::pixel_t litehtml::render_item::get_predefined_width(pixel_t parent_width) const
 {
 	pixel_t ret = css().get_width().calc_percent(parent_width);
@@ -1739,75 +1670,3 @@ litehtml::pixel_t litehtml::render_item::get_predefined_height(pixel_t parent_he
 	}
 	return ret;
 }
-
-
-
-satoru::WritingModeContext litehtml::render_item::get_wm_context() const
-{
-	return satoru::WritingModeContext(css().get_writing_mode(), m_cached_cb_context.width, m_cached_cb_context.height);
-}
-
-void litehtml::render_item::place_logical(pixel_t inline_pos, pixel_t block_pos, const containing_block_context& cb_context, formatting_context* fmt_ctx)
-{
-	satoru::WritingModeContext wm(cb_context.mode, cb_context.width, cb_context.height);
-	position phys_pos = wm.to_physical(satoru::logical_pos(inline_pos, block_pos), wm.to_logical(width(), height()));
-	place(phys_pos.x, phys_pos.y, cb_context, fmt_ctx);
-}
-
-litehtml::pixel_t litehtml::render_item::inline_size() const
-{
-	auto wm = get_wm_context();
-	return wm.to_logical(m_pos.width + m_margins.width() + m_borders.width() + m_padding.width(),
-						 m_pos.height + m_margins.height() + m_borders.height() + m_padding.height()).inline_size;
-}
-
-litehtml::pixel_t litehtml::render_item::block_size() const
-{
-	auto wm = get_wm_context();
-	return wm.to_logical(m_pos.width + m_margins.width() + m_borders.width() + m_padding.width(),
-						 m_pos.height + m_margins.height() + m_borders.height() + m_padding.height()).block_size;
-}
-
-litehtml::pixel_t litehtml::render_item::inline_size(const satoru::WritingModeContext& wm) const
-{
-	return wm.to_logical(m_pos.width + m_margins.width() + m_borders.width() + m_padding.width(),
-						 m_pos.height + m_margins.height() + m_borders.height() + m_padding.height()).inline_size;
-}
-
-litehtml::pixel_t litehtml::render_item::block_size(const satoru::WritingModeContext& wm) const
-{
-	return wm.to_logical(m_pos.width + m_margins.width() + m_borders.width() + m_padding.width(),
-						 m_pos.height + m_margins.height() + m_borders.height() + m_padding.height()).block_size;
-}
-
-litehtml::pixel_t litehtml::render_item::margin_inline_start() const { return get_wm_context().inline_start(m_margins); }
-litehtml::pixel_t litehtml::render_item::margin_inline_end() const   { return get_wm_context().inline_end(m_margins); }
-litehtml::pixel_t litehtml::render_item::margin_block_start() const  { return get_wm_context().block_start(m_margins); }
-litehtml::pixel_t litehtml::render_item::margin_block_end() const    { return get_wm_context().block_end(m_margins); }
-
-litehtml::pixel_t litehtml::render_item::padding_inline_start() const { return get_wm_context().inline_start(m_padding); }
-litehtml::pixel_t litehtml::render_item::padding_inline_end() const   { return get_wm_context().inline_end(m_padding); }
-litehtml::pixel_t litehtml::render_item::padding_block_start() const  { return get_wm_context().block_start(m_padding); }
-litehtml::pixel_t litehtml::render_item::padding_block_end() const    { return get_wm_context().block_end(m_padding); }
-
-litehtml::pixel_t litehtml::render_item::border_inline_start() const { return get_wm_context().inline_start(m_borders); }
-litehtml::pixel_t litehtml::render_item::border_inline_end() const   { return get_wm_context().inline_end(m_borders); }
-litehtml::pixel_t litehtml::render_item::border_block_start() const  { return get_wm_context().block_start(m_borders); }
-litehtml::pixel_t litehtml::render_item::border_block_end() const    { return get_wm_context().block_end(m_borders); }
-
-void litehtml::render_item::margin_inline_start(pixel_t val) { get_wm_context().set_inline_start(m_margins, val); }
-void litehtml::render_item::margin_inline_end(pixel_t val)   { get_wm_context().set_inline_end(m_margins, val); }
-void litehtml::render_item::margin_block_start(pixel_t val)  { get_wm_context().set_block_start(m_margins, val); }
-void litehtml::render_item::margin_block_end(pixel_t val)    { get_wm_context().set_block_end(m_margins, val); }
-
-void litehtml::render_item::padding_inline_start(pixel_t val) { get_wm_context().set_inline_start(m_padding, val); }
-void litehtml::render_item::padding_inline_end(pixel_t val)   { get_wm_context().set_inline_end(m_padding, val); }
-void litehtml::render_item::padding_block_start(pixel_t val)  { get_wm_context().set_block_start(m_padding, val); }
-void litehtml::render_item::padding_block_end(pixel_t val)    { get_wm_context().set_block_end(m_padding, val); }
-
-void litehtml::render_item::border_inline_start(pixel_t val) { get_wm_context().set_inline_start(m_borders, val); }
-void litehtml::render_item::border_inline_end(pixel_t val)   { get_wm_context().set_inline_end(m_borders, val); }
-void litehtml::render_item::border_block_start(pixel_t val)  { get_wm_context().set_block_start(m_borders, val); }
-void litehtml::render_item::border_block_end(pixel_t val)    { get_wm_context().set_block_end(m_borders, val); }
-
-

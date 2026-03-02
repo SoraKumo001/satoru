@@ -278,6 +278,7 @@ target_sources(satoru_core PRIVATE
     src/cpp/core/text/text_decoration_renderer.cpp
     src/cpp/core/text/tagging_context.cpp
     src/cpp/core/text/text_geometry.cpp
+    src/cpp/core/litehtml_extensions.cpp
     src/cpp/core/el_svg.cpp
     src/cpp/core/satoru_context.cpp
     src/cpp/core/resource_manager.cpp
@@ -290,7 +291,12 @@ target_sources(satoru_core PRIVATE
     src/cpp/utils/skia_stubs.cpp
     src/cpp/utils/skunicode_satoru.cpp
 )
-target_include_directories(satoru_core PRIVATE "src/cpp")
+target_include_directories(satoru_core PRIVATE
+    "src/cpp"
+    "${LITEHTML_DIR}/include"
+    "${LITEHTML_DIR}/include/litehtml"
+    "${LITEHTML_DIR}/src"
+)
 target_link_libraries(satoru_core PUBLIC litehtml skia_lib)
 target_compile_options(satoru_core PRIVATE ${COMMON_COMPILE_OPTIONS})
 target_compile_definitions(satoru_core PRIVATE SK_USER_CONFIG_HEADER="SkUserConfig.h")

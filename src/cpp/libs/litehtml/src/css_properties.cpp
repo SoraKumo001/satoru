@@ -227,15 +227,15 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
     m_css_padding.bottom = get_logical_property<css_length>(el, _padding_block_end_, _padding_bottom_, _padding_block_, 0, false, offset(m_css_padding.bottom));
   }
 
-  doc->cvt_units(m_css_margins.left, m_font_metrics, 0);
-  doc->cvt_units(m_css_margins.right, m_font_metrics, 0);
-  doc->cvt_units(m_css_margins.top, m_font_metrics, 0);
-  doc->cvt_units(m_css_margins.bottom, m_font_metrics, 0);
+  doc->cvt_units(m_css_margins.left, m_font_metrics, font_size);
+  doc->cvt_units(m_css_margins.right, m_font_metrics, font_size);
+  doc->cvt_units(m_css_margins.top, m_font_metrics, font_size);
+  doc->cvt_units(m_css_margins.bottom, m_font_metrics, font_size);
 
-  doc->cvt_units(m_css_padding.left, m_font_metrics, 0);
-  doc->cvt_units(m_css_padding.right, m_font_metrics, 0);
-  doc->cvt_units(m_css_padding.top, m_font_metrics, 0);
-  doc->cvt_units(m_css_padding.bottom, m_font_metrics, 0);
+  doc->cvt_units(m_css_padding.left, m_font_metrics, font_size);
+  doc->cvt_units(m_css_padding.right, m_font_metrics, font_size);
+  doc->cvt_units(m_css_padding.top, m_font_metrics, font_size);
+  doc->cvt_units(m_css_padding.bottom, m_font_metrics, font_size);
 
   string_id _border_is_c = (m_direction == direction_ltr) ? _border_inline_start_color_ : _border_inline_end_color_;
   string_id _border_ie_c = (m_direction == direction_ltr) ? _border_inline_end_color_ : _border_inline_start_color_;

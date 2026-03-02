@@ -495,10 +495,9 @@ namespace litehtml
                    wm.block_start(m_padding) == 0 &&
                    m_element->in_normal_flow() &&
                    m_element->css().get_float() == float_none &&
-                   wm.block_start(m_margins) >= 0 &&
-                                   !is_flex_item() &&
+                   !is_flex_item() &&
                    !is_root() &&
-                   !is_one_of(css().get_overflow(), overflow_hidden, overflow_scroll, overflow_auto);
+                   !src_el()->is_block_formatting_context();
         }
 
         bool collapse_bottom_margin() const
@@ -508,9 +507,8 @@ namespace litehtml
                    wm.block_end(m_padding) == 0 &&
                    m_element->in_normal_flow() &&
                    m_element->css().get_float() == float_none &&
-                   wm.block_end(m_margins) >= 0 &&
                    !is_root() &&
-                   !is_one_of(css().get_overflow(), overflow_hidden, overflow_scroll, overflow_auto);
+                   !src_el()->is_block_formatting_context();
         }
 
         bool is_visible() const

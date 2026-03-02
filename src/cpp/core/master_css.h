@@ -3,8 +3,15 @@
 
 const char* satoru_master_css =
     "html { display: block; margin: 0; padding: 0; }\n"
-    "body { display: block; margin: 0; padding: 0; overflow: hidden; font-family: sans-serif;}\n"
-    "p { display: block; margin: 1em 0; }\n"
+    "body { display: block; margin: 0; padding: 0; font-family: sans-serif;}\n"
+    "p, dl, multicol, menu, ol, ul { display: block; margin: 1em 0; }\n"
+    "dd { display: block; margin-inline-start: 40px; }\n"
+    "ol, ul { padding-inline-start: 40px; }\n"
+    "article, aside, footer, header, hgroup, main, nav, section { display: block; }\n"
+    "blockquote { display: block; margin: 1em 40px; }\n"
+    "figure { display: block; margin: 1em 40px; }\n"
+    "hr { display: block; margin: 0.5em auto; border-style: inset; border-width: 1px; }\n"
+    "pre { display: block; font-family: monospace; white-space: pre; margin: 1em 0; }\n"
     "b, strong { font-weight: bold; }\n"
     "i, em { font-style: italic; }\n"
     "u { text-decoration: underline; }\n"
@@ -29,7 +36,7 @@ const char* satoru_master_css =
     "    color: #000;\n"
     "}\n"
     "button, input, select, textarea { box-sizing: border-box; }\n"
-    "svg { display: inline-block; overflow: hidden; }\n"
+    "svg { display: inline-block; vertical-align: middle; overflow: hidden; }\n"
     "*[dir=\"rtl\"] { direction: rtl; }\n"
     "*[dir=\"ltr\"] { direction: ltr; }\n";
 

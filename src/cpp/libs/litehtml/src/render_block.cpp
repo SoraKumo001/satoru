@@ -521,3 +521,32 @@ void litehtml::render_item_block::apply_vertical_align()
         }
     }
 }
+
+litehtml::pixel_t litehtml::render_item_block::get_first_baseline()
+{
+    for (const auto& el : m_children)
+    {
+        if (el->src_el()->css().get_display() != display_none &&
+            el->src_el()->css().get_float() == float_none &&
+            !el->src_el()->is_positioned())
+        {
+            return el->pos().y + el->get_first_baseline();
+        }
+    }
+    return render_item::get_first_baseline();
+}
+
+litehtml::pixel_t litehtml::render_item_block::get_last_baseline()
+{
+    for (auto it = m_children.rbegin(); it != m_children.rend(); ++it)
+    {
+        const auto& el = *it;
+        if (el->src_el()->css().get_display() != display_none &&
+            el->src_el()->css().get_float() == float_none &&
+            !el->src_el()->is_positioned())
+        {
+            return el->pos().y + el->get_last_baseline();
+        }
+    }
+    return render_item::get_last_baseline();
+}

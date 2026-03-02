@@ -22,9 +22,12 @@ GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_
             float base_block_offset = (float)m_line_pos.width / 2.0f - em_center;
 
             // 縦書き時のベースライン (正立文字の場合)
+            // インライン方向も視覚的な均衡を図るため、CapHeight 分だけベースラインをシフトする。
+            // これにより、回転した英字（Tなど）の開始位置と日本語の上端が概ね揃う。
             float baseline_adj = is_punctuation ? m_fi->desc.size * 0.30f : 0;
+            float inline_adj = metrics.fCapHeight > 0 ? metrics.fCapHeight : (float)m_fi->desc.size * 0.75f;
 
-            logical_pos l_p(inline_offset + baseline_adj, base_block_offset + block_offset);
+            logical_pos l_p(inline_offset + baseline_adj + inline_adj, base_block_offset + block_offset);
             litehtml::position p_p = m_wm_ctx.to_physical(l_p, logical_size(0, 0));
 
             placement.x = (float)m_line_pos.x + p_p.x;

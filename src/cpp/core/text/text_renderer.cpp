@@ -216,8 +216,9 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
 
     TextAnalysis analysis = TextLayout::analyzeText(ctx, str, strLen, fi, mode, usedCodepoints);
     double total_advance = 0;
-    double current_tx = (double)pos.x;
-    double current_ty = (double)pos.y;
+    
+    // 論理的なインラインオフセットで行頭からの位置を追跡
+    logical_pos current_l_pos(0, 0);
 
     bool is_vertical =
         (mode == litehtml::writing_mode_vertical_rl || mode == litehtml::writing_mode_vertical_lr);
@@ -253,8 +254,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             TextGeometry geom(mode, pos, fi);
 
             while (it.experimentalNext(&run)) {
-                float logical_run_start =
-                    is_vertical ? (float)(current_ty - pos.y) : (float)(current_tx - pos.x);
+                float logical_run_start = (float)current_l_pos.inline_offset;
 
                 for (int i = 0; i < run.count; ++i) {
                     auto p =
@@ -276,7 +276,11 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             style.line_width = is_vertical ? (float)pos.width : (float)pos.height;
             style.is_vertical_upright = is_upright;
             style.is_vertical_punctuation = is_punctuation;
-            batcher->addText(shaped.blob, current_tx, current_ty, style);
+            
+            // 物理的な絶対座標を算出
+            WritingModeContext wm_ctx(mode, pos.width, pos.height);
+            litehtml::position phys_run_pos = wm_ctx.to_physical(current_l_pos, logical_size(0, 0));
+            batcher->addText(shaped.blob, (double)pos.x + phys_run_pos.x, (double)pos.y + phys_run_pos.y, style);
         } else {
             if (batcher) batcher->flush();
             canvas->save();
@@ -286,7 +290,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 SkTextBlob::Iter it(*shaped.blob);
                 SkTextBlob::Iter::ExperimentalRun run;
                 while (it.experimentalNext(&run)) {
-                    float logical_run_start = (float)(current_ty - pos.y);
+                    float logical_run_start = (float)current_l_pos.inline_offset;
                     if (is_upright) {
                         auto builder_run = builder.allocRunPos(run.font, run.count);
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
@@ -311,16 +315,12 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 sk_sp<SkTextBlob> verticalBlob = builder.make();
                 canvas->drawTextBlob(verticalBlob, 0, 0, paint);
             } else {
-                canvas->drawTextBlob(shaped.blob, (float)current_tx, (float)current_ty, paint);
+                canvas->drawTextBlob(shaped.blob, (float)pos.x + (float)current_l_pos.inline_offset, (float)pos.y, paint);
             }
             canvas->restore();
         }
 
-        if (is_vertical) {
-            current_ty += shaped.width;
-        } else {
-            current_tx += shaped.width;
-        }
+        current_l_pos.inline_offset += shaped.width;
         total_advance += shaped.width;
         start = end;
     }

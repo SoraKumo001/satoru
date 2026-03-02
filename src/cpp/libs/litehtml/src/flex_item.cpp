@@ -148,13 +148,20 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 
 	if (min_size_prop.is_predefined())
 	{
-		formatting_context fmt_ctx_copy;
-		if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-		min_main_size = el->measure(
-							  m_container_wm.is_vertical() ? self_size.new_height(content_offset, containing_block_context::size_mode_content | containing_block_context::size_mode_measure)
-														   : self_size.new_width(content_offset, containing_block_context::size_mode_content | containing_block_context::size_mode_measure),
-							  fmt_ctx ? &fmt_ctx_copy : nullptr);
-		content_size = min_main_size;
+		if (el->css().get_overflow() == overflow_visible)
+		{
+			formatting_context fmt_ctx_copy;
+			if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
+			min_main_size = el->measure(
+								  m_container_wm.is_vertical() ? self_size.new_height(content_offset, containing_block_context::size_mode_content | containing_block_context::size_mode_measure)
+															   : self_size.new_width(content_offset, containing_block_context::size_mode_content | containing_block_context::size_mode_measure),
+								  fmt_ctx ? &fmt_ctx_copy : nullptr);
+			content_size = min_main_size;
+		} else
+		{
+			min_main_size = render_offset;
+			content_size = min_main_size;
+		}
 	} else
 	{
 		min_main_size = min_size_prop.calc_percent(parent_size) + render_offset;
@@ -417,17 +424,23 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 
 	if (min_size_prop.is_predefined())
 	{
-		formatting_context fmt_ctx_copy;
-		if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-		int mode = containing_block_context::size_mode_measure;
-		bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
-		if (!stretch) mode |= containing_block_context::size_mode_content;
-		
-		el->measure(
-			m_container_wm.is_vertical() ? self_size.new_height(self_size.render_height, mode)
-										 : self_size.new_width(self_size.render_width, mode),
-			fmt_ctx ? &fmt_ctx_copy : nullptr);
-		min_main_size = get_el_main_size();
+		if (el->css().get_overflow() == overflow_visible)
+		{
+			formatting_context fmt_ctx_copy;
+			if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
+			int mode = containing_block_context::size_mode_measure;
+			bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
+			if (!stretch) mode |= containing_block_context::size_mode_content;
+			
+			el->measure(
+				m_container_wm.is_vertical() ? self_size.new_height(self_size.render_height, mode)
+											 : self_size.new_width(self_size.render_width, mode),
+				fmt_ctx ? &fmt_ctx_copy : nullptr);
+			min_main_size = get_el_main_size();
+		} else
+		{
+			min_main_size = render_offset;
+		}
 	} else
 	{
 		min_main_size = min_size_prop.calc_percent(parent_size) + render_offset;

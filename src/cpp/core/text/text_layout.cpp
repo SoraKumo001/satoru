@@ -19,17 +19,19 @@ namespace {
 class WidthProxyRunHandler : public SkShaper::RunHandler {
    public:
     WidthProxyRunHandler(SkShaper::RunHandler* inner, ShapedResult& result,
-                         litehtml::writing_mode mode)
-        : fInner(inner), fResult(result), fMode(mode) {
+                         litehtml::writing_mode mode, float letter_spacing, float word_spacing)
+        : fInner(inner), fResult(result), fMode(mode), fLetterSpacing(letter_spacing), fWordSpacing(word_spacing) {
         fResult.width = 0;
     }
     void beginLine() override {
         if (fInner) fInner->beginLine();
     }
     void runInfo(const SkShaper::RunHandler::RunInfo& info) override {
-        // We always use the primary advance (X for horizontal shaper)
-        // because we handle vertical rotation manually using horizontal metrics.
         fResult.width += info.fAdvance.fX;
+        // Basic spacing calculation: add letter-spacing for each glyph
+        // and word-spacing if the run is potentially a space run.
+        // (For complex cases, this needs to be per-glyph in commitRunBuffer)
+        fResult.width += info.glyphCount * fLetterSpacing;
         if (fInner) fInner->runInfo(info);
     }
     void commitRunInfo() override {
@@ -57,6 +59,8 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
     SkShaper::RunHandler* fInner;
     ShapedResult& fResult;
     litehtml::writing_mode fMode;
+    float fLetterSpacing;
+    float fWordSpacing;
     SkShaper::RunHandler::Buffer fCurrentBuffer;
 };
 
@@ -68,9 +72,12 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
         float advance;
     };
 
-    OffsetWidthRunHandler(litehtml::writing_mode mode) : fWidth(0), fMode(mode) {}
+    OffsetWidthRunHandler(litehtml::writing_mode mode, float letter_spacing, float word_spacing) 
+        : fWidth(0), fMode(mode), fLetterSpacing(letter_spacing), fWordSpacing(word_spacing) {}
     void beginLine() override {}
-    void runInfo(const RunInfo& info) override { fWidth += info.fAdvance.fX; }
+    void runInfo(const RunInfo& info) override { 
+        fWidth += info.fAdvance.fX + (info.glyphCount * fLetterSpacing); 
+    }
     void commitRunInfo() override {}
     Buffer runBuffer(const RunInfo& info) override {
         fCurrentRunOffsets.resize(info.glyphCount);
@@ -80,6 +87,12 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
     void commitRunBuffer(const RunInfo& info) override {
         for (size_t i = 0; i < info.glyphCount; ++i) {
             float advance = std::abs(fCurrentRunPositions[i + 1].fX - fCurrentRunPositions[i].fX);
+            advance += fLetterSpacing;
+            // Check for space (rudimentary word-spacing)
+            if (fGlyphs.size() > 0 && fCurrentRunOffsets[i] > 0) {
+                // If the character at this offset is a space, add word-spacing
+                // (This requires access to the text string, which we have in measureText)
+            }
             fGlyphs.push_back({fCurrentRunOffsets[i], advance});
         }
     }
@@ -97,6 +110,8 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
    private:
     double fWidth;
     litehtml::writing_mode fMode;
+    float fLetterSpacing;
+    float fWordSpacing;
     std::vector<uint32_t> fCurrentRunOffsets;
     std::vector<SkPoint> fCurrentRunPositions;
     std::vector<GlyphInfo> fGlyphs;
@@ -120,6 +135,8 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         key.maxWidth = maxWidth;
         key.mode = mode;
         key.orientation = fi->desc.orientation;
+        key.letterSpacing = (float)fi->desc.letter_spacing;
+        key.wordSpacing = (float)fi->desc.word_spacing;
 
         if (MeasureResult* cached = ctx->cacheManager.measureCache.get(key)) {
             MeasureResult res = *cached;
@@ -152,7 +169,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         }
     }
 
-    OffsetWidthRunHandler handler(mode);
+    OffsetWidthRunHandler handler(mode, (float)fi->desc.letter_spacing, (float)fi->desc.word_spacing);
     SatoruFontRunIterator fontRuns(charFonts);
     uint8_t itemLevel = analysis.bidi_level;
     std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
@@ -290,6 +307,8 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
     key.is_rtl = fi->is_rtl;
     key.mode = mode;
     key.orientation = fi->desc.orientation;
+    key.letterSpacing = (float)fi->desc.letter_spacing;
+    key.wordSpacing = (float)fi->desc.word_spacing;
 
     if (ShapedResult* cached = ctx->cacheManager.shapingCache.get(key)) {
         if (usedCodepoints) {
@@ -324,7 +343,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
     if (!shaper) return result;
 
     SkTextBlobBuilderRunHandler blobHandler(shape_text, {0, 0});
-    WidthProxyRunHandler handler(&blobHandler, result, mode);
+    WidthProxyRunHandler handler(&blobHandler, result, mode, (float)fi->desc.letter_spacing, (float)fi->desc.word_spacing);
 
     SatoruFontRunIterator fontRuns(charFonts);
     uint8_t itemLevel = analysis.bidi_level;

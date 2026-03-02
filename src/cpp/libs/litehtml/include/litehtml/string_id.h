@@ -342,6 +342,8 @@ namespace litehtml
       _gap_,
       _column_gap_,
       _row_gap_,
+      _letter_spacing_,
+      _word_spacing_,
 
       _grid_template_columns_,
       _grid_template_rows_,

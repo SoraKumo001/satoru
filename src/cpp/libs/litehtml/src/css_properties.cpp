@@ -408,6 +408,11 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   m_column_gap = el->get_property<css_length>(_column_gap_, false, 0, offset(m_column_gap));
   doc->cvt_units(m_column_gap, m_font_metrics, 0);
 
+  m_letter_spacing = el->get_property<css_length>(_letter_spacing_, true, normal, offset(m_letter_spacing));
+  m_word_spacing = el->get_property<css_length>(_word_spacing_, true, normal, offset(m_word_spacing));
+  doc->cvt_units(m_letter_spacing, m_font_metrics, font_size);
+  doc->cvt_units(m_word_spacing, m_font_metrics, font_size);
+
   m_column_rule.width = el->get_property<css_length>(_column_rule_width_, false, border_width_medium_value, offset(m_column_rule.width));
   m_column_rule.style = (border_style)el->get_property<int>(_column_rule_style_, false, border_style_none, offset(m_column_rule.style));
   m_column_rule.color = get_color_property(el, _column_rule_color_, false, m_color, offset(m_column_rule.color));
@@ -645,6 +650,8 @@ void litehtml::css_properties::compute_font(const element *el, const document::p
   descr.emphasis_color = m_text_emphasis_color;
   descr.emphasis_position = m_text_emphasis_position;
   descr.orientation = m_text_orientation;
+  descr.letter_spacing = m_letter_spacing.is_predefined() ? 0 : m_letter_spacing.val();
+  descr.word_spacing = m_word_spacing.is_predefined() ? 0 : m_word_spacing.val();
   descr.text_shadow = m_text_shadow;
 
   m_font = doc->get_font(descr, &m_font_metrics);

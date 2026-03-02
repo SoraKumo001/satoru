@@ -111,6 +111,9 @@ namespace litehtml
     css_length m_row_gap;
     css_length m_column_gap;
 
+    css_length m_letter_spacing;
+    css_length m_word_spacing;
+
     css_border m_column_rule;
 
     caption_side m_caption_side;
@@ -200,6 +203,8 @@ namespace litehtml
                        m_grid_row_end(),
                        m_row_gap(0),
                        m_column_gap(0),
+                       m_letter_spacing(0),
+                       m_word_spacing(0),
                        m_column_rule(),
                        m_order(0),
                        m_line_clamp(0),
@@ -392,6 +397,9 @@ namespace litehtml
 
     const css_length &get_row_gap() const;
     const css_length &get_column_gap() const;
+
+    const css_length &get_letter_spacing() const;
+    const css_length &get_word_spacing() const;
 
     const css_border &get_column_rule() const;
 
@@ -970,6 +978,16 @@ namespace litehtml
   inline const css_length &css_properties::get_column_gap() const
   {
     return m_column_gap;
+  }
+
+  inline const css_length &css_properties::get_letter_spacing() const
+  {
+    return m_letter_spacing;
+  }
+
+  inline const css_length &css_properties::get_word_spacing() const
+  {
+    return m_word_spacing;
   }
 
   inline const css_border &css_properties::get_column_rule() const

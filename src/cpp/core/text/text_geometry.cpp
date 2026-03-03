@@ -1,4 +1,5 @@
 #include "text_geometry.h"
+
 #include "include/core/SkFontMetrics.h"
 
 namespace satoru {
@@ -22,20 +23,30 @@ GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_
             float base_block_offset = (float)m_line_pos.width / 2.0f - em_center;
 
             // 縦書き時のベースライン (正立文字の場合)
-            // インライン方向も視覚的な均衡を図るため、CapHeight 分だけベースラインをシフトする。
-            // これにより、回転した英字（Tなど）の開始位置と日本語の上端が概ね揃う。
-            float baseline_adj = is_punctuation ? m_fi->desc.size * 0.30f : 0;
-            float inline_adj = metrics.fCapHeight > 0 ? metrics.fCapHeight : (float)m_fi->desc.size * 0.75f;
+            // 通常文字は視覚的な均衡（英字との上端合わせ）のため CapHeight
+            // 分だけベースラインをシフトする。
+            // 句読点の場合、縦書き用グリフは元々上寄りに設計されているため、シフトを行うと下がりすぎてしまう。
+            float inline_adj = 0;
+            if (!is_punctuation) {
+                inline_adj =
+                    metrics.fCapHeight > 0 ? metrics.fCapHeight : (float)m_fi->desc.size * 0.75f;
+            }
 
-            logical_pos l_p(inline_offset + baseline_adj + inline_adj, base_block_offset + block_offset);
+            logical_pos l_p(inline_offset + inline_adj, base_block_offset + block_offset);
             litehtml::position p_p = m_wm_ctx.to_physical(l_p, logical_size(0, 0));
 
             placement.x = (float)m_line_pos.x + p_p.x;
             placement.y = (float)m_line_pos.y + p_p.y;
 
             if (is_punctuation) {
-                // 句読点を右上にオフセット (RL/LR共通)
-                placement.x += (float)m_fi->desc.size * 0.55f;
+                // 句読点を右上（RLでは右、LRでは左）にオフセット
+                float shift = (float)m_fi->desc.size * 0.58f;
+                if (m_mode == litehtml::writing_mode_vertical_rl) {
+                    placement.x += shift;
+                    placement.y += (float)m_fi->desc.size * 0.2f;
+                } else {
+                    placement.x -= shift;
+                }
             }
         } else {
             // 回転 (Sideways): グリフを時計回りに90度回転

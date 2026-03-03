@@ -18,7 +18,7 @@ class el_svg : public html_tag {
         const std::shared_ptr<render_item>& parent_ri) override;
 
    private:
-    std::string reconstruct_xml(int x, int y) const;
+    std::string reconstruct_xml(int x, int y, int width, int height) const;
     void write_element(std::ostream& os, const element::ptr& el) const;
 };
 }  // namespace litehtml

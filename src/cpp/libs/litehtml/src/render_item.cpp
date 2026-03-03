@@ -1673,6 +1673,11 @@ ret.height.value = phys_height - content_offset_height();
 		ret.max_height.value = std::max(0.0f, (pixel_t)ret.max_height.value - box_sizing_height());
 	}
 
+	// For children, the containing block is the content box.
+	// Sync width/height with render_width/render_height to ensure consistent layout.
+	ret.width = ret.render_width;
+	ret.height = ret.render_height;
+
 	return ret;
 }
 

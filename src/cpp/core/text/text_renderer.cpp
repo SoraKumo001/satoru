@@ -264,23 +264,24 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 }
             }
         } else if (batcher && fi->desc.text_shadow.empty() &&
-                   fi->desc.decoration_line == litehtml::text_decoration_line_none) {
-            TextBatcher::Style style;
-            style.fi = fi;
-            SkColor c = paint.getColor();
-            style.color = {(uint8_t)SkColorGetR(c), (uint8_t)SkColorGetG(c),
-                           (uint8_t)SkColorGetB(c), (uint8_t)SkColorGetA(c)};
-            style.opacity = 1.0f;
-            style.tagging = false;
-            style.mode = mode;
-            style.line_width = is_vertical ? (float)pos.width : (float)pos.height;
-            style.is_vertical_upright = is_upright;
-            style.is_vertical_punctuation = is_punctuation;
-            
-            // 物理的な絶対座標を算出
-            WritingModeContext wm_ctx(mode, pos.width, pos.height);
-            litehtml::position phys_run_pos = wm_ctx.to_physical(current_l_pos, logical_size(0, 0));
-            batcher->addText(shaped.blob, (double)pos.x + phys_run_pos.x, (double)pos.y + phys_run_pos.y, style);
+        fi->desc.decoration_line == litehtml::text_decoration_line_none) {
+        TextBatcher::Style style;
+        style.fi = fi;
+        SkColor c = paint.getColor();
+        style.color = {(uint8_t)SkColorGetR(c), (uint8_t)SkColorGetG(c),
+        (uint8_t)SkColorGetB(c), (uint8_t)SkColorGetA(c)};
+        style.opacity = 1.0f;
+        style.tagging = false;
+        style.mode = mode;
+        style.line_width = is_vertical ? (float)pos.width : (float)pos.height;
+        style.is_vertical_upright = is_upright;
+        style.is_vertical_punctuation = is_punctuation;
+
+        if (is_vertical) {
+            batcher->addText(shaped.blob, (double)pos.x, (double)pos.y + current_l_pos.inline_offset, style);
+        } else {
+            batcher->addText(shaped.blob, (double)pos.x + current_l_pos.inline_offset, (double)pos.y, style);
+            }
         } else {
             if (batcher) batcher->flush();
             canvas->save();

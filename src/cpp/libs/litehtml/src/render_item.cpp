@@ -1,204 +1,180 @@
 #include "render_item.h"
-#include "document.h"
+
 #include <typeinfo>
+
+#include "document.h"
 #include "document_container.h"
 #include "types.h"
 
-static bool is_orthogonal(litehtml::writing_mode wm1, litehtml::writing_mode wm2)
-{
-    return (wm1 == litehtml::writing_mode_horizontal_tb) != (wm2 == litehtml::writing_mode_horizontal_tb);
+static bool is_orthogonal(litehtml::writing_mode wm1, litehtml::writing_mode wm2) {
+    return (wm1 == litehtml::writing_mode_horizontal_tb) !=
+           (wm2 == litehtml::writing_mode_horizontal_tb);
 }
 
-litehtml::render_item::render_item(std::shared_ptr<element>  _src_el) :
-        m_element(std::move(_src_el)),
-        m_skip(false),
-        m_force_ellipsis(false)
-{
+litehtml::render_item::render_item(std::shared_ptr<element> _src_el)
+    : m_element(std::move(_src_el)), m_skip(false), m_force_ellipsis(false) {
     document::ptr doc = src_el()->get_document();
-	auto fm = css().get_font_metrics();
+    auto fm = css().get_font_metrics();
 
-    m_margins.left		= doc->to_pixels(src_el()->css().get_margins().left,         fm, 0);
-    m_margins.right		= doc->to_pixels(src_el()->css().get_margins().right,        fm, 0);
-    m_margins.top		= doc->to_pixels(src_el()->css().get_margins().top,          fm, 0);
-    m_margins.bottom	= doc->to_pixels(src_el()->css().get_margins().bottom,       fm, 0);
+    m_margins.left = doc->to_pixels(src_el()->css().get_margins().left, fm, 0);
+    m_margins.right = doc->to_pixels(src_el()->css().get_margins().right, fm, 0);
+    m_margins.top = doc->to_pixels(src_el()->css().get_margins().top, fm, 0);
+    m_margins.bottom = doc->to_pixels(src_el()->css().get_margins().bottom, fm, 0);
 
-    m_padding.left		= doc->to_pixels(src_el()->css().get_padding().left,         fm, 0);
-    m_padding.right		= doc->to_pixels(src_el()->css().get_padding().right,        fm, 0);
-    m_padding.top		= doc->to_pixels(src_el()->css().get_padding().top,          fm, 0);
-    m_padding.bottom	= doc->to_pixels(src_el()->css().get_padding().bottom,       fm, 0);
+    m_padding.left = doc->to_pixels(src_el()->css().get_padding().left, fm, 0);
+    m_padding.right = doc->to_pixels(src_el()->css().get_padding().right, fm, 0);
+    m_padding.top = doc->to_pixels(src_el()->css().get_padding().top, fm, 0);
+    m_padding.bottom = doc->to_pixels(src_el()->css().get_padding().bottom, fm, 0);
 
-    m_borders.left		= doc->to_pixels(src_el()->css().get_borders().left.width,   fm, 0);
-    m_borders.right		= doc->to_pixels(src_el()->css().get_borders().right.width,  fm, 0);
-    m_borders.top		= doc->to_pixels(src_el()->css().get_borders().top.width,    fm, 0);
-    m_borders.bottom	= doc->to_pixels(src_el()->css().get_borders().bottom.width, fm, 0);
+    m_borders.left = doc->to_pixels(src_el()->css().get_borders().left.width, fm, 0);
+    m_borders.right = doc->to_pixels(src_el()->css().get_borders().right.width, fm, 0);
+    m_borders.top = doc->to_pixels(src_el()->css().get_borders().top.width, fm, 0);
+    m_borders.bottom = doc->to_pixels(src_el()->css().get_borders().bottom.width, fm, 0);
 }
 
-litehtml::pixel_t litehtml::render_item::measure(const containing_block_context& containing_block_size, formatting_context* fmt_ctx)
-{
-	if (m_cached_parent_width != (pixel_t)containing_block_size.inline_size())
-	{
-		calc_outlines(containing_block_size.inline_size());
-		m_cached_parent_width = containing_block_size.inline_size();
-		m_is_measured = false;
-	}
+litehtml::pixel_t litehtml::render_item::measure(
+    const containing_block_context& containing_block_size, formatting_context* fmt_ctx) {
+    if (m_cached_parent_width != (pixel_t)containing_block_size.inline_size()) {
+        calc_outlines(containing_block_size.inline_size());
+        m_cached_parent_width = containing_block_size.inline_size();
+        m_is_measured = false;
+    }
 
-	if (m_is_measured && m_cached_cb_context == containing_block_size)
-	{
-		return m_pos.width + content_offset_width();
-	}
+    if (m_is_measured && m_cached_cb_context == containing_block_size) {
+        return m_pos.width + content_offset_width();
+    }
 
-	m_cached_cb_context = containing_block_size;
-	m_self_size = calculate_containing_block_context(containing_block_size);
-	m_is_measured = true;
+    m_cached_cb_context = containing_block_size;
+    m_self_size = calculate_containing_block_context(containing_block_size);
+    m_is_measured = true;
 
-	pixel_t measured_size = 0;
-	if(src_el()->is_block_formatting_context() || ! fmt_ctx)
-	{
-		formatting_context fmt(css().get_writing_mode());
-		measured_size = _measure(containing_block_size, &fmt);
-	} else
-	{
-		measured_size = _measure(containing_block_size, fmt_ctx);
-	}
+    pixel_t measured_size = 0;
+    if (src_el()->is_block_formatting_context() || !fmt_ctx) {
+        formatting_context fmt(css().get_writing_mode());
+        measured_size = _measure(containing_block_size, &fmt);
+    } else {
+        measured_size = _measure(containing_block_size, fmt_ctx);
+    }
 
-	// Container Queries Support: Detect size change and trigger restyle
-	if (css().get_container_type() != container_type_none)
-	{
-		pixel_t current_w = m_pos.width - m_padding.width() - m_borders.width();
-		pixel_t current_h = m_pos.height - m_padding.height() - m_borders.height();
+    // Container Queries Support: Detect size change and trigger restyle
+    if (css().get_container_type() != container_type_none) {
+        pixel_t current_w = m_pos.width - m_padding.width() - m_borders.width();
+        pixel_t current_h = m_pos.height - m_padding.height() - m_borders.height();
 
-		if (src_el()->css_w().m_last_container_size.width != current_w ||
-			src_el()->css_w().m_last_container_size.height != current_h)
-		{
-			src_el()->css_w().m_last_container_size.width = current_w;
-			src_el()->css_w().m_last_container_size.height = current_h;
+        if (src_el()->css_w().m_last_container_size.width != current_w ||
+            src_el()->css_w().m_last_container_size.height != current_h) {
+            src_el()->css_w().m_last_container_size.width = current_w;
+            src_el()->css_w().m_last_container_size.height = current_h;
 
-			// Trigger style re-computation for all descendants based on new container size
-			src_el()->compute_styles(true);
+            // Trigger style re-computation for all descendants based on new container size
+            src_el()->compute_styles(true);
 
-			// Re-measure after restyle to apply changes
-			if(src_el()->is_block_formatting_context() || ! fmt_ctx)
-			{
-				formatting_context fmt(css().get_writing_mode());
-				measured_size = _measure(containing_block_size, &fmt);
-			} else
-			{
-				measured_size = _measure(containing_block_size, fmt_ctx);
-			}
-		}
-	}
+            // Re-measure after restyle to apply changes
+            if (src_el()->is_block_formatting_context() || !fmt_ctx) {
+                formatting_context fmt(css().get_writing_mode());
+                measured_size = _measure(containing_block_size, &fmt);
+            } else {
+                measured_size = _measure(containing_block_size, fmt_ctx);
+            }
+        }
+    }
 
-	return measured_size;
+    return measured_size;
 }
 
-void litehtml::render_item::place(pixel_t x, pixel_t y, const containing_block_context& containing_block_size, formatting_context* fmt_ctx)
-{
-	pixel_t content_left = content_offset_left();
-	pixel_t content_top = content_offset_top();
+void litehtml::render_item::place(pixel_t x, pixel_t y,
+                                  const containing_block_context& containing_block_size,
+                                  formatting_context* fmt_ctx) {
+    pixel_t content_left = content_offset_left();
+    pixel_t content_top = content_offset_top();
 
-	m_pos.x = x + content_left;
-	m_pos.y = y + content_top;
+    m_pos.x = x + content_left;
+    m_pos.y = y + content_top;
 
-	m_cached_cb_context.width = containing_block_size.width;
-	m_cached_cb_context.height = containing_block_size.height;
+    m_cached_cb_context.width = containing_block_size.width;
+    m_cached_cb_context.height = containing_block_size.height;
 
-	if (m_cached_cb_context != containing_block_size)
-	{
-		m_cached_cb_context = containing_block_size;
-		m_self_size = calculate_containing_block_context(containing_block_size);
-		m_is_measured = false;
-	}
+    if (m_cached_cb_context != containing_block_size) {
+        m_cached_cb_context = containing_block_size;
+        m_self_size = calculate_containing_block_context(containing_block_size);
+        m_is_measured = false;
+    }
 
-	if(src_el()->is_block_formatting_context() || ! fmt_ctx)
-	{
-		formatting_context fmt(css().get_writing_mode());
-		_place(x, y, containing_block_size, &fmt);
-		fmt.apply_relative_shift(containing_block_size);
-	} else
-	{
-		fmt_ctx->push_position(x + content_left, y + content_top);
-		_place(x, y, containing_block_size, fmt_ctx);
-		fmt_ctx->pop_position(x + content_left, y + content_top);
-	}
+    if (src_el()->is_block_formatting_context() || !fmt_ctx) {
+        formatting_context fmt(css().get_writing_mode());
+        _place(x, y, containing_block_size, &fmt);
+        fmt.apply_relative_shift(containing_block_size);
+    } else {
+        fmt_ctx->push_position(x + content_left, y + content_top);
+        _place(x, y, containing_block_size, fmt_ctx);
+        fmt_ctx->pop_position(x + content_left, y + content_top);
+    }
 }
 
-litehtml::pixel_t litehtml::render_item::render(pixel_t x, pixel_t y, const containing_block_context& containing_block_size, formatting_context* fmt_ctx, bool second_pass)
-{
-	if (containing_block_size.size_mode & containing_block_context::size_mode_measure)
-	{
-		return measure(containing_block_size, fmt_ctx);
-	}
+litehtml::pixel_t litehtml::render_item::render(
+    pixel_t x, pixel_t y, const containing_block_context& containing_block_size,
+    formatting_context* fmt_ctx, bool second_pass) {
+    if (containing_block_size.size_mode & containing_block_context::size_mode_measure) {
+        return measure(containing_block_size, fmt_ctx);
+    }
 
-	pixel_t ret = measure(containing_block_size, fmt_ctx);
-	place(x, y, containing_block_size, fmt_ctx);
+    pixel_t ret = measure(containing_block_size, fmt_ctx);
+    place(x, y, containing_block_size, fmt_ctx);
 
-	return ret;
+    return ret;
 }
 
-void litehtml::render_item::calc_outlines( pixel_t parent_width )
-{
-    m_padding.left	= m_element->css().get_padding().left.calc_percent(parent_width);
-    m_padding.right	= m_element->css().get_padding().right.calc_percent(parent_width);
+void litehtml::render_item::calc_outlines(pixel_t parent_width) {
+    m_padding.left = m_element->css().get_padding().left.calc_percent(parent_width);
+    m_padding.right = m_element->css().get_padding().right.calc_percent(parent_width);
 
-    m_borders.left	= m_element->css().get_borders().left.width.calc_percent(parent_width);
-    m_borders.right	= m_element->css().get_borders().right.width.calc_percent(parent_width);
+    m_borders.left = m_element->css().get_borders().left.width.calc_percent(parent_width);
+    m_borders.right = m_element->css().get_borders().right.width.calc_percent(parent_width);
 
-    m_margins.left	= m_element->css().get_margins().left.calc_percent(parent_width);
-    m_margins.right	= m_element->css().get_margins().right.calc_percent(parent_width);
+    m_margins.left = m_element->css().get_margins().left.calc_percent(parent_width);
+    m_margins.right = m_element->css().get_margins().right.calc_percent(parent_width);
 
-    m_margins.top		= m_element->css().get_margins().top.calc_percent(parent_width);
-    m_margins.bottom	= m_element->css().get_margins().bottom.calc_percent(parent_width);
+    m_margins.top = m_element->css().get_margins().top.calc_percent(parent_width);
+    m_margins.bottom = m_element->css().get_margins().bottom.calc_percent(parent_width);
 
-    m_padding.top		= m_element->css().get_padding().top.calc_percent(parent_width);
-    m_padding.bottom	= m_element->css().get_padding().bottom.calc_percent(parent_width);
+    m_padding.top = m_element->css().get_padding().top.calc_percent(parent_width);
+    m_padding.bottom = m_element->css().get_padding().bottom.calc_percent(parent_width);
 }
 
-litehtml::pixel_t litehtml::render_item::calc_auto_margins(pixel_t parent_width)
-{
-	auto wm = get_wm_context();
-    if (src_el()->is_block_box() &&
-        src_el()->css().get_position() != element_position_absolute &&
-        src_el()->css().get_float() == float_none)
-    {
+litehtml::pixel_t litehtml::render_item::calc_auto_margins(pixel_t parent_width) {
+    auto wm = get_wm_context();
+    if (src_el()->is_block_box() && src_el()->css().get_position() != element_position_absolute &&
+        src_el()->css().get_float() == float_none) {
         pixel_t old_margin_start = margin_inline_start();
-		if (wm.inline_start(src_el()->css().get_margins()).is_predefined() && wm.inline_end(src_el()->css().get_margins()).is_predefined())
-		{
-			pixel_t el_inline_size = inline_size() - margin_inline_start() - margin_inline_end();
-			if (el_inline_size <= parent_width)
-			{
-				margin_inline_start((parent_width - el_inline_size) / 2);
-				margin_inline_end((parent_width - el_inline_size) - margin_inline_start());
-			}
-			else
-			{
-				margin_inline_start(0);
-				margin_inline_end(0);
-			}
-		}
-		else if (wm.inline_start(src_el()->css().get_margins()).is_predefined() && !wm.inline_end(src_el()->css().get_margins()).is_predefined())
-		{
-			pixel_t el_inline_size = inline_size() - margin_inline_start();
-			margin_inline_start(parent_width - el_inline_size);
-			if (margin_inline_start() < 0) margin_inline_start(0);
-		}
-		else if (!wm.inline_start(src_el()->css().get_margins()).is_predefined() && wm.inline_end(src_el()->css().get_margins()).is_predefined())
-		{
-			pixel_t el_inline_size = inline_size() - margin_inline_end();
-			margin_inline_end(parent_width - el_inline_size);
-			if (margin_inline_end() < 0) margin_inline_end(0);
-		}
-		else
-		{
-			direction dir = direction_ltr;
-            if (src_el()->parent())
-            {
+        if (wm.inline_start(src_el()->css().get_margins()).is_predefined() &&
+            wm.inline_end(src_el()->css().get_margins()).is_predefined()) {
+            pixel_t el_inline_size = inline_size() - margin_inline_start() - margin_inline_end();
+            if (el_inline_size <= parent_width) {
+                margin_inline_start((parent_width - el_inline_size) / 2);
+                margin_inline_end((parent_width - el_inline_size) - margin_inline_start());
+            } else {
+                margin_inline_start(0);
+                margin_inline_end(0);
+            }
+        } else if (wm.inline_start(src_el()->css().get_margins()).is_predefined() &&
+                   !wm.inline_end(src_el()->css().get_margins()).is_predefined()) {
+            pixel_t el_inline_size = inline_size() - margin_inline_start();
+            margin_inline_start(parent_width - el_inline_size);
+            if (margin_inline_start() < 0) margin_inline_start(0);
+        } else if (!wm.inline_start(src_el()->css().get_margins()).is_predefined() &&
+                   wm.inline_end(src_el()->css().get_margins()).is_predefined()) {
+            pixel_t el_inline_size = inline_size() - margin_inline_end();
+            margin_inline_end(parent_width - el_inline_size);
+            if (margin_inline_end() < 0) margin_inline_end(0);
+        } else {
+            direction dir = direction_ltr;
+            if (src_el()->parent()) {
                 dir = src_el()->parent()->get_direction();
             }
-            if (dir == direction_rtl)
-            {
-				pixel_t el_inline_size = inline_size() - margin_inline_start();
-				margin_inline_start(parent_width - el_inline_size);
-				if (margin_inline_start() < 0) margin_inline_start(0);
+            if (dir == direction_rtl) {
+                pixel_t el_inline_size = inline_size() - margin_inline_start();
+                margin_inline_start(parent_width - el_inline_size);
+                if (margin_inline_start() < 0) margin_inline_start(0);
             }
         }
         return margin_inline_start() - old_margin_start;
@@ -206,45 +182,31 @@ litehtml::pixel_t litehtml::render_item::calc_auto_margins(pixel_t parent_width)
     return 0;
 }
 
-void litehtml::render_item::apply_relative_shift(const containing_block_context &containing_block_size)
-{
-    if (src_el()->css().get_position() == element_position_relative)
-    {
+void litehtml::render_item::apply_relative_shift(
+    const containing_block_context& containing_block_size) {
+    if (src_el()->css().get_position() == element_position_relative) {
         css_offsets offsets = src_el()->css().get_offsets();
-        if (!offsets.left.is_predefined())
-        {
+        if (!offsets.left.is_predefined()) {
             inline_shift(offsets.left.calc_percent(containing_block_size.inline_size()));
-        }
-        else if (!offsets.right.is_predefined())
-        {
+        } else if (!offsets.right.is_predefined()) {
             inline_shift(-offsets.right.calc_percent(containing_block_size.inline_size()));
         }
-        if (!offsets.top.is_predefined())
-        {
+        if (!offsets.top.is_predefined()) {
             block_shift(offsets.top.calc_percent(containing_block_size.block_size()));
-        }
-        else if (!offsets.bottom.is_predefined())
-        {
+        } else if (!offsets.bottom.is_predefined()) {
             block_shift(-offsets.bottom.calc_percent(containing_block_size.block_size()));
         }
     }
 }
 
-std::tuple<
-        std::shared_ptr<litehtml::render_item>,
-        std::shared_ptr<litehtml::render_item>,
-        std::shared_ptr<litehtml::render_item>
-        > litehtml::render_item::split_inlines()
-{
-    std::tuple<
-            std::shared_ptr<litehtml::render_item>,
-            std::shared_ptr<litehtml::render_item>,
-            std::shared_ptr<litehtml::render_item>
-    > ret;
-    for(const auto& child: m_children)
-    {
-        if(child->src_el()->is_block_box() && child->src_el()->css().get_float() == float_none)
-        {
+std::tuple<std::shared_ptr<litehtml::render_item>, std::shared_ptr<litehtml::render_item>,
+           std::shared_ptr<litehtml::render_item> >
+litehtml::render_item::split_inlines() {
+    std::tuple<std::shared_ptr<litehtml::render_item>, std::shared_ptr<litehtml::render_item>,
+               std::shared_ptr<litehtml::render_item> >
+        ret;
+    for (const auto& child : m_children) {
+        if (child->src_el()->is_block_box() && child->src_el()->css().get_float() == float_none) {
             std::get<0>(ret) = clone();
             std::get<1>(ret) = child;
             std::get<2>(ret) = clone();
@@ -253,28 +215,22 @@ std::tuple<
             std::get<2>(ret)->parent(std::get<0>(ret));
 
             bool found = false;
-            for(const auto& ch: m_children)
-            {
-                if(ch == child)
-                {
+            for (const auto& ch : m_children) {
+                if (ch == child) {
                     found = true;
                     continue;
                 }
-                if(!found)
-                {
+                if (!found) {
                     std::get<0>(ret)->add_child(ch);
-                } else
-                {
+                } else {
                     std::get<2>(ret)->add_child(ch);
                 }
             }
             break;
         }
-        if(!child->children().empty())
-        {
+        if (!child->children().empty()) {
             auto child_split = child->split_inlines();
-            if(std::get<0>(child_split))
-            {
+            if (std::get<0>(child_split)) {
                 std::get<0>(ret) = clone();
                 std::get<1>(ret) = std::get<1>(child_split);
                 std::get<2>(ret) = clone();
@@ -282,18 +238,14 @@ std::tuple<
                 std::get<2>(ret)->parent(std::get<0>(ret));
 
                 bool found = false;
-                for(const auto& ch: m_children)
-                {
-                    if(ch == child)
-                    {
+                for (const auto& ch : m_children) {
+                    if (ch == child) {
                         found = true;
                         continue;
                     }
-                    if(!found)
-                    {
+                    if (!found) {
                         std::get<0>(ret)->add_child(ch);
-                    } else
-                    {
+                    } else {
                         std::get<2>(ret)->add_child(ch);
                     }
                 }
@@ -306,514 +258,488 @@ std::tuple<
     return ret;
 }
 
-bool litehtml::render_item::fetch_positioned()
-{
+bool litehtml::render_item::fetch_positioned() {
     bool ret = false;
 
     m_positioned.clear();
 
     litehtml::element_position el_pos;
 
-    for(auto& el : m_children)
-    {
+    for (auto& el : m_children) {
         el_pos = el->src_el()->css().get_position();
-        if (el->src_el()->is_positioned())
-        {
+        if (el->src_el()->is_positioned()) {
             add_positioned(el);
         }
-        if (!ret && (el_pos == element_position_absolute || el_pos == element_position_fixed))
-        {
+        if (!ret && (el_pos == element_position_absolute || el_pos == element_position_fixed)) {
             ret = true;
         }
-        if(el->fetch_positioned())
-        {
+        if (el->fetch_positioned()) {
             ret = true;
         }
     }
     return ret;
 }
 
-void litehtml::render_item::sort_positioned()
-{
-    for(auto& el : m_positioned)
-    {
+void litehtml::render_item::sort_positioned() {
+    for (auto& el : m_positioned) {
         el->sort_positioned();
     }
 
-    if(!m_positioned.empty())
-    {
-        std::stable_sort(m_positioned.begin(), m_positioned.end(), [](const std::shared_ptr<render_item>& Left, const std::shared_ptr<render_item>& Right)
-            {
+    if (!m_positioned.empty()) {
+        std::stable_sort(
+            m_positioned.begin(), m_positioned.end(),
+            [](const std::shared_ptr<render_item>& Left,
+               const std::shared_ptr<render_item>& Right) {
                 return (Left->src_el()->css().get_z_index() < Right->src_el()->css().get_z_index());
             });
     }
 }
 
-void litehtml::render_item::render_positioned(render_type rt)
-{
+void litehtml::render_item::render_positioned(render_type rt) {
     position view_port;
     src_el()->get_document()->container()->get_viewport(view_port);
 
     element_position el_position;
     bool process;
-    for (auto& el : m_positioned)
-    {
+    for (auto& el : m_positioned) {
         el_position = el->src_el()->css().get_position();
 
         process = false;
-        if(el->src_el()->css().get_display() != display_none)
-        {
-            if(el_position == element_position_absolute)
-            {
-                if(rt != render_fixed_only)
-                {
+        if (el->src_el()->css().get_display() != display_none) {
+            if (el_position == element_position_absolute) {
+                if (rt != render_fixed_only) {
                     process = true;
                 }
-            } else if(el_position == element_position_fixed)
-            {
-                if(rt != render_no_fixed)
-                {
+            } else if (el_position == element_position_fixed) {
+                if (rt != render_no_fixed) {
                     process = true;
                 }
             }
         }
 
-        if(process)
-        {
-			containing_block_context containing_block_size;
-            if(el_position == element_position_fixed || (is_root() && !src_el()->is_positioned()))
-            {
-				containing_block_size.height	= view_port.height;
-				containing_block_size.width		= view_port.width;
-            } else
-            {
-				containing_block_size.height	= m_pos.height + m_padding.height();
-				containing_block_size.width		= m_pos.width + m_padding.width();
+        if (process) {
+            containing_block_context containing_block_size;
+            if (el_position == element_position_fixed ||
+                (is_root() && !src_el()->is_positioned())) {
+                containing_block_size.height = view_port.height;
+                containing_block_size.width = view_port.width;
+            } else {
+                containing_block_size.height = m_pos.height + m_padding.height();
+                containing_block_size.width = m_pos.width + m_padding.width();
             }
 
-            css_length	css_left	= el->src_el()->css().get_offsets().left;
-            css_length	css_right	= el->src_el()->css().get_offsets().right;
-            css_length	css_top		= el->src_el()->css().get_offsets().top;
-            css_length	css_bottom	= el->src_el()->css().get_offsets().bottom;
+            css_length css_left = el->src_el()->css().get_offsets().left;
+            css_length css_right = el->src_el()->css().get_offsets().right;
+            css_length css_top = el->src_el()->css().get_offsets().top;
+            css_length css_bottom = el->src_el()->css().get_offsets().bottom;
 
             bool need_render = false;
 
             css_length el_width = el->src_el()->css().get_width();
             css_length el_height = el->src_el()->css().get_height();
 
-			auto fix_height_min_max = [&] (pixel_t height)
-			{
-				auto max_height = el->css().get_max_height();
-				auto min_height = el->css().get_max_height();
-				if(!max_height.is_predefined())
-				{
-					pixel_t max_height_value = max_height.calc_percent(containing_block_size.height);
-					if(height > max_height_value)
-					{
-						height = max_height_value;
-					}
-				}
-				if(!min_height.is_predefined())
-				{
-					pixel_t min_height_value = min_height.calc_percent(containing_block_size.height);
-					if(height < min_height_value)
-					{
-						height = min_height_value;
-					}
-				}
-				height += el->content_offset_height();
-				return height;
-			};
+            auto fix_height_min_max = [&](pixel_t height) {
+                auto max_height = el->css().get_max_height();
+                auto min_height = el->css().get_max_height();
+                if (!max_height.is_predefined()) {
+                    pixel_t max_height_value =
+                        max_height.calc_percent(containing_block_size.height);
+                    if (height > max_height_value) {
+                        height = max_height_value;
+                    }
+                }
+                if (!min_height.is_predefined()) {
+                    pixel_t min_height_value =
+                        min_height.calc_percent(containing_block_size.height);
+                    if (height < min_height_value) {
+                        height = min_height_value;
+                    }
+                }
+                height += el->content_offset_height();
+                return height;
+            };
 
-			auto fix_width_min_max = [&] (pixel_t width)
-			{
-				auto max_width = el->css().get_max_width();
-				auto min_width = el->css().get_min_width();
-				if(!max_width.is_predefined())
-				{
-					pixel_t max_width_value = max_width.calc_percent(containing_block_size.width);
-					if(width > max_width_value)
-					{
-						width = max_width_value;
-					}
-				}
-				if(!min_width.is_predefined())
-				{
-					pixel_t min_height_value = min_width.calc_percent(containing_block_size.width);
-					if(width < min_height_value)
-					{
-						width = min_height_value;
-					}
-				}
-				width += el->content_offset_width();
-				return width;
-			};
+            auto fix_width_min_max = [&](pixel_t width) {
+                auto max_width = el->css().get_max_width();
+                auto min_width = el->css().get_min_width();
+                if (!max_width.is_predefined()) {
+                    pixel_t max_width_value = max_width.calc_percent(containing_block_size.width);
+                    if (width > max_width_value) {
+                        width = max_width_value;
+                    }
+                }
+                if (!min_width.is_predefined()) {
+                    pixel_t min_height_value = min_width.calc_percent(containing_block_size.width);
+                    if (width < min_height_value) {
+                        width = min_height_value;
+                    }
+                }
+                width += el->content_offset_width();
+                return width;
+            };
 
-			pixel_t bottom = 0;
-			pixel_t top = 0;
-			pixel_t height = 0;
-			auto [el_static_offset_x, el_static_offset_y] = element_static_offset(el);
-			pixel_t el_static_x = el->m_pos.x + el_static_offset_x;
-			pixel_t el_static_y = el->m_pos.y + el_static_offset_y;
-			// Calculate vertical position
-			// https://www.w3.org/TR/CSS22/visudet.html#abs-non-replaced-height
-			// 10.6.4 Absolutely positioned, non-replaced elements
-			if(css_top.is_predefined() && !css_bottom.is_predefined() && el_height.is_predefined())
-			{
-				// 1. 'top' and 'height' are 'auto' and 'bottom' is not 'auto', then the height is based on the
-				// content per 10.6.7, set 'auto' values for 'margin-top' and 'margin-bottom' to 0, and solve for 'top'
-				if(el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
-				if(el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
-				height = el->height();
-				bottom = css_bottom.calc_percent(containing_block_size.height);
-				top = containing_block_size.height - height - bottom;
-			} else if(css_top.is_predefined() && css_bottom.is_predefined() && !el_height.is_predefined())
-			{
-				// 2. 'top' and 'bottom' are 'auto' and 'height' is not 'auto', then set 'top' to the static position,
-				// set 'auto' values for 'margin-top' and 'margin-bottom' to 0, and solve for 'bottom'
-				if(el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
-				if(el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
-				top = el_static_y - el->content_offset_top();
-				height = fix_height_min_max(el->get_predefined_height(containing_block_size.height));
-			} else if(!css_top.is_predefined() && css_bottom.is_predefined() && el_height.is_predefined())
-			{
-				// 3. 'height' and 'bottom' are 'auto' and 'top' is not 'auto', then the height is based on the
-				// content per 10.6.7, set 'auto' values for 'margin-top' and 'margin-bottom' to 0,
-				// and solve for 'bottom'
-				if(el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
-				if(el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
-				height = el->height();
-				top = css_top.calc_percent(containing_block_size.height);
-			} else if(css_top.is_predefined() && !css_bottom.is_predefined() && !el_height.is_predefined())
-			{
-				// 4. 'top' is 'auto', 'height' and 'bottom' are not 'auto', then set 'auto' values for 'margin-top'
-				// and 'margin-bottom' to 0, and solve for 'top'
-				if(el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
-				if(el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
-				height = fix_height_min_max(el->get_predefined_height(containing_block_size.height));
-				bottom = css_bottom.calc_percent(containing_block_size.height);
-				top = containing_block_size.height - height - bottom;
-			} else if(!css_top.is_predefined() && !css_bottom.is_predefined() && el_height.is_predefined())
-			{
-				// 5. 'height' is 'auto', 'top' and 'bottom' are not 'auto', then 'auto' values for 'margin-top' and
-				// 'margin-bottom' are set to 0 and solve for 'height'
-				if(el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
-				if(el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
-				bottom = css_bottom.calc_percent(containing_block_size.height);
-				top = css_top.calc_percent(containing_block_size.height);
-				if(el->src_el()->is_replaced())
-				{
-					height = el->height() - el->content_offset_height();
-					pixel_t reminded = (containing_block_size.height - top - bottom) - height - el->content_offset_height();
-					if(reminded > 0)
-					{
-						int divider = 0;
-						if (el->css().get_margins().top.is_predefined()) divider++;
-						if (el->css().get_margins().bottom.is_predefined()) divider++;
-						if (divider != 0)
-						{
-							if (el->css().get_margins().top.is_predefined()) el->m_margins.top = reminded / divider;
-							if (el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = reminded / divider;
-						}
-					}
-					height += el->content_offset_height();
-				} else
-				{
-					height = containing_block_size.height - top - bottom;
-				}
-				if(!el->css().get_max_height().is_predefined())
-				{
-					pixel_t max_height = el->css().get_max_height().calc_percent(containing_block_size.height);
-					if(height - el->content_offset_height() > max_height)
-					{
-						pixel_t reminded = height - el->content_offset_height() - max_height;
-						height = max_height;
-						int divider = 0;
-						if(el->css().get_margins().top.is_predefined()) divider++;
-						if(el->css().get_margins().bottom.is_predefined()) divider++;
-						if(divider != 0)
-						{
-							if(el->css().get_margins().top.is_predefined()) el->m_margins.top = reminded / divider;
-							if(el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = reminded / divider;
-						}
-						height += el->content_offset_height();
-					}
-				}
-			} else if(!css_top.is_predefined() && css_bottom.is_predefined() && !el_height.is_predefined())
-			{
-				// 6. 'bottom' is 'auto', 'top' and 'height' are not 'auto', then set 'auto' values for 'margin-top'
-				// and 'margin-bottom' to 0 and solve for 'bottom'
-				if(el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
-				if(el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
-				height = fix_height_min_max(el->get_predefined_height(containing_block_size.height));
-				top = css_top.calc_percent(containing_block_size.height);
-			} else if(css_top.is_predefined() && css_bottom.is_predefined() && el_height.is_predefined())
-			{
-				// If all three of 'top', 'height', and 'bottom' are auto, set 'top' to the static position and
-				// apply rule number three.
-				if(el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
-				if(el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
-				height = el->height();
-				top = el_static_y - el->content_offset_top();
-			} else
-			{
-				// If none of the three are 'auto':
-				height = fix_height_min_max(el->get_predefined_height(containing_block_size.height));
-				top = css_top.calc_percent(containing_block_size.height);
-				bottom = css_bottom.calc_percent(containing_block_size.height);
-				pixel_t remained = containing_block_size.height - height - top - bottom;
+            pixel_t bottom = 0;
+            pixel_t top = 0;
+            pixel_t height = 0;
+            auto [el_static_offset_x, el_static_offset_y] = element_static_offset(el);
+            pixel_t el_static_x = el->m_pos.x + el_static_offset_x;
+            pixel_t el_static_y = el->m_pos.y + el_static_offset_y;
+            // Calculate vertical position
+            // https://www.w3.org/TR/CSS22/visudet.html#abs-non-replaced-height
+            // 10.6.4 Absolutely positioned, non-replaced elements
+            if (css_top.is_predefined() && !css_bottom.is_predefined() &&
+                el_height.is_predefined()) {
+                // 1. 'top' and 'height' are 'auto' and 'bottom' is not 'auto', then the height is
+                // based on the content per 10.6.7, set 'auto' values for 'margin-top' and
+                // 'margin-bottom' to 0, and solve for 'top'
+                if (el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
+                if (el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
+                height = el->height();
+                bottom = css_bottom.calc_percent(containing_block_size.height);
+                top = containing_block_size.height - height - bottom;
+            } else if (css_top.is_predefined() && css_bottom.is_predefined() &&
+                       !el_height.is_predefined()) {
+                // 2. 'top' and 'bottom' are 'auto' and 'height' is not 'auto', then set 'top' to
+                // the static position, set 'auto' values for 'margin-top' and 'margin-bottom' to 0,
+                // and solve for 'bottom'
+                if (el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
+                if (el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
+                top = el_static_y - el->content_offset_top();
+                height =
+                    fix_height_min_max(el->get_predefined_height(containing_block_size.height));
+            } else if (!css_top.is_predefined() && css_bottom.is_predefined() &&
+                       el_height.is_predefined()) {
+                // 3. 'height' and 'bottom' are 'auto' and 'top' is not 'auto', then the height is
+                // based on the content per 10.6.7, set 'auto' values for 'margin-top' and
+                // 'margin-bottom' to 0, and solve for 'bottom'
+                if (el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
+                if (el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
+                height = el->height();
+                top = css_top.calc_percent(containing_block_size.height);
+            } else if (css_top.is_predefined() && !css_bottom.is_predefined() &&
+                       !el_height.is_predefined()) {
+                // 4. 'top' is 'auto', 'height' and 'bottom' are not 'auto', then set 'auto' values
+                // for 'margin-top' and 'margin-bottom' to 0, and solve for 'top'
+                if (el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
+                if (el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
+                height =
+                    fix_height_min_max(el->get_predefined_height(containing_block_size.height));
+                bottom = css_bottom.calc_percent(containing_block_size.height);
+                top = containing_block_size.height - height - bottom;
+            } else if (!css_top.is_predefined() && !css_bottom.is_predefined() &&
+                       el_height.is_predefined()) {
+                // 5. 'height' is 'auto', 'top' and 'bottom' are not 'auto', then 'auto' values for
+                // 'margin-top' and 'margin-bottom' are set to 0 and solve for 'height'
+                if (el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
+                if (el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
+                bottom = css_bottom.calc_percent(containing_block_size.height);
+                top = css_top.calc_percent(containing_block_size.height);
+                if (el->src_el()->is_replaced()) {
+                    height = el->height() - el->content_offset_height();
+                    pixel_t reminded = (containing_block_size.height - top - bottom) - height -
+                                       el->content_offset_height();
+                    if (reminded > 0) {
+                        int divider = 0;
+                        if (el->css().get_margins().top.is_predefined()) divider++;
+                        if (el->css().get_margins().bottom.is_predefined()) divider++;
+                        if (divider != 0) {
+                            if (el->css().get_margins().top.is_predefined())
+                                el->m_margins.top = reminded / divider;
+                            if (el->css().get_margins().bottom.is_predefined())
+                                el->m_margins.bottom = reminded / divider;
+                        }
+                    }
+                    height += el->content_offset_height();
+                } else {
+                    height = containing_block_size.height - top - bottom;
+                }
+                if (!el->css().get_max_height().is_predefined()) {
+                    pixel_t max_height =
+                        el->css().get_max_height().calc_percent(containing_block_size.height);
+                    if (height - el->content_offset_height() > max_height) {
+                        pixel_t reminded = height - el->content_offset_height() - max_height;
+                        height = max_height;
+                        int divider = 0;
+                        if (el->css().get_margins().top.is_predefined()) divider++;
+                        if (el->css().get_margins().bottom.is_predefined()) divider++;
+                        if (divider != 0) {
+                            if (el->css().get_margins().top.is_predefined())
+                                el->m_margins.top = reminded / divider;
+                            if (el->css().get_margins().bottom.is_predefined())
+                                el->m_margins.bottom = reminded / divider;
+                        }
+                        height += el->content_offset_height();
+                    }
+                }
+            } else if (!css_top.is_predefined() && css_bottom.is_predefined() &&
+                       !el_height.is_predefined()) {
+                // 6. 'bottom' is 'auto', 'top' and 'height' are not 'auto', then set 'auto' values
+                // for 'margin-top' and 'margin-bottom' to 0 and solve for 'bottom'
+                if (el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
+                if (el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
+                height =
+                    fix_height_min_max(el->get_predefined_height(containing_block_size.height));
+                top = css_top.calc_percent(containing_block_size.height);
+            } else if (css_top.is_predefined() && css_bottom.is_predefined() &&
+                       el_height.is_predefined()) {
+                // If all three of 'top', 'height', and 'bottom' are auto, set 'top' to the static
+                // position and apply rule number three.
+                if (el->css().get_margins().top.is_predefined()) el->m_margins.top = 0;
+                if (el->css().get_margins().bottom.is_predefined()) el->m_margins.bottom = 0;
+                height = el->height();
+                top = el_static_y - el->content_offset_top();
+            } else {
+                // If none of the three are 'auto':
+                height =
+                    fix_height_min_max(el->get_predefined_height(containing_block_size.height));
+                top = css_top.calc_percent(containing_block_size.height);
+                bottom = css_bottom.calc_percent(containing_block_size.height);
+                pixel_t remained = containing_block_size.height - height - top - bottom;
 
-				if(el->css().get_margins().top.is_predefined() && el->css().get_margins().bottom.is_predefined())
-				{
-					// If both 'margin-top' and 'margin-bottom' are 'auto', solve the equation under the extra
-					// constraint that the two margins get equal values.
-					el->m_margins.top = el->m_margins.bottom = remained / 2;
-					height += el->m_margins.top + el->m_margins.bottom;
-				} else
-				{
-					// If one of 'margin-top' or 'margin-bottom' is 'auto', solve the equation for that value.
-					if(el->css().get_margins().top.is_predefined())
-					{
-						el->m_margins.top = remained;
-						height += el->m_margins.top;
-					}
-					if(el->css().get_margins().bottom.is_predefined())
-					{
-						el->m_margins.bottom = remained;
-						height += el->m_margins.bottom;
-					}
-				}
-			}
-			el->m_pos.y = top + el->content_offset_top();
-			if(el->m_pos.height != height - el->content_offset_height())
-			{
-				el->m_pos.height = height - el->content_offset_height();
-				need_render = true;
-			}
-
-			// Calculate horizontal position
-			pixel_t right = 0;
-			pixel_t left = 0;
-			pixel_t width = 0;
-			// https://www.w3.org/TR/CSS22/visudet.html#abs-non-replaced-width
-			// 10.3.7 Absolutely positioned, non-replaced elements
-			if(css_left.is_predefined() && !css_right.is_predefined() && el_width.is_predefined())
-			{
-				// 1. 'left' and 'width' are 'auto' and 'right' is not 'auto', then the width is shrink-to-fit.
-				// Then solve for 'left'
-				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
-				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
-				position pos = el->m_pos;
-				width = el->measure(containing_block_size.new_width(containing_block_size.width, containing_block_context::size_mode_content), nullptr);
-				el->m_pos = pos;
-				right = css_right.calc_percent(containing_block_size.width);
-				left = containing_block_size.width - width - right;
-			} else if(css_left.is_predefined() && css_right.is_predefined() && !el_width.is_predefined())
-			{
-				// 2. 'left' and 'right' are 'auto' and 'width' is not 'auto', then if the 'direction' property of
-				// the element establishing the static-position containing block is 'ltr' set 'left' to the
-				// static position, otherwise set 'right' to the static position. Then solve for 'left'
-				// (if 'direction is 'rtl') or 'right' (if 'direction' is 'ltr').
-				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
-				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
-				left = el_static_x - el->content_offset_left();
-				width = fix_width_min_max(el->get_predefined_width(containing_block_size.width));
-			} else if(!css_left.is_predefined() && css_right.is_predefined() && el_width.is_predefined())
-			{
-				// 3. 'width' and 'right' are 'auto' and 'left' is not 'auto', then the width is shrink-to-fit .
-				// Then solve for 'right'
-				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
-				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
-				position pos = el->m_pos;
-				width = el->measure(containing_block_size.new_width(containing_block_size.width, containing_block_context::size_mode_content), nullptr);
-				el->m_pos = pos;
-				left = css_left.calc_percent(containing_block_size.width);
-			} else if(css_left.is_predefined() && !css_right.is_predefined() && !el_width.is_predefined())
-			{
-				// 4. 'left' is 'auto', 'width' and 'right' are not 'auto', then solve for 'left'
-				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
-				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
-				right = css_right.calc_percent(containing_block_size.width);
-				width = fix_width_min_max(el->get_predefined_width(containing_block_size.width));
-				left = containing_block_size.width - right - width;
-			} else if(!css_left.is_predefined() && !css_right.is_predefined() && el_width.is_predefined())
-			{
-				// 5. 'width' is 'auto', 'left' and 'right' are not 'auto', then solve for 'width'
-				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
-				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
-				left = css_left.calc_percent(containing_block_size.width);
-				right = css_right.calc_percent(containing_block_size.width);
-				if(el->src_el()->is_replaced())
-				{
-					width = el->width() - el->content_offset_width();
-					pixel_t reminded = (containing_block_size.width - left - right) - width - el->content_offset_width();
-					if(reminded != 0)
-					{
-						int divider = 0;
-						if (el->css().get_margins().left.is_predefined()) divider++;
-						if (el->css().get_margins().right.is_predefined()) divider++;
-						if (divider != 0)
-						{
-							if (el->css().get_margins().left.is_predefined()) el->m_margins.left = reminded / divider;
-							if (el->css().get_margins().right.is_predefined()) el->m_margins.right = reminded / divider;
-						}
-					}
-					width += el->content_offset_width();
-				} else
-				{
-					width = containing_block_size.width - left - right;
-				}
-				if(!el->css().get_max_width().is_predefined())
-				{
-					pixel_t max_width = el->css().get_max_width().calc_percent(containing_block_size.height);
-					if(width - el->content_offset_width() > max_width)
-					{
-						pixel_t reminded = width - el->content_offset_width() - max_width;
-						width = max_width;
-						int divider = 0;
-						if(el->css().get_margins().left.is_predefined()) divider++;
-						if(el->css().get_margins().right.is_predefined()) divider++;
-						if(divider != 0)
-						{
-							if(el->css().get_margins().left.is_predefined()) el->m_margins.left = reminded / divider;
-							if(el->css().get_margins().right.is_predefined()) el->m_margins.right = reminded / divider;
-						}
-						width += el->content_offset_width();
-					}
-				}
-			} else if(!css_left.is_predefined() && css_right.is_predefined() && !el_width.is_predefined())
-			{
-				// 6. 'right' is 'auto', 'left' and 'width' are not 'auto', then solve for 'right'
-				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
-				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
-				left = css_left.calc_percent(containing_block_size.width);
-				width = fix_width_min_max(el->get_predefined_width(containing_block_size.width));
-			} else if(css_left.is_predefined() && css_right.is_predefined() && el_width.is_predefined())
-			{
-				// If all three of 'left', 'width', and 'right' are 'auto': First set any 'auto' values for
-				// 'margin-left' and 'margin-right' to 0. Then, if the 'direction' property of the element
-				// establishing the static-position containing block is 'ltr' set 'left' to the static position
-				// and apply rule number three below; otherwise, set 'right' to the static position and apply
-				// rule number one below.
-				if(el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
-				if(el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
-				position pos = el->m_pos;
-				width = el->measure(containing_block_size.new_width(containing_block_size.width, containing_block_context::size_mode_content), nullptr);
-				el->m_pos = pos;
-				left = el_static_x - el->content_offset_left();
-			} else
-			{
-				// If none of the three is 'auto':
-				width = fix_width_min_max(el->get_predefined_width(containing_block_size.width));
-				left = css_left.calc_percent(containing_block_size.width);
-				right = css_right.calc_percent(containing_block_size.width);
-				pixel_t remained = containing_block_size.width - width - left - right;
-
-				if(el->css().get_margins().left.is_predefined() && el->css().get_margins().right.is_predefined())
-				{
-					// If both 'margin-left' and 'margin-right' are 'auto', solve the equation under the extra
-					// constraint that the two margins get equal values, unless this would make them negative,
-					// in which case when direction of the containing block is 'ltr' ('rtl'), set 'margin-left'
-					// ('margin-right') to zero and solve for 'margin-right' ('margin-left').
-					el->m_margins.left = el->m_margins.right = remained / 2;
-					if(el->m_margins.left < 0)
-					{
-						el->m_margins.left = 0;
-						el->m_margins.right = remained;
-					}
-					width += el->m_margins.left + el->m_margins.right;
-				} else
-				{
-					// If one of 'margin-left' or 'margin-right' is 'auto', solve the equation
-					// for that value. If the values are over-constrained, ignore the value for 'left'
-					// (in case the 'direction' property of the containing block is 'rtl') or 'right' (in case
-					// 'direction' is 'ltr') and solve for that value.
-					if(el->css().get_margins().left.is_predefined())
-					{
-						el->m_margins.left = remained;
-						width += el->m_margins.left;
-					}
-					if(el->css().get_margins().right.is_predefined())
-					{
-						el->m_margins.right = remained;
-						width += el->m_margins.right;
-					}
-				}
-			}
-			el->m_pos.x = left + el->content_offset_left();
-			if(el->m_pos.width != width - el->content_offset_width())
-			{
-				el->m_pos.width = width - el->content_offset_width();
-				need_render = true;
-			}
-
-            if(el_position != element_position_fixed)
-            {
-				el->m_pos.x -= el_static_offset_x;
-				el->m_pos.y -= el_static_offset_y;
+                if (el->css().get_margins().top.is_predefined() &&
+                    el->css().get_margins().bottom.is_predefined()) {
+                    // If both 'margin-top' and 'margin-bottom' are 'auto', solve the equation under
+                    // the extra constraint that the two margins get equal values.
+                    el->m_margins.top = el->m_margins.bottom = remained / 2;
+                    height += el->m_margins.top + el->m_margins.bottom;
+                } else {
+                    // If one of 'margin-top' or 'margin-bottom' is 'auto', solve the equation for
+                    // that value.
+                    if (el->css().get_margins().top.is_predefined()) {
+                        el->m_margins.top = remained;
+                        height += el->m_margins.top;
+                    }
+                    if (el->css().get_margins().bottom.is_predefined()) {
+                        el->m_margins.bottom = remained;
+                        height += el->m_margins.bottom;
+                    }
+                }
+            }
+            el->m_pos.y = top + el->content_offset_top();
+            if (el->m_pos.height != height - el->content_offset_height()) {
+                el->m_pos.height = height - el->content_offset_height();
+                need_render = true;
             }
 
-            if(need_render)
-            {
-				el->measure(containing_block_size, nullptr);
-				el->place(left, top, containing_block_size, nullptr);
+            // Calculate horizontal position
+            pixel_t right = 0;
+            pixel_t left = 0;
+            pixel_t width = 0;
+            // https://www.w3.org/TR/CSS22/visudet.html#abs-non-replaced-width
+            // 10.3.7 Absolutely positioned, non-replaced elements
+            if (css_left.is_predefined() && !css_right.is_predefined() &&
+                el_width.is_predefined()) {
+                // 1. 'left' and 'width' are 'auto' and 'right' is not 'auto', then the width is
+                // shrink-to-fit. Then solve for 'left'
+                if (el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
+                if (el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
+                position pos = el->m_pos;
+                width = el->measure(
+                    containing_block_size.new_width(containing_block_size.width,
+                                                    containing_block_context::size_mode_content),
+                    nullptr);
+                el->m_pos = pos;
+                right = css_right.calc_percent(containing_block_size.width);
+                left = containing_block_size.width - width - right;
+            } else if (css_left.is_predefined() && css_right.is_predefined() &&
+                       !el_width.is_predefined()) {
+                // 2. 'left' and 'right' are 'auto' and 'width' is not 'auto', then if the
+                // 'direction' property of the element establishing the static-position containing
+                // block is 'ltr' set 'left' to the static position, otherwise set 'right' to the
+                // static position. Then solve for 'left' (if 'direction is 'rtl') or 'right' (if
+                // 'direction' is 'ltr').
+                if (el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
+                if (el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
+                left = el_static_x - el->content_offset_left();
+                width = fix_width_min_max(el->get_predefined_width(containing_block_size.width));
+            } else if (!css_left.is_predefined() && css_right.is_predefined() &&
+                       el_width.is_predefined()) {
+                // 3. 'width' and 'right' are 'auto' and 'left' is not 'auto', then the width is
+                // shrink-to-fit . Then solve for 'right'
+                if (el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
+                if (el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
+                position pos = el->m_pos;
+                width = el->measure(
+                    containing_block_size.new_width(containing_block_size.width,
+                                                    containing_block_context::size_mode_content),
+                    nullptr);
+                el->m_pos = pos;
+                left = css_left.calc_percent(containing_block_size.width);
+            } else if (css_left.is_predefined() && !css_right.is_predefined() &&
+                       !el_width.is_predefined()) {
+                // 4. 'left' is 'auto', 'width' and 'right' are not 'auto', then solve for 'left'
+                if (el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
+                if (el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
+                right = css_right.calc_percent(containing_block_size.width);
+                width = fix_width_min_max(el->get_predefined_width(containing_block_size.width));
+                left = containing_block_size.width - right - width;
+            } else if (!css_left.is_predefined() && !css_right.is_predefined() &&
+                       el_width.is_predefined()) {
+                // 5. 'width' is 'auto', 'left' and 'right' are not 'auto', then solve for 'width'
+                if (el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
+                if (el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
+                left = css_left.calc_percent(containing_block_size.width);
+                right = css_right.calc_percent(containing_block_size.width);
+                if (el->src_el()->is_replaced()) {
+                    width = el->width() - el->content_offset_width();
+                    pixel_t reminded = (containing_block_size.width - left - right) - width -
+                                       el->content_offset_width();
+                    if (reminded != 0) {
+                        int divider = 0;
+                        if (el->css().get_margins().left.is_predefined()) divider++;
+                        if (el->css().get_margins().right.is_predefined()) divider++;
+                        if (divider != 0) {
+                            if (el->css().get_margins().left.is_predefined())
+                                el->m_margins.left = reminded / divider;
+                            if (el->css().get_margins().right.is_predefined())
+                                el->m_margins.right = reminded / divider;
+                        }
+                    }
+                    width += el->content_offset_width();
+                } else {
+                    width = containing_block_size.width - left - right;
+                }
+                if (!el->css().get_max_width().is_predefined()) {
+                    pixel_t max_width =
+                        el->css().get_max_width().calc_percent(containing_block_size.height);
+                    if (width - el->content_offset_width() > max_width) {
+                        pixel_t reminded = width - el->content_offset_width() - max_width;
+                        width = max_width;
+                        int divider = 0;
+                        if (el->css().get_margins().left.is_predefined()) divider++;
+                        if (el->css().get_margins().right.is_predefined()) divider++;
+                        if (divider != 0) {
+                            if (el->css().get_margins().left.is_predefined())
+                                el->m_margins.left = reminded / divider;
+                            if (el->css().get_margins().right.is_predefined())
+                                el->m_margins.right = reminded / divider;
+                        }
+                        width += el->content_offset_width();
+                    }
+                }
+            } else if (!css_left.is_predefined() && css_right.is_predefined() &&
+                       !el_width.is_predefined()) {
+                // 6. 'right' is 'auto', 'left' and 'width' are not 'auto', then solve for 'right'
+                if (el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
+                if (el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
+                left = css_left.calc_percent(containing_block_size.width);
+                width = fix_width_min_max(el->get_predefined_width(containing_block_size.width));
+            } else if (css_left.is_predefined() && css_right.is_predefined() &&
+                       el_width.is_predefined()) {
+                // If all three of 'left', 'width', and 'right' are 'auto': First set any 'auto'
+                // values for 'margin-left' and 'margin-right' to 0. Then, if the 'direction'
+                // property of the element establishing the static-position containing block is
+                // 'ltr' set 'left' to the static position and apply rule number three below;
+                // otherwise, set 'right' to the static position and apply rule number one below.
+                if (el->css().get_margins().left.is_predefined()) el->m_margins.left = 0;
+                if (el->css().get_margins().right.is_predefined()) el->m_margins.right = 0;
+                position pos = el->m_pos;
+                width = el->measure(
+                    containing_block_size.new_width(containing_block_size.width,
+                                                    containing_block_context::size_mode_content),
+                    nullptr);
+                el->m_pos = pos;
+                left = el_static_x - el->content_offset_left();
+            } else {
+                // If none of the three is 'auto':
+                width = fix_width_min_max(el->get_predefined_width(containing_block_size.width));
+                left = css_left.calc_percent(containing_block_size.width);
+                right = css_right.calc_percent(containing_block_size.width);
+                pixel_t remained = containing_block_size.width - width - left - right;
+
+                if (el->css().get_margins().left.is_predefined() &&
+                    el->css().get_margins().right.is_predefined()) {
+                    // If both 'margin-left' and 'margin-right' are 'auto', solve the equation under
+                    // the extra constraint that the two margins get equal values, unless this would
+                    // make them negative, in which case when direction of the containing block is
+                    // 'ltr' ('rtl'), set 'margin-left'
+                    // ('margin-right') to zero and solve for 'margin-right' ('margin-left').
+                    el->m_margins.left = el->m_margins.right = remained / 2;
+                    if (el->m_margins.left < 0) {
+                        el->m_margins.left = 0;
+                        el->m_margins.right = remained;
+                    }
+                    width += el->m_margins.left + el->m_margins.right;
+                } else {
+                    // If one of 'margin-left' or 'margin-right' is 'auto', solve the equation
+                    // for that value. If the values are over-constrained, ignore the value for
+                    // 'left' (in case the 'direction' property of the containing block is 'rtl') or
+                    // 'right' (in case 'direction' is 'ltr') and solve for that value.
+                    if (el->css().get_margins().left.is_predefined()) {
+                        el->m_margins.left = remained;
+                        width += el->m_margins.left;
+                    }
+                    if (el->css().get_margins().right.is_predefined()) {
+                        el->m_margins.right = remained;
+                        width += el->m_margins.right;
+                    }
+                }
+            }
+            el->m_pos.x = left + el->content_offset_left();
+            if (el->m_pos.width != width - el->content_offset_width()) {
+                el->m_pos.width = width - el->content_offset_width();
+                need_render = true;
             }
 
-            if(el_position == element_position_fixed)
-            {
-				position fixed_pos = el->pos();
-				el->get_redraw_box(fixed_pos);
+            if (el_position != element_position_fixed) {
+                el->m_pos.x -= el_static_offset_x;
+                el->m_pos.y -= el_static_offset_y;
+            }
+
+            if (need_render) {
+                el->measure(containing_block_size, nullptr);
+                el->place(left, top, containing_block_size, nullptr);
+            }
+
+            if (el_position == element_position_fixed) {
+                position fixed_pos = el->pos();
+                el->get_redraw_box(fixed_pos);
                 src_el()->get_document()->add_fixed_box(fixed_pos);
             }
         }
 
-		el->render_positioned();
+        el->render_positioned();
     }
 
-    if(!m_positioned.empty())
-    {
-        std::stable_sort(m_positioned.begin(), m_positioned.end(), [](const std::shared_ptr<render_item>& Left, const std::shared_ptr<render_item>& Right)
-            {
+    if (!m_positioned.empty()) {
+        std::stable_sort(
+            m_positioned.begin(), m_positioned.end(),
+            [](const std::shared_ptr<render_item>& Left,
+               const std::shared_ptr<render_item>& Right) {
                 return (Left->src_el()->css().get_z_index() < Right->src_el()->css().get_z_index());
             });
     }
 }
 
-void litehtml::render_item::add_positioned(const std::shared_ptr<litehtml::render_item> &el)
-{
-    if (src_el()->is_positioned() || is_root())
-    {
+void litehtml::render_item::add_positioned(const std::shared_ptr<litehtml::render_item>& el) {
+    if (src_el()->is_positioned() || is_root()) {
         m_positioned.push_back(el);
-    } else
-    {
+    } else {
         auto el_parent = parent();
-        if (el_parent)
-        {
+        if (el_parent) {
             el_parent->add_positioned(el);
         }
     }
 }
 
-void litehtml::render_item::get_redraw_box(litehtml::position& pos, pixel_t x /*= 0*/, pixel_t y /*= 0*/)
-{
-    if(is_visible())
-    {
-        pixel_t p_left		= std::min(pos.left(),	x + m_pos.left() - m_padding.left - m_borders.left);
-        pixel_t p_right		= std::max(pos.right(), x + m_pos.right() + m_padding.left + m_borders.left);
-        pixel_t p_top		= std::min(pos.top(), y + m_pos.top() - m_padding.top - m_borders.top);
-        pixel_t p_bottom	= std::max(pos.bottom(), y + m_pos.bottom() + m_padding.bottom + m_borders.bottom);
+void litehtml::render_item::get_redraw_box(litehtml::position& pos, pixel_t x /*= 0*/,
+                                           pixel_t y /*= 0*/) {
+    if (is_visible()) {
+        pixel_t p_left = std::min(pos.left(), x + m_pos.left() - m_padding.left - m_borders.left);
+        pixel_t p_right =
+            std::max(pos.right(), x + m_pos.right() + m_padding.left + m_borders.left);
+        pixel_t p_top = std::min(pos.top(), y + m_pos.top() - m_padding.top - m_borders.top);
+        pixel_t p_bottom =
+            std::max(pos.bottom(), y + m_pos.bottom() + m_padding.bottom + m_borders.bottom);
 
         pos.x = p_left;
         pos.y = p_top;
-        pos.width	= p_right - p_left;
-        pos.height	= p_bottom - p_top;
+        pos.width = p_right - p_left;
+        pos.height = p_bottom - p_top;
 
-        if(src_el()->css().get_overflow() == overflow_visible)
-        {
-            for(auto& el : m_children)
-            {
-                if(el->src_el()->css().get_position() != element_position_fixed)
-                {
+        if (src_el()->css().get_overflow() == overflow_visible) {
+            for (auto& el : m_children) {
+                if (el->src_el()->css().get_position() != element_position_fixed) {
                     el->get_redraw_box(pos, x + m_pos.x, y + m_pos.y);
                 }
             }
@@ -821,104 +747,89 @@ void litehtml::render_item::get_redraw_box(litehtml::position& pos, pixel_t x /*
     }
 }
 
-void litehtml::render_item::calc_document_size( litehtml::size& sz, pixel_t x /*= 0*/, pixel_t y /*= 0*/ )
-{
-	if(css().get_display() != display_inline && css().get_display() != display_table_row)
-	{
-		if(is_visible())
-		{
-			if(src_el()->css().get_position() != element_position_fixed)
-			{
-			 sz.width  = std::max(sz.width, x + right());
-			 sz.height = std::max(sz.height, y + bottom());
+void litehtml::render_item::calc_document_size(litehtml::size& sz, pixel_t x /*= 0*/,
+                                               pixel_t y /*= 0*/) {
+    if (css().get_display() != display_inline && css().get_display() != display_table_row) {
+        if (is_visible()) {
+            if (src_el()->css().get_position() != element_position_fixed) {
+                sz.width = std::max(sz.width, x + right());
+                sz.height = std::max(sz.height, y + bottom());
 
-							// Account for box-shadow
-				const auto& shadows = css().get_box_shadow();
-				if (!shadows.empty())
-				{
-					for (const auto& s : shadows)
-					{
-						if (!s.inset)
-						{
-							pixel_t offset_x = src_el()->get_document()->to_pixels(s.x, css().get_font_metrics(), 0);
-							pixel_t offset_y = src_el()->get_document()->to_pixels(s.y, css().get_font_metrics(), 0);
-							pixel_t blur = src_el()->get_document()->to_pixels(s.blur, css().get_font_metrics(), 0);
-							pixel_t spread = src_el()->get_document()->to_pixels(s.spread, css().get_font_metrics(), 0);
+                // Account for box-shadow
+                const auto& shadows = css().get_box_shadow();
+                if (!shadows.empty()) {
+                    for (const auto& s : shadows) {
+                        if (!s.inset) {
+                            pixel_t offset_x = src_el()->get_document()->to_pixels(
+                                s.x, css().get_font_metrics(), 0);
+                            pixel_t offset_y = src_el()->get_document()->to_pixels(
+                                s.y, css().get_font_metrics(), 0);
+                            pixel_t blur = src_el()->get_document()->to_pixels(
+                                s.blur, css().get_font_metrics(), 0);
+                            pixel_t spread = src_el()->get_document()->to_pixels(
+                                s.spread, css().get_font_metrics(), 0);
 
-														sz.width = std::max(sz.width, x + right() + offset_x + spread + blur + 10);
-							sz.height = std::max(sz.height, y + bottom() + offset_y + spread + blur + 10);
-						}
-					}
-				}
-			}
+                            sz.width =
+                                std::max(sz.width, x + right() + offset_x + spread + blur + 10);
+                            sz.height =
+                                std::max(sz.height, y + bottom() + offset_y + spread + blur + 10);
+                        }
+                    }
+                }
+            }
 
-			if(is_one_of(src_el()->css().get_overflow(), overflow_scroll, overflow_auto))
-			{
-				size child_size;
-				for(const auto& el : m_children)
-				{
-					el->calc_document_size(child_size, 0, 0);
-				}
-				if(!m_scroll_view)
-				{
-					m_scroll_view = std::make_shared<scroll_view>(m_pos, child_size);
-				} else
-				{
-					m_scroll_view->set(m_pos, child_size);
-				}
-			} else
-			{
-				// All children of tables and blocks with style other than "overflow: visible" are inside element.
-				// We can skip calculating the size of children
-				if(src_el()->css().get_overflow() == overflow_visible && src_el()->css().get_display() != display_table)
-				{
-					for(const auto& el : m_children)
-					{
-						el->calc_document_size(sz, x + m_pos.x, y + m_pos.y);
-					}
-				} else
-				{
-					size child_size;
-					for(const auto& el : m_children)
-					{
-						el->calc_document_size(child_size, 0, 0);
-					}
-				}
-			}
-		}
-	} else
-	{
-		position::vector boxes;
-		get_inline_boxes(boxes);
-		for(const auto& box : boxes)
-		{
-			sz.width  = std::max(sz.width, x + box.x + box.width);
-			sz.height = std::max(sz.height, y + box.y + box.height);
-		}
-	}
+            if (is_one_of(src_el()->css().get_overflow(), overflow_scroll, overflow_auto)) {
+                size child_size;
+                for (const auto& el : m_children) {
+                    el->calc_document_size(child_size, 0, 0);
+                }
+                if (!m_scroll_view) {
+                    m_scroll_view = std::make_shared<scroll_view>(m_pos, child_size);
+                } else {
+                    m_scroll_view->set(m_pos, child_size);
+                }
+            } else {
+                // All children of tables and blocks with style other than "overflow: visible" are
+                // inside element. We can skip calculating the size of children
+                if (src_el()->css().get_overflow() == overflow_visible &&
+                    src_el()->css().get_display() != display_table) {
+                    for (const auto& el : m_children) {
+                        el->calc_document_size(sz, x + m_pos.x, y + m_pos.y);
+                    }
+                } else {
+                    size child_size;
+                    for (const auto& el : m_children) {
+                        el->calc_document_size(child_size, 0, 0);
+                    }
+                }
+            }
+        }
+    } else {
+        position::vector boxes;
+        get_inline_boxes(boxes);
+        for (const auto& box : boxes) {
+            sz.width = std::max(sz.width, x + box.x + box.width);
+            sz.height = std::max(sz.height, y + box.y + box.height);
+        }
+    }
 }
 
-void litehtml::render_item::draw_stacking_context( uint_ptr hdc, pixel_t x, pixel_t y, const position* clip, bool with_positioned )
-{
-    if(!is_visible()) return;
+void litehtml::render_item::draw_stacking_context(uint_ptr hdc, pixel_t x, pixel_t y,
+                                                  const position* clip, bool with_positioned) {
+    if (!is_visible()) return;
 
     std::map<int, bool> z_indexes;
-    if(with_positioned)
-    {
-        for(const auto& idx : m_positioned)
-        {
+    if (with_positioned) {
+        for (const auto& idx : m_positioned) {
             int z_index = 0;
-            if(idx->src_el()->css().get_position() != element_position_static)
-            {
+            if (idx->src_el()->css().get_position() != element_position_static) {
                 z_index = idx->src_el()->css().get_z_index();
             }
             z_indexes[z_index] = true;
         }
 
-        for(const auto& idx : z_indexes)
-        {
-            if(idx.first < 0)
-            {
+        for (const auto& idx : z_indexes) {
+            if (idx.first < 0) {
                 draw_children(hdc, x, y, clip, draw_positioned, idx.first);
             }
         }
@@ -926,28 +837,23 @@ void litehtml::render_item::draw_stacking_context( uint_ptr hdc, pixel_t x, pixe
     draw_children(hdc, x, y, clip, draw_block, 0);
     draw_children(hdc, x, y, clip, draw_floats, 0);
     draw_children(hdc, x, y, clip, draw_inlines, 0);
-    if(with_positioned)
-    {
-        for(auto& z_index : z_indexes)
-        {
-            if(z_index.first == 0)
-            {
+    if (with_positioned) {
+        for (auto& z_index : z_indexes) {
+            if (z_index.first == 0) {
                 draw_children(hdc, x, y, clip, draw_positioned, z_index.first);
             }
         }
 
-        for(auto& z_index : z_indexes)
-        {
-            if(z_index.first > 0)
-            {
+        for (auto& z_index : z_indexes) {
+            if (z_index.first > 0) {
                 draw_children(hdc, x, y, clip, draw_positioned, z_index.first);
             }
         }
     }
 }
 
-void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, const position* clip, draw_flag flag, int zindex)
-{
+void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, const position* clip,
+                                          draw_flag flag, int zindex) {
     position pos = m_pos;
     pos.x += x - get_scroll_left();
     pos.y += y - get_scroll_top();
@@ -955,19 +861,18 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
     document::ptr doc = src_el()->get_document();
 
     bool overflow_clipped = false;
-    if (src_el()->css().get_overflow() != overflow_visible)
-    {
+    if (src_el()->css().get_overflow() != overflow_visible) {
         // TODO: Process overflow for inline elements
-        if(src_el()->css().get_display() != display_inline)
-        {
-            position clip_box = m_pos; clip_box += m_padding;
+        if (src_el()->css().get_display() != display_inline) {
+            position clip_box = m_pos;
+            clip_box += m_padding;
             clip_box.x += x;
             clip_box.y += y;
             position border_box = clip_box;
             border_box += m_borders;
 
-            border_radiuses bdr_radius = src_el()->css().get_borders().radius.calc_percents(border_box.width,
-                                                                                            border_box.height);
+            border_radiuses bdr_radius = src_el()->css().get_borders().radius.calc_percents(
+                border_box.width, border_box.height);
 
             bdr_radius -= m_borders;
 
@@ -976,14 +881,11 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
         }
     }
 
-    for (const auto& el : m_children)
-    {
-        if (el->is_visible())
-        {
+    for (const auto& el : m_children) {
+        if (el->is_visible()) {
             bool is_positioned = el->src_el()->is_positioned();
             int el_z_index = 0;
-            if(el->src_el()->css().get_position() != element_position_static)
-            {
+            if (el->src_el()->css().get_position() != element_position_static) {
                 el_z_index = el->src_el()->css().get_z_index();
             }
 
@@ -991,36 +893,32 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
             bool force_stacking = false;
             bool should_recurse = true;
 
-            switch (flag)
-            {
+            switch (flag) {
                 case draw_positioned:
-                    if (is_positioned && el_z_index == zindex)
-                    {
+                    if (is_positioned && el_z_index == zindex) {
                         is_active = true;
                         force_stacking = true;
                         should_recurse = false;
                     }
                     break;
                 case draw_block:
-                    if (!is_positioned && !el->src_el()->is_inline() && el->src_el()->css().get_float() == float_none)
-                    {
+                    if (!is_positioned && !el->src_el()->is_inline() &&
+                        el->src_el()->css().get_float() == float_none) {
                         is_active = true;
                     }
                     break;
                 case draw_floats:
-                    if (!is_positioned && el->src_el()->css().get_float() != float_none)
-                    {
+                    if (!is_positioned && el->src_el()->css().get_float() != float_none) {
                         is_active = true;
                         force_stacking = true;
                         should_recurse = false;
                     }
                     break;
                 case draw_inlines:
-                    if (!is_positioned && el->src_el()->is_inline() && el->src_el()->css().get_float() == float_none)
-                    {
+                    if (!is_positioned && el->src_el()->is_inline() &&
+                        el->src_el()->css().get_float() == float_none) {
                         is_active = true;
-                        if (el->src_el()->is_inline_box())
-                        {
+                        if (el->src_el()->is_inline_box()) {
                             force_stacking = true;
                             should_recurse = false;
                         }
@@ -1030,8 +928,7 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                     break;
             }
 
-            if (is_active)
-            {
+            if (is_active) {
                 float opacity = el->src_el()->css().get_opacity();
                 const auto& transform = el->src_el()->css().get_transform();
                 const auto& filter = el->src_el()->css().get_filter();
@@ -1039,47 +936,48 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                 css_token_vector clip_path;
                 el->src_el()->get_custom_property(_clip_path_, clip_path);
 
-                bool has_props = (opacity < 1.0f) || !transform.empty() || !filter.empty() || !backdrop_filter.empty() || !clip_path.empty();
+                bool has_props = (opacity < 1.0f) || !transform.empty() || !filter.empty() ||
+                                 !backdrop_filter.empty() || !clip_path.empty();
 
-                if (has_props)
-                {
+                if (has_props) {
                     if (opacity < 1.0f) doc->container()->push_layer(hdc, opacity);
                     if (!backdrop_filter.empty()) doc->container()->push_backdrop_filter(hdc, el);
 
-                    if (el->src_el()->css().get_position() == element_position_fixed)
-                    {
-                        if (!transform.empty()) doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el->pos());
+                    if (el->src_el()->css().get_position() == element_position_fixed) {
+                        if (!transform.empty())
+                            doc->container()->push_transform(
+                                hdc, transform, el->src_el()->css().get_transform_origin(),
+                                el->pos());
                         if (!filter.empty()) doc->container()->push_filter(hdc, filter);
-                        if (!clip_path.empty()) doc->container()->push_clip_path(hdc, clip_path, el->pos());
-                    }
-                    else
-                    {
+                        if (!clip_path.empty())
+                            doc->container()->push_clip_path(hdc, clip_path, el->pos());
+                    } else {
                         position el_pos = el->pos();
                         el_pos.x += pos.x;
                         el_pos.y += pos.y;
 
-                        if (!transform.empty()) doc->container()->push_transform(hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
+                        if (!transform.empty())
+                            doc->container()->push_transform(
+                                hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
                         if (!filter.empty()) doc->container()->push_filter(hdc, filter);
-                        if (!clip_path.empty()) doc->container()->push_clip_path(hdc, clip_path, el_pos);
+                        if (!clip_path.empty())
+                            doc->container()->push_clip_path(hdc, clip_path, el_pos);
                     }
                 }
 
-                if (flag == draw_positioned && el->src_el()->css().get_position() == element_position_fixed)
-                {
+                if (flag == draw_positioned &&
+                    el->src_el()->css().get_position() == element_position_fixed) {
                     el->src_el()->draw(hdc, 0, 0, clip, el);
                     el->draw_stacking_context(hdc, 0, 0, clip, true);
-                }
-                else
-                {
+                } else {
                     el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
-                    if (force_stacking)
-                    {
-                        el->draw_stacking_context(hdc, pos.x, pos.y, clip, (flag == draw_positioned));
+                    if (force_stacking) {
+                        el->draw_stacking_context(hdc, pos.x, pos.y, clip,
+                                                  (flag == draw_positioned));
                     }
                 }
 
-                if (has_props)
-                {
+                if (has_props) {
                     if (!clip_path.empty()) doc->container()->pop_clip_path(hdc);
                     if (!filter.empty()) doc->container()->pop_filter(hdc);
                     if (!transform.empty()) doc->container()->pop_transform(hdc);
@@ -1088,22 +986,15 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                 }
             }
 
-            if (should_recurse)
-            {
+            if (should_recurse) {
                 // Recurse for elements that allow it in this pass
-                if (flag == draw_positioned)
-                {
-                    if (!is_positioned)
-                    {
+                if (flag == draw_positioned) {
+                    if (!is_positioned) {
                         el->draw_children(hdc, pos.x, pos.y, clip, flag, zindex);
                     }
-                }
-                else
-                {
+                } else {
                     if (el->src_el()->css().get_float() == float_none &&
-                        !el->src_el()->is_inline_box() &&
-                        !is_positioned)
-                    {
+                        !el->src_el()->is_inline_box() && !is_positioned) {
                         el->draw_children(hdc, pos.x, pos.y, clip, flag, zindex);
                     }
                 }
@@ -1111,18 +1002,16 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
         }
     }
 
-    if (overflow_clipped)
-    {
+    if (overflow_clipped) {
         doc->container()->del_clip();
     }
 }
 
-std::shared_ptr<litehtml::element>  litehtml::render_item::get_child_by_point(pixel_t x, pixel_t y, pixel_t client_x, pixel_t client_y, draw_flag flag, int zindex, const std::function<bool(const std::shared_ptr<render_item>&)>& check)
-{
-    if(src_el()->css().get_overflow() > overflow_visible)
-    {
-        if(!m_pos.is_point_inside(x, y))
-        {
+std::shared_ptr<litehtml::element> litehtml::render_item::get_child_by_point(
+    pixel_t x, pixel_t y, pixel_t client_x, pixel_t client_y, draw_flag flag, int zindex,
+    const std::function<bool(const std::shared_ptr<render_item>&)>& check) {
+    if (src_el()->css().get_overflow() > overflow_visible) {
+        if (!m_pos.is_point_inside(x, y)) {
             return nullptr;
         }
     }
@@ -1130,88 +1019,80 @@ std::shared_ptr<litehtml::element>  litehtml::render_item::get_child_by_point(pi
     element::ptr ret = nullptr;
 
     position el_pos = m_pos;
-    el_pos.x	= x - el_pos.x + get_scroll_left();
-    el_pos.y	= y - el_pos.y + get_scroll_top();
+    el_pos.x = x - el_pos.x + get_scroll_left();
+    el_pos.y = y - el_pos.y + get_scroll_top();
 
-    for(auto i = m_children.crbegin(); i != m_children.crend() && !ret; std::advance(i, 1))
-    {
+    for (auto i = m_children.crbegin(); i != m_children.crend() && !ret; std::advance(i, 1)) {
         const auto& el = *i;
 
-        if(el->is_visible() && el->src_el()->css().get_display() != display_inline_text)
-        {
-        	bool process = true;
-            switch(flag)
-            {
+        if (el->is_visible() && el->src_el()->css().get_display() != display_inline_text) {
+            bool process = true;
+            switch (flag) {
                 case draw_positioned:
-                    if(el->src_el()->is_positioned() && el->src_el()->css().get_z_index() == zindex)
-                    {
-                        if(el->src_el()->css().get_position() == element_position_fixed)
-                        {
-                            ret = el->get_element_by_point(client_x, client_y, client_x, client_y, check);
-                            if(!ret && el->is_point_inside(client_x, client_y))
-                            {
-								if (!check || check(el))
-								{
-									ret = el->src_el();
-								}
+                    if (el->src_el()->is_positioned() &&
+                        el->src_el()->css().get_z_index() == zindex) {
+                        if (el->src_el()->css().get_position() == element_position_fixed) {
+                            ret = el->get_element_by_point(client_x, client_y, client_x, client_y,
+                                                           check);
+                            if (!ret && el->is_point_inside(client_x, client_y)) {
+                                if (!check || check(el)) {
+                                    ret = el->src_el();
+                                }
                             }
-                        } else
-                        {
-                            ret = el->get_element_by_point(el_pos.x, el_pos.y, client_x, client_y, check);
-                            if(!ret && el->is_point_inside(el_pos.x, el_pos.y))
-                            {
-								if (!check || check(el))
-								{
-									ret = el->src_el();
-								}
+                        } else {
+                            ret = el->get_element_by_point(el_pos.x, el_pos.y, client_x, client_y,
+                                                           check);
+                            if (!ret && el->is_point_inside(el_pos.x, el_pos.y)) {
+                                if (!check || check(el)) {
+                                    ret = el->src_el();
+                                }
                             }
                         }
                         process = false;
                     }
                     break;
                 case draw_block:
-                    if(!el->src_el()->is_inline() && el->src_el()->css().get_float() == float_none && !el->src_el()->is_positioned())
-                    {
-                        ret = el->get_child_by_point(el_pos.x, el_pos.y, client_x, client_y, flag, zindex, check);
+                    if (!el->src_el()->is_inline() &&
+                        el->src_el()->css().get_float() == float_none &&
+                        !el->src_el()->is_positioned()) {
+                        ret = el->get_child_by_point(el_pos.x, el_pos.y, client_x, client_y, flag,
+                                                     zindex, check);
 
-                    	if(!ret && el->is_point_inside(el_pos.x, el_pos.y))
-                        {
-							if (!check || check(el))
-							{
-								ret = el->src_el();
-							}
+                        if (!ret && el->is_point_inside(el_pos.x, el_pos.y)) {
+                            if (!check || check(el)) {
+                                ret = el->src_el();
+                            }
                         }
                         process = false;
                     }
                     break;
                 case draw_floats:
-                    if(el->src_el()->css().get_float() != float_none && !el->src_el()->is_positioned())
-                    {
-                        ret = el->get_element_by_point(el_pos.x, el_pos.y, client_x, client_y, check);
+                    if (el->src_el()->css().get_float() != float_none &&
+                        !el->src_el()->is_positioned()) {
+                        ret =
+                            el->get_element_by_point(el_pos.x, el_pos.y, client_x, client_y, check);
 
-                        if(!ret && el->is_point_inside(el_pos.x, el_pos.y))
-                        {
+                        if (!ret && el->is_point_inside(el_pos.x, el_pos.y)) {
                             ret = el->src_el();
                         }
                         process = false;
                     }
                     break;
                 case draw_inlines:
-                    if(el->src_el()->is_inline() && el->src_el()->css().get_float() == float_none && !el->src_el()->is_positioned())
-                    {
-                        if(el->src_el()->css().get_display() == display_inline_block ||
-                                el->src_el()->css().get_display() == display_inline_table ||
-                                el->src_el()->css().get_display() == display_inline_flex)
-                        {
-                            ret = el->get_element_by_point(el_pos.x, el_pos.y, client_x, client_y, check);
+                    if (el->src_el()->is_inline() &&
+                        el->src_el()->css().get_float() == float_none &&
+                        !el->src_el()->is_positioned()) {
+                        if (el->src_el()->css().get_display() == display_inline_block ||
+                            el->src_el()->css().get_display() == display_inline_table ||
+                            el->src_el()->css().get_display() == display_inline_flex) {
+                            ret = el->get_element_by_point(el_pos.x, el_pos.y, client_x, client_y,
+                                                           check);
                             process = false;
                         }
-                        if(!ret && el->is_point_inside(el_pos.x, el_pos.y))
-                        {
-                        	if (!check || check(el))
-                        	{
-                        		ret = el->src_el();
-                        	}
+                        if (!ret && el->is_point_inside(el_pos.x, el_pos.y)) {
+                            if (!check || check(el)) {
+                                ret = el->src_el();
+                            }
                         }
                     }
                     break;
@@ -1219,51 +1100,46 @@ std::shared_ptr<litehtml::element>  litehtml::render_item::get_child_by_point(pi
                     break;
             }
 
-            if(process && !el->src_el()->is_positioned())
-            {
-                if(flag == draw_positioned)
-                {
-                    element::ptr child = el->get_child_by_point(el_pos.x, el_pos.y, client_x, client_y, flag, zindex, check);
-                    if(child)
-					{
-						if(!check)
-						{
-							ret = child;
-						} else
-						{
-							child->run_on_renderers([&check, &ret, &child](const std::shared_ptr<render_item>& ri) -> bool {
-								if(check(ri))
-								{
-									ret = child;
-									return false;
-								}
-								return true;
-							});
-						}
+            if (process && !el->src_el()->is_positioned()) {
+                if (flag == draw_positioned) {
+                    element::ptr child = el->get_child_by_point(el_pos.x, el_pos.y, client_x,
+                                                                client_y, flag, zindex, check);
+                    if (child) {
+                        if (!check) {
+                            ret = child;
+                        } else {
+                            child->run_on_renderers(
+                                [&check, &ret,
+                                 &child](const std::shared_ptr<render_item>& ri) -> bool {
+                                    if (check(ri)) {
+                                        ret = child;
+                                        return false;
+                                    }
+                                    return true;
+                                });
+                        }
                     }
-                } else
-                {
-                    if(	el->src_el()->css().get_float() == float_none &&
-                           el->src_el()->css().get_display() != display_inline_block && el->src_el()->css().get_display() != display_inline_flex)
-                    {
-                        element::ptr child = el->get_child_by_point(el_pos.x, el_pos.y, client_x, client_y, flag, zindex, check);
-						if(child)
-						{
-							if(!check)
-							{
-								ret = child;
-							} else
-							{
-								child->run_on_renderers([&check, &ret, &child](const std::shared_ptr<render_item>& ri) -> bool {
-									if(check(ri))
-									{
-										ret = child;
-										return false;
-									}
-									return true;
-								});
-							}
-						}
+                } else {
+                    if (el->src_el()->css().get_float() == float_none &&
+                        el->src_el()->css().get_display() != display_inline_block &&
+                        el->src_el()->css().get_display() != display_inline_flex) {
+                        element::ptr child = el->get_child_by_point(el_pos.x, el_pos.y, client_x,
+                                                                    client_y, flag, zindex, check);
+                        if (child) {
+                            if (!check) {
+                                ret = child;
+                            } else {
+                                child->run_on_renderers(
+                                    [&check, &ret,
+                                     &child](const std::shared_ptr<render_item>& ri) -> bool {
+                                        if (check(ri)) {
+                                            ret = child;
+                                            return false;
+                                        }
+                                        return true;
+                                    });
+                            }
+                        }
                     }
                 }
             }
@@ -1273,167 +1149,138 @@ std::shared_ptr<litehtml::element>  litehtml::render_item::get_child_by_point(pi
     return ret;
 }
 
-std::shared_ptr<litehtml::element> litehtml::render_item::get_element_by_point(pixel_t x, pixel_t y, pixel_t client_x, pixel_t client_y, const std::function<bool(const std::shared_ptr<render_item>&)>& check)
-{
-    if(!is_visible()) return nullptr;
+std::shared_ptr<litehtml::element> litehtml::render_item::get_element_by_point(
+    pixel_t x, pixel_t y, pixel_t client_x, pixel_t client_y,
+    const std::function<bool(const std::shared_ptr<render_item>&)>& check) {
+    if (!is_visible()) return nullptr;
 
     element::ptr ret;
 
     std::map<int, bool> z_indexes;
 
-    for(const auto& i : m_positioned)
-    {
+    for (const auto& i : m_positioned) {
         z_indexes[i->src_el()->css().get_z_index()];
     }
 
-    for(auto iter = z_indexes.rbegin(); iter != z_indexes.rend(); ++iter)
-    {
-        if(iter->first > 0)
-        {
+    for (auto iter = z_indexes.rbegin(); iter != z_indexes.rend(); ++iter) {
+        if (iter->first > 0) {
             ret = get_child_by_point(x, y, client_x, client_y, draw_positioned, iter->first, check);
-			if(ret) return ret;
+            if (ret) return ret;
         }
     }
 
-    for(const auto& z_index : z_indexes)
-    {
-        if(z_index.first == 0)
-        {
-            ret = get_child_by_point(x, y, client_x, client_y, draw_positioned, z_index.first, check);
-			if(ret) return ret;
+    for (const auto& z_index : z_indexes) {
+        if (z_index.first == 0) {
+            ret =
+                get_child_by_point(x, y, client_x, client_y, draw_positioned, z_index.first, check);
+            if (ret) return ret;
         }
     }
 
     ret = get_child_by_point(x, y, client_x, client_y, draw_inlines, 0, check);
-    if(ret) return ret;
+    if (ret) return ret;
 
     ret = get_child_by_point(x, y, client_x, client_y, draw_floats, 0, check);
-    if(ret) return ret;
+    if (ret) return ret;
 
-    ret = get_child_by_point(x, y, client_x, client_y, draw_block, 0,check);
-    if(ret) return ret;
+    ret = get_child_by_point(x, y, client_x, client_y, draw_block, 0, check);
+    if (ret) return ret;
 
-
-	for(auto iter = z_indexes.rbegin(); iter != z_indexes.rend(); ++iter)
-	{
-        if(iter->first < 0)
-        {
+    for (auto iter = z_indexes.rbegin(); iter != z_indexes.rend(); ++iter) {
+        if (iter->first < 0) {
             ret = get_child_by_point(x, y, client_x, client_y, draw_positioned, iter->first, check);
-			if(ret) return ret;
+            if (ret) return ret;
         }
     }
 
-    if(src_el()->css().get_position() == element_position_fixed)
-    {
-        if(is_point_inside(client_x, client_y))
-        {
-			if (!check || check(this->shared_from_this()))
-			{
-				ret = src_el();
-			}
-
+    if (src_el()->css().get_position() == element_position_fixed) {
+        if (is_point_inside(client_x, client_y)) {
+            if (!check || check(this->shared_from_this())) {
+                ret = src_el();
+            }
         }
-    } else
-    {
-        if(is_point_inside(x, y))
-        {
-			if (!check || check(this->shared_from_this()))
-			{
-				ret = src_el();
-			}
+    } else {
+        if (is_point_inside(x, y)) {
+            if (!check || check(this->shared_from_this())) {
+                ret = src_el();
+            }
         }
     }
 
     return ret;
 }
 
-bool litehtml::render_item::is_point_inside( pixel_t x, pixel_t y ) const
-{
-	if(src_el()->css().get_display() != display_inline && src_el()->css().get_display() != display_table_row)
-	{
-		position pos = m_pos;
-		pos += m_padding;
-		pos += m_borders;
-		return pos.is_point_inside(x, y);
-	} else
-	{
-		position::vector boxes;
-		get_inline_boxes(boxes);
-		for(auto & box : boxes)
-		{
-			if(box.is_point_inside(x, y))
-			{
-				return true;
-			}
-		}
-	}
+bool litehtml::render_item::is_point_inside(pixel_t x, pixel_t y) const {
+    if (src_el()->css().get_display() != display_inline &&
+        src_el()->css().get_display() != display_table_row) {
+        position pos = m_pos;
+        pos += m_padding;
+        pos += m_borders;
+        return pos.is_point_inside(x, y);
+    } else {
+        position::vector boxes;
+        get_inline_boxes(boxes);
+        for (auto& box : boxes) {
+            if (box.is_point_inside(x, y)) {
+                return true;
+            }
+        }
+    }
     return false;
 }
 
-void litehtml::render_item::get_rendering_boxes( position::vector& redraw_boxes) const
-{
-    if(src_el()->css().get_display() == display_inline || src_el()->css().get_display() == display_table_row)
-    {
+void litehtml::render_item::get_rendering_boxes(position::vector& redraw_boxes) const {
+    if (src_el()->css().get_display() == display_inline ||
+        src_el()->css().get_display() == display_table_row) {
         get_inline_boxes(redraw_boxes);
-		for(auto& box : redraw_boxes)
-		{
-			scroll_box(box);
-		}
-    } else
-    {
+        for (auto& box : redraw_boxes) {
+            scroll_box(box);
+        }
+    } else {
         position pos = m_pos;
-        pos 	+= m_padding;
-        pos 	+= m_borders;
+        pos += m_padding;
+        pos += m_borders;
         redraw_boxes.push_back(pos);
     }
 
-    if(src_el()->css().get_position() != element_position_fixed)
-    {
-	auto cur_el = parent();
-	// pixel_t	 add_x	= 0;
-	// pixel_t	 add_y	= 0;
+    if (src_el()->css().get_position() != element_position_fixed) {
+        auto cur_el = parent();
+        // pixel_t	 add_x	= 0;
+        // pixel_t	 add_y	= 0;
 
-		position placement = get_placement();
-		pixel_t add_x = placement.x - m_pos.x;
-		pixel_t add_y = placement.y - m_pos.y;
+        position placement = get_placement();
+        pixel_t add_x = placement.x - m_pos.x;
+        pixel_t add_y = placement.y - m_pos.y;
 
-		for(auto& box : redraw_boxes)
-		{
-			box.x += add_x;
-			box.y += add_y;
-		}
-	} else
-	{
-		position view_port;
-		src_el()->get_document()->container()->get_viewport(view_port);
-		for(auto& box : redraw_boxes)
-		{
-			box.x += view_port.left();
-			box.y += view_port.top();
-		}
-	}
+        for (auto& box : redraw_boxes) {
+            box.x += add_x;
+            box.y += add_y;
+        }
+    } else {
+        position view_port;
+        src_el()->get_document()->container()->get_viewport(view_port);
+        for (auto& box : redraw_boxes) {
+            box.x += view_port.left();
+            box.y += view_port.top();
+        }
+    }
 }
 
-void litehtml::render_item::dump(litehtml::dumper& cout)
-{
+void litehtml::render_item::dump(litehtml::dumper& cout) {
     cout.begin_node(src_el()->dump_get_name() + "{" + string(typeid(*this).name()) + "}");
 
     auto attrs = src_el()->dump_get_attrs();
-    if(!attrs.empty())
-    {
+    if (!attrs.empty()) {
         cout.begin_attrs_group("attributes");
-        for (const auto &attr: attrs)
-        {
+        for (const auto& attr : attrs) {
             cout.add_attr(std::get<0>(attr), std::get<1>(attr));
         }
         cout.end_attrs_group();
     }
 
-    if(!m_children.empty())
-    {
+    if (!m_children.empty()) {
         cout.begin_attrs_group("children");
-        for (const auto &el: m_children)
-        {
+        for (const auto& el : m_children) {
             el->dump(cout);
         }
         cout.end_attrs_group();
@@ -1442,289 +1289,255 @@ void litehtml::render_item::dump(litehtml::dumper& cout)
     cout.end_node();
 }
 
-litehtml::position litehtml::render_item::get_placement() const
-{
-	litehtml::position pos = m_pos;
-	if(css().get_position() == element_position_fixed)
-	{
-		position view_port;
-		src_el()->get_document()->container()->get_viewport(view_port);
-		pos.x += view_port.left();
-		pos.y += view_port.top();
-		return pos;
-	}
-	auto cur_el = parent();
-	while(cur_el)
-	{
-		auto p = cur_el->calc_placement();
-		pos.x += p.x;
-		pos.y += p.y;
+litehtml::position litehtml::render_item::get_placement() const {
+    litehtml::position pos = m_pos;
+    if (css().get_position() == element_position_fixed) {
+        position view_port;
+        src_el()->get_document()->container()->get_viewport(view_port);
+        pos.x += view_port.left();
+        pos.y += view_port.top();
+        return pos;
+    }
+    auto cur_el = parent();
+    while (cur_el) {
+        auto p = cur_el->calc_placement();
+        pos.x += p.x;
+        pos.y += p.y;
 
-		if(cur_el->css().get_position() == element_position_fixed)
-		{
-			position view_port;
-			src_el()->get_document()->container()->get_viewport(view_port);
-			pos.x += view_port.left();
-			pos.y += view_port.top();
-			return pos;
-		}
+        if (cur_el->css().get_position() == element_position_fixed) {
+            position view_port;
+            src_el()->get_document()->container()->get_viewport(view_port);
+            pos.x += view_port.left();
+            pos.y += view_port.top();
+            return pos;
+        }
 
-		cur_el = cur_el->parent();
-	}
-	return pos;
+        cur_el = cur_el->parent();
+    }
+    return pos;
 }
 
-std::shared_ptr<litehtml::render_item> litehtml::render_item::init()
-{
+std::shared_ptr<litehtml::render_item> litehtml::render_item::init() {
     src_el()->add_render(shared_from_this());
 
-    for(auto& el : children())
-    {
+    for (auto& el : children()) {
         el = el->init();
     }
 
     return shared_from_this();
 }
 
-void litehtml::render_item::calc_cb_length(const css_length& len, pixel_t percent_base, containing_block_context::typed_pixel& out_value) const
-{
-	if (!len.is_predefined())
-	{
-		if(len.units() == litehtml::css_units_percentage || len.is_calc())
-		{
-			out_value.value = len.calc_percent(percent_base);
-			out_value.type = litehtml::containing_block_context::cbc_value_type_percentage;
-		} else
-		{
-			out_value.value = src_el()->get_document()->to_pixels(len, css().get_font_metrics(), 0);
-			out_value.type = containing_block_context::cbc_value_type_absolute;
-		}
-	}
+void litehtml::render_item::calc_cb_length(const css_length& len, pixel_t percent_base,
+                                           containing_block_context::typed_pixel& out_value) const {
+    if (!len.is_predefined()) {
+        if (len.units() == litehtml::css_units_percentage || len.is_calc()) {
+            out_value.value = len.calc_percent(percent_base);
+            out_value.type = litehtml::containing_block_context::cbc_value_type_percentage;
+        } else {
+            out_value.value = src_el()->get_document()->to_pixels(len, css().get_font_metrics(), 0);
+            out_value.type = containing_block_context::cbc_value_type_absolute;
+        }
+    }
 }
 
-litehtml::containing_block_context litehtml::render_item::calculate_containing_block_context(const containing_block_context& cb_context)
-{
-containing_block_context ret;
-ret.mode = css().get_writing_mode();
-ret.size_mode = cb_context.size_mode & (containing_block_context::size_mode_content | 
-containing_block_context::size_mode_exact_width | 
-containing_block_context::size_mode_exact_height);
-ret.context_idx = cb_context.context_idx + 1;
+litehtml::containing_block_context litehtml::render_item::calculate_containing_block_context(
+    const containing_block_context& cb_context) {
+    containing_block_context ret;
 
-// Initial logical sizes mapped from parent's physical dimensions
-pixel_t phys_width = cb_context.width.value;
-pixel_t phys_height = cb_context.height.value;
+    ret.mode = css().get_writing_mode();
+    ret.size_mode = cb_context.size_mode & (containing_block_context::size_mode_content |
+                                            containing_block_context::size_mode_exact_width |
+                                            containing_block_context::size_mode_exact_height);
+    ret.context_idx = cb_context.context_idx + 1;
 
-if (ret.mode == writing_mode_horizontal_tb)
-{
-ret.width.value = ret.max_width.value = phys_width - content_offset_width();
-if (src_el()->css().get_position() != element_position_absolute && src_el()->css().get_position() != element_position_fixed)
-{
-ret.height.value = phys_height - content_offset_height();
-}
-       if (cb_context.size_mode & containing_block_context::size_mode_content)
-       {
-       ret.width.type = containing_block_context::cbc_value_type_auto;
-       }
-       }
-       else
-       {
+    // Initial logical sizes mapped from parent's physical dimensions
+    pixel_t phys_width = cb_context.width.value;
+    pixel_t phys_height = cb_context.height.value;
+
+    if (ret.mode == writing_mode_horizontal_tb) {
+        ret.width.value = ret.max_width.value = phys_width - content_offset_width();
+        if (src_el()->css().get_position() != element_position_absolute &&
+            src_el()->css().get_position() != element_position_fixed) {
+            ret.height.value = phys_height - content_offset_height();
+        }
+        if (cb_context.size_mode & containing_block_context::size_mode_content) {
+            ret.width.type = containing_block_context::cbc_value_type_auto;
+        }
+    } else {
         // Vertical: child's logical inline-size (ret.height) maps to parent's physical height
-       // child's logical block-size (ret.width) maps to parent's physical width
-       ret.height.value = ret.max_height.value = phys_height - content_offset_height();
-       if (src_el()->css().get_position() != element_position_absolute && src_el()->css().get_position() != element_position_fixed)
-       {
-        ret.width.value = phys_width - content_offset_width();
-       }
-             if (cb_context.size_mode & containing_block_context::size_mode_content)
-       {
-           ret.height.type = containing_block_context::cbc_value_type_auto;
-       ret.height.value = 0;
-       }
-       }
+        // child's logical block-size (ret.width) maps to parent's physical width
+        ret.height.value = ret.max_height.value = phys_height - content_offset_height();
+        if (src_el()->css().get_position() != element_position_absolute &&
+            src_el()->css().get_position() != element_position_fixed) {
+            ret.width.value = phys_width - content_offset_width();
+        }
+        if (cb_context.size_mode & containing_block_context::size_mode_content) {
+            ret.height.type = containing_block_context::cbc_value_type_auto;
+            ret.height.value = 0;
+        }
+    }
 
-	auto par = parent();
-	bool is_flex_child = par && (par->css().get_display() == display_flex || par->css().get_display() == display_inline_flex);
+    auto par = parent();
+    bool is_flex_child = par && (par->css().get_display() == display_flex ||
+                                 par->css().get_display() == display_inline_flex);
 
-	// Calculate width
-	if (src_el()->css().get_display() != display_table_cell)
-	{
-		if(cb_context.size_mode & containing_block_context::size_mode_exact_width)
-		{
-			ret.width.value = cb_context.width;
-			ret.width.type = containing_block_context::cbc_value_type_absolute;
-		} else
-		{
-			auto *width = &css().get_width();
-			if(is_flex_child)
-			{
-				// In Flexbox, if flex-basis is set, width/height might be overridden
-				if(!css().get_flex_basis().is_predefined() && css().get_flex_basis().val() >= 0)
-				{
-					auto flex_dir = par->css().get_flex_direction();
-					bool is_main_axis_width = (flex_dir == flex_direction_row || flex_dir == flex_direction_row_reverse);
-					if(is_main_axis_width)
-					{
-						ret.width.type = containing_block_context::cbc_value_type_auto;
-						ret.width.value = 0;
-						width = nullptr;
-					}
-				}
-			}
-			if(width)
-			{
+    // Calculate width
+    if (src_el()->css().get_display() != display_table_cell) {
+        if (cb_context.size_mode & containing_block_context::size_mode_exact_width) {
+            ret.width.value = cb_context.width;
+            ret.width.type = containing_block_context::cbc_value_type_absolute;
+        } else {
+            auto* width = &css().get_width();
+            if (is_flex_child) {
+                // In Flexbox, if flex-basis is set, width/height might be overridden
+                if (!css().get_flex_basis().is_predefined() && css().get_flex_basis().val() >= 0) {
+                    auto flex_dir = par->css().get_flex_direction();
+                    bool is_main_axis_width =
+                        (flex_dir == flex_direction_row || flex_dir == flex_direction_row_reverse);
+                    if (is_main_axis_width) {
+                        ret.width.type = containing_block_context::cbc_value_type_auto;
+                        ret.width.value = 0;
+                        width = nullptr;
+                    }
+                }
+            }
+            if (width) {
                 // Mapping physical width to parent's physical width
-				calc_cb_length(*width, cb_context.width, ret.width);
-			}
-		}
-		if (ret.width.type != containing_block_context::cbc_value_type_auto && (src_el()->css().get_display() == display_table || src_el()->is_root()))
-		{
-			ret.width.value -= m_padding.width() + m_borders.width();
-		}
-	}
+                calc_cb_length(*width, cb_context.width, ret.width);
+            }
+        }
+        if (ret.width.type != containing_block_context::cbc_value_type_auto &&
+            (src_el()->css().get_display() == display_table || src_el()->is_root())) {
+            ret.width.value -= m_padding.width() + m_borders.width();
+        }
+    }
 
-	// Calculate height
-	{
-		if(cb_context.size_mode & containing_block_context::size_mode_exact_height)
-		{
-			ret.height.value = cb_context.height;
-			ret.height.type = containing_block_context::cbc_value_type_absolute;
-		} else
-		{
-			auto *height = &css().get_height();
-			if(is_flex_child)
-			{
-				if(!css().get_flex_basis().is_predefined() && css().get_flex_basis().val() >= 0)
-				{
-					auto flex_dir = par->css().get_flex_direction();
-					bool is_main_axis_height = (flex_dir == flex_direction_column || flex_dir == flex_direction_column_reverse);
-					if(is_main_axis_height)
-					{
-						ret.height.type = containing_block_context::cbc_value_type_auto;
-						ret.height.value = 0;
-						height = nullptr;
-					}
-				}
-			}
-			if(height)
-			{
+    // Calculate height
+    {
+        if (cb_context.size_mode & containing_block_context::size_mode_exact_height) {
+            ret.height.value = cb_context.height;
+            ret.height.type = containing_block_context::cbc_value_type_absolute;
+        } else {
+            auto* height = &css().get_height();
+            if (is_flex_child) {
+                if (!css().get_flex_basis().is_predefined() && css().get_flex_basis().val() >= 0) {
+                    auto flex_dir = par->css().get_flex_direction();
+                    bool is_main_axis_height = (flex_dir == flex_direction_column ||
+                                                flex_dir == flex_direction_column_reverse);
+                    if (is_main_axis_height) {
+                        ret.height.type = containing_block_context::cbc_value_type_auto;
+                        ret.height.value = 0;
+                        height = nullptr;
+                    }
+                }
+            }
+            if (height) {
                 // Mapping physical height to parent's physical height
-				calc_cb_length(*height, cb_context.height, ret.height);
-			}
-		}
-		if (ret.height.type != containing_block_context::cbc_value_type_auto && (src_el()->css().get_display() == display_table || src_el()->is_root()))
-		{
-			ret.height.value -= m_padding.height() + m_borders.height();
-		}
-	}
+                calc_cb_length(*height, cb_context.height, ret.height);
+            }
+        }
+        if (ret.height.type != containing_block_context::cbc_value_type_auto &&
+            (src_el()->css().get_display() == display_table || src_el()->is_root())) {
+            ret.height.value -= m_padding.height() + m_borders.height();
+        }
+    }
 
-	// Calculate aspect ratio
-	if(!css().get_aspect_ratio().is_auto())
-	{
-		aspect_ratio ar = css().get_aspect_ratio();
-		if(ret.width.type == containing_block_context::cbc_value_type_auto && ret.height.type == containing_block_context::cbc_value_type_absolute)
-		{
-			ret.width.value = ret.height.value * ar.width / ar.height;
-			ret.width.type = containing_block_context::cbc_value_type_absolute;
-		} else if(ret.height.type == containing_block_context::cbc_value_type_auto && ret.width.type == containing_block_context::cbc_value_type_absolute)
-		{
-			ret.height.value = ret.width.value * ar.height / ar.width;
-			ret.height.type = containing_block_context::cbc_value_type_absolute;
-		}
-	}
+    // Calculate aspect ratio
+    if (!css().get_aspect_ratio().is_auto()) {
+        aspect_ratio ar = css().get_aspect_ratio();
+        if (ret.width.type == containing_block_context::cbc_value_type_auto &&
+            ret.height.type == containing_block_context::cbc_value_type_absolute) {
+            ret.width.value = ret.height.value * ar.width / ar.height;
+            ret.width.type = containing_block_context::cbc_value_type_absolute;
+        } else if (ret.height.type == containing_block_context::cbc_value_type_auto &&
+                   ret.width.type == containing_block_context::cbc_value_type_absolute) {
+            ret.height.value = ret.width.value * ar.height / ar.width;
+            ret.height.type = containing_block_context::cbc_value_type_absolute;
+        }
+    }
 
-	ret.render_width = ret.width;
-	ret.render_height = ret.height;
+    ret.render_width = ret.width;
+    ret.render_height = ret.height;
 
-	// Min/Max widths (physical width = inline-size in horizontal-tb)
-	calc_cb_length(src_el()->css().get_min_width(), cb_context.width, ret.min_width);
-	calc_cb_length(src_el()->css().get_max_width(), cb_context.width, ret.max_width);
+    // Min/Max widths (physical width = inline-size in horizontal-tb)
+    calc_cb_length(src_el()->css().get_min_width(), cb_context.width, ret.min_width);
+    calc_cb_length(src_el()->css().get_max_width(), cb_context.width, ret.max_width);
 
-	// Min/Max heights (physical height = block-size in horizontal-tb)
-	calc_cb_length(src_el()->css().get_min_height(), cb_context.height, ret.min_height);
-	calc_cb_length(src_el()->css().get_max_height(), cb_context.height, ret.max_height);
+    // Min/Max heights (physical height = block-size in horizontal-tb)
+    calc_cb_length(src_el()->css().get_min_height(), cb_context.height, ret.min_height);
+    calc_cb_length(src_el()->css().get_max_height(), cb_context.height, ret.max_height);
 
-	// Fix box sizing
-	// Physical width adjustment (inline-size)
-	if(ret.width.type != containing_block_context::cbc_value_type_auto)
-	{
-		ret.render_width = std::max(0.0f, (pixel_t)ret.width - box_sizing_width());
-	}
-	if(ret.min_width.type != containing_block_context::cbc_value_type_none)
-	{
-		ret.min_width.value = std::max(0.0f, (pixel_t)ret.min_width.value - box_sizing_width());
-	}
-	if(ret.max_width.type != containing_block_context::cbc_value_type_none)
-	{
-		ret.max_width.value = std::max(0.0f, (pixel_t)ret.max_width.value - box_sizing_width());
-	}
+    // Fix box sizing
+    // Physical width adjustment (inline-size)
+    if (ret.width.type != containing_block_context::cbc_value_type_auto) {
+        ret.render_width = std::max(0.0f, (pixel_t)ret.width - box_sizing_width());
+    }
+    if (ret.min_width.type != containing_block_context::cbc_value_type_none) {
+        ret.min_width.value = std::max(0.0f, (pixel_t)ret.min_width.value - box_sizing_width());
+    }
+    if (ret.max_width.type != containing_block_context::cbc_value_type_none) {
+        ret.max_width.value = std::max(0.0f, (pixel_t)ret.max_width.value - box_sizing_width());
+    }
 
-	// Physical height adjustment (block-size)
-	if(ret.height.type != containing_block_context::cbc_value_type_auto)
-	{
-		ret.render_height = std::max(0.0f, (pixel_t)ret.height - box_sizing_height());
-	}
-	if(ret.min_height.type != containing_block_context::cbc_value_type_none)
-	{
-		ret.min_height.value = std::max(0.0f, (pixel_t)ret.min_height.value - box_sizing_height());
-	}
-	if(ret.max_height.type != containing_block_context::cbc_value_type_none)
-	{
-		ret.max_height.value = std::max(0.0f, (pixel_t)ret.max_height.value - box_sizing_height());
-	}
+    // Physical height adjustment (block-size)
+    if (ret.height.type != containing_block_context::cbc_value_type_auto) {
+        ret.render_height = std::max(0.0f, (pixel_t)ret.height - box_sizing_height());
+    }
+    if (ret.min_height.type != containing_block_context::cbc_value_type_none) {
+        ret.min_height.value = std::max(0.0f, (pixel_t)ret.min_height.value - box_sizing_height());
+    }
+    if (ret.max_height.type != containing_block_context::cbc_value_type_none) {
+        ret.max_height.value = std::max(0.0f, (pixel_t)ret.max_height.value - box_sizing_height());
+    }
 
-	// For children, the containing block is the content box.
-	// Sync width/height with render_width/render_height to ensure consistent layout.
-	ret.width = ret.render_width;
-	ret.height = ret.render_height;
+    // For children, the containing block is the content box.
+    // Sync width/height with render_width/render_height to ensure consistent layout.
+    ret.width = ret.render_width;
+    ret.height = ret.render_height;
 
-	return ret;
+    return ret;
 }
 
-std::tuple<litehtml::pixel_t, litehtml::pixel_t> litehtml::render_item::element_static_offset(const std::shared_ptr<litehtml::render_item>& el)
-{
-	pixel_t offset_x = 0;
-	pixel_t offset_y = 0;
-	auto cur_el = el->parent();
-	auto this_el = el->css().get_position() != element_position_fixed ? shared_from_this() : src_el()->get_document()->root_render();
-	while(cur_el && cur_el != this_el)
-	{
-		offset_x += cur_el->m_pos.x;
-		offset_y += cur_el->m_pos.y;
-		cur_el = cur_el->parent();
-	}
+std::tuple<litehtml::pixel_t, litehtml::pixel_t> litehtml::render_item::element_static_offset(
+    const std::shared_ptr<litehtml::render_item>& el) {
+    pixel_t offset_x = 0;
+    pixel_t offset_y = 0;
+    auto cur_el = el->parent();
+    auto this_el = el->css().get_position() != element_position_fixed
+                       ? shared_from_this()
+                       : src_el()->get_document()->root_render();
+    while (cur_el && cur_el != this_el) {
+        offset_x += cur_el->m_pos.x;
+        offset_y += cur_el->m_pos.y;
+        cur_el = cur_el->parent();
+    }
 
-	if(el->css().get_position() == element_position_fixed || (is_root() && !src_el()->is_positioned()))
-	{
-		offset_x += this_el->m_pos.x;
-		offset_y += this_el->m_pos.y;
-	} else
-	{
-		offset_x += m_padding.left;
-		offset_y += m_padding.top;
-	}
+    if (el->css().get_position() == element_position_fixed ||
+        (is_root() && !src_el()->is_positioned())) {
+        offset_x += this_el->m_pos.x;
+        offset_y += this_el->m_pos.y;
+    } else {
+        offset_x += m_padding.left;
+        offset_y += m_padding.top;
+    }
 
-	return {offset_x, offset_y};
+    return {offset_x, offset_y};
 }
 
-litehtml::pixel_t litehtml::render_item::get_predefined_width(pixel_t parent_width) const
-{
-	pixel_t ret = css().get_width().calc_percent(parent_width);
-	if (css().get_box_sizing() == box_sizing_border_box)
-	{
-		ret -= m_padding.width() + m_borders.width();
-		if (ret < 0) ret = 0;
-	}
-	return ret;
+litehtml::pixel_t litehtml::render_item::get_predefined_width(pixel_t parent_width) const {
+    pixel_t ret = css().get_width().calc_percent(parent_width);
+    if (css().get_box_sizing() == box_sizing_border_box) {
+        ret -= m_padding.width() + m_borders.width();
+        if (ret < 0) ret = 0;
+    }
+    return ret;
 }
 
-litehtml::pixel_t litehtml::render_item::get_predefined_height(pixel_t parent_height) const
-{
-	pixel_t ret = css().get_height().calc_percent(parent_height);
-	if (css().get_box_sizing() == box_sizing_border_box)
-	{
-		ret -= m_padding.height() + m_borders.height();
-		if (ret < 0) ret = 0;
-	}
-	return ret;
+litehtml::pixel_t litehtml::render_item::get_predefined_height(pixel_t parent_height) const {
+    pixel_t ret = css().get_height().calc_percent(parent_height);
+    if (css().get_box_sizing() == box_sizing_border_box) {
+        ret -= m_padding.height() + m_borders.height();
+        if (ret < 0) ret = 0;
+    }
+    return ret;
 }

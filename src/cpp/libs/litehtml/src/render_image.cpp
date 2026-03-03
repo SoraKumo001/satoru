@@ -2,6 +2,7 @@
 #include "document.h"
 #include "types.h"
 #include <cstdio>
+#include <iostream>
 
 litehtml::pixel_t litehtml::render_item_image::_measure(const containing_block_context &containing_block_size, formatting_context* /*fmt_ctx*/)
 {
@@ -34,6 +35,13 @@ litehtml::pixel_t litehtml::render_item_image::_measure(const containing_block_c
     } else if(m_pos.height == 0 && sz.width != 0)
     {
         m_pos.height = m_pos.width * sz.height / sz.width;
+    }
+
+    if (std::string(src_el()->get_tagName()) == "svg") {
+        std::cout << "[Satoru DEBUG] SVG measure: tag=" << src_el()->get_tagName() 
+                  << " self_w=" << self_size.render_width << " self_h=" << self_size.render_height
+                  << " cb_w=" << containing_block_size.width << " cb_h=" << containing_block_size.height
+                  << " res_w=" << m_pos.width << " res_h=" << m_pos.height << std::endl;
     }
 
     // Constraints

@@ -3,6 +3,7 @@
 #include "flex_item.h"
 #include "flex_line.h"
 #include "types.h"
+#include <iostream>
 
 void litehtml::flex_item::init(const litehtml::containing_block_context &self_size_const,
 							   litehtml::formatting_context *fmt_ctx, flex_align_items align_items)
@@ -324,22 +325,16 @@ void litehtml::flex_item_row_direction::layout_item(litehtml::flex_line &ln,
         child_cb.render_block_size() = child_cb.block_size();
 		child_cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;
 	} else {
-        if (child_cb.block_size().type == containing_block_context::cbc_value_type_auto)
-        {
-            child_cb.block_size().type = containing_block_context::cbc_value_type_auto;
-            child_cb.render_block_size().type = containing_block_context::cbc_value_type_auto;
-        } else
-        {
-            child_cb.block_size() = self_size.render_block_size();
-            child_cb.render_block_size() = self_size.render_block_size();
-        }
+        child_cb.block_size().type = containing_block_context::cbc_value_type_auto;
+        child_cb.render_block_size().type = containing_block_context::cbc_value_type_auto;
+        child_cb.size_mode &= ~(containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height);
         
         if (m_container_wm.is_vertical())
         {
-            child_cb.size_mode = containing_block_context::size_mode_exact_height;
+            child_cb.size_mode |= containing_block_context::size_mode_exact_height;
         } else
         {
-            child_cb.size_mode = containing_block_context::size_mode_exact_width;
+            child_cb.size_mode |= containing_block_context::size_mode_exact_width;
         }
 		if (cross_prop.is_predefined())
 		{
@@ -456,10 +451,13 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 			bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
 			if (!stretch) mode |= containing_block_context::size_mode_content;
 			
-			el->measure(
-				m_container_wm.is_vertical() ? self_size.new_height(self_size.render_height, mode)
-											 : self_size.new_width(self_size.render_width, mode),
-				fmt_ctx ? &fmt_ctx_copy : nullptr);
+            containing_block_context child_cb = self_size;
+            child_cb.width.type = containing_block_context::cbc_value_type_auto;
+            child_cb.height.type = containing_block_context::cbc_value_type_auto;
+            child_cb.size_mode &= ~(containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height);
+            child_cb.size_mode |= mode;
+
+			el->measure(child_cb, fmt_ctx ? &fmt_ctx_copy : nullptr);
 			min_main_size = get_el_main_size();
 		} else
 		{
@@ -491,17 +489,9 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 			case flex_basis_fit_content:
 				{
 					containing_block_context measure_size = self_size;
-					if (m_container_wm.is_vertical())
-					{
-						measure_size.width.type = containing_block_context::cbc_value_type_auto;
-						measure_size.render_width.type = containing_block_context::cbc_value_type_auto;
-						measure_size.size_mode &= ~containing_block_context::size_mode_exact_width;
-					} else
-					{
-						measure_size.height.type = containing_block_context::cbc_value_type_auto;
-						measure_size.render_height.type = containing_block_context::cbc_value_type_auto;
-						measure_size.size_mode &= ~containing_block_context::size_mode_exact_height;
-					}
+                    measure_size.width.type = containing_block_context::cbc_value_type_auto;
+                    measure_size.height.type = containing_block_context::cbc_value_type_auto;
+                    measure_size.size_mode &= ~(containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height);
 					measure_size.size_mode |= containing_block_context::size_mode_measure;
 					bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
 					if (!stretch) measure_size.size_mode |= containing_block_context::size_mode_content;
@@ -617,16 +607,20 @@ void litehtml::flex_item_column_direction::layout_item(litehtml::flex_line &ln,
 		}
 		child_cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;
 	} else {
+        child_cb.width.type = containing_block_context::cbc_value_type_auto;
+        child_cb.height.type = containing_block_context::cbc_value_type_auto;
+        child_cb.size_mode &= ~(containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height);
+
 		if (m_container_wm.is_vertical())
 		{
-			child_cb.height = self_size.render_height;
-			child_cb.render_height = self_size.render_height;
-			child_cb.size_mode = containing_block_context::size_mode_exact_width;
+            child_cb.width = main_size - el->content_offset_width() + el->box_sizing_width();
+            child_cb.render_width = child_cb.width;
+			child_cb.size_mode |= containing_block_context::size_mode_exact_width;
 		} else
 		{
-			child_cb.width = self_size.render_width;
-			child_cb.render_width = self_size.render_width;
-			child_cb.size_mode = containing_block_context::size_mode_exact_height;
+            child_cb.height = main_size - el->content_offset_height() + el->box_sizing_height();
+            child_cb.render_height = child_cb.height;
+			child_cb.size_mode |= containing_block_context::size_mode_exact_height;
 		}
 		if (cross_prop.is_predefined())
 		{

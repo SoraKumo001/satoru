@@ -18,19 +18,19 @@
 // --- Logging ---
 static LogLevel g_log_level = LogLevel::None;
 
-EM_JS(void, satoru_log_js, (int level, const char *message), {
+EM_JS(void, satoru_log_js, (int level, const char* message), {
     if (Module.onLog) {
         Module.onLog(level, UTF8ToString(message));
     }
 });
 
-void satoru_log(LogLevel level, const char *message) {
+void satoru_log(LogLevel level, const char* message) {
     if (level <= g_log_level) {
         satoru_log_js((int)level, message);
     }
 }
 
-void satoru_log_printf(LogLevel level, const char *format, ...) {
+void satoru_log_printf(LogLevel level, const char* format, ...) {
     if (level <= g_log_level) {
         va_list args;
         va_start(args, format);
@@ -43,7 +43,7 @@ void satoru_log_printf(LogLevel level, const char *format, ...) {
 
 // --- Helpers ---
 namespace {
-std::string json_escape(const std::string &s) {
+std::string json_escape(const std::string& s) {
     std::ostringstream o;
     for (auto c : s) {
         if (c == '"' || c == '\\' || ('\x00' <= c && c <= '\x1f')) {
@@ -58,15 +58,15 @@ std::string json_escape(const std::string &s) {
 typedef sk_sp<SkData> SkDataPtr;
 
 template <typename F>
-const uint8_t *render_and_store(SatoruInstance *inst, F render_func,
-                                void (SatoruContext::*setter)(sk_sp<SkData>), int &out_size) {
+const uint8_t* render_and_store(SatoruInstance* inst, F render_func,
+                                void (SatoruContext::*setter)(sk_sp<SkData>), int& out_size) {
     auto data = render_func();
     if (!data) {
         out_size = 0;
         return nullptr;
     }
     out_size = (int)data->size();
-    const uint8_t *bytes = data->bytes();
+    const uint8_t* bytes = data->bytes();
     (inst->context.*setter)(std::move(data));
     return bytes;
 }
@@ -91,7 +91,7 @@ std::string encode_utf8(char32_t cp) {
     return res;
 }
 
-std::string codepoints_to_utf8(const std::set<char32_t> &cps) {
+std::string codepoints_to_utf8(const std::set<char32_t>& cps) {
     std::string res;
     for (char32_t cp : cps) {
         res += encode_utf8(cp);
@@ -101,15 +101,15 @@ std::string codepoints_to_utf8(const std::set<char32_t> &cps) {
 
 void dump_elements_recursive(litehtml::element::ptr el) {
     if (!el) return;
-    const char *tag = el->get_tagName();
+    const char* tag = el->get_tagName();
     if (tag && strcmp(tag, "div") == 0) {
         auto attrs = el->css().dump_get_attrs();
-        for (const auto &attr : attrs) {
+        for (const auto& attr : attrs) {
             satoru_log_printf(LogLevel::Info, "API DIV [%s] CSS ATTR: %s = %s", tag,
                               std::get<0>(attr).c_str(), std::get<1>(attr).c_str());
         }
     }
-    for (auto &child : el->children()) {
+    for (auto& child : el->children()) {
         dump_elements_recursive(child);
     }
 }
@@ -126,7 +126,7 @@ std::string SatoruInstance::get_full_master_css() const {
            context.getExtraCss();
 }
 
-void SatoruInstance::init_document(const char *html, int width, int height) {
+void SatoruInstance::init_document(const char* html, int width, int height) {
     int initial_height = (height > 0) ? height : 3000;
     render_container = std::make_unique<container_skia>(width, initial_height, nullptr, context,
                                                         &resourceManager, false);
@@ -135,10 +135,6 @@ void SatoruInstance::init_document(const char *html, int width, int height) {
     doc = litehtml::document::createFromString(html, render_container.get(), css.c_str());
 
     if (doc && doc->root()) {
-        satoru_log_printf(LogLevel::Info, "DEBUG ID: _border_is_w = %s",
-                          litehtml::_s(litehtml::_border_inline_start_width_).c_str());
-        satoru_log_printf(LogLevel::Info, "DEBUG ID: _border_bs_w = %s",
-                          litehtml::_s(litehtml::_border_block_start_width_).c_str());
         dump_elements_recursive(doc->root());
     }
 }
@@ -152,16 +148,16 @@ void SatoruInstance::layout_document(int width) {
     }
 }
 
-static void scan_image_sizes(litehtml::element::ptr el, SatoruContext &context) {
+static void scan_image_sizes(litehtml::element::ptr el, SatoruContext& context) {
     if (!el) return;
-    const char *tag = el->get_tagName();
+    const char* tag = el->get_tagName();
     if (tag && (strcmp(tag, "img") == 0 || strcmp(tag, "image") == 0)) {
-        const char *src = el->get_attr("src");
+        const char* src = el->get_attr("src");
         if (!src) src = el->get_attr("href");
         if (!src) src = el->get_attr("xlink:href");
 
-        const char *w_str = el->get_attr("width");
-        const char *h_str = el->get_attr("height");
+        const char* w_str = el->get_attr("width");
+        const char* h_str = el->get_attr("height");
         if (src && w_str && h_str) {
             int w = atoi(w_str);
             int h = atoi(h_str);
@@ -173,12 +169,12 @@ static void scan_image_sizes(litehtml::element::ptr el, SatoruContext &context) 
             }
         }
     }
-    for (auto &child : el->children()) {
+    for (auto& child : el->children()) {
         scan_image_sizes(child, context);
     }
 }
 
-void SatoruInstance::collect_resources(const std::string &html, int width, int height) {
+void SatoruInstance::collect_resources(const std::string& html, int width, int height) {
     int initial_height = (height > 0) ? height : 3000;
     discovery_container = std::make_unique<container_skia>(width, initial_height, nullptr, context,
                                                            &resourceManager, false);
@@ -192,11 +188,11 @@ void SatoruInstance::collect_resources(const std::string &html, int width, int h
         scan_image_sizes(temp_doc->root(), context);
     }
 
-    const auto &usedCodepoints = discovery_container->get_used_codepoints();
-    const auto &requestedAttribs = discovery_container->get_requested_font_attributes();
-    const auto &usedFontCharacters = discovery_container->get_used_fonts_characters();
+    const auto& usedCodepoints = discovery_container->get_used_codepoints();
+    const auto& requestedAttribs = discovery_container->get_requested_font_attributes();
+    const auto& usedFontCharacters = discovery_container->get_used_fonts_characters();
 
-    for (const auto &req : requestedAttribs) {
+    for (const auto& req : requestedAttribs) {
         std::string charactersStr;
         auto it_chars = usedFontCharacters.find(req);
         if (it_chars != usedFontCharacters.end()) {
@@ -209,10 +205,10 @@ void SatoruInstance::collect_resources(const std::string &html, int width, int h
         if (urls.empty()) {
             auto loaded = context.fontManager.matchFonts(req.family, req.weight, req.slant);
             if (loaded.empty()) {
-                const auto &fontMap = context.getFontMap();
+                const auto& fontMap = context.getFontMap();
                 auto it = fontMap.find(req.family);
                 if (it != fontMap.end()) {
-                    const std::string &mapped = it->second;
+                    const std::string& mapped = it->second;
                     if (mapped.substr(0, 7) == "http://" || mapped.substr(0, 8) == "https://") {
                         resourceManager.request(mapped, req.family, ResourceType::Font, false,
                                                 charactersStr);
@@ -233,28 +229,28 @@ void SatoruInstance::collect_resources(const std::string &html, int width, int h
                 }
             }
         } else {
-            for (const auto &url : urls) {
+            for (const auto& url : urls) {
                 resourceManager.request(url, req.family, ResourceType::Font, false, charactersStr);
             }
         }
     }
 }
 
-void SatoruInstance::add_resource(const std::string &url, ResourceType type,
-                                  const std::vector<uint8_t> &data) {
+void SatoruInstance::add_resource(const std::string& url, ResourceType type,
+                                  const std::vector<uint8_t>& data) {
     resourceManager.add(url.c_str(), data.data(), (int)data.size(), type);
 }
 
-void SatoruInstance::scan_css(const std::string &css) {
+void SatoruInstance::scan_css(const std::string& css) {
     context.addCss(css.c_str());
     context.fontManager.scanFontFaces(css.c_str());
 }
 
-void SatoruInstance::load_font(const std::string &name, const std::vector<uint8_t> &data) {
+void SatoruInstance::load_font(const std::string& name, const std::vector<uint8_t>& data) {
     context.load_font(name.c_str(), data.data(), (int)data.size());
 }
 
-void SatoruInstance::load_image(const std::string &name, const std::string &data_url, int width,
+void SatoruInstance::load_image(const std::string& name, const std::string& data_url, int width,
                                 int height) {
     context.load_image(name.c_str(), data_url.c_str(), width, height);
 }
@@ -266,7 +262,7 @@ std::string SatoruInstance::get_pending_resources_json() {
     std::stringstream ss;
     ss << "[";
     for (size_t i = 0; i < requests.size(); ++i) {
-        const auto &req = requests[i];
+        const auto& req = requests[i];
         std::string typeStr = "font";
         if (req.type == ResourceType::Image)
             typeStr = "image";
@@ -284,18 +280,18 @@ std::string SatoruInstance::get_pending_resources_json() {
 
 // --- API Functions (Wrappers) ---
 
-SatoruInstance *api_create_instance() { return new SatoruInstance(); }
+SatoruInstance* api_create_instance() { return new SatoruInstance(); }
 
-void api_destroy_instance(SatoruInstance *inst) { delete inst; }
+void api_destroy_instance(SatoruInstance* inst) { delete inst; }
 
-std::string api_html_to_svg(SatoruInstance *inst, const char *html, int width, int height,
-                            const RenderOptions &options) {
+std::string api_html_to_svg(SatoruInstance* inst, const char* html, int width, int height,
+                            const RenderOptions& options) {
     return renderHtmlToSvg(html, width, height, inst->context, inst->get_full_master_css().c_str(),
                            options);
 }
 
-const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width, int height,
-                               const RenderOptions &options, int &out_size) {
+const uint8_t* api_html_to_png(SatoruInstance* inst, const char* html, int width, int height,
+                               const RenderOptions& options, int& out_size) {
     return render_and_store(
         inst,
         [&]() {
@@ -305,8 +301,8 @@ const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width
         &SatoruContext::set_last_png, out_size);
 }
 
-const uint8_t *api_html_to_webp(SatoruInstance *inst, const char *html, int width, int height,
-                                const RenderOptions &options, int &out_size) {
+const uint8_t* api_html_to_webp(SatoruInstance* inst, const char* html, int width, int height,
+                                const RenderOptions& options, int& out_size) {
     return render_and_store(
         inst,
         [&]() {
@@ -316,8 +312,8 @@ const uint8_t *api_html_to_webp(SatoruInstance *inst, const char *html, int widt
         &SatoruContext::set_last_webp, out_size);
 }
 
-const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width, int height,
-                               const RenderOptions &options, int &out_size) {
+const uint8_t* api_html_to_pdf(SatoruInstance* inst, const char* html, int width, int height,
+                               const RenderOptions& options, int& out_size) {
     return render_and_store(
         inst,
         [&]() {
@@ -328,9 +324,9 @@ const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width
         &SatoruContext::set_last_pdf, out_size);
 }
 
-const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::string> &htmls,
-                                int width, int height, const RenderOptions &options,
-                                int &out_size) {
+const uint8_t* api_htmls_to_pdf(SatoruInstance* inst, const std::vector<std::string>& htmls,
+                                int width, int height, const RenderOptions& options,
+                                int& out_size) {
     return render_and_store(
         inst,
         [&]() {
@@ -340,9 +336,9 @@ const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::str
         &SatoruContext::set_last_pdf, out_size);
 }
 
-const uint8_t *api_render(SatoruInstance *inst, const std::vector<std::string> &htmls, int width,
-                          int height, RenderFormat format, const RenderOptions &options,
-                          int &out_size) {
+const uint8_t* api_render(SatoruInstance* inst, const std::vector<std::string>& htmls, int width,
+                          int height, RenderFormat format, const RenderOptions& options,
+                          int& out_size) {
     if (htmls.empty()) {
         out_size = 0;
         return nullptr;
@@ -367,51 +363,51 @@ const uint8_t *api_render(SatoruInstance *inst, const std::vector<std::string> &
     return nullptr;
 }
 
-int api_get_last_png_size(SatoruInstance *inst) { return (int)inst->context.get_last_png_size(); }
-int api_get_last_webp_size(SatoruInstance *inst) { return (int)inst->context.get_last_webp_size(); }
-int api_get_last_pdf_size(SatoruInstance *inst) { return (int)inst->context.get_last_pdf_size(); }
-int api_get_last_svg_size(SatoruInstance *inst) { return (int)inst->context.get_last_svg_size(); }
+int api_get_last_png_size(SatoruInstance* inst) { return (int)inst->context.get_last_png_size(); }
+int api_get_last_webp_size(SatoruInstance* inst) { return (int)inst->context.get_last_webp_size(); }
+int api_get_last_pdf_size(SatoruInstance* inst) { return (int)inst->context.get_last_pdf_size(); }
+int api_get_last_svg_size(SatoruInstance* inst) { return (int)inst->context.get_last_svg_size(); }
 
-void api_collect_resources(SatoruInstance *inst, const std::string &html, int width, int height) {
+void api_collect_resources(SatoruInstance* inst, const std::string& html, int width, int height) {
     inst->collect_resources(html, width, height);
 }
 
-void api_add_resource(SatoruInstance *inst, const std::string &url, int type,
-                      const std::vector<uint8_t> &data) {
+void api_add_resource(SatoruInstance* inst, const std::string& url, int type,
+                      const std::vector<uint8_t>& data) {
     inst->add_resource(url, (ResourceType)type, data);
 }
 
-void api_scan_css(SatoruInstance *inst, const std::string &css) { inst->scan_css(css); }
+void api_scan_css(SatoruInstance* inst, const std::string& css) { inst->scan_css(css); }
 
-void api_load_font(SatoruInstance *inst, const std::string &name,
-                   const std::vector<uint8_t> &data) {
+void api_load_font(SatoruInstance* inst, const std::string& name,
+                   const std::vector<uint8_t>& data) {
     inst->load_font(name, data);
 }
 
-void api_load_image(SatoruInstance *inst, const std::string &name, const std::string &data_url,
+void api_load_image(SatoruInstance* inst, const std::string& name, const std::string& data_url,
                     int width, int height) {
     inst->load_image(name, data_url, width, height);
 }
 
-void api_set_font_map(SatoruInstance *inst, const std::map<std::string, std::string> &fontMap) {
+void api_set_font_map(SatoruInstance* inst, const std::map<std::string, std::string>& fontMap) {
     inst->context.setFontMap(fontMap);
 }
 
 void api_set_log_level(int level) { g_log_level = (LogLevel)level; }
 
-std::string api_get_pending_resources(SatoruInstance *inst) {
+std::string api_get_pending_resources(SatoruInstance* inst) {
     return inst->get_pending_resources_json();
 }
 
-void api_init_document(SatoruInstance *inst, const char *html, int width, int height) {
+void api_init_document(SatoruInstance* inst, const char* html, int width, int height) {
     inst->init_document(html, width, height);
 }
 
-void api_layout_document(SatoruInstance *inst, int width) { inst->layout_document(width); }
+void api_layout_document(SatoruInstance* inst, int width) { inst->layout_document(width); }
 
-const uint8_t *api_render_from_state(SatoruInstance *inst, int width, int height,
-                                     RenderFormat format, const RenderOptions &options,
-                                     int &out_size) {
+const uint8_t* api_render_from_state(SatoruInstance* inst, int width, int height,
+                                     RenderFormat format, const RenderOptions& options,
+                                     int& out_size) {
     if (!inst->doc) {
         out_size = 0;
         return nullptr;

@@ -65,8 +65,8 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
             auto builder_run = m_builder.allocRunRSXform(run.font, run.count);
             memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
             for (int i = 0; i < run.count; ++i) {
-                auto p =
-                    geom.getGlyphPlacement(run.positions[i].fX, run.positions[i].fY, false, false, run.font);
+                auto p = geom.getGlyphPlacement(run.positions[i].fX, run.positions[i].fY, false,
+                                                false, run.font);
                 // Rotate 90 deg CW: cos=0, sin=1
                 builder_run.xforms()[i] = SkRSXform::Make(0, 1, p.x, p.y);
             }
@@ -216,7 +216,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
 
     TextAnalysis analysis = TextLayout::analyzeText(ctx, str, strLen, fi, mode, usedCodepoints);
     double total_advance = 0;
-    
+
     // 論理的なインラインオフセットで行頭からの位置を追跡
     logical_pos current_l_pos(0, 0);
 
@@ -257,30 +257,32 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 float logical_run_start = (float)current_l_pos.inline_offset;
 
                 for (int i = 0; i < run.count; ++i) {
-                    auto p =
-                        geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
-                                               run.positions[i].fY, is_upright, is_punctuation, run.font);
+                    auto p = geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
+                                                    run.positions[i].fY, is_upright, is_punctuation,
+                                                    run.font);
                     tagging_ctx.drawGlyph(run.font, run.glyphs[i], p.x, p.y, p.rotation, paint);
                 }
             }
         } else if (batcher && fi->desc.text_shadow.empty() &&
-        fi->desc.decoration_line == litehtml::text_decoration_line_none) {
-        TextBatcher::Style style;
-        style.fi = fi;
-        SkColor c = paint.getColor();
-        style.color = {(uint8_t)SkColorGetR(c), (uint8_t)SkColorGetG(c),
-        (uint8_t)SkColorGetB(c), (uint8_t)SkColorGetA(c)};
-        style.opacity = 1.0f;
-        style.tagging = false;
-        style.mode = mode;
-        style.line_width = is_vertical ? (float)pos.width : (float)pos.height;
-        style.is_vertical_upright = is_upright;
-        style.is_vertical_punctuation = is_punctuation;
+                   fi->desc.decoration_line == litehtml::text_decoration_line_none) {
+            TextBatcher::Style style;
+            style.fi = fi;
+            SkColor c = paint.getColor();
+            style.color = {(uint8_t)SkColorGetR(c), (uint8_t)SkColorGetG(c),
+                           (uint8_t)SkColorGetB(c), (uint8_t)SkColorGetA(c)};
+            style.opacity = 1.0f;
+            style.tagging = false;
+            style.mode = mode;
+            style.line_width = is_vertical ? (float)pos.width : (float)pos.height;
+            style.is_vertical_upright = is_upright;
+            style.is_vertical_punctuation = is_punctuation;
 
-        if (is_vertical) {
-            batcher->addText(shaped.blob, (double)pos.x, (double)pos.y + current_l_pos.inline_offset, style);
-        } else {
-            batcher->addText(shaped.blob, (double)pos.x + current_l_pos.inline_offset, (double)pos.y, style);
+            if (is_vertical) {
+                batcher->addText(shaped.blob, (double)pos.x,
+                                 (double)pos.y + current_l_pos.inline_offset, style);
+            } else {
+                batcher->addText(shaped.blob, (double)pos.x + current_l_pos.inline_offset,
+                                 (double)pos.y, style);
             }
         } else {
             if (batcher) batcher->flush();
@@ -296,9 +298,9 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         auto builder_run = builder.allocRunPos(run.font, run.count);
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
-                            auto p =
-                                geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
-                                                       run.positions[i].fY, true, is_punctuation, run.font);
+                            auto p = geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
+                                                            run.positions[i].fY, true,
+                                                            is_punctuation, run.font);
                             builder_run.pos[i * 2] = p.x;
                             builder_run.pos[i * 2 + 1] = p.y;
                         }
@@ -306,8 +308,9 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         auto builder_run = builder.allocRunRSXform(run.font, run.count);
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
-                            auto p = geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
-                                                            run.positions[i].fY, false, false, run.font);
+                            auto p =
+                                geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
+                                                       run.positions[i].fY, false, false, run.font);
                             // Rotate 90 deg CW: cos=0, sin=1
                             builder_run.xforms()[i] = SkRSXform::Make(0, 1, p.x, p.y);
                         }
@@ -316,7 +319,8 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 sk_sp<SkTextBlob> verticalBlob = builder.make();
                 canvas->drawTextBlob(verticalBlob, 0, 0, paint);
             } else {
-                canvas->drawTextBlob(shaped.blob, (float)pos.x + (float)current_l_pos.inline_offset, (float)pos.y, paint);
+                canvas->drawTextBlob(shaped.blob, (float)pos.x + (float)current_l_pos.inline_offset,
+                                     (float)pos.y, paint);
             }
             canvas->restore();
         }

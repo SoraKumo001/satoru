@@ -39,6 +39,7 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   }
   m_isolation = (isolation)el->get_property<int>(_isolation_, false, isolation_auto, offset(m_isolation));
   m_caption_side = (caption_side)el->get_property<int>(_caption_side_, true, caption_side_top, offset(m_caption_side));
+  m_object_fit = (object_fit)el->get_property<int>(_object_fit_, false, object_fit_fill, offset(m_object_fit));
   m_table_layout = (table_layout)el->get_property<int>(_table_layout_, true, table_layout_auto, offset(m_table_layout));
 
   m_container_type = (container_type)el->get_property<int>(_container_type_, false, container_type_none, offset(m_container_type));
@@ -876,6 +877,7 @@ std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_proper
   ret.emplace_back("word_break", index_value(m_word_break, word_break_strings));
   ret.emplace_back("overflow_wrap", index_value(m_overflow_wrap, overflow_wrap_strings));
   ret.emplace_back("opacity", std::to_string(m_opacity));
+  ret.emplace_back("object_fit", index_value(m_object_fit, object_fit_strings));
 
   return ret;
 }

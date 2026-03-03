@@ -66,6 +66,8 @@ struct image_draw_info {
     bool has_clip = false;
     litehtml::position clip_pos;
     litehtml::border_radiuses clip_radius;
+    litehtml::object_fit object_fit = litehtml::object_fit_fill;
+    int tag_index = 0;
 };
 
 struct conic_gradient_info {

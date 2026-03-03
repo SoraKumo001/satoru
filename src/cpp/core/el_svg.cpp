@@ -5,8 +5,8 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "container_skia.h"
 #include "bridge/magic_tags.h"
+#include "container_skia.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkStream.h"
 #include "libs/litehtml/include/litehtml/render_image.h"
@@ -272,8 +272,7 @@ void el_svg::write_element(std::ostream& os, const element::ptr& el) const {
 
 std::string el_svg::reconstruct_xml(int x, int y, int width, int height) const {
     std::stringstream ss;
-    ss << "<svg x=\"" << x << "\" y=\"" << y
-       << "\" width=\"" << width << "\" height=\"" << height
+    ss << "<svg x=\"" << x << "\" y=\"" << y << "\" width=\"" << width << "\" height=\"" << height
        << "\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"";
 
     for (auto const& attr : m_attrs) {
@@ -343,9 +342,9 @@ void el_svg::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position* clip,
 
     // For tagging (SVG output), we need absolute coordinates in the reconstructed XML
     // because svg_renderer will replace a magic-colored rect with this XML string.
-    std::string xml = reconstruct_xml(container->is_tagging() ? (int)pos.x : 0,
-                                      container->is_tagging() ? (int)pos.y : 0,
-                                      (int)pos.width, (int)pos.height);
+    std::string xml =
+        reconstruct_xml(container->is_tagging() ? (int)pos.x : 0,
+                        container->is_tagging() ? (int)pos.y : 0, (int)pos.width, (int)pos.height);
 
     // Replace "currentColor" with actual computed color
     litehtml::web_color color = css().get_color();

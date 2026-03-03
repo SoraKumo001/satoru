@@ -20,7 +20,11 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
    public:
     WidthProxyRunHandler(SkShaper::RunHandler* inner, ShapedResult& result,
                          litehtml::writing_mode mode, float letter_spacing, float word_spacing)
-        : fInner(inner), fResult(result), fMode(mode), fLetterSpacing(letter_spacing), fWordSpacing(word_spacing) {
+        : fInner(inner),
+          fResult(result),
+          fMode(mode),
+          fLetterSpacing(letter_spacing),
+          fWordSpacing(word_spacing) {
         fResult.width = 0;
     }
     void beginLine() override {
@@ -72,11 +76,11 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
         float advance;
     };
 
-    OffsetWidthRunHandler(litehtml::writing_mode mode, float letter_spacing, float word_spacing) 
+    OffsetWidthRunHandler(litehtml::writing_mode mode, float letter_spacing, float word_spacing)
         : fWidth(0), fMode(mode), fLetterSpacing(letter_spacing), fWordSpacing(word_spacing) {}
     void beginLine() override {}
-    void runInfo(const RunInfo& info) override { 
-        fWidth += info.fAdvance.fX + (info.glyphCount * fLetterSpacing); 
+    void runInfo(const RunInfo& info) override {
+        fWidth += info.fAdvance.fX + (info.glyphCount * fLetterSpacing);
     }
     void commitRunInfo() override {}
     Buffer runBuffer(const RunInfo& info) override {
@@ -169,7 +173,8 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         }
     }
 
-    OffsetWidthRunHandler handler(mode, (float)fi->desc.letter_spacing, (float)fi->desc.word_spacing);
+    OffsetWidthRunHandler handler(mode, (float)fi->desc.letter_spacing,
+                                  (float)fi->desc.word_spacing);
     SatoruFontRunIterator fontRuns(charFonts);
     uint8_t itemLevel = analysis.bidi_level;
     std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
@@ -343,7 +348,8 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
     if (!shaper) return result;
 
     SkTextBlobBuilderRunHandler blobHandler(shape_text, {0, 0});
-    WidthProxyRunHandler handler(&blobHandler, result, mode, (float)fi->desc.letter_spacing, (float)fi->desc.word_spacing);
+    WidthProxyRunHandler handler(&blobHandler, result, mode, (float)fi->desc.letter_spacing,
+                                 (float)fi->desc.word_spacing);
 
     SatoruFontRunIterator fontRuns(charFonts);
     uint8_t itemLevel = analysis.bidi_level;

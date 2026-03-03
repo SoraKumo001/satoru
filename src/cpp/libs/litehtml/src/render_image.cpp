@@ -15,11 +15,11 @@ litehtml::pixel_t litehtml::render_item_image::_measure(const containing_block_c
 
 	bool is_content_size = (containing_block_size.size_mode & containing_block_context::size_mode_content) != 0;
 
-    if(self_size.width.type != containing_block_context::cbc_value_type_auto && !is_content_size)
+    if(self_size.width.type != containing_block_context::cbc_value_type_auto)
     {
         m_pos.width = self_size.render_width;
     }
-    if(self_size.height.type != containing_block_context::cbc_value_type_auto && !is_content_size)
+    if(self_size.height.type != containing_block_context::cbc_value_type_auto)
     {
         m_pos.height = self_size.render_height;
     }

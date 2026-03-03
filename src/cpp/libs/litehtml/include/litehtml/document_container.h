@@ -43,7 +43,7 @@ namespace litehtml
                 virtual void                            draw_list_marker(litehtml::uint_ptr hdc, const litehtml::list_marker& marker) = 0;
                 virtual void                            load_image(const char* src, const char* baseurl, bool redraw_on_ready) = 0;
                 virtual void                            get_image_size(const char* src, const char* baseurl, litehtml::size& sz) = 0;
-                virtual void                            draw_image(litehtml::uint_ptr hdc, const background_layer& layer, const std::string& url, const std::string& base_url) = 0;
+                virtual void                            draw_image(litehtml::uint_ptr hdc, const background_layer& layer, const std::string& url, const std::string& base_url, object_fit fit = object_fit_fill) = 0;
                 virtual void                            draw_solid_fill(litehtml::uint_ptr hdc, const background_layer& layer, const web_color& color) = 0;
                 virtual void                            draw_linear_gradient(litehtml::uint_ptr hdc, const background_layer& layer, const background_layer::linear_gradient& gradient) = 0;
                 virtual void                            draw_radial_gradient(litehtml::uint_ptr hdc, const background_layer& layer, const background_layer::radial_gradient& gradient) = 0;

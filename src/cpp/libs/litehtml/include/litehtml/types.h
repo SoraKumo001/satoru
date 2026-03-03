@@ -1408,6 +1408,17 @@ namespace litehtml
                 container_type_inline_size
         };
 
+#define object_fit_strings "fill;contain;cover;none;scale-down"
+
+	enum object_fit
+	{
+		object_fit_fill,
+		object_fit_contain,
+		object_fit_cover,
+		object_fit_none,
+		object_fit_scale_down
+	};
+
 #define caption_side_strings            "top;bottom"
 
         enum caption_side

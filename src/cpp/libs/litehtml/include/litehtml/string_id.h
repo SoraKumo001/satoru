@@ -356,6 +356,11 @@ namespace litehtml
       _justify_self_,
 
       _caption_side_,
+      _object_fit_,
+      _fill_,
+      _contain_,
+      _cover_,
+      _scale_down_,
       _isolation_,
       _order_,
       _filter_,

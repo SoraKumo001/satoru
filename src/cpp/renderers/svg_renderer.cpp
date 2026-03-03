@@ -988,6 +988,25 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                                     dataUrl = bitmapToDataUrl(bitmap);
                                 }
                                 if (draw.layer.repeat == litehtml::background_repeat_no_repeat) {
+                                    std::string preserveAspectRatio = "none";
+                                    switch (draw.object_fit) {
+                                        case litehtml::object_fit_fill:
+                                            preserveAspectRatio = "none";
+                                            break;
+                                        case litehtml::object_fit_contain:
+                                            preserveAspectRatio = "xMidYMid meet";
+                                            break;
+                                        case litehtml::object_fit_cover:
+                                            preserveAspectRatio = "xMidYMid slice";
+                                            break;
+                                        case litehtml::object_fit_none:
+                                            preserveAspectRatio = "none";  // Fallback
+                                            break;
+                                        case litehtml::object_fit_scale_down:
+                                            preserveAspectRatio = "xMidYMid meet";
+                                            break;
+                                    }
+
                                     result.append(
                                         "<image x=\"" + std::to_string(draw.layer.origin_box.x) +
                                         "\" y=\"" + std::to_string(draw.layer.origin_box.y) +
@@ -995,7 +1014,8 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                                         std::to_string(draw.layer.origin_box.width) +
                                         "\" height=\"" +
                                         std::to_string(draw.layer.origin_box.height) +
-                                        "\" preserveAspectRatio=\"none\" href=\"" + dataUrl + "\"");
+                                        "\" preserveAspectRatio=\"" + preserveAspectRatio +
+                                        "\" href=\"" + dataUrl + "\"");
                                     if (draw.opacity < 1.0f)
                                         result.append(" opacity=\"" + std::to_string(draw.opacity) +
                                                       "\"");

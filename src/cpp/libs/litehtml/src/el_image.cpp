@@ -76,12 +76,14 @@ void litehtml::el_image::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position
 			layer.repeat = background_repeat_no_repeat;
 			layer.border_radius = bdr_radius;
 
+			litehtml::object_fit fit = css().get_object_fit();
+
 			if (!content_radius.is_zero())
 			{
 				get_document()->container()->set_clip(pos, content_radius);
 			}
 
-			get_document()->container()->draw_image(hdc, layer, m_src, {});
+			get_document()->container()->draw_image(hdc, layer, m_src, {}, fit);
 
 			if (!content_radius.is_zero())
 			{

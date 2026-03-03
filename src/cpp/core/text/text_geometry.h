@@ -3,9 +3,8 @@
 
 #include "bridge/bridge_types.h"
 #include "core/logical_geometry.h"
-#include "libs/litehtml/include/litehtml.h"
-
 #include "include/core/SkFont.h"
+#include "libs/litehtml/include/litehtml.h"
 
 namespace satoru {
 

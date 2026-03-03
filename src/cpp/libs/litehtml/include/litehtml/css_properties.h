@@ -117,6 +117,7 @@ namespace litehtml
     css_border m_column_rule;
 
     caption_side m_caption_side;
+    object_fit m_object_fit;
     shadow_vector m_box_shadow;
     shadow_vector m_text_shadow;
 
@@ -367,6 +368,9 @@ namespace litehtml
 
     caption_side get_caption_side() const;
     void set_caption_side(caption_side side);
+
+    object_fit get_object_fit() const;
+    void set_object_fit(object_fit fit);
 
     float get_flex_grow() const;
     float get_flex_shrink() const;
@@ -1002,6 +1006,16 @@ namespace litehtml
   inline void css_properties::set_caption_side(caption_side side)
   {
     m_caption_side = side;
+  }
+
+  inline object_fit css_properties::get_object_fit() const
+  {
+    return m_object_fit;
+  }
+
+  inline void css_properties::set_object_fit(object_fit fit)
+  {
+    m_object_fit = fit;
   }
 
   inline int css_properties::get_order() const

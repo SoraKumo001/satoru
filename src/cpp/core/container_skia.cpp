@@ -588,7 +588,8 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
 }
 
 void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer& layer,
-                                const std::string& url, const std::string& base_url) {
+                                const std::string& url, const std::string& base_url,
+                                litehtml::object_fit fit) {
     if (!m_canvas) return;
     flush();
     if (m_tagging) {
@@ -596,6 +597,7 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
         draw.url = url;
         draw.layer = layer;
         draw.opacity = 1.0f;
+        draw.object_fit = fit;
 
         // Use background layer's clip_box as primary clipping
         draw.has_clip = true;
@@ -619,8 +621,10 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
         draw.clip_radius.bottom_left_x = std::max(0.0f, draw.clip_radius.bottom_left_x - offset_l);
         draw.clip_radius.bottom_left_y = std::max(0.0f, draw.clip_radius.bottom_left_y - offset_b);
 
+        int index = (int)m_usedImageDraws.size() + 1;
+        draw.tag_index = index;
         m_usedImageDraws.push_back(draw);
-        int index = (int)m_usedImageDraws.size();
+
         SkPaint p;
         p.setColor(make_magic_color(satoru::MagicTagExtended::ImageDraw, index));
 

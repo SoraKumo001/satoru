@@ -79,6 +79,7 @@ namespace litehtml
           {_align_self_, flex_align_items_strings},
 
           {_caption_side_, caption_side_strings},
+          {_object_fit_, object_fit_strings},
 
           {__webkit_box_orient_, box_orient_strings},
           {_text_decoration_style_, style_text_decoration_style_strings},
@@ -253,6 +254,7 @@ namespace litehtml
     case _justify_self_:
     case _align_content_:
     case _caption_side_:
+    case _object_fit_:
     case __webkit_box_orient_:
     case _container_type_:
       if (int index = value_index(ident, m_valid_values[name]); index >= 0)

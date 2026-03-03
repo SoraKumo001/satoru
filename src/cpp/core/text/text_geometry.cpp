@@ -22,7 +22,8 @@ GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_
                 float shift = font_size * 0.58f;
                 if (m_mode == litehtml::writing_mode_vertical_rl) {
                     placement.x += shift;
-                    placement.y = (float)m_line_pos.y + inline_offset + block_offset + font_size * 0.2f;
+                    placement.y =
+                        (float)m_line_pos.y + inline_offset + block_offset - font_size * 0.5f;
                 } else {
                     placement.x -= shift;
                     placement.y = (float)m_line_pos.y + inline_offset + block_offset;
@@ -33,9 +34,9 @@ GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_
         } else {
             placement.rotation = 90.0f;
             float em_height = metrics.fDescent - metrics.fAscent;
-            float em_center = metrics.fAscent + em_height / 2.0f;
-            
-            placement.x = (float)m_line_pos.x + (float)m_line_pos.width / 2.0f + block_offset + em_center;
+            float em_center = metrics.fAscent + em_height;
+
+            placement.x = (float)m_line_pos.x + (float)m_line_pos.width / 2.0f - em_center;
             placement.y = (float)m_line_pos.y + inline_offset;
         }
     } else {

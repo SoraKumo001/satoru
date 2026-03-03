@@ -299,13 +299,27 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 		auto el_position = el->src_el()->css().get_position();
 		if (el_position == element_position_absolute || el_position == element_position_fixed)
 		{
+			containing_block_context el_cb_context = self_size;
+			auto offsets = el->src_el()->css().get_offsets();
+			auto el_width = el->src_el()->css().get_width();
+			auto el_height = el->src_el()->css().get_height();
+
+			if ((offsets.left.is_predefined() || offsets.right.is_predefined()) && el_width.is_predefined())
+			{
+				el_cb_context.size_mode |= containing_block_context::size_mode_content;
+			}
+			if ((offsets.top.is_predefined() || offsets.bottom.is_predefined()) && el_height.is_predefined())
+			{
+				el_cb_context.size_mode |= containing_block_context::size_mode_content;
+			}
+
 			if (self_size.size_mode & containing_block_context::size_mode_measure)
 			{
-				el->measure(self_size, fmt_ctx);
+				el->measure(el_cb_context, fmt_ctx);
 			} else
 			{
-				el->measure(self_size, fmt_ctx);
-				el->place(0, 0, self_size, fmt_ctx);
+				el->measure(el_cb_context, fmt_ctx);
+				el->place(0, 0, el_cb_context, fmt_ctx);
 			}
 
 			if (!(self_size.size_mode & containing_block_context::size_mode_measure))

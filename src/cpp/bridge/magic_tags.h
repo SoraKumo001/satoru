@@ -28,6 +28,8 @@ enum class MagicTag : uint8_t {
     ClipPathPop = 12,
     BackdropFilterPush = 13,
     BackdropFilterPop = 14,
+    MaskPush = 15,
+    MaskPop = 16,
 };
 
 enum class MagicTagExtended : uint8_t {

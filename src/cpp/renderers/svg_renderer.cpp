@@ -914,6 +914,15 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                         result.append("</g>");
                         replaced = true;
                         break;
+                    case satoru::MagicTag::MaskPush:
+                        // For now just wrap in a group, full SVG mask support is complex
+                        result.append("<g>");
+                        replaced = true;
+                        break;
+                    case satoru::MagicTag::MaskPop:
+                        result.append("</g>");
+                        replaced = true;
+                        break;
                     case satoru::MagicTag::TextDraw:
                         if (fullIndex > 0 && fullIndex <= (int)textDraws.size()) {
                             processTextDraw(tag, result, textDraws[fullIndex - 1]);

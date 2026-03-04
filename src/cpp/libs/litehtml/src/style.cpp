@@ -212,6 +212,8 @@ namespace litehtml
     case _filter_:
     case _backdrop_filter_:
     case _clip_path_:
+    case _mask_:
+    case __webkit_mask_:
       add_parsed_property(name, property_value(value, important, false, m_layer, m_specificity));
       break;
 

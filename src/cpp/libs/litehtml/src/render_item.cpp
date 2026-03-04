@@ -933,11 +933,12 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                 const auto& transform = el->src_el()->css().get_transform();
                 const auto& filter = el->src_el()->css().get_filter();
                 const auto& backdrop_filter = el->src_el()->css().get_backdrop_filter();
+                const auto& mask = el->src_el()->css().get_mask();
                 css_token_vector clip_path;
                 el->src_el()->get_custom_property(_clip_path_, clip_path);
 
                 bool has_props = (opacity < 1.0f) || !transform.empty() || !filter.empty() ||
-                                 !backdrop_filter.empty() || !clip_path.empty();
+                                 !backdrop_filter.empty() || !clip_path.empty() || !mask.empty();
 
                 if (has_props) {
                     if (opacity < 1.0f) doc->container()->push_layer(hdc, opacity);
@@ -951,6 +952,8 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         if (!filter.empty()) doc->container()->push_filter(hdc, filter);
                         if (!clip_path.empty())
                             doc->container()->push_clip_path(hdc, clip_path, el->pos());
+                        if (!mask.empty())
+                            doc->container()->push_mask(hdc, mask, el->pos());
                     } else {
                         position el_pos = el->pos();
                         el_pos.x += pos.x;
@@ -962,6 +965,8 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         if (!filter.empty()) doc->container()->push_filter(hdc, filter);
                         if (!clip_path.empty())
                             doc->container()->push_clip_path(hdc, clip_path, el_pos);
+                        if (!mask.empty())
+                            doc->container()->push_mask(hdc, mask, el_pos);
                     }
                 }
 
@@ -978,6 +983,7 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                 }
 
                 if (has_props) {
+                    if (!mask.empty()) doc->container()->pop_mask(hdc);
                     if (!clip_path.empty()) doc->container()->pop_clip_path(hdc);
                     if (!filter.empty()) doc->container()->pop_filter(hdc);
                     if (!transform.empty()) doc->container()->pop_transform(hdc);

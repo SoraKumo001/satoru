@@ -1813,6 +1813,125 @@ void container_skia::pop_filter(litehtml::uint_ptr hdc) {
     }
 }
 
+void container_skia::push_mask(litehtml::uint_ptr hdc, const litehtml::css_token_vector& mask,
+                               const litehtml::position& pos) {
+    if (!m_canvas || mask.empty()) return;
+    flush();
+
+    if (m_tagging) {
+        mask_info info;
+        info.tokens = mask;
+        info.pos = pos;
+        m_usedMasks.push_back(info);
+        int index = (int)m_usedMasks.size();
+
+        SkPaint p;
+        p.setColor(make_magic_color(satoru::MagicTag::MaskPush, index));
+
+        SkRect rect;
+        if (!m_clips.empty()) {
+            rect = SkRect::MakeXYWH((float)m_clips.back().first.x, (float)m_clips.back().first.y,
+                                    (float)m_clips.back().first.width,
+                                    (float)m_clips.back().first.height);
+        } else {
+            rect = SkRect::MakeWH((float)m_width, (float)m_height);
+        }
+
+        m_canvas->drawRect(rect, p);
+        m_mask_stack_depth++;
+        return;
+    }
+
+    m_mask_stack.push_back({mask, pos});
+    m_canvas->saveLayer(SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width,
+                                         (float)pos.height),
+                        nullptr);
+    m_mask_stack_depth++;
+}
+
+void container_skia::pop_mask(litehtml::uint_ptr hdc) {
+    if (m_mask_stack_depth <= 0) return;
+    m_mask_stack_depth--;
+
+    if (m_canvas) {
+        flush();
+        if (m_tagging) {
+            SkPaint p;
+            p.setColor(make_magic_color(satoru::MagicTag::MaskPop));
+            SkRect rect;
+            if (!m_clips.empty()) {
+                rect = SkRect::MakeXYWH((float)m_clips.back().first.x, (float)m_clips.back().first.y,
+                                        (float)m_clips.back().first.width,
+                                        (float)m_clips.back().first.height);
+            } else {
+                rect = SkRect::MakeWH((float)m_width, (float)m_height);
+            }
+            m_canvas->drawRect(rect, p);
+            return;
+        }
+
+        auto mask_data = m_mask_stack.back();
+        m_mask_stack.pop_back();
+
+        const auto& mask_tokens = mask_data.first;
+        const auto& pos = mask_data.second;
+
+        // Start mask composite layer
+        SkPaint mask_composite_paint;
+        mask_composite_paint.setBlendMode(SkBlendMode::kDstIn);
+        m_canvas->saveLayer(nullptr, &mask_composite_paint);
+
+        auto layers = litehtml::parse_comma_separated_list(mask_tokens);
+
+        for (const auto& layer_tokens : layers) {
+            for (const auto& tok : layer_tokens) {
+                if (tok.type == litehtml::CV_FUNCTION) {
+                    std::string name = litehtml::lowcase(tok.name);
+                    if (name == "url") {
+                        if (!tok.value.empty()) {
+                            std::string url = tok.value.front().str;
+                            auto it = m_context.imageCache.find(url);
+                            if (it != m_context.imageCache.end() && it->second.skImage) {
+                                SkPaint p;
+                                p.setAntiAlias(true);
+                                m_canvas->drawImageRect(
+                                    it->second.skImage,
+                                    SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width,
+                                                     (float)pos.height),
+                                    SkSamplingOptions(SkFilterMode::kLinear), &p);
+                            }
+                        }
+                    } else if (name == "linear-gradient" || name == "repeating-linear-gradient" ||
+                               name == "radial-gradient" || name == "repeating-radial-gradient" ||
+                               name == "conic-gradient" || name == "repeating-conic-gradient") {
+                        litehtml::gradient g;
+                        if (litehtml::parse_gradient(tok, g, nullptr)) {
+                            litehtml::background_layer layer;
+                            layer.origin_box = pos;
+                            layer.border_box = pos;
+                            layer.clip_box = pos;
+
+                            if (name.find("linear") != std::string::npos) {
+                                auto grad = litehtml::background::get_linear_gradient(g, pos);
+                                if (grad) draw_linear_gradient(0, layer, *grad);
+                            } else if (name.find("radial") != std::string::npos) {
+                                auto grad = litehtml::background::get_radial_gradient(g, pos);
+                                if (grad) draw_radial_gradient(0, layer, *grad);
+                            } else {
+                                auto grad = litehtml::background::get_conic_gradient(g, pos);
+                                if (grad) draw_conic_gradient(0, layer, *grad);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        m_canvas->restore();  // composite mask into content
+        m_canvas->restore();  // composite content into main canvas
+    }
+}
+
 SkPath container_skia::parse_clip_path(const litehtml::css_token_vector& tokens,
                                        const litehtml::position& pos) {
     SkPathBuilder builder;

@@ -36,6 +36,7 @@ class container_skia : public litehtml::document_container {
     std::vector<text_draw_info> m_usedTextDraws;
     std::vector<filter_info> m_usedFilters;
     std::vector<backdrop_filter_info> m_usedBackdropFilters;
+    std::vector<mask_info> m_usedMasks;
     std::vector<border_image_info> m_usedBorderImages;
 
     std::set<char32_t> m_usedCodepoints;
@@ -57,12 +58,14 @@ class container_skia : public litehtml::document_container {
     std::vector<litehtml::position> m_inlineSvgPositions;
     std::vector<clip_info> m_usedClips;
     std::vector<clip_path_info> m_usedClipPaths;
+    std::vector<std::pair<litehtml::css_token_vector, litehtml::position>> m_mask_stack;
     std::vector<SkPath> m_usedGlyphs;
     std::vector<glyph_draw_info> m_usedGlyphDraws;
 
     int m_filter_stack_depth = 0;
     int m_transform_stack_depth = 0;
     int m_clip_path_stack_depth = 0;
+    int m_mask_stack_depth = 0;
 
     satoru::TextBatcher *m_textBatcher = nullptr;
 
@@ -112,11 +115,14 @@ class container_skia : public litehtml::document_container {
         m_usedBorderImages.clear();
         m_usedClips.clear();
         m_usedClipPaths.clear();
+        m_usedMasks.clear();
+        m_mask_stack.clear();
         m_usedGlyphs.clear();
         m_usedGlyphDraws.clear();
         m_filter_stack_depth = 0;
         m_transform_stack_depth = 0;
         m_clip_path_stack_depth = 0;
+        m_mask_stack_depth = 0;
     }
 
     SkCanvas *get_canvas() const { return m_canvas; }
@@ -154,6 +160,7 @@ class container_skia : public litehtml::document_container {
     }
     const std::vector<clip_info> &get_used_clips() const { return m_usedClips; }
     const std::vector<clip_path_info> &get_used_clip_paths() const { return m_usedClipPaths; }
+    const std::vector<mask_info> &get_used_masks() const { return m_usedMasks; }
     const std::vector<SkPath> &get_used_glyphs() const { return m_usedGlyphs; }
     const std::vector<glyph_draw_info> &get_used_glyph_draws() const { return m_usedGlyphDraws; }
 
@@ -255,6 +262,10 @@ class container_skia : public litehtml::document_container {
     virtual void push_clip_path(litehtml::uint_ptr hdc, const litehtml::css_token_vector &clip_path,
                                 const litehtml::position &pos) override;
     virtual void pop_clip_path(litehtml::uint_ptr hdc) override;
+
+    virtual void push_mask(litehtml::uint_ptr hdc, const litehtml::css_token_vector &mask,
+                           const litehtml::position &pos) override;
+    virtual void pop_mask(litehtml::uint_ptr hdc) override;
 
     virtual void pop_backdrop_filter(litehtml::uint_ptr hdc) override;
     virtual void push_backdrop_filter(litehtml::uint_ptr hdc,

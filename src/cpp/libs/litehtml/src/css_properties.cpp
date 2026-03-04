@@ -53,6 +53,11 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   m_transform_origin = el->get_property<css_token_vector>(_transform_origin_, false, css_token_vector(), offset(m_transform_origin));
   m_filter = el->get_property<css_token_vector>(_filter_, false, css_token_vector(), offset(m_filter));
   m_backdrop_filter = el->get_property<css_token_vector>(_backdrop_filter_, false, css_token_vector(), offset(m_backdrop_filter));
+  m_mask = el->get_property<css_token_vector>(_mask_, false, css_token_vector(), offset(m_mask));
+  if (m_mask.empty())
+  {
+    m_mask = el->get_property<css_token_vector>(__webkit_mask_, false, css_token_vector(), offset(m_mask));
+  }
 
   // https://www.w3.org/TR/CSS22/visuren.html#dis-pos-flo
   if (m_display == display_none)

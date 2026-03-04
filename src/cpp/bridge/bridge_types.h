@@ -159,6 +159,11 @@ struct clip_path_info {
     litehtml::position pos;
 };
 
+struct mask_info {
+    litehtml::css_token_vector tokens;
+    litehtml::position pos;
+};
+
 struct glyph_draw_info {
     int glyph_index;
     int style_tag;

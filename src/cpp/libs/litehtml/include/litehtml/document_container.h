@@ -89,6 +89,9 @@ namespace litehtml
                 virtual void                            push_clip_path(uint_ptr hdc, const css_token_vector& clip_path, const position& pos) {}
                 virtual void                            pop_clip_path(uint_ptr hdc) {}
 
+                virtual void                            push_mask(uint_ptr hdc, const css_token_vector& mask, const position& pos) {}
+                virtual void                            pop_mask(uint_ptr hdc) {}
+
         protected:
                 virtual ~document_container() = default;
         };

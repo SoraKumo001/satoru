@@ -117,6 +117,7 @@ namespace litehtml
           {_text_decoration_, {_text_decoration_color_, _text_decoration_line_, _text_decoration_style_, _text_decoration_thickness_}},
           {_text_emphasis_, {_text_emphasis_style_, _text_emphasis_color_}},
           {_container_, {_container_name_, _container_type_}},
+          {_border_image_, {_border_image_source_, _border_image_slice_, _border_image_width_, _border_image_outset_, _border_image_repeat_}},
   };
 
   void style::add(const string &txt, const string &baseurl, document_container *container, int layer, selector_specificity specificity)
@@ -488,6 +489,56 @@ namespace litehtml
       parse_border_radius(value, important);
       break;
 
+    case _border_image_:
+      parse_border_image(value, baseurl, important, container);
+      break;
+
+    case _border_image_source_:
+    {
+      image img;
+      if (parse_bg_image(val, img, container))
+      {
+        if (img.type == image::type_url)
+        {
+          add_parsed_property(name, property_value(img.url, important, false, m_layer, m_specificity));
+          add_parsed_property(_id(_s(name) + "-baseurl"), property_value(baseurl, important, false, m_layer, m_specificity));
+        }
+      }
+      break;
+    }
+
+    case _border_image_slice_:
+    {
+      css_length slices[4];
+      bool fill = false;
+      css_token_vector slice_tokens;
+      for (const auto& t : value)
+      {
+        if (t.ident() == "fill") fill = true;
+        else slice_tokens.push_back(t);
+      }
+      if (int n = parse_1234_lengths(slice_tokens, slices, f_length_percentage | f_positive))
+      {
+        add_four_properties(_border_image_slice_top_, slices, n, important);
+        add_parsed_property(_id("border-image-slice-fill"), property_value(fill ? 1 : 0, important, false, m_layer, m_specificity));
+      }
+      break;
+    }
+
+    case _border_image_width_:
+      if (int n = parse_1234_lengths(value, len, f_length_percentage | f_number | f_positive, "auto"))
+        add_four_properties(_border_image_width_top_, len, n, important);
+      break;
+
+    case _border_image_outset_:
+      if (int n = parse_1234_lengths(value, len, f_length | f_number | f_positive))
+        add_four_properties(_border_image_outset_top_, len, n, important);
+      break;
+
+    case _border_image_repeat_:
+      parse_border_image_repeat(value, important);
+      break;
+
     case _border_spacing_:
       if (parse_two_lengths(value, len, f_length | f_positive))
       {
@@ -847,6 +898,137 @@ namespace litehtml
         add_four_properties(_border_top_left_radius_x_, rx, n, important);
         add_four_properties(_border_top_left_radius_y_, ry, m, important);
       }
+    }
+  }
+
+    void style::parse_border_image(const css_token_vector& tokens, const string& baseurl, bool important, document_container* container)
+    {
+      string source;
+      css_length slice[4];
+      bool slice_fill = false;
+      css_length width[4];
+      css_length outset[4];
+      int repeat[2] = {border_image_repeat_stretch, border_image_repeat_stretch};
+
+      bool source_found = false;
+      bool slice_found = false;
+      bool width_found = false;
+      bool outset_found = false;
+      bool repeat_found = false;
+
+      int n_slice = 0;
+      int n_width = 0;
+      int n_outset = 0;
+
+      for (int i = 0; i < (int)tokens.size(); i++)
+      {
+        image img;
+        if (!source_found && parse_bg_image(tokens[i], img, container))
+        {
+          if (img.type == image::type_url) source = img.url;
+          source_found = true;
+        }
+        else if (!slice_found && (tokens[i].type == NUMBER || tokens[i].type == PERCENTAGE || tokens[i].ident() == "fill"))
+        {
+          css_token_vector slice_tokens;
+          while (i < (int)tokens.size() && (tokens[i].type == NUMBER || tokens[i].type == PERCENTAGE || tokens[i].ident() == "fill"))
+          {
+            if (tokens[i].ident() == "fill") slice_fill = true;
+            else slice_tokens.push_back(tokens[i]);
+            i++;
+          }
+          n_slice = parse_1234_lengths(slice_tokens, slice, f_number | f_percentage | f_positive);
+          if (n_slice)
+          {
+            slice_found = true;
+          }
+          i--;
+          if (at(tokens, i + 1).ch == '/')
+          {
+            i += 2;
+            css_token_vector width_tokens;
+            while (i < (int)tokens.size() && (tokens[i].type == NUMBER || tokens[i].type == PERCENTAGE || tokens[i].type == DIMENSION || tokens[i].ident() == "auto"))
+            {
+              width_tokens.push_back(tokens[i]);
+              i++;
+            }
+            n_width = parse_1234_lengths(width_tokens, width, f_length_percentage | f_number | f_positive, "auto");
+            if (n_width)
+            {
+              width_found = true;
+            }
+            i--;
+            if (at(tokens, i + 1).ch == '/')
+            {
+              i += 2;
+              css_token_vector outset_tokens;
+              while (i < (int)tokens.size() && (tokens[i].type == NUMBER || tokens[i].type == DIMENSION))
+              {
+                outset_tokens.push_back(tokens[i]);
+                i++;
+              }
+              n_outset = parse_1234_lengths(outset_tokens, outset, f_length | f_number | f_positive);
+              if (n_outset)
+              {
+                outset_found = true;
+              }
+              i--;
+            }
+          }
+        }
+        else if (!repeat_found && (value_index(tokens[i].ident(), border_image_repeat_strings) >= 0))
+        {
+          repeat[0] = value_index(tokens[i].ident(), border_image_repeat_strings);
+          if (i + 1 < (int)tokens.size() && value_index(tokens[i + 1].ident(), border_image_repeat_strings) >= 0)
+          {
+            repeat[1] = value_index(tokens[i + 1].ident(), border_image_repeat_strings);
+            i++;
+          }
+          else
+          {
+            repeat[1] = repeat[0];
+          }
+          repeat_found = true;
+        }
+      }
+
+      if (source_found)
+      {
+        add_parsed_property(_border_image_source_, property_value(source, important, false, m_layer, m_specificity));
+        add_parsed_property(_id("border-image-source-baseurl"), property_value(baseurl, important, false, m_layer, m_specificity));
+      }
+      if (slice_found)
+      {
+        add_four_properties(_border_image_slice_top_, slice, n_slice, important);
+        add_parsed_property(_id("border-image-slice-fill"), property_value(slice_fill ? 1 : 0, important, false, m_layer, m_specificity));
+      }
+      if (width_found)
+      {
+        add_four_properties(_border_image_width_top_, width, n_width, important);
+      }
+      if (outset_found)
+      {
+        add_four_properties(_border_image_outset_top_, outset, n_outset, important);
+      }
+      if (repeat_found)
+      {
+        add_parsed_property(_border_image_repeat_, property_value(repeat[0] | (repeat[1] << 8), important, false, m_layer, m_specificity));
+      }
+    }
+
+  void style::parse_border_image_repeat(const css_token_vector& tokens, bool important)
+  {
+    int repeat[2] = {border_image_repeat_stretch, border_image_repeat_stretch};
+    if (tokens.size() >= 1)
+    {
+      repeat[0] = value_index(tokens[0].ident(), border_image_repeat_strings);
+      if (tokens.size() >= 2)
+        repeat[1] = value_index(tokens[1].ident(), border_image_repeat_strings);
+      else
+        repeat[1] = repeat[0];
+
+      if (repeat[0] >= 0 && repeat[1] >= 0)
+        add_parsed_property(_border_image_repeat_, property_value(repeat[0] | (repeat[1] << 8), important, false, m_layer, m_specificity));
     }
   }
 

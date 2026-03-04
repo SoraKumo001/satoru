@@ -2,6 +2,7 @@
 #define LH_STYLE_H
 
 #include "background.h"
+#include "border_image.h"
 #include "css_length.h"
 #include "css_position.h"
 #include "css_tokenizer.h"
@@ -119,6 +120,8 @@ namespace litehtml
                 void parse_border(const css_token_vector& tokens, bool important, document_container* container);
                 void parse_border_side(string_id name, const css_token_vector& tokens, bool important, document_container* container);
                 void parse_border_radius(const css_token_vector& tokens, bool important);
+                void parse_border_image(const css_token_vector& tokens, const string& baseurl, bool important, document_container* container);
+                void parse_border_image_repeat(const css_token_vector& tokens, bool important);
 
                 bool parse_list_style_image(const css_token& tok, string& url);
                 void parse_list_style(const css_token_vector& tokens, string baseurl, bool important);

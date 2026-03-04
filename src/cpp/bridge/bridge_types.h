@@ -70,6 +70,13 @@ struct image_draw_info {
     int tag_index = 0;
 };
 
+struct border_image_info {
+    litehtml::border_image border_image;
+    litehtml::borders borders;
+    litehtml::position draw_pos;
+    float opacity;
+};
+
 struct conic_gradient_info {
     litehtml::background_layer layer;
     litehtml::background_layer::conic_gradient gradient;

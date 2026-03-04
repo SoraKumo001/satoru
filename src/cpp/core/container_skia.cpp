@@ -931,6 +931,187 @@ void container_skia::draw_conic_gradient(
 #include "api/satoru_api.h"
 #include "bridge/bridge_types.h"
 
+void container_skia::draw_border_image(litehtml::uint_ptr hdc,
+                                       const litehtml::border_image& border_image,
+                                       const litehtml::borders& borders,
+                                       const litehtml::position& draw_pos, bool root) {
+    if (!m_canvas) return;
+    flush();
+
+    if (m_tagging) {
+        border_image_info info;
+        info.border_image = border_image;
+        info.borders = borders;
+        info.draw_pos = draw_pos;
+        info.opacity = get_current_opacity();
+        m_usedBorderImages.push_back(info);
+        int index = (int)m_usedBorderImages.size();
+
+        SkPaint p;
+        p.setColor(make_magic_color(satoru::MagicTagExtended::BorderImage, index));
+        m_canvas->drawRect(
+            SkRect::MakeXYWH((float)draw_pos.x, (float)draw_pos.y, (float)draw_pos.width,
+                             (float)draw_pos.height),
+            p);
+        return;
+    }
+
+    auto it = m_context.imageCache.find(border_image.source);
+    if (it == m_context.imageCache.end() || !it->second.skImage) return;
+
+    sk_sp<SkImage> img = it->second.skImage;
+    float img_w = (float)img->width();
+    float img_h = (float)img->height();
+
+    // Calculate slice pixel values
+    float s_t = border_image.slice[0].calc_percent((int)img_h);
+    float s_r = border_image.slice[1].calc_percent((int)img_w);
+    float s_b = border_image.slice[2].calc_percent((int)img_h);
+    float s_l = border_image.slice[3].calc_percent((int)img_w);
+
+    // border-image-slice values are edges, so they can't exceed image dimensions
+    if (s_t + s_b > img_h) {
+        float scale = img_h / (s_t + s_b);
+        s_t *= scale;
+        s_b *= scale;
+    }
+    if (s_l + s_r > img_w) {
+        float scale = img_w / (s_l + s_r);
+        s_l *= scale;
+        s_r *= scale;
+    }
+
+    // Calculate output width pixel values (using border-image-width)
+    auto calc_width = [&](const litehtml::css_length& w, int border_w, int total) {
+        if (w.is_predefined()) return (float)border_w;
+        if (w.units() == litehtml::css_units_none) return w.val() * border_w;
+        return (float)w.calc_percent(total);
+    };
+
+    float w_t = calc_width(border_image.width[0], borders.top.width, draw_pos.height);
+    float w_r = calc_width(border_image.width[1], borders.right.width, draw_pos.width);
+    float w_b = calc_width(border_image.width[2], borders.bottom.width, draw_pos.height);
+    float w_l = calc_width(border_image.width[3], borders.left.width, draw_pos.width);
+
+    // Calculate outset
+    auto calc_outset = [&](const litehtml::css_length& len, int border_w, int total) {
+        if (len.units() == litehtml::css_units_none) return len.val() * border_w;
+        return (float)len.calc_percent(total);
+    };
+
+    float o_t = calc_outset(border_image.outset[0], borders.top.width, draw_pos.height);
+    float o_r = calc_outset(border_image.outset[1], borders.right.width, draw_pos.width);
+    float o_b = calc_outset(border_image.outset[2], borders.bottom.width, draw_pos.height);
+    float o_l = calc_outset(border_image.outset[3], borders.left.width, draw_pos.width);
+
+    SkRect dst_full = SkRect::MakeXYWH((float)draw_pos.x - o_l, (float)draw_pos.y - o_t,
+                                      (float)draw_pos.width + o_l + o_r,
+                                      (float)draw_pos.height + o_t + o_b);
+
+    // Source rects (9-slice)
+    SkRect src[9];
+    src[0] = SkRect::MakeXYWH(0, 0, s_l, s_t);                                 // top-left
+    src[1] = SkRect::MakeXYWH(s_l, 0, img_w - s_l - s_r, s_t);                // top
+    src[2] = SkRect::MakeXYWH(img_w - s_r, 0, s_r, s_t);                      // top-right
+    src[3] = SkRect::MakeXYWH(0, s_t, s_l, img_h - s_t - s_b);                // left
+    src[4] = SkRect::MakeXYWH(s_l, s_t, img_w - s_l - s_r, img_h - s_t - s_b);  // center
+    src[5] = SkRect::MakeXYWH(img_w - s_r, s_t, s_r, img_h - s_t - s_b);      // right
+    src[6] = SkRect::MakeXYWH(0, img_h - s_b, s_l, s_b);                      // bottom-left
+    src[7] = SkRect::MakeXYWH(s_l, img_h - s_b, img_w - s_l - s_r, s_b);       // bottom
+    src[8] = SkRect::MakeXYWH(img_w - s_r, img_h - s_b, s_r, s_b);            // bottom-right
+
+    // Destination rects
+    SkRect dst[9];
+    dst[0] = SkRect::MakeXYWH(dst_full.left(), dst_full.top(), w_l, w_t);
+    dst[1] = SkRect::MakeXYWH(dst_full.left() + w_l, dst_full.top(), dst_full.width() - w_l - w_r, w_t);
+    dst[2] = SkRect::MakeXYWH(dst_full.right() - w_r, dst_full.top(), w_r, w_t);
+    dst[3] = SkRect::MakeXYWH(dst_full.left(), dst_full.top() + w_t, w_l, dst_full.height() - w_t - w_b);
+    dst[4] = SkRect::MakeXYWH(dst_full.left() + w_l, dst_full.top() + w_t, dst_full.width() - w_l - w_r,
+                              dst_full.height() - w_t - w_b);
+    dst[5] = SkRect::MakeXYWH(dst_full.right() - w_r, dst_full.top() + w_t, w_r,
+                              dst_full.height() - w_t - w_b);
+    dst[6] = SkRect::MakeXYWH(dst_full.left(), dst_full.bottom() - w_b, w_l, w_b);
+    dst[7] = SkRect::MakeXYWH(dst_full.left() + w_l, dst_full.bottom() - w_b,
+                              dst_full.width() - w_l - w_r, w_b);
+    dst[8] = SkRect::MakeXYWH(dst_full.right() - w_r, dst_full.bottom() - w_b, w_r, w_b);
+
+    SkPaint p;
+    p.setAntiAlias(true);
+    p.setAlphaf(get_current_opacity());
+
+    auto draw_piece = [&](int idx, litehtml::border_image_repeat rep_h,
+                          litehtml::border_image_repeat rep_v) {
+        if (src[idx].width() <= 0 || src[idx].height() <= 0 || dst[idx].width() <= 0 ||
+            dst[idx].height() <= 0)
+            return;
+
+        if (rep_h == litehtml::border_image_repeat_stretch &&
+            rep_v == litehtml::border_image_repeat_stretch) {
+            m_canvas->drawImageRect(img, src[idx], dst[idx], SkSamplingOptions(SkFilterMode::kLinear),
+                                    &p, SkCanvas::kFast_SrcRectConstraint);
+        } else {
+            m_canvas->save();
+            m_canvas->clipRect(dst[idx]);
+
+            SkTileMode tm_h = (rep_h == litehtml::border_image_repeat_stretch) ? SkTileMode::kClamp
+                                                                               : SkTileMode::kRepeat;
+            SkTileMode tm_v = (rep_v == litehtml::border_image_repeat_stretch) ? SkTileMode::kClamp
+                                                                               : SkTileMode::kRepeat;
+
+            // Tile size in destination
+            float tile_w, tile_h;
+            if (idx == 1 || idx == 7) {  // top, bottom
+                tile_h = dst[idx].height();
+                tile_w = src[idx].width() * (tile_h / src[idx].height());
+            } else if (idx == 3 || idx == 5) {  // left, right
+                tile_w = dst[idx].width();
+                tile_h = src[idx].height() * (tile_w / src[idx].width());
+            } else {  // center
+                tile_w = src[idx].width() * (w_t / s_t);  // use top border width as scale reference
+                tile_h = src[idx].height() * (w_l / s_l);
+            }
+
+            if (rep_h == litehtml::border_image_repeat_round) {
+                int count = (int)std::max(1.0f, std::round(dst[idx].width() / tile_w));
+                tile_w = dst[idx].width() / count;
+            }
+            if (rep_v == litehtml::border_image_repeat_round) {
+                int count = (int)std::max(1.0f, std::round(dst[idx].height() / tile_h));
+                tile_h = dst[idx].height() / count;
+            }
+
+            SkMatrix m;
+            m.setScaleTranslate(tile_w / src[idx].width(), tile_h / src[idx].height(),
+                                dst[idx].left(), dst[idx].top());
+            // Adjust translation for source slice
+            m.preTranslate(-src[idx].left(), -src[idx].top());
+
+            p.setShader(img->makeShader(tm_h, tm_v, SkSamplingOptions(SkFilterMode::kLinear), &m));
+            m_canvas->drawRect(dst[idx], p);
+            p.setShader(nullptr);
+
+            m_canvas->restore();
+        }
+    };
+
+    // Corners
+    for (int i : {0, 2, 6, 8}) {
+        draw_piece(i, litehtml::border_image_repeat_stretch,
+                   litehtml::border_image_repeat_stretch);
+    }
+
+    // Sides
+    draw_piece(1, border_image.repeat_h, litehtml::border_image_repeat_stretch);  // top
+    draw_piece(7, border_image.repeat_h, litehtml::border_image_repeat_stretch);  // bottom
+    draw_piece(3, litehtml::border_image_repeat_stretch, border_image.repeat_v);  // left
+    draw_piece(5, litehtml::border_image_repeat_stretch, border_image.repeat_v);  // right
+
+    // Center
+    if (border_image.slice_fill) {
+        draw_piece(4, border_image.repeat_h, border_image.repeat_v);
+    }
+}
+
 void container_skia::draw_borders(litehtml::uint_ptr hdc, const litehtml::borders& borders,
                                   const litehtml::position& draw_pos, bool root) {
     if (!m_canvas) return;

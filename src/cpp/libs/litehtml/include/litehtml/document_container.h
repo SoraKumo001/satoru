@@ -4,6 +4,7 @@
 #include "types.h"
 #include "web_color.h"
 #include "background.h"
+#include "border_image.h"
 #include "borders.h"
 #include "element.h"
 #include "font_description.h"
@@ -49,6 +50,7 @@ namespace litehtml
                 virtual void                            draw_radial_gradient(litehtml::uint_ptr hdc, const background_layer& layer, const background_layer::radial_gradient& gradient) = 0;
                 virtual void                            draw_conic_gradient(litehtml::uint_ptr hdc, const background_layer& layer, const background_layer::conic_gradient& gradient) = 0;
                 virtual void                            draw_borders(litehtml::uint_ptr hdc, const litehtml::borders& borders, const litehtml::position& draw_pos, bool root) = 0;
+                virtual void                            draw_border_image(litehtml::uint_ptr hdc, const litehtml::border_image& border_image, const litehtml::borders& borders, const litehtml::position& draw_pos, bool root) = 0;
                 virtual void                            draw_box_shadow(litehtml::uint_ptr hdc, const shadow_vector& shadows, const position& pos, const border_radiuses& radius, bool inset) = 0;
 
                 virtual int                             get_bidi_level(const char* text, int base_level) = 0;

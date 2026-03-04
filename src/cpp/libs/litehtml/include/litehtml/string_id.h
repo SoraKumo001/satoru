@@ -239,6 +239,25 @@ namespace litehtml
       _border_bottom_right_radius_y_,
       _border_bottom_left_radius_y_,
 
+      _border_image_,
+      _border_image_source_,
+      _border_image_slice_,
+      _border_image_slice_top_,
+      _border_image_slice_right_,
+      _border_image_slice_bottom_,
+      _border_image_slice_left_,
+      _border_image_width_,
+      _border_image_width_top_,
+      _border_image_width_right_,
+      _border_image_width_bottom_,
+      _border_image_width_left_,
+      _border_image_outset_,
+      _border_image_outset_top_,
+      _border_image_outset_right_,
+      _border_image_outset_bottom_,
+      _border_image_outset_left_,
+      _border_image_repeat_,
+
       _list_style_,
       _list_style_type_,
       _list_style_position_,
@@ -464,6 +483,11 @@ namespace litehtml
       _farthest_side_,
       _closest_corner_,
       _farthest_corner_,
+
+      _stretch_,
+      _repeat_,
+      _round_,
+      _space_,
 
       // at-rules and their components
       _charset_,

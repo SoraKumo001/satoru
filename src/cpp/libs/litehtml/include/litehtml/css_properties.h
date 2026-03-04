@@ -7,6 +7,7 @@
 #include "borders.h"
 #include "css_offsets.h"
 #include "background.h"
+#include "border_image.h"
 
 namespace litehtml
 {
@@ -63,6 +64,7 @@ namespace litehtml
     string m_list_style_image;
     string m_list_style_image_baseurl;
     background m_bg;
+    border_image m_border_image;
     uint_ptr m_font;
     css_length m_font_size;
     string m_font_family;
@@ -140,6 +142,7 @@ namespace litehtml
   private:
     void compute_font(const element *el, const std::shared_ptr<document> &doc);
     void compute_background(const element *el, const std::shared_ptr<document> &doc);
+    void compute_border_image(const element *el, const std::shared_ptr<document> &doc);
     void compute_flex(const element *el, const std::shared_ptr<document> &doc);
     void compute_grid(const element *el, const std::shared_ptr<document> &doc);
     web_color get_color_property(const element *el, string_id name, bool inherited, web_color default_value, uint_ptr member_offset) const;
@@ -332,6 +335,9 @@ namespace litehtml
 
     const background &get_bg() const;
     void set_bg(const background &mBg);
+
+    const border_image &get_border_image() const;
+    void set_border_image(const border_image &val);
 
     pixel_t get_font_size() const;
     void set_font_size(pixel_t mFontSize);
@@ -790,6 +796,16 @@ namespace litehtml
   inline void css_properties::set_bg(const background &mBg)
   {
     m_bg = mBg;
+  }
+
+  inline const border_image &css_properties::get_border_image() const
+  {
+    return m_border_image;
+  }
+
+  inline void css_properties::set_border_image(const border_image &val)
+  {
+    m_border_image = val;
   }
 
   inline pixel_t css_properties::get_font_size() const

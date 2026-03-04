@@ -765,6 +765,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
     const auto& textDraws = container.get_used_text_draws();
     const auto& filters = container.get_used_filters();
     const auto& backdropFilters = container.get_used_backdrop_filters();
+    const auto& borderImages = container.get_used_border_images();
 
     SvgScanner scanner(svg);
     bool defsInjected = false;
@@ -1040,6 +1041,39 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                                                       std::to_string(fullIndex) + ")\"");
                                     result.append(" />");
                                 }
+                                replaced = true;
+                            }
+                        }
+                        break;
+                    case satoru::MagicTagExtended::BorderImage:
+                        if (fullIndex > 0 && fullIndex <= (int)borderImages.size()) {
+                            const auto& info = borderImages[fullIndex - 1];
+                            if (info.draw_pos.width > 0 && info.draw_pos.height > 0) {
+                                SkBitmap bitmap;
+                                bitmap.allocN32Pixels(info.draw_pos.width, info.draw_pos.height);
+                                SkCanvas bitmapCanvas(bitmap);
+                                bitmapCanvas.clear(SK_ColorTRANSPARENT);
+
+                                container_skia temp_container(info.draw_pos.width,
+                                                               info.draw_pos.height, &bitmapCanvas,
+                                                               context, container.get_resource_manager(), false);
+                                litehtml::position relative_pos = info.draw_pos;
+                                relative_pos.x = 0;
+                                relative_pos.y = 0;
+
+                                temp_container.draw_border_image(0, info.border_image, info.borders,
+                                                                 relative_pos, false);
+
+                                result.append("<image x=\"" + std::to_string(info.draw_pos.x) +
+                                              "\" y=\"" + std::to_string(info.draw_pos.y) +
+                                              "\" width=\"" + std::to_string(info.draw_pos.width) +
+                                              "\" height=\"" + std::to_string(info.draw_pos.height) +
+                                              "\" preserveAspectRatio=\"none\" href=\"" +
+                                              bitmapToDataUrl(bitmap) + "\"");
+                                if (info.opacity < 1.0f)
+                                    result.append(" opacity=\"" + std::to_string(info.opacity) +
+                                                  "\"");
+                                result.append(" />");
                                 replaced = true;
                             }
                         }

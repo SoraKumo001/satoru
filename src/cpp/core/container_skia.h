@@ -36,6 +36,7 @@ class container_skia : public litehtml::document_container {
     std::vector<text_draw_info> m_usedTextDraws;
     std::vector<filter_info> m_usedFilters;
     std::vector<backdrop_filter_info> m_usedBackdropFilters;
+    std::vector<border_image_info> m_usedBorderImages;
 
     std::set<char32_t> m_usedCodepoints;
     std::set<font_request> m_requestedFontAttributes;
@@ -108,6 +109,7 @@ class container_skia : public litehtml::document_container {
         m_usedInlineSvgs.clear();
         m_usedFilters.clear();
         m_usedBackdropFilters.clear();
+        m_usedBorderImages.clear();
         m_usedClips.clear();
         m_usedClipPaths.clear();
         m_usedGlyphs.clear();
@@ -120,6 +122,7 @@ class container_skia : public litehtml::document_container {
     SkCanvas *get_canvas() const { return m_canvas; }
     bool is_tagging() const { return m_tagging; }
     SatoruContext &get_context() { return m_context; }
+    ResourceManager *get_resource_manager() const { return m_resourceManager; }
 
     int add_inline_svg(const std::string &xml, const litehtml::position &pos) {
         m_usedInlineSvgs.push_back(xml);
@@ -145,6 +148,9 @@ class container_skia : public litehtml::document_container {
     const std::vector<filter_info> &get_used_filters() const { return m_usedFilters; }
     const std::vector<backdrop_filter_info> &get_used_backdrop_filters() const {
         return m_usedBackdropFilters;
+    }
+    const std::vector<border_image_info> &get_used_border_images() const {
+        return m_usedBorderImages;
     }
     const std::vector<clip_info> &get_used_clips() const { return m_usedClips; }
     const std::vector<clip_path_info> &get_used_clip_paths() const { return m_usedClipPaths; }
@@ -208,6 +214,8 @@ class container_skia : public litehtml::document_container {
         const litehtml::background_layer::conic_gradient &gradient) override;
     virtual void draw_borders(litehtml::uint_ptr hdc, const litehtml::borders &borders,
                               const litehtml::position &draw_pos, bool root) override;
+    virtual void draw_border_image(litehtml::uint_ptr hdc, const litehtml::border_image &border_image,
+                                   const litehtml::borders &borders, const litehtml::position &draw_pos, bool root) override;
     virtual void draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::shadow_vector &shadows,
                                  const litehtml::position &pos,
                                  const litehtml::border_radiuses &radius, bool inset) override;

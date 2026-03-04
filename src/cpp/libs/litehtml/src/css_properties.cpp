@@ -426,6 +426,7 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   m_webkit_box_orient = (box_orient)el->get_property<int>(__webkit_box_orient_, false, box_orient_horizontal, offset(m_webkit_box_orient));
 
   compute_background(el, doc);
+  compute_border_image(el, doc);
   compute_flex(el, doc);
   compute_grid(el, doc);
 
@@ -656,6 +657,45 @@ void litehtml::css_properties::compute_font(const element *el, const document::p
   descr.text_shadow = m_text_shadow;
 
   m_font = doc->get_font(descr, &m_font_metrics);
+}
+
+void litehtml::css_properties::compute_border_image(const element *el, const document::ptr &doc)
+{
+  m_border_image.source = el->get_property<string>(_border_image_source_, false, "", offset(m_border_image.source));
+  if (!m_border_image.source.empty())
+  {
+    m_border_image.baseurl = el->get_property<string>(_id("border-image-source-baseurl"), false, "", offset(m_border_image.baseurl));
+    doc->container()->load_image(m_border_image.source.c_str(), m_border_image.baseurl.c_str(), true);
+  }
+
+  m_border_image.slice[0] = el->get_property<css_length>(_border_image_slice_top_, false, css_length(100, css_units_percentage), offset(m_border_image.slice[0]));
+  m_border_image.slice[1] = el->get_property<css_length>(_border_image_slice_right_, false, css_length(100, css_units_percentage), offset(m_border_image.slice[1]));
+  m_border_image.slice[2] = el->get_property<css_length>(_border_image_slice_bottom_, false, css_length(100, css_units_percentage), offset(m_border_image.slice[2]));
+  m_border_image.slice[3] = el->get_property<css_length>(_border_image_slice_left_, false, css_length(100, css_units_percentage), offset(m_border_image.slice[3]));
+  m_border_image.slice_fill = el->get_property<int>(_id("border-image-slice-fill"), false, 0, offset(m_border_image.slice_fill)) != 0;
+
+  m_border_image.width[0] = el->get_property<css_length>(_border_image_width_top_, false, css_length(1, css_units_none), offset(m_border_image.width[0]));
+  m_border_image.width[1] = el->get_property<css_length>(_border_image_width_right_, false, css_length(1, css_units_none), offset(m_border_image.width[1]));
+  m_border_image.width[2] = el->get_property<css_length>(_border_image_width_bottom_, false, css_length(1, css_units_none), offset(m_border_image.width[2]));
+  m_border_image.width[3] = el->get_property<css_length>(_border_image_width_left_, false, css_length(1, css_units_none), offset(m_border_image.width[3]));
+
+  m_border_image.outset[0] = el->get_property<css_length>(_border_image_outset_top_, false, css_length(0), offset(m_border_image.outset[0]));
+  m_border_image.outset[1] = el->get_property<css_length>(_border_image_outset_right_, false, css_length(0), offset(m_border_image.outset[1]));
+  m_border_image.outset[2] = el->get_property<css_length>(_border_image_outset_bottom_, false, css_length(0), offset(m_border_image.outset[2]));
+  m_border_image.outset[3] = el->get_property<css_length>(_border_image_outset_left_, false, css_length(0), offset(m_border_image.outset[3]));
+
+  int repeat = el->get_property<int>(_border_image_repeat_, false, border_image_repeat_stretch | (border_image_repeat_stretch << 8), offset(m_border_image.repeat_h));
+  m_border_image.repeat_h = (border_image_repeat)(repeat & 0xFF);
+  m_border_image.repeat_v = (border_image_repeat)((repeat >> 8) & 0xFF);
+
+  pixel_t font_size = get_font_size();
+  for (int i = 0; i < 4; i++)
+  {
+    if (m_border_image.width[i].units() != css_units_none)
+      doc->cvt_units(m_border_image.width[i], m_font_metrics, font_size);
+    if (m_border_image.outset[i].units() != css_units_none)
+      doc->cvt_units(m_border_image.outset[i], m_font_metrics, font_size);
+  }
 }
 
 void litehtml::css_properties::compute_background(const element *el, const document::ptr &doc)

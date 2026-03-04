@@ -36,6 +36,7 @@ enum class MagicTagExtended : uint8_t {
     RadialGradient = 2,
     LinearGradient = 3,
     InlineSvg = 4,
+    BorderImage = 5,
 };
 
 /**

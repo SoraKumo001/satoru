@@ -1213,7 +1213,12 @@ void litehtml::html_tag::draw_borders(uint_ptr hdc, pixel_t x, pixel_t y, const 
                         border_radiuses radius = m_css.get_borders().radius.calc_percents(border_box.width, border_box.height);
 
                         borders bdr = m_css.get_borders();
-                        if(bdr.is_visible())
+                        if(m_css.get_border_image().is_valid())
+                        {
+                            bdr.radius = radius;
+                            get_document()->container()->draw_border_image(hdc, m_css.get_border_image(), bdr, border_box, is_root());
+                        }
+                        else if(bdr.is_visible())
                         {
                                 bdr.radius = radius;
                                 get_document()->container()->draw_borders(hdc, bdr, border_box, is_root());
@@ -1263,7 +1268,14 @@ void litehtml::html_tag::draw_borders(uint_ptr hdc, pixel_t x, pixel_t y, const 
                                         bdr.right       = m_css.get_borders().right;
                                 }
 
-                                if(bdr.is_visible())
+                                if(m_css.get_border_image().is_valid())
+                                {
+                                    borders b = bdr;
+                                    b.radius = bdr.radius.calc_percents(box->width, box->height);
+                                    box->round();
+                                    get_document()->container()->draw_border_image(hdc, m_css.get_border_image(), b, *box, false);
+                                }
+                                else if(bdr.is_visible())
                                 {
                                         borders b = bdr;
                                         b.radius = bdr.radius.calc_percents(box->width, box->height);

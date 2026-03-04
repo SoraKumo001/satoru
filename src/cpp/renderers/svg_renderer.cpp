@@ -748,6 +748,111 @@ static std::string generateDefs(const container_skia& render_container,
              << SkParsePath::ToSVGString(glyphs[i]).c_str() << "\" />";
     }
 
+    const auto& masks = render_container.get_used_masks();
+    for (size_t i = 0; i < masks.size(); ++i) {
+        const auto& m = masks[i];
+        int maskIndex = (int)(i + 1);
+        defs << "<mask id=\"satoru-mask-" << maskIndex
+             << "\" maskUnits=\"userSpaceOnUse\" mask-type=\"alpha\" x=\"" << m.pos.x << "\" y=\"" << m.pos.y
+             << "\" width=\"" << m.pos.width << "\" height=\"" << m.pos.height << "\">";
+
+        auto layers = litehtml::parse_comma_separated_list(m.tokens);
+        int gradIdx = 0;
+        for (const auto& layer_tokens : layers) {
+            for (const auto& tok : layer_tokens) {
+                if (tok.type == litehtml::CV_FUNCTION) {
+                    std::string name = litehtml::lowcase(tok.name);
+                    if (name == "url") {
+                        std::string url;
+                        for (const auto& v : tok.value) {
+                            if (v.type == litehtml::STRING || v.type == litehtml::IDENT) {
+                                url = v.str;
+                                break;
+                            }
+                        }
+                        bool imageFound = false;
+                        if (!url.empty()) {
+                            auto it = context.imageCache.find(url);
+                            if (it != context.imageCache.end() && it->second.skImage) {
+                                imageFound = true;
+                                std::string dataUrl;
+                                if (!it->second.data_url.empty() &&
+                                    it->second.data_url.substr(0, 5) == "data:") {
+                                    dataUrl = it->second.data_url;
+                                } else {
+                                    SkBitmap bitmap;
+                                    bitmap.allocN32Pixels(it->second.skImage->width(),
+                                                          it->second.skImage->height());
+                                    SkCanvas bitmapCanvas(bitmap);
+                                    bitmapCanvas.drawImage(it->second.skImage, 0, 0);
+                                    dataUrl = bitmapToDataUrl(bitmap);
+                                }
+                                defs << "<image x=\"" << m.pos.x << "\" y=\"" << m.pos.y
+                                     << "\" width=\"" << m.pos.width << "\" height=\"" << m.pos.height
+                                     << "\" preserveAspectRatio=\"none\" href=\"" << dataUrl
+                                     << "\" />";
+                            }
+                        }
+                        if (!imageFound) {
+                            // Fallback: fill with white so it's visible even if image is missing
+                            defs << "<rect x=\"" << m.pos.x << "\" y=\"" << m.pos.y
+                                 << "\" width=\"" << m.pos.width << "\" height=\"" << m.pos.height
+                                 << "\" fill=\"white\" />";
+                        }
+                    } else if (name == "linear-gradient" || name == "repeating-linear-gradient" ||
+                               name == "radial-gradient" || name == "repeating-radial-gradient") {
+                        litehtml::gradient g;
+                        if (litehtml::parse_gradient(tok, g, nullptr)) {
+                            std::string gradId = "mask-grad-" + std::to_string(maskIndex) + "-" +
+                                                 std::to_string(++gradIdx);
+                            if (name.find("linear") != std::string::npos) {
+                                auto grad = litehtml::background::get_linear_gradient(g, m.pos);
+                                if (grad) {
+                                    defs << "<linearGradient id=\"" << gradId
+                                         << "\" gradientUnits=\"userSpaceOnUse\" x1=\""
+                                         << grad->start.x << "\" y1=\"" << grad->start.y
+                                         << "\" x2=\"" << grad->end.x << "\" y2=\"" << grad->end.y
+                                         << "\">";
+                                }
+                            } else {
+                                auto grad = litehtml::background::get_radial_gradient(g, m.pos);
+                                if (grad) {
+                                    defs << "<radialGradient id=\"" << gradId
+                                         << "\" gradientUnits=\"userSpaceOnUse\" cx=\""
+                                         << grad->position.x << "\" cy=\"" << grad->position.y
+                                         << "\" r=\"" << grad->radius.x << "\">";
+                                }
+                            }
+                            for (size_t ci = 0; ci < g.m_colors.size(); ++ci) {
+                                const auto& color = g.m_colors[ci];
+                                // Use white for luminance mask fallback, control by opacity
+                                std::string c = "rgb(255,255,255)";
+                                float offset = 0;
+                                if (color.length) {
+                                    offset = color.length->val() / 100.0f;
+                                } else {
+                                    offset = (float)ci / (float)(g.m_colors.size() - 1);
+                                }
+                                defs << "<stop offset=\"" << offset << "\" stop-color=\"" << c
+                                     << "\" stop-opacity=\"" << (float)color.color.alpha / 255.0f
+                                     << "\"/>";
+                            }
+                            if (name.find("linear") != std::string::npos)
+                                defs << "</linearGradient>";
+                            else
+                                defs << "</radialGradient>";
+
+                            defs << "<rect x=\"" << m.pos.x << "\" y=\"" << m.pos.y << "\" width=\""
+                                 << m.pos.width << "\" height=\"" << m.pos.height << "\" fill=\"url(#"
+                                 << gradId << ")\" />";
+                        }
+                    }
+                }
+            }
+        }
+        defs << "</mask>";
+    }
+
     return defs.str();
 }
 
@@ -915,8 +1020,9 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                         replaced = true;
                         break;
                     case satoru::MagicTag::MaskPush:
-                        // For now just wrap in a group, full SVG mask support is complex
-                        result.append("<g>");
+                        result.append("<g mask=\"url(#satoru-mask-");
+                        result.append(std::to_string(fullIndex));
+                        result.append(")\">");
                         replaced = true;
                         break;
                     case satoru::MagicTag::MaskPop:

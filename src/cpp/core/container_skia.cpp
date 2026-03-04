@@ -956,10 +956,54 @@ void container_skia::draw_border_image(litehtml::uint_ptr hdc,
         return;
     }
 
-    auto it = m_context.imageCache.find(border_image.source);
-    if (it == m_context.imageCache.end() || !it->second.skImage) return;
+    sk_sp<SkImage> img;
+    if (border_image.source.type == litehtml::image::type_url) {
+        auto it = m_context.imageCache.find(border_image.source.url);
+        if (it == m_context.imageCache.end() || !it->second.skImage) return;
+        img = it->second.skImage;
+    } else if (border_image.source.type == litehtml::image::type_gradient) {
+        // For border-image, the gradient's intrinsic size is the border image area.
+        int w = draw_pos.width;
+        int h = draw_pos.height;
+        if (w <= 0 || h <= 0) return;
 
-    sk_sp<SkImage> img = it->second.skImage;
+        SkBitmap bitmap;
+        if (!bitmap.tryAllocN32Pixels(w, h)) return;
+        SkCanvas canvas(bitmap);
+        canvas.clear(SK_ColorTRANSPARENT);
+
+        // We need a temporary container_skia to use its gradient drawing methods,
+        // but we can also just use the current one with a different canvas.
+        SkCanvas* old_canvas = m_canvas;
+        m_canvas = &canvas;
+
+        litehtml::background_layer layer;
+        layer.origin_box = litehtml::position(0, 0, w, h);
+        layer.border_box = layer.origin_box;
+        layer.clip_box = layer.origin_box;
+
+        if (border_image.source.m_gradient.m_type == litehtml::_linear_gradient_ ||
+            border_image.source.m_gradient.m_type == litehtml::_repeating_linear_gradient_) {
+            auto grad = litehtml::background::get_linear_gradient(border_image.source.m_gradient,
+                                                                  layer.origin_box);
+            if (grad) draw_linear_gradient(0, layer, *grad);
+        } else if (border_image.source.m_gradient.m_type == litehtml::_radial_gradient_ ||
+                   border_image.source.m_gradient.m_type == litehtml::_repeating_radial_gradient_) {
+            auto grad = litehtml::background::get_radial_gradient(border_image.source.m_gradient,
+                                                                  layer.origin_box);
+            if (grad) draw_radial_gradient(0, layer, *grad);
+        } else if (border_image.source.m_gradient.m_type == litehtml::_conic_gradient_ ||
+                   border_image.source.m_gradient.m_type == litehtml::_repeating_conic_gradient_) {
+            auto grad = litehtml::background::get_conic_gradient(border_image.source.m_gradient,
+                                                                 layer.origin_box);
+            if (grad) draw_conic_gradient(0, layer, *grad);
+        }
+
+        m_canvas = old_canvas;
+        img = bitmap.asImage();
+    }
+
+    if (!img) return;
     float img_w = (float)img->width();
     float img_h = (float)img->height();
 

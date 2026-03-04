@@ -205,7 +205,7 @@ std::unique_ptr<litehtml::background_layer::color> litehtml::background::get_col
 // Compute the endpoints so that a gradient of the given angle covers a box of
 // the given size.
 // https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/css/css_gradient_value.cc;drc=7061f1585ab97cc3358d1e0fc9e950e5a107a7f9;l=1070
-static void EndPointsFromAngle(float angle_deg,
+void litehtml::background::EndPointsFromAngle(float angle_deg,
 							   const litehtml::size& size,
 							   litehtml::pointF& first_point,
 							   litehtml::pointF& second_point)
@@ -285,39 +285,43 @@ static float distance(const litehtml::pointF& p1, const litehtml::pointF& p2)
 std::unique_ptr<litehtml::background_layer::linear_gradient> litehtml::background::get_linear_gradient_layer(int idx, const background_layer& layer) const
 {
 	if(idx < 0 || idx >= (int) m_image.size()) return {};
-	if(m_image[idx].type != image::type_gradient) return {};
-	if(m_image[idx].m_gradient.m_type != _linear_gradient_ &&
-		m_image[idx].m_gradient.m_type != _repeating_linear_gradient_) return {};
+	return get_linear_gradient(m_image[idx].m_gradient, layer.origin_box);
+}
+
+std::unique_ptr<litehtml::background_layer::linear_gradient> litehtml::background::get_linear_gradient(const gradient& g, const position& origin_box)
+{
+	if(g.m_type != _linear_gradient_ &&
+		g.m_type != _repeating_linear_gradient_) return {};
 
 	auto ret = std::make_unique<background_layer::linear_gradient>();
 	float angle;
-	if(m_image[idx].m_gradient.m_side == 0)
+	if(g.m_side == 0)
 	{
-		angle = m_image[idx].m_gradient.angle;
+		angle = g.angle;
 	} else
 	{
-		auto rise = (float) layer.origin_box.width;
-		auto run = (float) layer.origin_box.height;
-		if(m_image[idx].m_gradient.m_side & gradient_side_left)
+		auto rise = (float) origin_box.width;
+		auto run = (float) origin_box.height;
+		if(g.m_side & gradient_side_left)
 		{
 			run *= -1;
 		}
-		if(m_image[idx].m_gradient.m_side & gradient_side_bottom)
+		if(g.m_side & gradient_side_bottom)
 		{
 			rise *= -1;
 		}
 		angle = (float) (90 - atan2(rise, run) * 180 / M_PI);
 	}
-	EndPointsFromAngle(angle, {layer.origin_box.width, layer.origin_box.height}, ret->start,
+	EndPointsFromAngle(angle, {origin_box.width, origin_box.height}, ret->start,
 					   ret->end);
-	ret->start.x += (float) layer.origin_box.x;
-	ret->start.y += (float) layer.origin_box.y;
-	ret->end.x += (float) layer.origin_box.x;
-	ret->end.y += (float) layer.origin_box.y;
+	ret->start.x += (float) origin_box.x;
+	ret->start.y += (float) origin_box.y;
+	ret->end.x += (float) origin_box.x;
+	ret->end.y += (float) origin_box.y;
 
 	auto line_len = distance(ret->start, ret->end);
 
-	if(!ret->prepare_color_points(line_len, m_image[idx].m_gradient.m_type, m_image[idx].m_gradient.m_colors))
+	if(!ret->prepare_color_points(line_len, g.m_type, g.m_colors))
 	{
 		return {};
 	}
@@ -397,69 +401,73 @@ static inline litehtml::pointF find_corner(const litehtml::pointF& center, const
 std::unique_ptr<litehtml::background_layer::radial_gradient> litehtml::background::get_radial_gradient_layer(int idx, const background_layer& layer) const
 {
 	if(idx < 0 || idx >= (int) m_image.size()) return {};
-	if(m_image[idx].type != image::type_gradient) return {};
-	if(m_image[idx].m_gradient.m_type != _radial_gradient_ &&
-		m_image[idx].m_gradient.m_type != _repeating_radial_gradient_) return {};
+	return get_radial_gradient(m_image[idx].m_gradient, layer.origin_box);
+}
+
+std::unique_ptr<litehtml::background_layer::radial_gradient> litehtml::background::get_radial_gradient(const gradient& g, const position& origin_box)
+{
+	if(g.m_type != _radial_gradient_ &&
+		g.m_type != _repeating_radial_gradient_) return {};
 
 	auto ret = std::make_unique<background_layer::radial_gradient>();
 
-	ret->position.x = (float) layer.origin_box.x + (float) layer.origin_box.width / 2.0f;
-	ret->position.y = (float) layer.origin_box.y + (float) layer.origin_box.height / 2.0f;
+	ret->position.x = (float) origin_box.x + (float) origin_box.width / 2.0f;
+	ret->position.y = (float) origin_box.y + (float) origin_box.height / 2.0f;
 
-	if(m_image[idx].m_gradient.m_side & gradient_side_left)
+	if(g.m_side & gradient_side_left)
 	{
-		ret->position.x = (float) layer.origin_box.left();
-	} else if(m_image[idx].m_gradient.m_side & gradient_side_right)
+		ret->position.x = (float) origin_box.left();
+	} else if(g.m_side & gradient_side_right)
 	{
-		ret->position.x = (float) layer.origin_box.right();
-	} else if(m_image[idx].m_gradient.m_side & gradient_side_x_center)
+		ret->position.x = (float) origin_box.right();
+	} else if(g.m_side & gradient_side_x_center)
 	{
-		ret->position.x = (float) layer.origin_box.left() + (float) layer.origin_box.width / 2.0f;
-	} else if(m_image[idx].m_gradient.m_side & gradient_side_x_length)
+		ret->position.x = (float) origin_box.left() + (float) origin_box.width / 2.0f;
+	} else if(g.m_side & gradient_side_x_length)
 	{
-		ret->position.x = (float) layer.origin_box.left() + (float) m_image[idx].m_gradient.position_x.calc_percent(layer.origin_box.width);
+		ret->position.x = (float) origin_box.left() + (float) g.position_x.calc_percent(origin_box.width);
 	}
 
-	if(m_image[idx].m_gradient.m_side & gradient_side_top)
+	if(g.m_side & gradient_side_top)
 	{
-		ret->position.y = (float) layer.origin_box.top();
-	} else if(m_image[idx].m_gradient.m_side & gradient_side_bottom)
+		ret->position.y = (float) origin_box.top();
+	} else if(g.m_side & gradient_side_bottom)
 	{
-		ret->position.y = (float) layer.origin_box.bottom();
-	} else if(m_image[idx].m_gradient.m_side & gradient_side_y_center)
+		ret->position.y = (float) origin_box.bottom();
+	} else if(g.m_side & gradient_side_y_center)
 	{
-		ret->position.y = (float) layer.origin_box.top() + (float) layer.origin_box.height / 2.0f;
-	} else if(m_image[idx].m_gradient.m_side & gradient_side_y_length)
+		ret->position.y = (float) origin_box.top() + (float) origin_box.height / 2.0f;
+	} else if(g.m_side & gradient_side_y_length)
 	{
-		ret->position.y = (float) layer.origin_box.top() + (float) m_image[idx].m_gradient.position_y.calc_percent(layer.origin_box.height);
+		ret->position.y = (float) origin_box.top() + (float) g.position_y.calc_percent(origin_box.height);
 	}
 
-	if(m_image[idx].m_gradient.radial_extent)
+	if(g.radial_extent)
 	{
-		switch (m_image[idx].m_gradient.radial_extent)
+		switch (g.radial_extent)
 		{
 
 			case radial_extent_closest_corner:
 				{
-					if (m_image[idx].m_gradient.radial_shape == radial_shape_circle)
+					if (g.radial_shape == radial_shape_circle)
 					{
-						float corner1 = distance(ret->position, {(float) layer.origin_box.left(), (float) layer.origin_box.top()});
-						float corner2 = distance(ret->position, {(float) layer.origin_box.right(), (float) layer.origin_box.top()});
-						float corner3 = distance(ret->position, {(float) layer.origin_box.left(), (float) layer.origin_box.bottom()});
-						float corner4 = distance(ret->position, {(float) layer.origin_box.right(), (float) layer.origin_box.bottom()});
+						float corner1 = distance(ret->position, {(float) origin_box.left(), (float) origin_box.top()});
+						float corner2 = distance(ret->position, {(float) origin_box.right(), (float) origin_box.top()});
+						float corner3 = distance(ret->position, {(float) origin_box.left(), (float) origin_box.bottom()});
+						float corner4 = distance(ret->position, {(float) origin_box.right(), (float) origin_box.bottom()});
 						ret->radius.x = ret->radius.y = std::min({corner1, corner2, corner3, corner4});
 					} else
 					{
 						// Aspect ratio is the same as for radial_extent_closest_side
 						float aspect_ration = std::min(
-								std::abs(ret->position.x - (float) layer.origin_box.left()),
-								std::abs(ret->position.x - (float) layer.origin_box.right())
+								std::abs(ret->position.x - (float) origin_box.left()),
+								std::abs(ret->position.x - (float) origin_box.right())
 						) / std::min(
-								std::abs(ret->position.y - (float) layer.origin_box.top()),
-								std::abs(ret->position.y - (float) layer.origin_box.bottom())
+								std::abs(ret->position.y - (float) origin_box.top()),
+								std::abs(ret->position.y - (float) origin_box.bottom())
 						);
 
-						auto corner = find_corner(ret->position, layer.origin_box, false);
+						auto corner = find_corner(ret->position, origin_box, false);
 						auto radius = calc_ellipse_radius(corner, aspect_ration);
 						ret->radius.x = radius.x;
 						ret->radius.y = radius.y;
@@ -467,48 +475,48 @@ std::unique_ptr<litehtml::background_layer::radial_gradient> litehtml::backgroun
 				}
 				break;
 			case radial_extent_closest_side:
-				if (m_image[idx].m_gradient.radial_shape == radial_shape_circle)
+				if (g.radial_shape == radial_shape_circle)
 				{
 					ret->radius.x = ret->radius.y = std::min(
 							{
-								std::abs(ret->position.x - (float) layer.origin_box.left()),
-								std::abs(ret->position.x - (float) layer.origin_box.right()),
-								std::abs(ret->position.y - (float) layer.origin_box.top()),
-								std::abs(ret->position.y - (float) layer.origin_box.bottom()),
+								std::abs(ret->position.x - (float) origin_box.left()),
+								std::abs(ret->position.x - (float) origin_box.right()),
+								std::abs(ret->position.y - (float) origin_box.top()),
+								std::abs(ret->position.y - (float) origin_box.bottom()),
 							});
 				} else
 				{
 					ret->radius.x = std::min(
-									std::abs(ret->position.x - (float) layer.origin_box.left()),
-									std::abs(ret->position.x - (float) layer.origin_box.right())
+									std::abs(ret->position.x - (float) origin_box.left()),
+									std::abs(ret->position.x - (float) origin_box.right())
 									);
 					ret->radius.y = std::min(
-									std::abs(ret->position.y - (float) layer.origin_box.top()),
-									std::abs(ret->position.y - (float) layer.origin_box.bottom())
+									std::abs(ret->position.y - (float) origin_box.top()),
+									std::abs(ret->position.y - (float) origin_box.bottom())
 									);
 				}
 				break;
 			case radial_extent_farthest_corner:
 				{
-					if (m_image[idx].m_gradient.radial_shape == radial_shape_circle)
+					if (g.radial_shape == radial_shape_circle)
 					{
-						float corner1 = distance(ret->position, {(float) layer.origin_box.left(), (float) layer.origin_box.top()});
-						float corner2 = distance(ret->position, {(float) layer.origin_box.right(), (float) layer.origin_box.top()});
-						float corner3 = distance(ret->position, {(float) layer.origin_box.left(), (float) layer.origin_box.bottom()});
-						float corner4 = distance(ret->position, {(float) layer.origin_box.right(), (float) layer.origin_box.bottom()});
+						float corner1 = distance(ret->position, {(float) origin_box.left(), (float) origin_box.top()});
+						float corner2 = distance(ret->position, {(float) origin_box.right(), (float) origin_box.top()});
+						float corner3 = distance(ret->position, {(float) origin_box.left(), (float) origin_box.bottom()});
+						float corner4 = distance(ret->position, {(float) origin_box.right(), (float) origin_box.bottom()});
 						ret->radius.x = ret->radius.y = std::max({corner1, corner2, corner3, corner4});
 					} else
 					{
 						// Aspect ratio is the same as for radial_extent_farthest_side
 						float aspect_ration = std::max(
-								std::abs(ret->position.x - (float) layer.origin_box.left()),
-								std::abs(ret->position.x - (float) layer.origin_box.right())
+								std::abs(ret->position.x - (float) origin_box.left()),
+								std::abs(ret->position.x - (float) origin_box.right())
 						) / std::max(
-								std::abs(ret->position.y - (float) layer.origin_box.top()),
-								std::abs(ret->position.y - (float) layer.origin_box.bottom())
+								std::abs(ret->position.y - (float) origin_box.top()),
+								std::abs(ret->position.y - (float) origin_box.bottom())
 						);
 
-						auto corner = find_corner(ret->position, layer.origin_box, true);
+						auto corner = find_corner(ret->position, origin_box, true);
 						auto radius = calc_ellipse_radius(corner, aspect_ration);
 						ret->radius.x = radius.x;
 						ret->radius.y = radius.y;
@@ -516,24 +524,24 @@ std::unique_ptr<litehtml::background_layer::radial_gradient> litehtml::backgroun
 				}
 				break;
 			case radial_extent_farthest_side:
-				if (m_image[idx].m_gradient.radial_shape == radial_shape_circle)
+				if (g.radial_shape == radial_shape_circle)
 				{
 					ret->radius.x = ret->radius.y = std::max(
 							{
-									std::abs(ret->position.x - (float) layer.origin_box.left()),
-									std::abs(ret->position.x - (float) layer.origin_box.right()),
-									std::abs(ret->position.y - (float) layer.origin_box.top()),
-									std::abs(ret->position.y - (float) layer.origin_box.bottom()),
+									std::abs(ret->position.x - (float) origin_box.left()),
+									std::abs(ret->position.x - (float) origin_box.right()),
+									std::abs(ret->position.y - (float) origin_box.top()),
+									std::abs(ret->position.y - (float) origin_box.bottom()),
 							});
 				} else
 				{
 					ret->radius.x = std::max(
-							std::abs(ret->position.x - (float) layer.origin_box.left()),
-							std::abs(ret->position.x - (float) layer.origin_box.right())
+							std::abs(ret->position.x - (float) origin_box.left()),
+							std::abs(ret->position.x - (float) origin_box.right())
 					);
 					ret->radius.y = std::max(
-							std::abs(ret->position.y - (float) layer.origin_box.top()),
-							std::abs(ret->position.y - (float) layer.origin_box.bottom())
+							std::abs(ret->position.y - (float) origin_box.top()),
+							std::abs(ret->position.y - (float) origin_box.bottom())
 					);
 				}
 				break;
@@ -541,16 +549,16 @@ std::unique_ptr<litehtml::background_layer::radial_gradient> litehtml::backgroun
 				break;
 		}
 	}
-	if(!m_image[idx].m_gradient.radial_radius_x.is_predefined())
+	if(!g.radial_radius_x.is_predefined())
 	{
-		ret->radius.x = (float) m_image[idx].m_gradient.radial_radius_x.calc_percent(layer.origin_box.width);
+		ret->radius.x = (float) g.radial_radius_x.calc_percent(origin_box.width);
 	}
-	if(!m_image[idx].m_gradient.radial_radius_y.is_predefined())
+	if(!g.radial_radius_y.is_predefined())
 	{
-		ret->radius.y = (float) m_image[idx].m_gradient.radial_radius_y.calc_percent(layer.origin_box.height);
+		ret->radius.y = (float) g.radial_radius_y.calc_percent(origin_box.height);
 	}
 
-	if(ret->prepare_color_points(ret->radius.x, m_image[idx].m_gradient.m_type, m_image[idx].m_gradient.m_colors))
+	if(ret->prepare_color_points(ret->radius.x, g.m_type, g.m_colors))
 	{
 		return ret;
 	}
@@ -561,54 +569,58 @@ std::unique_ptr<litehtml::background_layer::radial_gradient> litehtml::backgroun
 std::unique_ptr<litehtml::background_layer::conic_gradient> litehtml::background::get_conic_gradient_layer(int idx, const background_layer& layer) const
 {
 	if(idx < 0 || idx >= (int) m_image.size()) return {};
-	if(m_image[idx].type != image::type_gradient) return {};
-	if (m_image[idx].m_gradient.m_type != _conic_gradient_ &&
-		m_image[idx].m_gradient.m_type != _repeating_conic_gradient_) return {};
+	return get_conic_gradient(m_image[idx].m_gradient, layer.origin_box);
+}
+
+std::unique_ptr<litehtml::background_layer::conic_gradient> litehtml::background::get_conic_gradient(const gradient& g, const position& origin_box)
+{
+	if (g.m_type != _conic_gradient_ &&
+		g.m_type != _repeating_conic_gradient_) return {};
 
 	auto ret = std::make_unique<background_layer::conic_gradient>();
 
-	ret->position.x = (float) layer.origin_box.x + (float) layer.origin_box.width / 2.0f;
-	ret->position.y = (float) layer.origin_box.y + (float) layer.origin_box.height / 2.0f;
+	ret->position.x = (float) origin_box.x + (float) origin_box.width / 2.0f;
+	ret->position.y = (float) origin_box.y + (float) origin_box.height / 2.0f;
 
-	if(m_image[idx].m_gradient.m_side & gradient_side_left)
+	if(g.m_side & gradient_side_left)
 	{
-		ret->position.x = (float) layer.origin_box.left();
-	} else if(m_image[idx].m_gradient.m_side & gradient_side_right)
+		ret->position.x = (float) origin_box.left();
+	} else if(g.m_side & gradient_side_right)
 	{
-		ret->position.x = (float) layer.origin_box.right();
-	} else if(m_image[idx].m_gradient.m_side & gradient_side_x_center)
+		ret->position.x = (float) origin_box.right();
+	} else if(g.m_side & gradient_side_x_center)
 	{
-		ret->position.x = (float) layer.origin_box.left() + (float) layer.origin_box.width / 2.0f;
-	} else if(m_image[idx].m_gradient.m_side & gradient_side_x_length)
+		ret->position.x = (float) origin_box.left() + (float) origin_box.width / 2.0f;
+	} else if(g.m_side & gradient_side_x_length)
 	{
-		ret->position.x = (float) layer.origin_box.left() + (float) m_image[idx].m_gradient.position_x.calc_percent(layer.origin_box.width);
+		ret->position.x = (float) origin_box.left() + (float) g.position_x.calc_percent(origin_box.width);
 	}
 
-	if(m_image[idx].m_gradient.m_side & gradient_side_top)
+	if(g.m_side & gradient_side_top)
 	{
-		ret->position.y = (float) layer.origin_box.top();
-	} else if(m_image[idx].m_gradient.m_side & gradient_side_bottom)
+		ret->position.y = (float) origin_box.top();
+	} else if(g.m_side & gradient_side_bottom)
 	{
-		ret->position.y = (float) layer.origin_box.bottom();
-	} else if(m_image[idx].m_gradient.m_side & gradient_side_y_center)
+		ret->position.y = (float) origin_box.bottom();
+	} else if(g.m_side & gradient_side_y_center)
 	{
-		ret->position.y = (float) layer.origin_box.top() + (float) layer.origin_box.height / 2.0f;
-	} else if(m_image[idx].m_gradient.m_side & gradient_side_y_length)
+		ret->position.y = (float) origin_box.top() + (float) origin_box.height / 2.0f;
+	} else if(g.m_side & gradient_side_y_length)
 	{
-		ret->position.y = (float) layer.origin_box.top() + (float) m_image[idx].m_gradient.position_y.calc_percent(layer.origin_box.height);
+		ret->position.y = (float) origin_box.top() + (float) g.position_y.calc_percent(origin_box.height);
 	}
 
-	ret->angle = m_image[idx].m_gradient.conic_from_angle;
-	ret->color_space = m_image[idx].m_gradient.color_space;
-	ret->hue_interpolation = m_image[idx].m_gradient.hue_interpolation;
+	ret->angle = g.conic_from_angle;
+	ret->color_space = g.color_space;
+	ret->hue_interpolation = g.hue_interpolation;
 
-	float corner1 = distance(ret->position, {(float) layer.origin_box.left(), (float) layer.origin_box.top()});
-	float corner2 = distance(ret->position, {(float) layer.origin_box.right(), (float) layer.origin_box.top()});
-	float corner3 = distance(ret->position, {(float) layer.origin_box.left(), (float) layer.origin_box.bottom()});
-	float corner4 = distance(ret->position, {(float) layer.origin_box.right(), (float) layer.origin_box.bottom()});
+	float corner1 = distance(ret->position, {(float) origin_box.left(), (float) origin_box.top()});
+	float corner2 = distance(ret->position, {(float) origin_box.right(), (float) origin_box.top()});
+	float corner3 = distance(ret->position, {(float) origin_box.left(), (float) origin_box.bottom()});
+	float corner4 = distance(ret->position, {(float) origin_box.right(), (float) origin_box.bottom()});
 	ret->radius = std::max({corner1, corner2, corner3, corner4});
 
-	if(ret->prepare_color_points(0, m_image[idx].m_gradient.m_type, m_image[idx].m_gradient.m_colors))
+	if(ret->prepare_color_points(0, g.m_type, g.m_colors))
 	{
 		return ret;
 	}

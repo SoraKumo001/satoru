@@ -47,6 +47,7 @@ namespace litehtml
                 length_vector,
                 float,
                 web_color,
+                image,
                 vector<image>,
                 string,
                 string_vector,

@@ -498,11 +498,8 @@ namespace litehtml
       image img;
       if (parse_bg_image(val, img, container))
       {
-        if (img.type == image::type_url)
-        {
-          add_parsed_property(name, property_value(img.url, important, false, m_layer, m_specificity));
-          add_parsed_property(_id(_s(name) + "-baseurl"), property_value(baseurl, important, false, m_layer, m_specificity));
-        }
+        add_parsed_property(name, property_value(img, important, false, m_layer, m_specificity));
+        add_parsed_property(_id(_s(name) + "-baseurl"), property_value(baseurl, important, false, m_layer, m_specificity));
       }
       break;
     }
@@ -903,7 +900,7 @@ namespace litehtml
 
     void style::parse_border_image(const css_token_vector& tokens, const string& baseurl, bool important, document_container* container)
     {
-      string source;
+      image source;
       css_length slice[4];
       bool slice_fill = false;
       css_length width[4];
@@ -925,7 +922,7 @@ namespace litehtml
         image img;
         if (!source_found && parse_bg_image(tokens[i], img, container))
         {
-          if (img.type == image::type_url) source = img.url;
+          source = img;
           source_found = true;
         }
         else if (!slice_found && (tokens[i].type == NUMBER || tokens[i].type == PERCENTAGE || tokens[i].ident() == "fill"))

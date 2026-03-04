@@ -661,11 +661,19 @@ void litehtml::css_properties::compute_font(const element *el, const document::p
 
 void litehtml::css_properties::compute_border_image(const element *el, const document::ptr &doc)
 {
-  m_border_image.source = el->get_property<string>(_border_image_source_, false, "", offset(m_border_image.source));
-  if (!m_border_image.source.empty())
+  m_border_image.source = el->get_property<image>(_border_image_source_, false, image(), offset(m_border_image.source));
+  if (m_border_image.source.type == image::type_url && !m_border_image.source.url.empty())
   {
     m_border_image.baseurl = el->get_property<string>(_id("border-image-source-baseurl"), false, "", offset(m_border_image.baseurl));
-    doc->container()->load_image(m_border_image.source.c_str(), m_border_image.baseurl.c_str(), true);
+    doc->container()->load_image(m_border_image.source.url.c_str(), m_border_image.baseurl.c_str(), true);
+  }
+  else if (m_border_image.source.type == image::type_gradient)
+  {
+    for (auto &item : m_border_image.source.m_gradient.m_colors)
+    {
+      if (item.length)
+        doc->cvt_units(*item.length, m_font_metrics, 0);
+    }
   }
 
   m_border_image.slice[0] = el->get_property<css_length>(_border_image_slice_top_, false, css_length(100, css_units_percentage), offset(m_border_image.slice[0]));

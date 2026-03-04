@@ -4,6 +4,7 @@
 #include "css_length.h"
 #include "types.h"
 #include "web_color.h"
+#include "gradient.h"
 
 namespace litehtml
 {
@@ -17,7 +18,7 @@ namespace litehtml
 
     struct border_image
     {
-        string source;
+        image source;
         string baseurl;
         css_length slice[4];
         bool slice_fill;
@@ -41,7 +42,7 @@ namespace litehtml
 
         bool is_valid() const
         {
-            return !source.empty();
+            return !source.is_empty();
         }
     };
 

@@ -9,10 +9,10 @@
     "deploy": "npx next-exec -- deployctl deploy --project deno-ogp2 --prod"
   },
   "dependencies": {
-    "hono": "^4.12.1",
+    "hono": "^4.12.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "satoru-render": "^0.0.1"
+    "satoru-render": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.2.14"

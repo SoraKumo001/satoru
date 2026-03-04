@@ -2,13 +2,13 @@
   "version": "5",
   "specifiers": {
     "npm:@types/react@^19.2.14": "19.2.14",
-    "npm:hono@*": "4.12.1",
-    "npm:hono@^4.12.1": "4.12.1",
+    "npm:hono@*": "4.12.4",
+    "npm:hono@^4.12.4": "4.12.4",
+    "npm:react-dom@*": "19.2.4_react@19.2.4",
     "npm:react-dom@^19.2.4": "19.2.4_react@19.2.4",
     "npm:react@*": "19.2.4",
     "npm:react@^19.2.4": "19.2.4",
-    "npm:satoru-render@*": "0.0.1_react@19.2.4_react-dom@19.2.4__react@19.2.4",
-    "npm:satoru-render@^0.0.1": "0.0.1_react@19.2.4_react-dom@19.2.4__react@19.2.4"
+    "npm:satoru-render@*": "0.0.9_react@19.2.4_react-dom@19.2.4__react@19.2.4"
   },
   "npm": {
     "@types/react@19.2.14": {
@@ -20,8 +20,8 @@
     "csstype@3.2.3": {
       "integrity": "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="
     },
-    "hono@4.12.1": {
-      "integrity": "sha512-hi9afu8g0lfJVLolxElAZGANCTTl6bewIdsRNhaywfP9K8BPf++F2z6OLrYGIinUwpRKzbZHMhPwvc0ZEpAwGw=="
+    "hono@4.12.4": {
+      "integrity": "sha512-ooiZW1Xy8rQ4oELQ++otI2T9DsKpV0M6c6cO6JGx4RTfav9poFFLlet9UMXHZnoM1yG0HWGlQLswBGX3RZmHtg=="
     },
     "react-dom@19.2.4_react@19.2.4": {
       "integrity": "sha512-AXJdLo8kgMbimY95O2aKQqsz2iWi9jMgKJhRBAxECE4IFxfcazB2LmzloIoibJI3C12IlY20+KFaLv+71bUJeQ==",
@@ -33,8 +33,8 @@
     "react@19.2.4": {
       "integrity": "sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ=="
     },
-    "satoru-render@0.0.1_react@19.2.4_react-dom@19.2.4__react@19.2.4": {
-      "integrity": "sha512-RUrwDxnDTWqs0eY8i4YPxaqNUtrHyZTvbE4LH4w/s4qbFWhpB7b0HJJsjlQZVmNLLNj9NM7ytBkVGM++LBmo/Q==",
+    "satoru-render@0.0.9_react@19.2.4_react-dom@19.2.4__react@19.2.4": {
+      "integrity": "sha512-FkuGUKm/1P2yA1mgELbMIt5/XOdQeEgQQbWwkXOLcGqbPZwJiwHN3EXOxfX/bhcHNMg8Pa9xDmlLogDeG5yBTA==",
       "dependencies": [
         "react",
         "react-dom",
@@ -63,10 +63,9 @@
     "packageJson": {
       "dependencies": [
         "npm:@types/react@^19.2.14",
-        "npm:hono@^4.12.1",
+        "npm:hono@^4.12.4",
         "npm:react-dom@^19.2.4",
-        "npm:react@^19.2.4",
-        "npm:satoru-render@^0.0.1"
+        "npm:react@^19.2.4"
       ]
     }
   }

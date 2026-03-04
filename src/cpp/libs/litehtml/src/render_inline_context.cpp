@@ -348,7 +348,7 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
     {
     if (item->get_el()->src_el()->is_inline_box())
     {
-    auto cb = self_size.new_inline_size(line_ctx.right);
+    auto cb = self_size.new_inline_size(line_ctx.right, self_size.size_mode & containing_block_context::size_mode_content);
     pixel_t min_rendered_width = item->get_el()->measure(cb, fmt_ctx);
     if (!(self_size.size_mode & containing_block_context::size_mode_measure))
             {
@@ -358,7 +358,7 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
     if (min_rendered_width < item->get_el()->width() &&
     item->get_el()->src_el()->css().get_width().is_predefined())
     {
-    auto cb2 = self_size.new_inline_size(min_rendered_width);
+    auto cb2 = self_size.new_inline_size(min_rendered_width, self_size.size_mode & containing_block_context::size_mode_content);
     item->get_el()->measure(cb2, fmt_ctx);
     if (!(self_size.size_mode & containing_block_context::size_mode_measure))
     {

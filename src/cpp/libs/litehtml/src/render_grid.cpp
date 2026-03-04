@@ -610,11 +610,8 @@ void litehtml::render_item_grid::place_grid_items(pixel_t x, pixel_t y, const co
 
 pixel_t litehtml::render_item_grid::_render_content(pixel_t x, pixel_t y, bool /*second_pass*/, const containing_block_context &self_size, formatting_context* fmt_ctx)
 {
-    if (self_size.size_mode & containing_block_context::size_mode_measure)
-    {
-        calculate_grid_layout(self_size, fmt_ctx);
-    }
-    else
+    calculate_grid_layout(self_size, fmt_ctx);
+    if (!(self_size.size_mode & containing_block_context::size_mode_measure))
     {
         place_grid_items(0, 0, self_size, fmt_ctx);
     }

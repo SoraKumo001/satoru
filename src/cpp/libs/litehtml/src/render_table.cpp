@@ -50,11 +50,11 @@ litehtml::pixel_t litehtml::render_item_table::layout_table(pixel_t x, pixel_t y
             {
 				if (containing_block_size.size_mode & containing_block_context::size_mode_measure)
 				{
-					cell->min_width = cell->max_width = cell->el->measure(self_size.new_width(self_size.render_width - table_width_spacing), fmt_ctx);
+					cell->min_width = cell->max_width = cell->el->measure(self_size.new_width(self_size.render_width - table_width_spacing, self_size.size_mode), fmt_ctx);
 				} else
 				{
-					cell->min_width = cell->max_width = cell->el->measure(self_size.new_width(self_size.render_width - table_width_spacing), fmt_ctx);
-					cell->el->place(0, 0, self_size.new_width(self_size.render_width - table_width_spacing), fmt_ctx);
+					cell->min_width = cell->max_width = cell->el->measure(self_size.new_width(self_size.render_width - table_width_spacing, self_size.size_mode), fmt_ctx);
+					cell->el->place(0, 0, self_size.new_width(self_size.render_width - table_width_spacing, self_size.size_mode), fmt_ctx);
 				}
                 cell->el->pos().width = cell->min_width - cell->el->content_offset_left() -
 						cell->el->content_offset_right();
@@ -85,11 +85,11 @@ litehtml::pixel_t litehtml::render_item_table::layout_table(pixel_t x, pixel_t y
 						pixel_t el_w = 0;
 						if (containing_block_size.size_mode & containing_block_context::size_mode_measure)
 						{
-							el_w = cell->el->measure(self_size.new_width(css_w), fmt_ctx);
+							el_w = cell->el->measure(self_size.new_width(css_w, self_size.size_mode), fmt_ctx);
 						} else
 						{
-							el_w = cell->el->measure(self_size.new_width(css_w), fmt_ctx);
-							cell->el->place(0, 0, self_size.new_width(css_w), fmt_ctx);
+							el_w = cell->el->measure(self_size.new_width(css_w, self_size.size_mode), fmt_ctx);
+							cell->el->place(0, 0, self_size.new_width(css_w, self_size.size_mode), fmt_ctx);
 						}
                         cell->min_width = cell->max_width = std::max(css_w, el_w);
                         cell->el->pos().width = cell->min_width - cell->el->content_offset_left() -
@@ -100,16 +100,16 @@ litehtml::pixel_t litehtml::render_item_table::layout_table(pixel_t x, pixel_t y
                         // calculate minimum content width
 						if (containing_block_size.size_mode & containing_block_context::size_mode_measure)
 						{
-							cell->min_width = cell->el->measure(self_size.new_width(cell->el->content_offset_width()), fmt_ctx);
+							cell->min_width = cell->el->measure(self_size.new_width(cell->el->content_offset_width(), self_size.size_mode), fmt_ctx);
 							// calculate maximum content width
-							cell->max_width = cell->el->measure(self_size.new_width(self_size.render_width - table_width_spacing), fmt_ctx);
+							cell->max_width = cell->el->measure(self_size.new_width(self_size.render_width - table_width_spacing, self_size.size_mode), fmt_ctx);
 						} else
 						{
-							cell->min_width = cell->el->measure(self_size.new_width(cell->el->content_offset_width()), fmt_ctx);
-							cell->el->place(0, 0, self_size.new_width(cell->el->content_offset_width()), fmt_ctx);
+							cell->min_width = cell->el->measure(self_size.new_width(cell->el->content_offset_width(), self_size.size_mode), fmt_ctx);
+							cell->el->place(0, 0, self_size.new_width(cell->el->content_offset_width(), self_size.size_mode), fmt_ctx);
 							
-							cell->max_width = cell->el->measure(self_size.new_width(self_size.render_width - table_width_spacing), fmt_ctx);
-							cell->el->place(0, 0, self_size.new_width(self_size.render_width - table_width_spacing), fmt_ctx);
+							cell->max_width = cell->el->measure(self_size.new_width(self_size.render_width - table_width_spacing, self_size.size_mode), fmt_ctx);
+							cell->el->place(0, 0, self_size.new_width(self_size.render_width - table_width_spacing, self_size.size_mode), fmt_ctx);
 						}
                     }
                 }
@@ -233,11 +233,11 @@ litehtml::pixel_t litehtml::render_item_table::layout_table(pixel_t x, pixel_t y
                 {
 					if (containing_block_size.size_mode & containing_block_context::size_mode_measure)
 					{
-						cell->el->measure(self_size.new_width(cell_width), fmt_ctx);
+						cell->el->measure(self_size.new_width(cell_width, self_size.size_mode), fmt_ctx);
 					} else
 					{
-						cell->el->measure(self_size.new_width(cell_width), fmt_ctx);
-						cell->el->place(m_grid->column(col).left, 0, self_size.new_width(cell_width), fmt_ctx);
+						cell->el->measure(self_size.new_width(cell_width, self_size.size_mode), fmt_ctx);
+						cell->el->place(m_grid->column(col).left, 0, self_size.new_width(cell_width, self_size.size_mode), fmt_ctx);
 					}
                     cell->el->pos().width = cell_width - cell->el->content_offset_left() -
 							cell->el->content_offset_right();
@@ -384,7 +384,7 @@ litehtml::pixel_t litehtml::render_item_table::layout_table(pixel_t x, pixel_t y
     {
 		if(caption->css().get_caption_side() == caption_side_top)
 		{
-			auto cb = self_size.new_width(table_width + border_left() + border_right());
+			auto cb = self_size.new_width(table_width + border_left() + border_right(), self_size.size_mode);
 			if (containing_block_size.size_mode & containing_block_context::size_mode_measure)
 			{
 				caption->measure(cb, fmt_ctx);
@@ -432,7 +432,7 @@ litehtml::pixel_t litehtml::render_item_table::layout_table(pixel_t x, pixel_t y
 	{
 		if(caption->css().get_caption_side() == caption_side_bottom)
 		{
-			auto cb = self_size.new_width(table_width + border_left() + border_right());
+			auto cb = self_size.new_width(table_width + border_left() + border_right(), self_size.size_mode);
 			if (containing_block_size.size_mode & containing_block_context::size_mode_measure)
 			{
 				caption->measure(cb, fmt_ctx);

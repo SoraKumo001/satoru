@@ -300,6 +300,7 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 		if (el_position == element_position_absolute || el_position == element_position_fixed)
 		{
 			containing_block_context el_cb_context = self_size;
+			el_cb_context.size_mode = containing_block_context::size_mode_normal;
 
 			// Absolute elements use the padding box as the containing block.
 			// render_item_flex::m_pos is the content box, so we add padding.
@@ -348,7 +349,7 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 				pixel_t el_main_size = is_main_inline ? el->inline_size() : el->block_size();
 				pixel_t el_cross_size = is_main_inline ? el->block_size() : el->inline_size();
 
-				switch (jc)
+				switch (jc & 0xFF)
 				{
 					case flex_justify_content_center:
 						static_main = (align_main_size - el_main_size) / 2;
@@ -359,7 +360,7 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 						break;
 					default: break;
 				}
-				switch (align_items)
+				switch (align_items & 0xFF)
 				{
 					case flex_align_items_center:
 						static_cross = (align_cross_size - el_cross_size) / 2;

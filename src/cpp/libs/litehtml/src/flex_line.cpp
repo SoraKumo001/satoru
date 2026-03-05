@@ -257,34 +257,34 @@ bool litehtml::flex_line::fix_min_max_violations() {
 
 bool litehtml::flex_line::distribute_main_auto_margins(pixel_t free_main_size) {
     if (free_main_size > 0 && (num_auto_margin_main_start || num_auto_margin_main_end)) {
-        pixel_t add = free_main_size / (pixel_t)(items.size() * 2);
+        pixel_t add = free_main_size / (pixel_t)(num_auto_margin_main_start + num_auto_margin_main_end);
         for (auto& item : items) {
             if (!item->auto_margin_main_start.is_default()) {
                 item->auto_margin_main_start = add;
-                item->main_size += add;
                 main_size += add;
                 free_main_size -= add;
             }
             if (!item->auto_margin_main_end.is_default()) {
                 item->auto_margin_main_end = add;
-                item->main_size += add;
                 main_size += add;
                 free_main_size -= add;
             }
         }
 
-        pixel_t ditribute_step = 1;
+        pixel_t distribute_step = 1;
         while (free_main_size > 0) {
             for (auto& item : items) {
                 if (!item->auto_margin_main_start.is_default()) {
-                    item->auto_margin_main_start = item->auto_margin_main_start + ditribute_step;
-                    free_main_size -= ditribute_step;
-                    if (free_main_size < ditribute_step) break;
+                    item->auto_margin_main_start = item->auto_margin_main_start + distribute_step;
+                    main_size += distribute_step;
+                    free_main_size -= distribute_step;
+                    if (free_main_size < distribute_step) break;
                 }
                 if (!item->auto_margin_main_end.is_default()) {
-                    item->auto_margin_main_end = item->auto_margin_main_end + ditribute_step;
-                    free_main_size -= ditribute_step;
-                    if (free_main_size < ditribute_step) break;
+                    item->auto_margin_main_end = item->auto_margin_main_end + distribute_step;
+                    main_size += distribute_step;
+                    free_main_size -= distribute_step;
+                    if (free_main_size < distribute_step) break;
                 }
             }
         }
@@ -533,8 +533,11 @@ litehtml::pixel_t litehtml::flex_line::calculate_items_position(
             main_pos += distribute_step;
             item_remainder -= distribute_step;
         }
+
         item->place(*this, main_pos, self_size, fmt_ctx);
-        main_pos += item->get_el_main_size() + add_after_item;
+        main_pos += item->get_el_main_size();
+
+        main_pos += add_after_item;
         if (add_after_item > 0 && item_remainder > 0) {
             main_pos += distribute_step;
             item_remainder -= distribute_step;

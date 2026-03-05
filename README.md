@@ -101,32 +101,41 @@ graph TD
 <details>
 <summary>Click to expand supported properties list</summary>
 
-### Box Model & Layout
+### Box Model, Layout & Logical Properties
 
-- `display`, `position`, `float`, `clear`, `visibility`, `z-index`, `overflow`, `box-sizing`, `aspect-ratio`
+- `display` (block, inline, flex, grid, list-item, table, etc.)
+- `position` (static, relative, absolute, fixed)
+- `float`, `clear`, `visibility`, `z-index`, `overflow`, `box-sizing`, `aspect-ratio`
 - `width`, `height`, `min-width`, `min-height`, `max-width`, `max-height`
-- `margin`, `padding`
+- `margin`, `padding`, `border` (Width, Style, Color)
+- **Logical Properties**: `inline-size`, `block-size`, `margin-inline`, `margin-block`, `padding-inline`, `padding-block`, `border-inline`, `border-block` (Start/End)
 
 ### Typography & Text
 
 - `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`
-- `text-align`, `vertical-align`, `text-decoration`, `text-transform`, `text-indent`, `text-overflow`, `white-space`
-- `text-shadow`, `line-clamp`
+- `text-align`, `vertical-align`, `text-decoration` (Underline, Overline, Line-through, Wavy)
+- `text-transform`, `text-indent`, `text-overflow` (Ellipsis), `white-space`, `line-clamp`
+- `text-shadow`, `direction`, `writing-mode` (horizontal-tb, vertical-rl, vertical-lr)
 
 ### Backgrounds, Borders & Shadows
 
-- `background-color`, `background-image`, `background-position`, `background-size`, `background-repeat`
-- `border`, `border-width`, `border-style`, `border-color`, `border-radius`
-- `box-shadow` (Outer & Inset)
+- `background` (Color, Image, Position, Size, Repeat, Clip, Origin)
+- `border-radius`, `box-shadow` (Outer & Inset)
+- `border-image` (Source, Slice, Width, Outset, Repeat)
 
 ### Flexbox & Grid
 
-- `display: flex`, `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `gap`
-- `display: grid`, `grid-template-columns`, `grid-template-rows`, `grid-column`, `grid-row`
+- `display: flex`, `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `align-content`, `align-self`, `flex-grow`, `flex-shrink`, `flex-basis`, `gap`, `order`
+- `display: grid`, `grid-template-columns`, `grid-template-rows`, `grid-column`, `grid-row`, `gap`
 
-### Others
+### Effects, Shapes & Functions
 
-- `container-type`, `container-name` (Container Queries)
+- `clip-path` (circle, ellipse, inset, polygon, path)
+- `filter`, `backdrop-filter`, `opacity`
+- **Gradients**: `linear-gradient`, `radial-gradient`, `conic-gradient`
+- **Modern Functions**: `calc()`, `min()`, `max()`, `clamp()`, `oklch()`, `oklab()`, `color-mix()`, `light-dark()`, `env()`, `var()`
+- **Container Queries**: `@container`, `container-type`, `container-name`
+- **Masking**: `mask`, `-webkit-mask`
 - `content`, `appearance`
 
 </details>

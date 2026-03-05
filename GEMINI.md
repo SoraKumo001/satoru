@@ -62,6 +62,8 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 - **Unified Layout Pipeline (O(N) Optimization)**: Decoupled `measure()` and `place()` passes.
   - **Caching Mechanism**: Caches `containing_block_context` and measurement results in `render_item` to ensure linear $O(N)$ complexity.
 - **W3C Flexbox Engine**: Full-spec implementation with multi-step resolution (base sizing, main/cross axis resolution, and finalization).
+- **W3C Grid Engine**: Implemented using a multi-step resolution pipeline (template tracks, item placement, and alignment).
+- **Container Queries**: Full support for `@container` rules with `container-type` (size/inline-size) and `container-name`.
 - **Advanced CSS Shapes & Filters**:
   - **clip-path**: Full support for basic shapes (`circle`, `ellipse`, `inset`, `polygon`) and `path()` via Skia's path operations.
   - **backdrop-filter**: Implemented using `saveLayer` and Skia image filters (e.g., `blur()`).
@@ -80,7 +82,11 @@ A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscri
 ### 3.3 CSS Engine (litehtml Customizations)
 
 - **Cascade & Specificity**: Strict W3C cascade order.
-- **Dynamic Lengths**: Full support for `min()`, `max()`, and `clamp()` functions with recursive evaluation.
+- **Dynamic Lengths**: Full support for `calc()`, `min()`, `max()`, and `clamp()` functions with recursive evaluation. Supports `var()` and `env()`.
+- **Logical Properties**: Native support for `*-inline-*` and `*-block-*` properties for margins, paddings, borders, and sizes.
+- **Modern CSS Functions & Colors**:
+  - **Color**: `oklch()`, `oklab()`, `color-mix()`, `light-dark()` and relative color syntax.
+  - **Masking**: Support for `mask` and `-webkit-mask` using Skia's composite layers.
 - **International Text**:
   - **BiDi**: Full Bidirectional text support via `SkUnicode` and internal BiDi level resolution.
   - **Overflow**: Support for `text-overflow: ellipsis` in line boxes, including inline-level overflow control.

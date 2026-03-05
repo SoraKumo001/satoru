@@ -12,6 +12,15 @@ By combining the **Skia** graphics engine with a custom **litehtml** layout core
 
 ![Sample Output](./document/sample01.webp)
 
+## Example
+
+- Cloudflare Workers  
+  https://github.com/SoraKumo001/satoru-cloudflare-ogp
+- Deno Deploy  
+  https://github.com/SoraKumo001/satoru-deno-ogp-image
+- Next.js(Vercel)  
+  https://github.com/SoraKumo001/next-satoru
+
 ---
 
 ## ✨ Key Features

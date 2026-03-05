@@ -3,7 +3,12 @@ import { LogLevel } from "./log-level.js";
 export interface SatoruModule {
   create_instance: () => any;
   destroy_instance: (inst: any) => void;
-  collect_resources: (inst: any, html: string, width: number, height: number) => void;
+  collect_resources: (
+    inst: any,
+    html: string,
+    width: number,
+    height: number,
+  ) => void;
   get_pending_resources: (inst: any) => string;
   add_resource: (
     inst: any,
@@ -22,7 +27,12 @@ export interface SatoruModule {
   ) => void;
   set_font_map: (inst: any, fontMap: Record<string, string>) => void;
   set_log_level: (level: number) => void;
-  init_document: (inst: any, html: string, width: number, height: number) => void;
+  init_document: (
+    inst: any,
+    html: string,
+    width: number,
+    height: number,
+  ) => void;
   layout_document: (inst: any, width: number) => void;
   render_from_state: (
     inst: any,
@@ -85,6 +95,10 @@ export const DEFAULT_FONT_MAP: Record<string, string> = {
     "https://cdn.jsdelivr.net/npm/@fontsource/yuji-syuku/files/yuji-syuku-japanese-400-normal.woff2",
   fantasy:
     "https://cdn.jsdelivr.net/npm/@fontsource/reggae-one/files/reggae-one-japanese-400-normal.woff2",
+  emoji:
+    "https://cdn.jsdelivr.net/npm/@fontsource/noto-color-emoji/files/noto-color-emoji-emoji-400-normal.woff2",
+  "Noto Color Emoji":
+    "https://cdn.jsdelivr.net/npm/@fontsource/noto-color-emoji/files/noto-color-emoji-emoji-400-normal.woff2",
 };
 
 export async function resolveGoogleFonts(

@@ -161,7 +161,8 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 
 	if (min_size_prop.is_predefined())
 	{
-		if (el->css().get_overflow() == overflow_visible)
+		if (el->css().get_overflow() == overflow_visible ||
+			el->src_el()->css().get_display() == display_webkit_box)
 		{
 			formatting_context fmt_ctx_copy;
 			if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
@@ -443,7 +444,8 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 
 	if (min_size_prop.is_predefined())
 	{
-		if (el->css().get_overflow() == overflow_visible)
+		if (el->css().get_overflow() == overflow_visible ||
+			el->src_el()->css().get_display() == display_webkit_box)
 		{
 			formatting_context fmt_ctx_copy;
 			if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;

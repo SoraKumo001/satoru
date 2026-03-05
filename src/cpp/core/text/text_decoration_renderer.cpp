@@ -54,7 +54,8 @@ void TextDecorationRenderer::drawDecoration(SkCanvas* canvas, font_info* fi,
             dec_paint.setStrokeWidth(thickness * 1.5f);
 
             float wave_wavelength = std::max(8.0f, thickness * 8.0f);
-            float wave_amplitude = std::max(4.0f, thickness * 4.0f);
+            float wave_amplitude = std::max(2.0f, thickness * 2.0f);
+            float block_offset_wavy = block_offset + wave_amplitude;
 
             bool is_vertical = wm_ctx.is_vertical();
             float phase_ref = is_vertical ? (float)pos.y : (float)pos.x;
@@ -65,9 +66,9 @@ void TextDecorationRenderer::drawDecoration(SkCanvas* canvas, font_info* fi,
 
             for (float i = start_i; i < inline_size; i += wave_wavelength) {
                 {
-                    logical_pos lp1(i, block_offset);
-                    logical_pos lp2(i + wave_wavelength / 4.0f, block_offset + wave_amplitude);
-                    logical_pos lp3(i + wave_wavelength / 2.0f, block_offset);
+                    logical_pos lp1(i, block_offset_wavy);
+                    logical_pos lp2(i + wave_wavelength / 4.0f, block_offset_wavy + wave_amplitude);
+                    logical_pos lp3(i + wave_wavelength / 2.0f, block_offset_wavy);
 
                     litehtml::position p1 = wm_ctx.to_physical(lp1, logical_size(0, 0));
                     litehtml::position p2 = wm_ctx.to_physical(lp2, logical_size(0, 0));
@@ -82,8 +83,8 @@ void TextDecorationRenderer::drawDecoration(SkCanvas* canvas, font_info* fi,
                 }
                 {
                     logical_pos lp2(i + 3.0f * wave_wavelength / 4.0f,
-                                    block_offset - wave_amplitude);
-                    logical_pos lp3(i + wave_wavelength, block_offset);
+                                    block_offset_wavy - wave_amplitude);
+                    logical_pos lp3(i + wave_wavelength, block_offset_wavy);
 
                     litehtml::position p2 = wm_ctx.to_physical(lp2, logical_size(0, 0));
                     litehtml::position p3 = wm_ctx.to_physical(lp3, logical_size(0, 0));
@@ -94,7 +95,7 @@ void TextDecorationRenderer::drawDecoration(SkCanvas* canvas, font_info* fi,
             }
 
             l_canvas.save();
-            l_canvas.clipRect(logical_pos(0, block_offset - wave_amplitude * 2),
+            l_canvas.clipRect(logical_pos(0, block_offset_wavy - wave_amplitude * 2),
                               logical_size(inline_size, wave_amplitude * 4));
             canvas->drawPath(wavy_builder.detach(), dec_paint);
             l_canvas.restore();

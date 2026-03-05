@@ -681,14 +681,24 @@ void litehtml::render_item::render_positioned(render_type rt) {
                 need_render = true;
             }
 
+            if (need_render) {
+                if (el->css().get_width().is_predefined() || el->css().get_height().is_predefined()) {
+                    containing_block_context measure_cb = containing_block_size;
+                    if (el->css().get_width().is_predefined())
+                        measure_cb.size_mode |= containing_block_context::size_mode_content;
+                    if (el->css().get_height().is_predefined())
+                        measure_cb.size_mode |= containing_block_context::size_mode_content;
+                    el->measure(measure_cb, nullptr);
+                    el->place(left, top, measure_cb, nullptr);
+                } else {
+                    el->measure(containing_block_size, nullptr);
+                    el->place(left, top, containing_block_size, nullptr);
+                }
+            }
+
             if (el_position != element_position_fixed) {
                 el->m_pos.x -= el_static_offset_x;
                 el->m_pos.y -= el_static_offset_y;
-            }
-
-            if (need_render) {
-                el->measure(containing_block_size, nullptr);
-                el->place(left, top, containing_block_size, nullptr);
             }
 
             if (el_position == element_position_fixed) {

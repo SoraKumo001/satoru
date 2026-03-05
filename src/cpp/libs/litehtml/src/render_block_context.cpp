@@ -49,7 +49,7 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
 				pixel_t line_right	= self_size.render_inline_size();
 				pixel_t block_start_margin = margin_block_start();
 
-                el->calc_outlines(self_size.inline_size());
+                // el->calc_outlines(self_size.inline_size()); // measure() will call this
 
 				// Adjust child width for tables and replaced elements with floting blocks width
 				if(el->src_el()->is_replaced() ||
@@ -72,32 +72,25 @@ litehtml::pixel_t litehtml::render_item_block_context::_render_content(pixel_t /
                     }
                 }
 
+				pixel_t rw = el->measure(self_size.new_inline_size(inline_available_size, self_size.size_mode & containing_block_context::size_mode_content), fmt_ctx);
+
+				// Re-get WM context to ensure we have latest container metrics if needed,
+				// though for margins it might not matter, but el->get_margins() must be fresh.
+				pixel_t current_margin = el->get_wm_context().block_start(el->get_margins());
+
 				// Collapse top margin
 				if(is_first && collapse_top_margin())
 				{
-					if(wm.block_start(el->get_margins()) > 0)
+					block_offset -= current_margin;
+					if (current_margin > block_start_margin)
 					{
-						block_offset -= wm.block_start(el->get_margins());
-						if (wm.block_start(el->get_margins()) > block_start_margin)
-						{
-							block_start_margin = wm.block_start(el->get_margins());
-						}
+						block_start_margin = current_margin;
 					}
 				} else
 				{
-					if(wm.block_start(el->get_margins()) > 0)
-					{
-						if (last_block_margin > wm.block_start(el->get_margins()))
-						{
-							block_offset -= wm.block_start(el->get_margins());
-						} else
-						{
-							block_offset -= last_block_margin;
-						}
-					}
+					block_offset -= std::min(last_block_margin, current_margin);
 				}
 
-				pixel_t rw = el->measure(self_size.new_inline_size(inline_available_size, self_size.size_mode & containing_block_context::size_mode_content), fmt_ctx);
 				if (!(self_size.size_mode & containing_block_context::size_mode_measure))
 				{
 					el->place_logical(inline_offset, block_offset, self_size.new_inline_size(inline_available_size, self_size.size_mode & containing_block_context::size_mode_content), fmt_ctx);

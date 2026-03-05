@@ -949,10 +949,9 @@ void container_skia::draw_border_image(litehtml::uint_ptr hdc,
 
         SkPaint p;
         p.setColor(make_magic_color(satoru::MagicTagExtended::BorderImage, index));
-        m_canvas->drawRect(
-            SkRect::MakeXYWH((float)draw_pos.x, (float)draw_pos.y, (float)draw_pos.width,
-                             (float)draw_pos.height),
-            p);
+        m_canvas->drawRect(SkRect::MakeXYWH((float)draw_pos.x, (float)draw_pos.y,
+                                            (float)draw_pos.width, (float)draw_pos.height),
+                           p);
         return;
     }
 
@@ -1048,30 +1047,32 @@ void container_skia::draw_border_image(litehtml::uint_ptr hdc,
     float o_b = calc_outset(border_image.outset[2], borders.bottom.width, draw_pos.height);
     float o_l = calc_outset(border_image.outset[3], borders.left.width, draw_pos.width);
 
-    SkRect dst_full = SkRect::MakeXYWH((float)draw_pos.x - o_l, (float)draw_pos.y - o_t,
-                                      (float)draw_pos.width + o_l + o_r,
-                                      (float)draw_pos.height + o_t + o_b);
+    SkRect dst_full =
+        SkRect::MakeXYWH((float)draw_pos.x - o_l, (float)draw_pos.y - o_t,
+                         (float)draw_pos.width + o_l + o_r, (float)draw_pos.height + o_t + o_b);
 
     // Source rects (9-slice)
     SkRect src[9];
-    src[0] = SkRect::MakeXYWH(0, 0, s_l, s_t);                                 // top-left
-    src[1] = SkRect::MakeXYWH(s_l, 0, img_w - s_l - s_r, s_t);                // top
-    src[2] = SkRect::MakeXYWH(img_w - s_r, 0, s_r, s_t);                      // top-right
-    src[3] = SkRect::MakeXYWH(0, s_t, s_l, img_h - s_t - s_b);                // left
+    src[0] = SkRect::MakeXYWH(0, 0, s_l, s_t);                                  // top-left
+    src[1] = SkRect::MakeXYWH(s_l, 0, img_w - s_l - s_r, s_t);                  // top
+    src[2] = SkRect::MakeXYWH(img_w - s_r, 0, s_r, s_t);                        // top-right
+    src[3] = SkRect::MakeXYWH(0, s_t, s_l, img_h - s_t - s_b);                  // left
     src[4] = SkRect::MakeXYWH(s_l, s_t, img_w - s_l - s_r, img_h - s_t - s_b);  // center
-    src[5] = SkRect::MakeXYWH(img_w - s_r, s_t, s_r, img_h - s_t - s_b);      // right
-    src[6] = SkRect::MakeXYWH(0, img_h - s_b, s_l, s_b);                      // bottom-left
-    src[7] = SkRect::MakeXYWH(s_l, img_h - s_b, img_w - s_l - s_r, s_b);       // bottom
-    src[8] = SkRect::MakeXYWH(img_w - s_r, img_h - s_b, s_r, s_b);            // bottom-right
+    src[5] = SkRect::MakeXYWH(img_w - s_r, s_t, s_r, img_h - s_t - s_b);        // right
+    src[6] = SkRect::MakeXYWH(0, img_h - s_b, s_l, s_b);                        // bottom-left
+    src[7] = SkRect::MakeXYWH(s_l, img_h - s_b, img_w - s_l - s_r, s_b);        // bottom
+    src[8] = SkRect::MakeXYWH(img_w - s_r, img_h - s_b, s_r, s_b);              // bottom-right
 
     // Destination rects
     SkRect dst[9];
     dst[0] = SkRect::MakeXYWH(dst_full.left(), dst_full.top(), w_l, w_t);
-    dst[1] = SkRect::MakeXYWH(dst_full.left() + w_l, dst_full.top(), dst_full.width() - w_l - w_r, w_t);
+    dst[1] =
+        SkRect::MakeXYWH(dst_full.left() + w_l, dst_full.top(), dst_full.width() - w_l - w_r, w_t);
     dst[2] = SkRect::MakeXYWH(dst_full.right() - w_r, dst_full.top(), w_r, w_t);
-    dst[3] = SkRect::MakeXYWH(dst_full.left(), dst_full.top() + w_t, w_l, dst_full.height() - w_t - w_b);
-    dst[4] = SkRect::MakeXYWH(dst_full.left() + w_l, dst_full.top() + w_t, dst_full.width() - w_l - w_r,
-                              dst_full.height() - w_t - w_b);
+    dst[3] =
+        SkRect::MakeXYWH(dst_full.left(), dst_full.top() + w_t, w_l, dst_full.height() - w_t - w_b);
+    dst[4] = SkRect::MakeXYWH(dst_full.left() + w_l, dst_full.top() + w_t,
+                              dst_full.width() - w_l - w_r, dst_full.height() - w_t - w_b);
     dst[5] = SkRect::MakeXYWH(dst_full.right() - w_r, dst_full.top() + w_t, w_r,
                               dst_full.height() - w_t - w_b);
     dst[6] = SkRect::MakeXYWH(dst_full.left(), dst_full.bottom() - w_b, w_l, w_b);
@@ -1091,16 +1092,19 @@ void container_skia::draw_border_image(litehtml::uint_ptr hdc,
 
         if (rep_h == litehtml::border_image_repeat_stretch &&
             rep_v == litehtml::border_image_repeat_stretch) {
-            m_canvas->drawImageRect(img, src[idx], dst[idx], SkSamplingOptions(SkFilterMode::kLinear),
-                                    &p, SkCanvas::kFast_SrcRectConstraint);
+            m_canvas->drawImageRect(img, src[idx], dst[idx],
+                                    SkSamplingOptions(SkFilterMode::kLinear), &p,
+                                    SkCanvas::kFast_SrcRectConstraint);
         } else {
             m_canvas->save();
             m_canvas->clipRect(dst[idx]);
 
-            SkTileMode tm_h = (rep_h == litehtml::border_image_repeat_stretch) ? SkTileMode::kClamp
-                                                                               : SkTileMode::kRepeat;
-            SkTileMode tm_v = (rep_v == litehtml::border_image_repeat_stretch) ? SkTileMode::kClamp
-                                                                               : SkTileMode::kRepeat;
+            SkTileMode tm_h = (rep_h == litehtml::border_image_repeat_stretch)
+                                  ? SkTileMode::kClamp
+                                  : SkTileMode::kRepeat;
+            SkTileMode tm_v = (rep_v == litehtml::border_image_repeat_stretch)
+                                  ? SkTileMode::kClamp
+                                  : SkTileMode::kRepeat;
 
             // Tile size in destination
             float tile_w, tile_h;
@@ -1110,7 +1114,7 @@ void container_skia::draw_border_image(litehtml::uint_ptr hdc,
             } else if (idx == 3 || idx == 5) {  // left, right
                 tile_w = dst[idx].width();
                 tile_h = src[idx].height() * (tile_w / src[idx].width());
-            } else {  // center
+            } else {                                      // center
                 tile_w = src[idx].width() * (w_t / s_t);  // use top border width as scale reference
                 tile_h = src[idx].height() * (w_l / s_l);
             }
@@ -1140,8 +1144,7 @@ void container_skia::draw_border_image(litehtml::uint_ptr hdc,
 
     // Corners
     for (int i : {0, 2, 6, 8}) {
-        draw_piece(i, litehtml::border_image_repeat_stretch,
-                   litehtml::border_image_repeat_stretch);
+        draw_piece(i, litehtml::border_image_repeat_stretch, litehtml::border_image_repeat_stretch);
     }
 
     // Sides
@@ -1843,9 +1846,8 @@ void container_skia::push_mask(litehtml::uint_ptr hdc, const litehtml::css_token
     }
 
     m_mask_stack.push_back({mask, pos});
-    m_canvas->saveLayer(SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width,
-                                         (float)pos.height),
-                        nullptr);
+    m_canvas->saveLayer(
+        SkRect::MakeXYWH((float)pos.x, (float)pos.y, (float)pos.width, (float)pos.height), nullptr);
     m_mask_stack_depth++;
 }
 
@@ -1860,9 +1862,9 @@ void container_skia::pop_mask(litehtml::uint_ptr hdc) {
             p.setColor(make_magic_color(satoru::MagicTag::MaskPop));
             SkRect rect;
             if (!m_clips.empty()) {
-                rect = SkRect::MakeXYWH((float)m_clips.back().first.x, (float)m_clips.back().first.y,
-                                        (float)m_clips.back().first.width,
-                                        (float)m_clips.back().first.height);
+                rect = SkRect::MakeXYWH(
+                    (float)m_clips.back().first.x, (float)m_clips.back().first.y,
+                    (float)m_clips.back().first.width, (float)m_clips.back().first.height);
             } else {
                 rect = SkRect::MakeWH((float)m_width, (float)m_height);
             }

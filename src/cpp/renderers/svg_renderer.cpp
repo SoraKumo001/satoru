@@ -753,8 +753,8 @@ static std::string generateDefs(const container_skia& render_container,
         const auto& m = masks[i];
         int maskIndex = (int)(i + 1);
         defs << "<mask id=\"satoru-mask-" << maskIndex
-             << "\" maskUnits=\"userSpaceOnUse\" mask-type=\"alpha\" x=\"" << m.pos.x << "\" y=\"" << m.pos.y
-             << "\" width=\"" << m.pos.width << "\" height=\"" << m.pos.height << "\">";
+             << "\" maskUnits=\"userSpaceOnUse\" mask-type=\"alpha\" x=\"" << m.pos.x << "\" y=\""
+             << m.pos.y << "\" width=\"" << m.pos.width << "\" height=\"" << m.pos.height << "\">";
 
         auto layers = litehtml::parse_comma_separated_list(m.tokens);
         int gradIdx = 0;
@@ -788,15 +788,15 @@ static std::string generateDefs(const container_skia& render_container,
                                     dataUrl = bitmapToDataUrl(bitmap);
                                 }
                                 defs << "<image x=\"" << m.pos.x << "\" y=\"" << m.pos.y
-                                     << "\" width=\"" << m.pos.width << "\" height=\"" << m.pos.height
-                                     << "\" preserveAspectRatio=\"none\" href=\"" << dataUrl
-                                     << "\" />";
+                                     << "\" width=\"" << m.pos.width << "\" height=\""
+                                     << m.pos.height << "\" preserveAspectRatio=\"none\" href=\""
+                                     << dataUrl << "\" />";
                             }
                         }
                         if (!imageFound) {
                             // Fallback: fill with white so it's visible even if image is missing
-                            defs << "<rect x=\"" << m.pos.x << "\" y=\"" << m.pos.y
-                                 << "\" width=\"" << m.pos.width << "\" height=\"" << m.pos.height
+                            defs << "<rect x=\"" << m.pos.x << "\" y=\"" << m.pos.y << "\" width=\""
+                                 << m.pos.width << "\" height=\"" << m.pos.height
                                  << "\" fill=\"white\" />";
                         }
                     } else if (name == "linear-gradient" || name == "repeating-linear-gradient" ||
@@ -843,8 +843,8 @@ static std::string generateDefs(const container_skia& render_container,
                                 defs << "</radialGradient>";
 
                             defs << "<rect x=\"" << m.pos.x << "\" y=\"" << m.pos.y << "\" width=\""
-                                 << m.pos.width << "\" height=\"" << m.pos.height << "\" fill=\"url(#"
-                                 << gradId << ")\" />";
+                                 << m.pos.width << "\" height=\"" << m.pos.height
+                                 << "\" fill=\"url(#" << gradId << ")\" />";
                         }
                     }
                 }
@@ -1169,9 +1169,9 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                                 SkCanvas bitmapCanvas(bitmap);
                                 bitmapCanvas.clear(SK_ColorTRANSPARENT);
 
-                                container_skia temp_container(info.draw_pos.width,
-                                                               info.draw_pos.height, &bitmapCanvas,
-                                                               context, container.get_resource_manager(), false);
+                                container_skia temp_container(
+                                    info.draw_pos.width, info.draw_pos.height, &bitmapCanvas,
+                                    context, container.get_resource_manager(), false);
                                 litehtml::position relative_pos = info.draw_pos;
                                 relative_pos.x = 0;
                                 relative_pos.y = 0;
@@ -1182,7 +1182,8 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                                 result.append("<image x=\"" + std::to_string(info.draw_pos.x) +
                                               "\" y=\"" + std::to_string(info.draw_pos.y) +
                                               "\" width=\"" + std::to_string(info.draw_pos.width) +
-                                              "\" height=\"" + std::to_string(info.draw_pos.height) +
+                                              "\" height=\"" +
+                                              std::to_string(info.draw_pos.height) +
                                               "\" preserveAspectRatio=\"none\" href=\"" +
                                               bitmapToDataUrl(bitmap) + "\"");
                                 if (info.opacity < 1.0f)

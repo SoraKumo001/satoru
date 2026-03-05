@@ -221,8 +221,10 @@ class container_skia : public litehtml::document_container {
         const litehtml::background_layer::conic_gradient &gradient) override;
     virtual void draw_borders(litehtml::uint_ptr hdc, const litehtml::borders &borders,
                               const litehtml::position &draw_pos, bool root) override;
-    virtual void draw_border_image(litehtml::uint_ptr hdc, const litehtml::border_image &border_image,
-                                   const litehtml::borders &borders, const litehtml::position &draw_pos, bool root) override;
+    virtual void draw_border_image(litehtml::uint_ptr hdc,
+                                   const litehtml::border_image &border_image,
+                                   const litehtml::borders &borders,
+                                   const litehtml::position &draw_pos, bool root) override;
     virtual void draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::shadow_vector &shadows,
                                  const litehtml::position &pos,
                                  const litehtml::border_radiuses &radius, bool inset) override;

@@ -300,6 +300,16 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 		if (el_position == element_position_absolute || el_position == element_position_fixed)
 		{
 			containing_block_context el_cb_context = self_size;
+
+			// Absolute elements use the padding box as the containing block.
+			// render_item_flex::m_pos is the content box, so we add padding.
+			el_cb_context.width = m_pos.width + m_padding.width();
+			el_cb_context.height = m_pos.height + m_padding.height();
+			el_cb_context.render_width = el_cb_context.width;
+			el_cb_context.render_height = el_cb_context.height;
+			// Absolute elements should be measured as shrink-to-fit for static position.
+			el_cb_context.size_mode |= containing_block_context::size_mode_content;
+
 			auto offsets = el->src_el()->css().get_offsets();
 			auto el_width = el->src_el()->css().get_width();
 			auto el_height = el->src_el()->css().get_height();
@@ -333,8 +343,8 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 
 				auto jc = css().get_flex_justify_content();
 
-				pixel_t align_main_size = is_main_inline ? self_size.render_inline_size() : self_size.render_block_size();
-				pixel_t align_cross_size = is_main_inline ? self_size.render_block_size() : self_size.render_inline_size();
+				pixel_t align_main_size = is_main_inline ? el_cb_context.render_width : el_cb_context.render_height;
+				pixel_t align_cross_size = is_main_inline ? el_cb_context.render_height : el_cb_context.render_width;
 				pixel_t el_main_size = is_main_inline ? el->inline_size() : el->block_size();
 				pixel_t el_cross_size = is_main_inline ? el->block_size() : el->inline_size();
 

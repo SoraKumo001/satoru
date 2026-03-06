@@ -608,9 +608,10 @@ bool parse_color_with_opt_percent(const css_token_vector& tokens, web_color& col
 			color = tmp_color;
 			color_idx = i;
 		}
-		else if (percent_idx == -1 && tokens[i].type == PERCENTAGE)
+		else if (percent_idx == -1 && (tokens[i].type == PERCENTAGE || tokens[i].type == NUMBER))
 		{
 			percent = tokens[i].n.number;
+			if (tokens[i].type == NUMBER) percent *= 100.0f;
 			percent_idx = i;
 		}
 	}

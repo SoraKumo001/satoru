@@ -36,13 +36,10 @@ const fetch = async (
       </head>
       <body className="m-0 p-0">
         <div className="w-[1200px] h-[630px] flex relative bg-[#0a0a0c] overflow-hidden">
-          {/* 背景の装飾的要素 */}
           <div className="absolute top-[-150px] right-[-150px] w-[600px] h-[600px] rounded-[300px] bg-[radial-gradient(circle,_rgba(79,70,229,0.3)_0%,_rgba(79,70,229,0)_70%)] flex" />
           <div className="absolute bottom-[-100px] left-[-50px] w-[400px] h-[400px] rounded-[200px] bg-[radial-gradient(circle,_rgba(168,85,247,0.2)_0%,_rgba(168,85,247,0)_70%)] flex" />
 
-          {/* メインコンテナ */}
           <div className="flex flex-row w-full h-full p-[60px] items-center justify-between z-10">
-            {/* 左側: テキストコンテンツ */}
             <div className="flex flex-col w-[60%]">
               <div className="flex items-center mb-5">
                 <div className="w-10 h-1 bg-[#6366f1] mr-[15px] rounded-sm" />
@@ -60,7 +57,6 @@ const fetch = async (
               </div>
             </div>
 
-            {/* 右側: 画像カード */}
             <div className="flex w-[35%] relative justify-center items-center">
               <div className="absolute w-[420px] h-[420px] rounded-[40px] border border-white/10 bg-white/3 rotate-[-3deg] flex" />
               <div className="w-[400px] h-[400px] rounded-[32px] overflow-hidden border-4 border-white/10 flex">
@@ -72,8 +68,6 @@ const fetch = async (
               </div>
             </div>
           </div>
-
-          {/* フッター */}
           <div className="absolute bottom-10 left-[60px] flex items-center z-20">
             <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-[10px] text-lg text-[#e2e8f0] font-medium flex">
               satoru-cloudflare-ogp

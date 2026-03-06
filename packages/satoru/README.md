@@ -23,23 +23,49 @@ By combining the **Skia** graphics engine with a custom **litehtml** layout core
 
 ---
 
-## ✨ Key Features
+## 📋 Supported CSS Properties
 
-- **Pure WebAssembly Engine**: 100% independent of browser DOM or `<canvas>`. Runs anywhere WASM is supported.
-- **Edge Native**: Specifically optimized for **Cloudflare Workers (workerd)** and other serverless environments.
-- **Professional Graphics**:
-  - **SVG**: Lean, vector-based strings with post-processed filters and gradients.
-  - **PNG / WebP**: High-performance raster images with advanced Skia rendering.
-  - **PDF**: Multi-page vector documents with native text and gradient support.
-- **Advanced CSS Capabilities**:
-  - **Box Model**: Precise margin, padding, borders, and **Border Radius**.
-  - **Shadows**: High-quality **Outer** and **Inset** shadows (using SVG filters or Skia blurs).
-  - **Gradients**: Linear, **Elliptical Radial**, and **Conic** (Sweep) support.
-  - **Text Styling**: Multi-shadows, decorations (solid/dotted/dashed), and automatic weight/style inference.
-- **Internationalization**: Robust support for complex text layouts, including **Japanese** and multi-font fallback logic.
-- **Smart Resource Management**: Dynamic loading of `.ttf`, `.woff2`, and `.ttc` fonts, plus native support for all major image formats (AVIF, WebP, PNG, JPEG, etc.).
+<details>
+<summary>Click to expand supported properties list</summary>
 
----
+### Box Model, Layout & Logical Properties
+
+- `display` (block, inline, flex, grid, list-item, table, etc.)
+- `position` (static, relative, absolute, fixed)
+- `float`, `clear`, `visibility`, `z-index`, `overflow`, `box-sizing`, `aspect-ratio`
+- `width`, `height`, `min-width`, `min-height`, `max-width`, `max-height`
+- `margin`, `padding`, `border` (Width, Style, Color)
+- **Logical Properties**: `inline-size`, `block-size`, `margin-inline`, `margin-block`, `padding-inline`, `padding-block`, `border-inline`, `border-block` (Start/End)
+
+### Typography & Text
+
+- `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`
+- `text-align`, `vertical-align`, `text-decoration` (Underline, Overline, Line-through, Wavy)
+- `text-transform`, `text-indent`, `text-overflow` (Ellipsis), `white-space`, `line-clamp`
+- `text-shadow`, `direction`, `writing-mode` (horizontal-tb, vertical-rl, vertical-lr)
+
+### Backgrounds, Borders & Shadows
+
+- `background` (Color, Image, Position, Size, Repeat, Clip, Origin)
+- `border-radius`, `box-shadow` (Outer & Inset)
+- `border-image` (Source, Slice, Width, Outset, Repeat)
+
+### Flexbox & Grid
+
+- `display: flex`, `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `align-content`, `align-self`, `flex-grow`, `flex-shrink`, `flex-basis`, `gap`, `order`
+- `display: grid`, `grid-template-columns`, `grid-template-rows`, `grid-column`, `grid-row`, `gap`
+
+### Effects, Shapes & Functions
+
+- `clip-path` (circle, ellipse, inset, polygon, path)
+- `filter`, `backdrop-filter`, `opacity`
+- **Gradients**: `linear-gradient`, `radial-gradient`, `conic-gradient`
+- **Modern Functions**: `calc()`, `min()`, `max()`, `clamp()`, `oklch()`, `oklab()`, `color-mix()`, `light-dark()`, `env()`, `var()`
+- **Container Queries**: `@container`, `container-type`, `container-name`
+- **Masking**: `mask`, `-webkit-mask`
+- `content`, `appearance`
+
+</details>
 
 ## 📦 Installation
 
@@ -130,7 +156,7 @@ export default {
 };
 ```
 
-### 6. Multi-threaded Rendering (Worker Proxy)
+### 4. Multi-threaded Rendering (Worker Proxy)
 
 Distribute rendering tasks across multiple background workers for high-throughput applications.
 
@@ -144,6 +170,52 @@ const png = await satoru.render({
   width: 800,
   format: "png",
 });
+```
+
+### 5. preact + tailwind
+
+- install
+
+```bash
+pnpm add preact preact-render-to-string @unocss/preset-wind4 satoru-render
+```
+
+- code
+
+```tsx
+/** @jsx h */
+import { h, toHtml } from "satoru-render/preact";
+import { createCSS } from "satoru-render/tailwind";
+import { render } from "satoru-render";
+
+// 1. Define your layout with Tailwind classes
+const html = toHtml(
+  <div className="w-[1200px] h-[630px] flex items-center justify-center bg-slate-900">
+    <h1 className="text-6xl text-white font-bold">Hello World</h1>
+  </div>,
+);
+
+// 2. Generate CSS from the HTML
+const css = await createCSS(html);
+
+// 3. Render to PNG
+const png = await render({
+  value: html,
+  css,
+  width: 1200,
+  height: 630,
+  format: "png",
+});
+```
+
+- tsconfig.json
+
+```json
+{
+  "compilerOptions": {
+    "jsx": "preserve"
+  }
+}
 ```
 
 ---

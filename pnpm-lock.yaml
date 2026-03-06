@@ -60,12 +60,6 @@ importers:
       preact-render-to-string:
         specifier: ^6.6.6
         version: 6.6.6(preact@10.28.4)
-      react:
-        specifier: ^19.2.4
-        version: 19.2.4
-      react-dom:
-        specifier: ^19.2.4
-        version: 19.2.4(react@19.2.4)
       satoru-render:
         specifier: workspace:*
         version: link:../satoru

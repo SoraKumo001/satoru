@@ -1673,18 +1673,24 @@ void container_skia::push_transform(litehtml::uint_ptr hdc,
     for (const auto& tok : transform) {
         if (tok.type == litehtml::CV_FUNCTION) {
             std::string name = litehtml::lowcase(tok.name);
-            auto args = litehtml::parse_comma_separated_list(tok.value);
             std::vector<float> vals;
-            for (const auto& arg : args) {
-                if (!arg.empty() &&
-                    (arg[0].type == litehtml::NUMBER || arg[0].type == litehtml::DIMENSION ||
-                     arg[0].type == litehtml::PERCENTAGE)) {
-                    float v = arg[0].n.number;
-                    if (arg[0].type == litehtml::PERCENTAGE) {
+            for (const auto& arg_tok : tok.value) {
+                if (arg_tok.type == litehtml::NUMBER || arg_tok.type == litehtml::DIMENSION ||
+                    arg_tok.type == litehtml::PERCENTAGE) {
+                    float v = arg_tok.n.number;
+                    if (arg_tok.type == litehtml::PERCENTAGE) {
                         if (name.find("translate") != std::string::npos) {
                             v = v * (vals.empty() ? pos.width : pos.height) / 100.0f;
                         } else {
                             v /= 100.0f;
+                        }
+                    }
+                    if (arg_tok.type == litehtml::DIMENSION && 
+                        (litehtml::lowcase(arg_tok.unit) == "rad" || litehtml::lowcase(arg_tok.unit) == "turn")) {
+                        if (litehtml::lowcase(arg_tok.unit) == "rad") {
+                            v = v * 180.0f / 3.14159265f;
+                        } else if (litehtml::lowcase(arg_tok.unit) == "turn") {
+                            v = v * 360.0f;
                         }
                     }
                     vals.push_back(v);

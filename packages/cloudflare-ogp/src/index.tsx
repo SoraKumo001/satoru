@@ -62,7 +62,7 @@ const fetch = async (
 
             {/* 右側: 画像カード */}
             <div className="flex w-[35%] relative justify-center items-center">
-              <div className="absolute w-[420px] h-[420px] rounded-[40px] border border-white/10 bg-white/[0.03] rotate-[-3deg] flex" />
+              <div className="absolute w-[420px] h-[420px] rounded-[40px] border border-white/10 bg-white/3 rotate-[-3deg] flex" />
               <div className="w-[400px] h-[400px] rounded-[32px] overflow-hidden border-4 border-white/10 flex">
                 <img
                   className="w-full h-full object-cover"
@@ -75,7 +75,7 @@ const fetch = async (
 
           {/* フッター */}
           <div className="absolute bottom-10 left-[60px] flex items-center z-20">
-            <div className="px-4 py-2 bg-white/[0.05] border border-white/10 rounded-[10px] text-lg text-[#e2e8f0] font-medium flex">
+            <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-[10px] text-lg text-[#e2e8f0] font-medium flex">
               satoru-cloudflare-ogp
             </div>
           </div>

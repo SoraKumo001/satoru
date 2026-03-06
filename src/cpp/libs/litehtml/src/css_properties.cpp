@@ -50,6 +50,9 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   m_opacity = el->get_property<float>(_opacity_, false, 1.0f, offset(m_opacity));
   m_aspect_ratio = el->get_property<aspect_ratio>(_aspect_ratio_, false, aspect_ratio(), offset(m_aspect_ratio));
   m_transform = el->get_property<css_token_vector>(_transform_, false, css_token_vector(), offset(m_transform));
+  m_rotate = el->get_property<css_token_vector>(_rotate_, false, css_token_vector(), offset(m_rotate));
+  m_scale = el->get_property<css_token_vector>(_scale_, false, css_token_vector(), offset(m_scale));
+  m_translate = el->get_property<css_token_vector>(_translate_, false, css_token_vector(), offset(m_translate));
   m_transform_origin = el->get_property<css_token_vector>(_transform_origin_, false, css_token_vector(), offset(m_transform_origin));
   m_filter = el->get_property<css_token_vector>(_filter_, false, css_token_vector(), offset(m_filter));
   m_backdrop_filter = el->get_property<css_token_vector>(_backdrop_filter_, false, css_token_vector(), offset(m_backdrop_filter));

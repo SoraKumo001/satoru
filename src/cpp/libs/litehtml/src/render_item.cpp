@@ -941,23 +941,53 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
             if (is_active) {
                 float opacity = el->src_el()->css().get_opacity();
                 const auto& transform = el->src_el()->css().get_transform();
+                const auto& rotate = el->src_el()->css().get_rotate();
+                const auto& scale = el->src_el()->css().get_scale();
+                const auto& translate = el->src_el()->css().get_translate();
                 const auto& filter = el->src_el()->css().get_filter();
                 const auto& backdrop_filter = el->src_el()->css().get_backdrop_filter();
                 const auto& mask = el->src_el()->css().get_mask();
                 css_token_vector clip_path;
                 el->src_el()->get_custom_property(_clip_path_, clip_path);
 
-                bool has_props = (opacity < 1.0f) || !transform.empty() || !filter.empty() ||
+                bool has_props = (opacity < 1.0f) || !transform.empty() || !rotate.empty() ||
+                                 !scale.empty() || !translate.empty() || !filter.empty() ||
                                  !backdrop_filter.empty() || !clip_path.empty() || !mask.empty();
 
                 if (has_props) {
                     if (opacity < 1.0f) doc->container()->push_layer(hdc, opacity);
                     if (!backdrop_filter.empty()) doc->container()->push_backdrop_filter(hdc, el);
 
+                    css_token_vector merged_transform;
+                    if (!translate.empty()) {
+                        css_token tok;
+                        tok.type = CV_FUNCTION;
+                        tok.name = "translate";
+                        tok.value = translate;
+                        merged_transform.push_back(tok);
+                    }
+                    if (!rotate.empty()) {
+                        css_token tok;
+                        tok.type = CV_FUNCTION;
+                        tok.name = "rotate";
+                        tok.value = rotate;
+                        merged_transform.push_back(tok);
+                    }
+                    if (!scale.empty()) {
+                        css_token tok;
+                        tok.type = CV_FUNCTION;
+                        tok.name = "scale";
+                        tok.value = scale;
+                        merged_transform.push_back(tok);
+                    }
+                    if (!transform.empty()) {
+                        merged_transform.insert(merged_transform.end(), transform.begin(), transform.end());
+                    }
+
                     if (el->src_el()->css().get_position() == element_position_fixed) {
-                        if (!transform.empty())
+                        if (!merged_transform.empty())
                             doc->container()->push_transform(
-                                hdc, transform, el->src_el()->css().get_transform_origin(),
+                                hdc, merged_transform, el->src_el()->css().get_transform_origin(),
                                 el->pos());
                         if (!filter.empty()) doc->container()->push_filter(hdc, filter);
                         if (!clip_path.empty())
@@ -969,9 +999,9 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                         el_pos.x += pos.x;
                         el_pos.y += pos.y;
 
-                        if (!transform.empty())
+                        if (!merged_transform.empty())
                             doc->container()->push_transform(
-                                hdc, transform, el->src_el()->css().get_transform_origin(), el_pos);
+                                hdc, merged_transform, el->src_el()->css().get_transform_origin(), el_pos);
                         if (!filter.empty()) doc->container()->push_filter(hdc, filter);
                         if (!clip_path.empty())
                             doc->container()->push_clip_path(hdc, clip_path, el_pos);
@@ -996,7 +1026,7 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                     if (!mask.empty()) doc->container()->pop_mask(hdc);
                     if (!clip_path.empty()) doc->container()->pop_clip_path(hdc);
                     if (!filter.empty()) doc->container()->pop_filter(hdc);
-                    if (!transform.empty()) doc->container()->pop_transform(hdc);
+                    if (!rotate.empty() || !scale.empty() || !translate.empty() || !transform.empty()) doc->container()->pop_transform(hdc);
                     if (!backdrop_filter.empty()) doc->container()->pop_backdrop_filter(hdc);
                     if (opacity < 1.0f) doc->container()->pop_layer(hdc);
                 }

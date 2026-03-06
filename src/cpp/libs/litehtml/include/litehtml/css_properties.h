@@ -129,6 +129,9 @@ namespace litehtml
     float m_opacity;
     aspect_ratio m_aspect_ratio;
     css_token_vector m_transform;
+    css_token_vector m_rotate;
+    css_token_vector m_scale;
+    css_token_vector m_translate;
     css_token_vector m_transform_origin;
     css_token_vector m_filter;
     css_token_vector m_backdrop_filter;
@@ -450,6 +453,9 @@ namespace litehtml
 
     const shadow_vector &get_box_shadow() const;
     const css_token_vector &get_transform() const;
+    const css_token_vector &get_rotate() const;
+    const css_token_vector &get_scale() const;
+    const css_token_vector &get_translate() const;
     const css_token_vector &get_transform_origin() const;
     const css_token_vector &get_filter() const;
     const css_token_vector &get_backdrop_filter() const;
@@ -1150,6 +1156,21 @@ namespace litehtml
   inline const css_token_vector &css_properties::get_transform() const
   {
     return m_transform;
+  }
+
+  inline const css_token_vector &css_properties::get_rotate() const
+  {
+    return m_rotate;
+  }
+
+  inline const css_token_vector &css_properties::get_scale() const
+  {
+    return m_scale;
+  }
+
+  inline const css_token_vector &css_properties::get_translate() const
+  {
+    return m_translate;
   }
 
   inline const css_token_vector &css_properties::get_transform_origin() const

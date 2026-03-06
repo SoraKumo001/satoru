@@ -114,16 +114,16 @@
   "devDependencies": {
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "rolldown": "1.0.0-rc.6",
+    "rolldown": "1.0.0-rc.7",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "@unocss/core": "^66.6.5",
-    "@unocss/preset-wind4": "^66.6.5",
     "worker-lib": "2.2.0"
   },
   "peerDependencies": {
+    "@unocss/core": "^66.6.5",
+    "@unocss/preset-wind4": "^66.6.5",
     "preact": "^10.28.0",
     "preact-render-to-string": "^6.6.0",
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
@@ -140,6 +140,12 @@
       "optional": true
     },
     "preact-render-to-string": {
+      "optional": true
+    },
+    "@unocss/core": {
+      "optional": true
+    },
+    "@unocss/preset-wind4": {
       "optional": true
     }
   }

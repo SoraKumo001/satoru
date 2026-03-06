@@ -11,14 +11,13 @@
   },
   "dependencies": {
     "preact": "^10.28.4",
-    "preact-render-to-string": "^6.6.6",
     "satoru-render": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260301.1",
+    "@cloudflare/workers-types": "^4.20260305.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "typescript": "^5.9.3",
-    "wrangler": "^4.70.0"
+    "wrangler": "^4.71.0"
   }
 }

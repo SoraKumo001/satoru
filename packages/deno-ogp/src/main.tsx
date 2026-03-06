@@ -31,41 +31,18 @@ Deno.serve(async (request) => {
           rel="stylesheet"
         />
       </head>
-      <body
-        style={{
-          margin: 16,
-          borderRadius: 16,
-          boxSizing: "border-box",
-          overflow: "hidden",
-        }}
-      >
+      <body className="m-4 rounded-[16px] box-border overflow-hidden">
         <div
+          className="box-border w-full h-full relative flex flex-col items-center bg-gradient-to-br from-[#333355] to-[#666688] bg-[length:16px_16px,100%_100%] text-white overflow-hidden"
           style={{
             border: "solid 16px",
             borderImage:
               "linear-gradient(to right, #6666aa 0%, #333366 20%, #222233 100%) 2",
-            boxSizing: "border-box",
-            width: "100%",
-            height: "100%",
-            position: "relative",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            backgroundImage:
-              "linear-gradient(to bottom right, #333355, #666688)",
-            backgroundSize: "16px 16px, 100% 100%",
-            color: "white",
-            overflow: "hidden",
           }}
         >
           {image && (
             <img
-              style={{
-                borderRadius: "100%",
-                padding: "24px",
-                opacity: 0.7,
-                position: "absolute",
-              }}
+              className="rounded-full p-6 opacity-70 absolute"
               width={480}
               height={480}
               src={image}
@@ -74,41 +51,14 @@ Deno.serve(async (request) => {
           )}
           <div>
             <div
-              style={{
-                fontSize: "80px",
-                fontWeight: "bold",
-                textShadow: "0 8px 16px rgba(0,0,0,0.6)",
-                filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.8))",
-                backdropFilter: "blur(5px)",
-                zIndex: 1,
-                display: "-webkit-box",
-                WebkitBoxOrient: "vertical",
-                lineClamp: 3,
-                overflow: "hidden",
-                margin: 32,
-                borderRadius: 32,
-                padding: 16,
-              }}
+              className="text-[80px] font-bold [text-shadow:0_8px_16px_rgba(0,0,0,0.6)] drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] backdrop-blur-[5px] z-[1] line-clamp-3 overflow-hidden m-8 rounded-[32px] p-4"
             >
               {title}
             </div>
           </div>
 
           <div
-            style={{
-              position: "absolute",
-              bottom: "40px",
-              right: "40px",
-              fontSize: "24px",
-              fontWeight: "bold",
-              padding: "12px 24px",
-              border: "1px solid rgba(255,255,255,0.2)",
-              filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.8))",
-              borderRadius: "12px",
-              backdropFilter: "blur(4px)",
-              color: "#EE6688",
-              zIndex: 1,
-            }}
+            className="absolute bottom-10 right-10 text-[24px] font-bold px-6 py-3 border border-white/20 drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] rounded-xl backdrop-blur-[4px] text-[#EE6688] z-[1]"
           >
             {name}
           </div>

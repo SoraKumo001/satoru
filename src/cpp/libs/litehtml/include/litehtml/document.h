@@ -105,7 +105,7 @@ namespace litehtml
 		bool							on_mouse_leave(position::vector& redraw_boxes);
 		std::shared_ptr<element>		create_element(const char* tag_name, const string_map& attributes);
 		std::shared_ptr<element>		create_element(const char* tag_name, int gumbo_tag = -1);
-		std::shared_ptr<element>		root();
+		std::shared_ptr<element>		root() const;
 		std::shared_ptr<render_item>	root_render();
 		void							get_fixed_boxes(position::vector& fixed_boxes);
 		void							add_fixed_box(const position& pos);
@@ -145,7 +145,7 @@ namespace litehtml
 		void fix_table_parent(const std::shared_ptr<render_item> & el_ptr, style_display disp, const char* disp_str);
 	};
 
-	inline std::shared_ptr<element> document::root()
+	inline std::shared_ptr<element> document::root() const
 	{
 		return m_root;
 	}

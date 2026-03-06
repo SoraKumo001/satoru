@@ -653,50 +653,57 @@ bool parse_color_mix_func(const css_token& tok, web_color& color, document_conta
 	float r1 = c1.red / 255.0f, g1 = c1.green / 255.0f, b1 = c1.blue / 255.0f, a1 = c1.alpha / 255.0f;
 	float r2 = c2.red / 255.0f, g2 = c2.green / 255.0f, b2 = c2.blue / 255.0f, a2 = c2.alpha / 255.0f;
 
+	float a_interp = a1 * w1 + a2 * w2;
 	float r, g, b, a;
-	a = (a1 * w1 + a2 * w2) * alpha_scale;
+        a = a_interp * alpha_scale;
+
+	auto interp = [&](float v1, float v2) {
+	if (a_interp > 1e-6f)
+	        return (v1 * a1 * w1 + v2 * a2 * w2) / a_interp;
+	return v1 * w1 + v2 * w2;
+	};
 
 	if (color_space == "srgb")
 	{
-		r = r1 * w1 + r2 * w2;
-		g = g1 * w1 + g2 * w2;
-		b = b1 * w1 + b2 * w2;
+	r = interp(r1, r2);
+	g = interp(g1, g2);
+	b = interp(b1, b2);
 	}
 	else if (color_space == "oklab" || color_space == "lab")
 	{
-		float l1, o1a, o1b, l2, o2a, o2b;
-		rgb_to_oklab(r1, g1, b1, l1, o1a, o1b);
-		rgb_to_oklab(r2, g2, b2, l2, o2a, o2b);
-		float l = l1 * w1 + l2 * w2;
-		float oa = o1a * w1 + o2a * w2;
-		float ob = o1b * w1 + o2b * w2;
-		oklab_to_rgb(l, oa, ob, r, g, b);
+	        float l1, o1a, o1b, l2, o2a, o2b;
+	        rgb_to_oklab(r1, g1, b1, l1, o1a, o1b);
+	        rgb_to_oklab(r2, g2, b2, l2, o2a, o2b);
+	float l = interp(l1, l2);
+	float oa = interp(o1a, o2a);
+	float ob = interp(o1b, o2b);
+                oklab_to_rgb(l, oa, ob, r, g, b);
 	}
 	else if (color_space == "oklch" || color_space == "lch")
 	{
-		float l1, c1_, h1, l2, c2_, h2;
-		rgb_to_oklch(r1, g1, b1, l1, c1_, h1);
-		rgb_to_oklch(r2, g2, b2, l2, c2_, h2);
-		
-		// Hue interpolation (shorter arc)
-		if (abs(h1 - h2) > 180)
-		{
-			if (h1 > h2) h2 += 360;
-			else h1 += 360;
-		}
+	float l1, c1_, h1, l2, c2_, h2;
+	rgb_to_oklch(r1, g1, b1, l1, c1_, h1);
+	rgb_to_oklch(r2, g2, b2, l2, c2_, h2);
 
-		float l = l1 * w1 + l2 * w2;
-		float c = c1_ * w1 + c2_ * w2;
-		float h = h1 * w1 + h2 * w2;
-		oklch_to_rgb(l, c, h, a, r, g, b);
-	}
-	else
+	// Hue interpolation (shorter arc)
+	if (abs(h1 - h2) > 180)
 	{
-		// Fallback to sRGB
-		r = r1 * w1 + r2 * w2;
-		g = g1 * w1 + g2 * w2;
-		b = b1 * w1 + b2 * w2;
+	        if (h1 > h2) h2 += 360;
+	                else h1 += 360;
+	        }
+
+	float l = interp(l1, l2);
+	float c = interp(c1_, c2_);
+	float h = interp(h1, h2);
+	oklch_to_rgb(l, c, h, a, r, g, b);
 	}
+        else
+        {
+                // Fallback to sRGB
+                r = interp(r1, r2);
+                g = interp(g1, g2);
+                b = interp(b1, b2);
+        }
 
 	color = web_color(
 		(byte)clamp(round(r * 255), 0, 255),
@@ -705,6 +712,24 @@ bool parse_color_mix_func(const css_token& tok, web_color& color, document_conta
 		(byte)clamp(round(a * 255), 0, 255));
 
 	return true;
+}
+
+bool parse_var_color(const css_token& tok, web_color& color, document_container* container)
+{
+        if (tok.type != CV_FUNCTION || lowcase(tok.name) != "var")
+                return false;
+
+        if (container)
+        {
+                string val = container->resolve_color(tok.get_repr());
+                if (!val.empty())
+                {
+                        auto tokens = normalize(val, f_componentize | f_remove_whitespace);
+                        if (tokens.size() == 1)
+                                return parse_color(tokens[0], color, container);
+                }
+        }
+        return false;
 }
 
 // https://drafts.csswg.org/css-color-5/#light-dark
@@ -811,7 +836,7 @@ bool parse_oklab_func(const css_token& tok, web_color& color, document_container
 // https://drafts.csswg.org/css-color-5/#typedef-color-function
 bool parse_func_color(const css_token& tok, web_color& color, document_container* container)
 {
-	return parse_rgb_func(tok, color, container) || parse_hsl_func(tok, color) || parse_oklch_func(tok, color, container) || parse_oklab_func(tok, color, container) || parse_color_mix_func(tok, color, container) || parse_light_dark_func(tok, color, container);
+return parse_rgb_func(tok, color, container) || parse_hsl_func(tok, color) || parse_oklch_func(tok, color, container) || parse_oklab_func(tok, color, container) || parse_color_mix_func(tok, color, container) || parse_light_dark_func(tok, color, container) || parse_var_color(tok, color, container);
 }
 
 string resolve_name(const string& name, document_container* container)

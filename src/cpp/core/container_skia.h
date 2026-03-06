@@ -70,6 +70,7 @@ class container_skia : public litehtml::document_container {
     satoru::TextBatcher *m_textBatcher = nullptr;
 
     std::map<font_request, std::vector<font_info *>> m_createdFonts;
+    const litehtml::document* m_doc = nullptr;
 
     float get_current_opacity() const {
         float opacity = 1.0f;
@@ -93,6 +94,7 @@ class container_skia : public litehtml::document_container {
         m_textBatcher = new satoru::TextBatcher(&m_context, m_canvas);
     }
     void set_height(int h) { m_height = h; }
+    void set_document(const litehtml::document* doc) { m_doc = doc; }
     void set_tagging(bool t) { m_tagging = t; }
     void set_text_to_paths(bool to_paths) { m_textToPaths = to_paths; }
     void flush() {
@@ -247,6 +249,7 @@ class container_skia : public litehtml::document_container {
     virtual void get_viewport(litehtml::position &viewport) const override;
     virtual void get_media_features(litehtml::media_features &features) const override;
     virtual void get_language(litehtml::string &language, litehtml::string &culture) const override;
+    virtual litehtml::string resolve_color(const litehtml::string& color) const override;
     virtual void split_text(const char *text, const std::function<void(const char *)> &on_word,
                             const std::function<void(const char *)> &on_space) override;
 

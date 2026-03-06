@@ -1549,6 +1549,40 @@ void container_skia::get_language(litehtml::string& language, litehtml::string& 
     culture = "en-US";
 }
 
+litehtml::string container_skia::resolve_color(const litehtml::string& color) const {
+    if (color.empty()) return "";
+
+    std::string name = color;
+    if (name.size() > 4 && name.substr(0, 4) == "var(") {
+        size_t pos = name.find('(');
+        size_t end = name.find_last_of(')');
+        if (pos != std::string::npos && end != std::string::npos && end > pos + 1) {
+            name = name.substr(pos + 1, end - pos - 1);
+            // Handle fallback if present (comma)
+            size_t comma = name.find(',');
+            if (comma != std::string::npos) {
+                name = name.substr(0, comma);
+            }
+            // Trim whitespace
+            name.erase(0, name.find_first_not_of(" \t\r\n"));
+            size_t last = name.find_last_not_of(" \t\r\n");
+            if (last != std::string::npos) {
+                name.erase(last + 1);
+            }
+        }
+    }
+
+    if (name.substr(0, 2) == "--") {
+        if (m_doc && m_doc->root()) {
+            litehtml::css_token_vector tokens;
+            if (m_doc->root()->get_custom_property(litehtml::_id(name), tokens)) {
+                return litehtml::get_repr(tokens);
+            }
+        }
+    }
+    return "";
+}
+
 void container_skia::split_text(const char* text, const std::function<void(const char*)>& on_word,
                                 const std::function<void(const char*)>& on_space) {
     satoru::TextLayout::splitText(&m_context, text, on_word, on_space);

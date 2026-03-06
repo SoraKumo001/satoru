@@ -133,6 +133,9 @@ void SatoruInstance::init_document(const char* html, int width, int height) {
 
     std::string css = get_full_master_css() + "\nbr { display: -litehtml-br !important; }\n";
     doc = litehtml::document::createFromString(html, render_container.get(), css.c_str());
+    if (render_container) {
+        render_container->set_document(doc.get());
+    }
 
     if (doc && doc->root()) {
         dump_elements_recursive(doc->root());
@@ -183,6 +186,9 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
 
     auto temp_doc = litehtml::document::createFromString(html.c_str(), discovery_container.get(),
                                                          get_full_master_css().c_str());
+    if (discovery_container) {
+        discovery_container->set_document(temp_doc.get());
+    }
     if (temp_doc) {
         temp_doc->render(width);
         scan_image_sizes(temp_doc->root(), context);

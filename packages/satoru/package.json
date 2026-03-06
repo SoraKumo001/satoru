@@ -46,12 +46,20 @@
       "types": "./dist/single.d.ts",
       "import": "./dist/single.js"
     },
+    "./satoru.js": "./dist/satoru.js",
+    "./satoru.wasm": "./dist/satoru.wasm",
     "./react": {
       "types": "./dist/react.d.ts",
       "import": "./dist/react.js"
     },
-    "./satoru.js": "./dist/satoru.js",
-    "./satoru.wasm": "./dist/satoru.wasm"
+    "./preact": {
+      "types": "./dist/preact.d.ts",
+      "import": "./dist/preact.js"
+    },
+    "./tailwind": {
+      "types": "./dist/tailwind.d.ts",
+      "import": "./dist/tailwind.js"
+    }
   },
   "typesVersions": {
     "*": {
@@ -63,6 +71,12 @@
       ],
       "react": [
         "./dist/react.d.ts"
+      ],
+      "preact": [
+        "./dist/preact.d.ts"
+      ],
+      "tailwind": [
+        "./dist/tailwind.d.ts"
       ],
       "*": [
         "./dist/single.d.ts"
@@ -105,9 +119,13 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@unocss/core": "^66.6.5",
+    "@unocss/preset-wind4": "^66.6.5",
     "worker-lib": "2.2.0"
   },
   "peerDependencies": {
+    "preact": "^10.28.0",
+    "preact-render-to-string": "^6.6.0",
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
     "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
   },
@@ -116,6 +134,12 @@
       "optional": true
     },
     "react-dom": {
+      "optional": true
+    },
+    "preact": {
+      "optional": true
+    },
+    "preact-render-to-string": {
       "optional": true
     }
   }

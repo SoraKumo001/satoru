@@ -10,9 +10,9 @@
     "build": "tsc"
   },
   "dependencies": {
-    "satoru-render": "workspace:*",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "preact": "^10.28.4",
+    "preact-render-to-string": "^6.6.6",
+    "satoru-render": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260301.1",

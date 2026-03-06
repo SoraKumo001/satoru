@@ -3,11 +3,11 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "strict": true,
     "skipLibCheck": true,
     "lib": ["ESNext", "WebWorker", "DOM"],
-    "types": ["@cloudflare/workers-types", "react/jsx-runtime"],
+    "types": ["@cloudflare/workers-types", "preact/jsx-runtime"],
     "isolatedModules": true,
     "esModuleInterop": true,
     "noEmit": true

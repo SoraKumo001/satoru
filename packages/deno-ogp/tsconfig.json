@@ -1,5 +1,5 @@
 {
   "compilerOptions": {
-    "types": ["react/jsx-runtime"]
+    "types": ["preact/jsx-runtime"]
   }
 }

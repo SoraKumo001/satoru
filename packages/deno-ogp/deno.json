@@ -4,22 +4,14 @@
   },
   "imports": {
     "hono": "npm:hono",
-    "react": "npm:react",
-    "react-dom": "npm:react-dom",
-    "satoru-render": "npm:satoru-render"
+    "preact": "npm:preact",
+    "preact-render-to-string": "npm:preact-render-to-string",
+    "@unocss/preset-wind4": "npm:@unocss/preset-wind4",
+    "@unocss/core": "npm:@unocss/core",
+    "satoru-render": "../satoru/dist/single.js",
+    "satoru-render/index": "../satoru/dist/index.js",
+    "satoru-render/preact": "../satoru/dist/preact.js",
+    "satoru-render/tailwind": "../satoru/dist/tailwind.js"
   },
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "react"
-  },
-  "entrypoint": "src/main.tsx",
-  "nodeModulesDir": "auto",
-  "deploy": {
-    "project": "ede0e70e-aba0-45ef-879e-2494f3b012dd",
-    "exclude": [
-      "**/node_modules"
-    ],
-    "include": [],
-    "entrypoint": "src\\main.tsx"
-  }
+  "nodeModulesDir": "auto"
 }

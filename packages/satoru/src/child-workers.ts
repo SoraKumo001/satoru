@@ -1,5 +1,5 @@
 import { initWorker } from "worker-lib";
-import { Satoru, type RenderOptions, LogLevel } from "./single.js";
+import { Satoru, type RenderOptions } from "./single.js";
 
 let satoru: Satoru | undefined;
 

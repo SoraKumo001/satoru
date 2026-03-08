@@ -46,14 +46,14 @@ ignore_all_files_in_gitignore: true
 # Same syntax as gitignore, so you can use * and **.
 # Note: global ignored_paths from serena_config.yml are also applied additively.
 ignored_paths:
-  - "node_modules/**"
-  - "vcpkg_installed/**"
-  - "build/**"
-  - "dist/**"
-  - ".cache/**"
-  - "packages/*/node_modules/**"
-  - "packages/*/dist/**"
-  - "assets/**"
+- "node_modules/**"
+- "vcpkg_installed/**"
+- "build/**"
+- "dist/**"
+- ".cache/**"
+- "packages/*/node_modules/**"
+- "packages/*/dist/**"
+- "assets/**"
 
 # whether the project is in read-only mode
 # If set to true, all editing tools will be disabled and attempts to use them will result in an error
@@ -132,3 +132,7 @@ initial_prompt: ""
 # This overrides the corresponding setting in the global configuration; see the documentation there.
 # If null or missing, use the setting from the global configuration.
 symbol_info_budget: 10.0
+
+# list of regex patterns which, when matched, mark a memory entry as read‑only.
+# Extends the list from the global configuration, merging the two lists.
+read_only_memory_patterns: []

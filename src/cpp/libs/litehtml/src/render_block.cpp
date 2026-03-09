@@ -246,8 +246,7 @@ litehtml::pixel_t litehtml::render_item_block::_measure(const containing_block_c
         }
         else
         {
-            // Vertical blocks should fit content height unless height is explicit
-            m_pos.height = ret_inline_size;
+            m_pos.height = self_size.render_height;
         }
 	} else
 	{
@@ -408,7 +407,7 @@ void litehtml::render_item_block::_place(pixel_t inline_pos, pixel_t block_pos, 
         if (self_size.mode == writing_mode_horizontal_tb)
             m_pos.width = self_size.render_width;
         else
-            m_pos.height = m_pos.height; // Keep height from _render_content
+            m_pos.height = self_size.render_height;
 	} else
 	{
         pixel_t& physical_inline_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.width : m_pos.height;

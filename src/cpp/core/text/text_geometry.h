@@ -41,7 +41,8 @@ class TextGeometry {
      * @param font 描画に使用する SkFont (メトリクス取得用)
      */
     GlyphPlacement getGlyphPlacement(float inline_offset, float block_offset, bool is_upright,
-                                     bool is_punctuation, const SkFont& font) const;
+                                     bool is_punctuation, const SkFont& font,
+                                     SkGlyphID glyph_id) const;
 
     bool isVertical() const { return m_is_vertical; }
 

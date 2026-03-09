@@ -387,6 +387,9 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
                 // mixed mode
                 ca.is_vertical_upright = unicode.isVerticalUpright(ca.codepoint);
             }
+            if (ca.codepoint > 32) {
+                SATORU_LOG_INFO("DEBUG_LAYOUT: cp=%u, orient=%d, upright=%d", (unsigned int)ca.codepoint, (int)fi->desc.orientation, (int)ca.is_vertical_upright);
+            }
         }
 
         ca.font = ctx->fontManager.selectFont(ca.codepoint, fi,

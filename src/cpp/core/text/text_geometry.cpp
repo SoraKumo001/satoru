@@ -6,7 +6,7 @@ namespace satoru {
 
 GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_offset,
                                                bool is_upright, bool is_punctuation,
-                                               const SkFont& font) const {
+                                               const SkFont& font, SkGlyphID glyph_id) const {
     GlyphPlacement placement;
     placement.rotation = 0;
 
@@ -16,7 +16,8 @@ GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_
 
         if (is_upright) {
             float font_size = (float)m_fi->desc.size;
-            placement.x = (float)m_line_pos.x + (float)m_line_pos.width / 2.0f - font_size / 2.0f;
+            float width = (float)font.getWidth(glyph_id);
+            placement.x = (float)m_line_pos.x + (float)m_line_pos.width / 2.0f - width / 2.0f;
 
             // Center the character vertically in its font_size-tall slot.
             // (metrics.fAscent + metrics.fDescent) / 2.0f is the center of the glyph relative to the baseline.
@@ -24,10 +25,10 @@ GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_
             float v_shift = font_size / 2.0f - (metrics.fAscent + metrics.fDescent) / 2.0f;
 
             if (is_punctuation) {
-                float h_shift = font_size * 0.58f;
+                float h_shift = (font_size - width) / 2.0f + width * 0.58f;
                 placement.y = (float)m_line_pos.y + inline_offset + block_offset + v_shift -
-                              font_size * 0.5f;
-                placement.x += h_shift;
+                              width * 0.5f;
+                placement.x = (float)m_line_pos.x + (float)m_line_pos.width / 2.0f - width / 2.0f + h_shift;
             } else {
                 placement.y = (float)m_line_pos.y + inline_offset + block_offset + v_shift;
             }

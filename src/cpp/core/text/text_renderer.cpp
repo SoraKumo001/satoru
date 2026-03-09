@@ -63,21 +63,24 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
         TextGeometry geom(m_currentStyle.mode, line_pos, m_currentStyle.fi);
 
         if (geom.isVertical() && !m_currentStyle.is_vertical_upright) {
+            SATORU_LOG_INFO("DEBUG_BATCHER: ROTATING run, upright=%d", (int)m_currentStyle.is_vertical_upright);
             auto builder_run = m_builder.allocRunRSXform(run.font, run.count);
             memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
             for (int i = 0; i < run.count; ++i) {
                 auto p = geom.getGlyphPlacement(run.positions[i].fX, run.positions[i].fY, false,
-                                                false, run.font);
+                                                false, run.font, run.glyphs[i]);
                 // Rotate 90 deg CW: cos=0, sin=1
                 builder_run.xforms()[i] = SkRSXform::Make(0, 1, p.x, p.y);
             }
         } else {
+            SATORU_LOG_INFO("DEBUG_BATCHER: NOT ROTATING run, upright=%d", (int)m_currentStyle.is_vertical_upright);
             auto builder_run = m_builder.allocRunPos(run.font, run.count);
             memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
             for (int i = 0; i < run.count; ++i) {
                 auto p = geom.getGlyphPlacement(run.positions[i].fX, run.positions[i].fY,
                                                 m_currentStyle.is_vertical_upright,
-                                                m_currentStyle.is_vertical_punctuation, run.font);
+                                                m_currentStyle.is_vertical_punctuation, run.font,
+                                                run.glyphs[i]);
                 builder_run.pos[i * 2] = p.x;
                 builder_run.pos[i * 2 + 1] = p.y;
             }
@@ -290,10 +293,9 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 while (it.experimentalNext(&run)) {
                     SkFontMetrics metrics;
                     run.font.getMetrics(&metrics);
-                    // Adjust baseline to align with surrounding vertical text.
-                    // A shift of ~12% of em-size is a common offset between 
-                    // alphabetic and ideographic baselines.
-                    float run_baselineY = (float)fi->desc.size * 0.12f;
+                    // Center the run vertically in its font_size-tall slot.
+                    float font_size = (float)fi->desc.size;
+                    float run_baselineY = font_size / 2.0f - (metrics.fAscent + metrics.fDescent) / 2.0f;
                     for (int i = 0; i < run.count; ++i) {
                         float px = -(float)shaped.width / 2.0f + run.positions[i].fX;
                         float py = run_baselineY + run.positions[i].fY;
@@ -307,7 +309,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                     for (int i = 0; i < run.count; ++i) {
                         auto p = geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
                                                         run.positions[i].fY, is_upright,
-                                                        is_punctuation, run.font);
+                                                        is_punctuation, run.font, run.glyphs[i]);
                         tagging_ctx.drawGlyph(run.font, run.glyphs[i], p.x, p.y, p.rotation, paint);
                     }
                 }
@@ -352,7 +354,9 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
 
                 SkFontMetrics metrics;
                 analysis.chars[start].font.getMetrics(&metrics);
-                float run_baselineY = (float)fi->desc.size * 0.12f;
+                // Center the run vertically in its font_size-tall slot.
+                float font_size = (float)fi->desc.size;
+                float run_baselineY = font_size / 2.0f - (metrics.fAscent + metrics.fDescent) / 2.0f;
                 canvas->drawTextBlob(shaped.blob, -(float)shaped.width / 2.0f, run_baselineY, paint);
             } else if (is_vertical) {
                 TextGeometry geom(mode, pos, fi);
@@ -367,7 +371,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         for (int i = 0; i < run.count; ++i) {
                             auto p = geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
                                                             run.positions[i].fY, true,
-                                                            is_punctuation, run.font);
+                                                            is_punctuation, run.font, run.glyphs[i]);
                             builder_run.pos[i * 2] = p.x;
                             builder_run.pos[i * 2 + 1] = p.y;
                         }
@@ -377,7 +381,8 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         for (int i = 0; i < run.count; ++i) {
                             auto p =
                                 geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
-                                                       run.positions[i].fY, false, false, run.font);
+                                                       run.positions[i].fY, false, false, run.font,
+                                                       run.glyphs[i]);
                             // Rotate 90 deg CW: cos=0, sin=1
                             builder_run.xforms()[i] = SkRSXform::Make(0, 1, p.x, p.y);
                         }

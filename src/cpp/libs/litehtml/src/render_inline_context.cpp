@@ -131,7 +131,11 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
 
 	if (self_size.size_mode & containing_block_context::size_mode_measure)
 	{
-		pixel_t ret = m_max_line_width;
+		pixel_t ret;
+        if (self_size.mode == writing_mode_horizontal_tb)
+            ret = m_max_line_width;
+        else
+            ret = m_pos.width;
 		m_line_boxes.clear();
 		return ret;
 	}
@@ -521,7 +525,21 @@ litehtml::pixel_t litehtml::render_item_inline_context::get_first_baseline()
 	if(!m_line_boxes.empty())
 	{
 		const auto &line = m_line_boxes.front();
-		bl = line->bottom() - line->baseline() + content_offset_top();
+        if (get_wm_context().is_vertical())
+        {
+            if (css().get_writing_mode() == writing_mode_vertical_rl || css().get_writing_mode() == writing_mode_sideways_rl)
+            {
+                bl = m_pos.width - (line->left() + line->baseline()) + content_offset_right();
+            }
+            else
+            {
+                bl = line->left() + (line->block_size() - line->baseline()) + content_offset_left();
+            }
+        }
+        else
+        {
+		    bl = line->bottom() - line->baseline() + content_offset_top();
+        }
 	} else
 	{
 		bl = height() - margin_bottom();
@@ -535,7 +553,21 @@ litehtml::pixel_t litehtml::render_item_inline_context::get_last_baseline()
 	if(!m_line_boxes.empty())
 	{
 		const auto &line = m_line_boxes.back();
-		bl = line->bottom() - line->baseline() + content_offset_top();
+        if (get_wm_context().is_vertical())
+        {
+            if (css().get_writing_mode() == writing_mode_vertical_rl || css().get_writing_mode() == writing_mode_sideways_rl)
+            {
+                bl = m_pos.width - (line->left() + line->baseline()) + content_offset_right();
+            }
+            else
+            {
+                bl = line->left() + (line->block_size() - line->baseline()) + content_offset_left();
+            }
+        }
+        else
+        {
+		    bl = line->bottom() - line->baseline() + content_offset_top();
+        }
 	} else
 	{
 		bl = height();

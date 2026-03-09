@@ -1425,7 +1425,6 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
         }
         if (cb_context.size_mode & containing_block_context::size_mode_content) {
             ret.height.type = containing_block_context::cbc_value_type_auto;
-            ret.height.value = 0;
         }
     }
 

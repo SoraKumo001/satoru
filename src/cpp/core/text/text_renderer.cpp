@@ -288,9 +288,15 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 canvas->scale(scale, 1.0f);
 
                 while (it.experimentalNext(&run)) {
+                    SkFontMetrics metrics;
+                    run.font.getMetrics(&metrics);
+                    // Adjust baseline to align with surrounding vertical text.
+                    // A shift of ~12% of em-size is a common offset between 
+                    // alphabetic and ideographic baselines.
+                    float run_baselineY = (float)fi->desc.size * 0.12f;
                     for (int i = 0; i < run.count; ++i) {
                         float px = -(float)shaped.width / 2.0f + run.positions[i].fX;
-                        float py = run.positions[i].fY;
+                        float py = run_baselineY + run.positions[i].fY;
                         tagging_ctx.drawGlyph(run.font, run.glyphs[i], px, py, 0, paint);
                     }
                 }
@@ -344,7 +350,10 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 canvas->translate(centerX, runY);
                 canvas->scale(scale, 1.0f);
 
-                canvas->drawTextBlob(shaped.blob, -(float)shaped.width / 2.0f, 0, paint);
+                SkFontMetrics metrics;
+                analysis.chars[start].font.getMetrics(&metrics);
+                float run_baselineY = (float)fi->desc.size * 0.12f;
+                canvas->drawTextBlob(shaped.blob, -(float)shaped.width / 2.0f, run_baselineY, paint);
             } else if (is_vertical) {
                 TextGeometry geom(mode, pos, fi);
                 SkTextBlobBuilder builder;

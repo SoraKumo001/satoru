@@ -153,6 +153,8 @@ void UnicodeService::clearCache() {}
 
 char32_t UnicodeService::getVerticalSubstitution(char32_t u) const {
     switch (u) {
+        case 0x2015:
+            return 0x2014; // Horizontal bar -> Em dash (more common)
         case 0x2014:
             return 0xFE31;
         case 0x3008:
@@ -195,6 +197,7 @@ char32_t UnicodeService::getVerticalSubstitution(char32_t u) const {
 }
 
 bool UnicodeService::isVerticalUpright(char32_t u) const {
+    if (u == 0x2014 || u == 0x2015) return false; // Dashes must be rotated if not substituted
     if (u >= 0x2E80 && u <= 0x2EFF) return true;
     if (u >= 0x2F00 && u <= 0x2FDF) return true;
     if (u >= 0x2FF0 && u <= 0x2FFF) return true;
@@ -223,6 +226,7 @@ bool UnicodeService::isVerticalUpright(char32_t u) const {
 
 bool UnicodeService::isVerticalPunctuation(char32_t u) const {
     if (u == 0x3001 || u == 0x3002 || u == 0xFF0C || u == 0xFF0E) return true;
+    if (u == 0x2015) return true; // Horizontal bar
     // Original Japanese brackets and punctuation (3008-3011, 3014-3015 etc)
     if (u >= 0x3008 && u <= 0x3011) return true;
     if (u >= 0x3014 && u <= 0x301B) return true;

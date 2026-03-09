@@ -218,7 +218,7 @@ void litehtml::line_box::add_item(std::unique_ptr<line_box_item> item)
 		}
 		else
 		{
-			item->place_to(0, m_block_pos + m_inline_size);
+			item->place_to(m_inline_pos, m_block_pos + m_inline_size);
             pixel_t item_inline_size = item->get_el()->height();
 			m_inline_size += item_inline_size;
 			m_block_size = std::max(m_block_size, item->get_el()->width());

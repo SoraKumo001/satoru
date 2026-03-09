@@ -20,14 +20,8 @@ GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_
 
             if (is_punctuation) {
                 float shift = font_size * 0.58f;
-                if (m_mode == litehtml::writing_mode_vertical_rl) {
-                    placement.x += shift;
-                    placement.y =
-                        (float)m_line_pos.y + inline_offset + block_offset - font_size * 0.5f;
-                } else {
-                    placement.x -= shift;
-                    placement.y = (float)m_line_pos.y + inline_offset + block_offset;
-                }
+                placement.y = (float)m_line_pos.y + inline_offset + block_offset - font_size * 0.5f;
+                placement.x += shift;
             } else {
                 placement.y = (float)m_line_pos.y + inline_offset + block_offset;
             }

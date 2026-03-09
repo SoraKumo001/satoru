@@ -222,7 +222,10 @@ bool UnicodeService::isVerticalUpright(char32_t u) const {
 }
 
 bool UnicodeService::isVerticalPunctuation(char32_t u) const {
-    return u == 0x3001 || u == 0x3002 || u == 0xFF0C || u == 0xFF0E;
+    if (u == 0x3001 || u == 0x3002 || u == 0xFF0C || u == 0xFF0E) return true;
+    // Vertical presentation forms for brackets and punctuation (FE30-FE4F)
+    if (u >= 0xFE30 && u <= 0xFE4F) return true;
+    return false;
 }
 
 }  // namespace satoru

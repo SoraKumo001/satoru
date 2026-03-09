@@ -92,7 +92,10 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
 				m_pos.height = m_line_boxes.back()->bottom() - m_line_boxes.back()->bottom_margin();
 			else
             {
-				m_pos.width = m_line_boxes.front()->right() - m_line_boxes.back()->left();
+                if (self_size.mode == writing_mode_vertical_rl || self_size.mode == writing_mode_sideways_rl)
+				    m_pos.width = m_line_boxes.front()->right() - m_line_boxes.back()->left();
+                else
+                    m_pos.width = m_line_boxes.back()->right() - m_line_boxes.front()->left();
                 m_pos.height = m_max_line_width;
             }
         }
@@ -102,7 +105,10 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
 				m_pos.height = m_line_boxes.back()->bottom();
 			else
             {
-				m_pos.width = m_line_boxes.front()->right() - m_line_boxes.back()->left();
+                if (self_size.mode == writing_mode_vertical_rl || self_size.mode == writing_mode_sideways_rl)
+				    m_pos.width = m_line_boxes.front()->right() - m_line_boxes.back()->left();
+                else
+                    m_pos.width = m_line_boxes.back()->right() - m_line_boxes.front()->left();
                 m_pos.height = m_max_line_width;
                 
                 // Shift lines for vertical-rl to fit into the new width
@@ -246,7 +252,10 @@ litehtml::pixel_t litehtml::render_item_inline_context::new_box(const std::uniqu
 		}
 		else
 		{
-			line_ctx.left = m_line_boxes.back()->left();
+			if (self_size.mode == writing_mode_vertical_rl || self_size.mode == writing_mode_sideways_rl)
+				line_ctx.left = m_line_boxes.back()->left();
+			else
+				line_ctx.left = m_line_boxes.back()->right();
 		}
 		line_ctx.right = self_size.render_inline_size();
 	}

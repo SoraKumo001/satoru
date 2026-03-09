@@ -19,23 +19,43 @@ namespace {
 class WidthProxyRunHandler : public SkShaper::RunHandler {
    public:
     WidthProxyRunHandler(SkShaper::RunHandler* inner, ShapedResult& result,
-                         litehtml::writing_mode mode, float letter_spacing, float word_spacing)
+                         litehtml::writing_mode mode, float letter_spacing, float word_spacing,
+                         const TextAnalysis& analysis)
         : fInner(inner),
           fResult(result),
           fMode(mode),
           fLetterSpacing(letter_spacing),
-          fWordSpacing(word_spacing) {
+          fWordSpacing(word_spacing),
+          fAnalysis(analysis) {
         fResult.width = 0;
     }
     void beginLine() override {
         if (fInner) fInner->beginLine();
     }
     void runInfo(const SkShaper::RunHandler::RunInfo& info) override {
-        fResult.width += info.fAdvance.fX;
-        // Basic spacing calculation: add letter-spacing for each glyph
-        // and word-spacing if the run is potentially a space run.
-        // (For complex cases, this needs to be per-glyph in commitRunBuffer)
-        fResult.width += info.glyphCount * fLetterSpacing;
+        bool is_vertical = (fMode == litehtml::writing_mode_vertical_rl ||
+                            fMode == litehtml::writing_mode_vertical_lr);
+        bool is_upright = false;
+        if (is_vertical && info.utf8Range.fSize > 0) {
+            // Find the character analysis for this run. Since runs are split by upright status,
+            // we can just check the first character of the run.
+            for (const auto& ca : fAnalysis.chars) {
+                if (ca.offset >= info.utf8Range.fBegin &&
+                    ca.offset < info.utf8Range.fBegin + info.utf8Range.fSize) {
+                    is_upright = ca.is_vertical_upright;
+                    break;
+                }
+            }
+        }
+
+        if (is_upright) {
+            float font_size = info.fFont.getSize();
+            fResult.width += info.glyphCount * (font_size + fLetterSpacing);
+        } else {
+            fResult.width += info.fAdvance.fX;
+            fResult.width += info.glyphCount * fLetterSpacing;
+        }
+
         if (fInner) fInner->runInfo(info);
     }
     void commitRunInfo() override {
@@ -49,6 +69,27 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
         return {nullptr, nullptr, nullptr, nullptr, {0, 0}};
     }
     void commitRunBuffer(const SkShaper::RunHandler::RunInfo& info) override {
+        bool is_vertical = (fMode == litehtml::writing_mode_vertical_rl ||
+                            fMode == litehtml::writing_mode_vertical_lr);
+        bool is_upright = false;
+        if (is_vertical && info.utf8Range.fSize > 0) {
+            for (const auto& ca : fAnalysis.chars) {
+                if (ca.offset >= info.utf8Range.fBegin &&
+                    ca.offset < info.utf8Range.fBegin + info.utf8Range.fSize) {
+                    is_upright = ca.is_vertical_upright;
+                    break;
+                }
+            }
+        }
+
+        if (is_upright && fCurrentBuffer.positions) {
+            float font_size = info.fFont.getSize();
+            for (size_t i = 0; i < info.glyphCount; ++i) {
+                fCurrentBuffer.positions[i].fX = i * (font_size + fLetterSpacing);
+                fCurrentBuffer.positions[i].fY = 0;
+            }
+        }
+
         if (fInner) {
             // Coordinate swap for vertical text will be handled by TextRenderer
             // using logical-to-physical mapping. We avoid low-level swapping here.
@@ -65,6 +106,7 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
     litehtml::writing_mode fMode;
     float fLetterSpacing;
     float fWordSpacing;
+    const TextAnalysis& fAnalysis;
     SkShaper::RunHandler::Buffer fCurrentBuffer;
 };
 
@@ -76,28 +118,66 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
         float advance;
     };
 
-    OffsetWidthRunHandler(litehtml::writing_mode mode, float letter_spacing, float word_spacing)
-        : fWidth(0), fMode(mode), fLetterSpacing(letter_spacing), fWordSpacing(word_spacing) {}
+    OffsetWidthRunHandler(litehtml::writing_mode mode, float letter_spacing, float word_spacing,
+                          const TextAnalysis& analysis)
+        : fWidth(0),
+          fMode(mode),
+          fLetterSpacing(letter_spacing),
+          fWordSpacing(word_spacing),
+          fAnalysis(analysis) {}
     void beginLine() override {}
     void runInfo(const RunInfo& info) override {
-        fWidth += info.fAdvance.fX + (info.glyphCount * fLetterSpacing);
+        bool is_vertical = (fMode == litehtml::writing_mode_vertical_rl ||
+                            fMode == litehtml::writing_mode_vertical_lr);
+        bool is_upright = false;
+        if (is_vertical && info.utf8Range.fSize > 0) {
+            for (const auto& ca : fAnalysis.chars) {
+                if (ca.offset >= info.utf8Range.fBegin &&
+                    ca.offset < info.utf8Range.fBegin + info.utf8Range.fSize) {
+                    is_upright = ca.is_vertical_upright;
+                    break;
+                }
+            }
+        }
+
+        if (is_upright) {
+            float font_size = info.fFont.getSize();
+            fWidth += info.glyphCount * (font_size + fLetterSpacing);
+        } else {
+            fWidth += info.fAdvance.fX + (info.glyphCount * fLetterSpacing);
+        }
     }
     void commitRunInfo() override {}
     Buffer runBuffer(const RunInfo& info) override {
         fCurrentRunOffsets.resize(info.glyphCount);
         fCurrentRunPositions.resize(info.glyphCount + 1);
+        fCurrentFontSize = info.fFont.getSize();
         return {nullptr, fCurrentRunPositions.data(), nullptr, fCurrentRunOffsets.data(), {0, 0}};
     }
     void commitRunBuffer(const RunInfo& info) override {
+        bool is_vertical = (fMode == litehtml::writing_mode_vertical_rl ||
+                            fMode == litehtml::writing_mode_vertical_lr);
+
         for (size_t i = 0; i < info.glyphCount; ++i) {
-            float advance = std::abs(fCurrentRunPositions[i + 1].fX - fCurrentRunPositions[i].fX);
-            advance += fLetterSpacing;
-            // Check for space (rudimentary word-spacing)
-            if (fGlyphs.size() > 0 && fCurrentRunOffsets[i] > 0) {
-                // If the character at this offset is a space, add word-spacing
-                // (This requires access to the text string, which we have in measureText)
+            bool is_upright = false;
+            if (is_vertical) {
+                for (const auto& ca : fAnalysis.chars) {
+                    if (ca.offset == fCurrentRunOffsets[i]) {
+                        is_upright = ca.is_vertical_upright;
+                        break;
+                    }
+                }
             }
-            fGlyphs.push_back({fCurrentRunOffsets[i], advance});
+
+            float advance;
+            if (is_upright) {
+                advance = fCurrentFontSize + fLetterSpacing;
+            } else {
+                advance = std::abs(fCurrentRunPositions[i + 1].fX - fCurrentRunPositions[i].fX);
+                advance += fLetterSpacing;
+            }
+
+            fGlyphs.push_back({(size_t)fCurrentRunOffsets[i], advance});
         }
     }
     void commitLine() override {}
@@ -116,6 +196,8 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
     litehtml::writing_mode fMode;
     float fLetterSpacing;
     float fWordSpacing;
+    const TextAnalysis& fAnalysis;
+    float fCurrentFontSize;
     std::vector<uint32_t> fCurrentRunOffsets;
     std::vector<SkPoint> fCurrentRunPositions;
     std::vector<GlyphInfo> fGlyphs;
@@ -192,7 +274,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     }
 
     OffsetWidthRunHandler handler(mode, (float)fi->desc.letter_spacing,
-                                  (float)fi->desc.word_spacing);
+                                  (float)fi->desc.word_spacing, analysis);
     SatoruFontRunIterator fontRuns(charFonts);
     uint8_t itemLevel = analysis.bidi_level;
     std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
@@ -370,7 +452,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
 
     SkTextBlobBuilderRunHandler blobHandler(shape_text, {0, 0});
     WidthProxyRunHandler handler(&blobHandler, result, mode, (float)fi->desc.letter_spacing,
-                                 (float)fi->desc.word_spacing);
+                                 (float)fi->desc.word_spacing, analysis);
 
     SatoruFontRunIterator fontRuns(charFonts);
     uint8_t itemLevel = analysis.bidi_level;

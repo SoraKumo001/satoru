@@ -14,6 +14,7 @@
 #include "include/core/SkBlurTypes.h"
 #include "include/core/SkColorSpace.h"
 #include "include/core/SkFont.h"
+#include "include/core/SkFontMetrics.h"
 #include "include/core/SkMaskFilter.h"
 #include "include/core/SkPaint.h"
 #include "include/core/SkTextBlob.h"
@@ -274,7 +275,6 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             SkTextBlob::Iter it(*shaped.blob);
             SkTextBlob::Iter::ExperimentalRun run;
             TaggingContext tagging_ctx(canvas, usedGlyphs, usedGlyphDraws, styleTag, styleIndex);
-            TextGeometry geom(mode, pos, fi);
 
             canvas->save();
             if (is_run_combine) {
@@ -286,17 +286,24 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 float runY = (float)pos.y + (float)current_l_pos.inline_offset;
                 canvas->translate(centerX, runY);
                 canvas->scale(scale, 1.0f);
-                canvas->translate(-centerX, -runY);
-            }
 
-            while (it.experimentalNext(&run)) {
-                float logical_run_start = (float)current_l_pos.inline_offset;
-
-                for (int i = 0; i < run.count; ++i) {
-                    auto p = geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
-                                                    run.positions[i].fY, is_upright, is_punctuation,
-                                                    run.font);
-                    tagging_ctx.drawGlyph(run.font, run.glyphs[i], p.x, p.y, p.rotation, paint);
+                while (it.experimentalNext(&run)) {
+                    for (int i = 0; i < run.count; ++i) {
+                        float px = -(float)shaped.width / 2.0f + run.positions[i].fX;
+                        float py = run.positions[i].fY;
+                        tagging_ctx.drawGlyph(run.font, run.glyphs[i], px, py, 0, paint);
+                    }
+                }
+            } else {
+                TextGeometry geom(mode, pos, fi);
+                while (it.experimentalNext(&run)) {
+                    float logical_run_start = (float)current_l_pos.inline_offset;
+                    for (int i = 0; i < run.count; ++i) {
+                        auto p = geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
+                                                        run.positions[i].fY, is_upright,
+                                                        is_punctuation, run.font);
+                        tagging_ctx.drawGlyph(run.font, run.glyphs[i], p.x, p.y, p.rotation, paint);
+                    }
                 }
             }
             canvas->restore();
@@ -336,10 +343,9 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 float runY = (float)pos.y + (float)current_l_pos.inline_offset;
                 canvas->translate(centerX, runY);
                 canvas->scale(scale, 1.0f);
-                canvas->translate(-centerX, -runY);
-            }
 
-            if (is_vertical) {
+                canvas->drawTextBlob(shaped.blob, -(float)shaped.width / 2.0f, 0, paint);
+            } else if (is_vertical) {
                 TextGeometry geom(mode, pos, fi);
                 SkTextBlobBuilder builder;
                 SkTextBlob::Iter it(*shaped.blob);
@@ -377,8 +383,13 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             canvas->restore();
         }
 
-        current_l_pos.inline_offset += shaped.width;
-        total_advance += shaped.width;
+        if (is_run_combine) {
+            current_l_pos.inline_offset += fi->desc.size;
+            total_advance += fi->desc.size;
+        } else {
+            current_l_pos.inline_offset += shaped.width;
+            total_advance += shaped.width;
+        }
         start = end;
     }
 

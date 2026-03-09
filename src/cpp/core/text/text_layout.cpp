@@ -358,8 +358,25 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
         ca.codepoint = unicode.decodeUtf8(&p);
         size_t original_len = p - prev_p;
 
+        ca.font = ctx->fontManager.selectFont(ca.codepoint, fi,
+                                              has_last_font ? &last_font : nullptr, unicode);
+
         if (mode != litehtml::writing_mode_horizontal_tb) {
-            ca.codepoint = unicode.getVerticalSubstitution(ca.codepoint);
+            char32_t substituted = unicode.getVerticalSubstitution(ca.codepoint);
+            if (substituted != ca.codepoint) {
+                // Check if the current font or ANY fallback font supports the substituted codepoint
+                bool supported = false;
+                for (auto f : fi->fonts) {
+                    if (f->getTypeface()->unicharToGlyph(substituted) != 0) {
+                        supported = true;
+                        ca.font = *f; // Switch to the font that supports it
+                        break;
+                    }
+                }
+                if (supported) {
+                    ca.codepoint = substituted;
+                }
+            }
         }
 
         if (usedCodepoints) usedCodepoints->insert(ca.codepoint);
@@ -392,8 +409,6 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
             }
         }
 
-        ca.font = ctx->fontManager.selectFont(ca.codepoint, fi,
-                                              has_last_font ? &last_font : nullptr, unicode);
         last_font = ca.font;
         has_last_font = true;
 

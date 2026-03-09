@@ -223,6 +223,12 @@ bool UnicodeService::isVerticalUpright(char32_t u) const {
 
 bool UnicodeService::isVerticalPunctuation(char32_t u) const {
     if (u == 0x3001 || u == 0x3002 || u == 0xFF0C || u == 0xFF0E) return true;
+    // Original Japanese brackets and punctuation (3008-3011, 3014-3015 etc)
+    if (u >= 0x3008 && u <= 0x3011) return true;
+    if (u >= 0x3014 && u <= 0x301B) return true;
+    if (u == 0x30FC) return true; // Prolonged sound mark
+    // Full-width brackets
+    if (u == 0xFF08 || u == 0xFF09 || u == 0xFF3B || u == 0xFF3D || u == 0xFF5B || u == 0xFF5D) return true;
     // Vertical presentation forms for brackets and punctuation (FE30-FE4F)
     if (u >= 0xFE30 && u <= 0xFE4F) return true;
     return false;

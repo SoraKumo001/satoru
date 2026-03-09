@@ -17,6 +17,7 @@ struct CharFont {
     SkFont font;
     bool is_vertical_upright;
     bool is_vertical_punctuation;
+    bool is_substitution_failed;
 };
 
 struct MeasureResult {
@@ -35,6 +36,7 @@ struct TextCharAnalysis {
     bool is_mark;
     bool is_vertical_upright;
     bool is_vertical_punctuation;
+    bool is_substitution_failed;
 };
 
 struct TextAnalysis {

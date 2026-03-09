@@ -265,11 +265,12 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     for (const auto& ca : analysis.chars) {
         if (!charFonts.empty() && charFonts.back().font == ca.font &&
             charFonts.back().is_vertical_upright == ca.is_vertical_upright &&
-            charFonts.back().is_vertical_punctuation == ca.is_vertical_punctuation) {
+            charFonts.back().is_vertical_punctuation == ca.is_vertical_punctuation &&
+            charFonts.back().is_substitution_failed == ca.is_substitution_failed) {
             charFonts.back().len += ca.len;
         } else {
-            charFonts.push_back(
-                {ca.len, ca.font, ca.is_vertical_upright, ca.is_vertical_punctuation});
+            charFonts.push_back({ca.len, ca.font, ca.is_vertical_upright, ca.is_vertical_punctuation,
+                                 ca.is_substitution_failed});
         }
     }
 
@@ -361,6 +362,7 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
         ca.font = ctx->fontManager.selectFont(ca.codepoint, fi,
                                               has_last_font ? &last_font : nullptr, unicode);
 
+        ca.is_substitution_failed = false;
         if (mode != litehtml::writing_mode_horizontal_tb) {
             char32_t substituted = unicode.getVerticalSubstitution(ca.codepoint);
             if (substituted != ca.codepoint) {
@@ -375,6 +377,8 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
                 }
                 if (supported) {
                     ca.codepoint = substituted;
+                } else {
+                    ca.is_substitution_failed = true;
                 }
             }
         }
@@ -397,15 +401,23 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
             if (fi->desc.text_combine_upright == litehtml::text_combine_upright_all) {
                 ca.is_vertical_upright = true;
             } else if (fi->desc.orientation == litehtml::text_orientation_upright) {
-                ca.is_vertical_upright = true;
+                // For orientation: upright, characters are upright UNLESS substitution failed.
+                // If substitution failed (e.g. for brackets), we rotate it to make it look vertical.
+                ca.is_vertical_upright = !ca.is_substitution_failed;
             } else if (fi->desc.orientation == litehtml::text_orientation_sideways) {
                 ca.is_vertical_upright = false;
             } else {
                 // mixed mode
-                ca.is_vertical_upright = unicode.isVerticalUpright(ca.codepoint);
+                if (ca.is_substitution_failed) {
+                    ca.is_vertical_upright = false; // Force rotation if vertical variant missing
+                } else {
+                    ca.is_vertical_upright = unicode.isVerticalUpright(ca.codepoint);
+                }
             }
             if (ca.codepoint > 32) {
-                SATORU_LOG_INFO("DEBUG_LAYOUT: cp=%u, orient=%d, upright=%d", (unsigned int)ca.codepoint, (int)fi->desc.orientation, (int)ca.is_vertical_upright);
+                SATORU_LOG_INFO("DEBUG_LAYOUT: cp=%u, orient=%d, upright=%d, sub_fail=%d", 
+                                (unsigned int)ca.codepoint, (int)fi->desc.orientation, 
+                                (int)ca.is_vertical_upright, (int)ca.is_substitution_failed);
             }
         }
 
@@ -456,11 +468,12 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
     for (const auto& ca : analysis.chars) {
         if (!charFonts.empty() && charFonts.back().font == ca.font &&
             charFonts.back().is_vertical_upright == ca.is_vertical_upright &&
-            charFonts.back().is_vertical_punctuation == ca.is_vertical_punctuation) {
+            charFonts.back().is_vertical_punctuation == ca.is_vertical_punctuation &&
+            charFonts.back().is_substitution_failed == ca.is_substitution_failed) {
             charFonts.back().len += ca.len;
         } else {
-            charFonts.push_back(
-                {ca.len, ca.font, ca.is_vertical_upright, ca.is_vertical_punctuation});
+            charFonts.push_back({ca.len, ca.font, ca.is_vertical_upright, ca.is_vertical_punctuation,
+                                 ca.is_substitution_failed});
         }
     }
 

@@ -296,13 +296,13 @@ litehtml::pixel_t litehtml::render_item_block::_measure(const containing_block_c
 
 	// Set block-size
 	bool is_flex_item = parent() && (parent()->css().get_display() == display_flex || parent()->css().get_display() == display_inline_flex);
-	if (self_size.render_block_size().type != containing_block_context::cbc_value_type_auto &&
+	if (self_size.block_size().type != containing_block_context::cbc_value_type_auto &&
 	    (!(containing_block_size.size_mode & containing_block_context::size_mode_content) ||
       src_el()->css().get_display() == display_table_cell ||
       src_el()->css().get_position() == element_position_absolute ||
       src_el()->css().get_position() == element_position_fixed ||
-      self_size.render_block_size().type == containing_block_context::cbc_value_type_absolute ||
-      (!is_flex_item && self_size.render_block_size().type == containing_block_context::cbc_value_type_percentage && self_size.render_block_size().value > 0)))
+      self_size.block_size().type == containing_block_context::cbc_value_type_absolute ||
+      (!is_flex_item && self_size.block_size().type == containing_block_context::cbc_value_type_percentage && self_size.block_size().value > 0)))
 	{
         pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
 		if (src_el()->css().get_display() == display_table_cell)
@@ -332,12 +332,12 @@ litehtml::pixel_t litehtml::render_item_block::_measure(const containing_block_c
 	}
 	if(containing_block_size.size_mode & containing_block_context::size_mode_content)
 	{
-		if(self_size.render_block_size().type == containing_block_context::cbc_value_type_absolute)  
+		if(self_size.block_size().type == containing_block_context::cbc_value_type_absolute)  
 		{
             pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
-			if(physical_block_size > self_size.render_block_size())
+			if(physical_block_size > self_size.block_size())
 			{
-				physical_block_size = self_size.render_block_size();
+				physical_block_size = self_size.block_size();
 			}
 		}
 	}
@@ -443,13 +443,13 @@ void litehtml::render_item_block::_place(pixel_t inline_pos, pixel_t block_pos, 
 
 	// Set block-size
 	bool is_flex_item = parent() && (parent()->css().get_display() == display_flex || parent()->css().get_display() == display_inline_flex);
-	if (self_size.render_block_size().type != containing_block_context::cbc_value_type_auto &&
+	if (self_size.block_size().type != containing_block_context::cbc_value_type_auto &&
 	    (!(containing_block_size.size_mode & containing_block_context::size_mode_content) ||
       src_el()->css().get_display() == display_table_cell ||
       src_el()->css().get_position() == element_position_absolute ||
       src_el()->css().get_position() == element_position_fixed ||
-      self_size.render_block_size().type == containing_block_context::cbc_value_type_absolute ||
-      (!is_flex_item && self_size.render_block_size().type == containing_block_context::cbc_value_type_percentage && self_size.render_block_size().value > 0)))
+      self_size.block_size().type == containing_block_context::cbc_value_type_absolute ||
+      (!is_flex_item && self_size.block_size().type == containing_block_context::cbc_value_type_percentage && self_size.block_size().value > 0)))
 	{
         pixel_t& physical_block_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.height : m_pos.width;
 		if (src_el()->css().get_display() == display_table_cell)

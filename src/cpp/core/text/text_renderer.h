@@ -25,21 +25,30 @@ class TextBatcher {
         float line_width;
         bool is_vertical_upright;
         bool is_vertical_punctuation;
+        litehtml::text_combine_upright text_combine_upright;
 
         bool operator==(const Style& other) const {
             return fi == other.fi && color == other.color && opacity == other.opacity &&
                    tagging == other.tagging && mode == other.mode &&
                    line_width == other.line_width &&
                    is_vertical_upright == other.is_vertical_upright &&
-                   is_vertical_punctuation == other.is_vertical_punctuation;
+                   is_vertical_punctuation == other.is_vertical_punctuation &&
+                   text_combine_upright == other.text_combine_upright;
         }
         bool operator!=(const Style& other) const { return !(*this == other); }
     };
 
     TextBatcher(SatoruContext* ctx, SkCanvas* canvas)
         : m_ctx(ctx), m_canvas(canvas), m_active(false) {
-        m_currentStyle = {nullptr, {0, 0, 0, 0}, 0.0f, false, litehtml::writing_mode_horizontal_tb,
-                          0.0f,    true,         false};
+        m_currentStyle = {nullptr,
+                          {0, 0, 0, 0},
+                          0.0f,
+                          false,
+                          litehtml::writing_mode_horizontal_tb,
+                          0.0f,
+                          true,
+                          false,
+                          litehtml::text_combine_upright_none};
     }
 
     void addText(const sk_sp<SkTextBlob>& blob, double tx, double ty, const Style& style);

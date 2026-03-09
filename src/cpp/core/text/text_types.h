@@ -82,6 +82,7 @@ struct MeasureKey {
     double maxWidth;
     litehtml::writing_mode mode;
     litehtml::text_orientation orientation;
+    litehtml::text_combine_upright textCombineUpright;
     float letterSpacing;
     float wordSpacing;
 
@@ -89,7 +90,8 @@ struct MeasureKey {
         return font_size == other.font_size && font_weight == other.font_weight &&
                italic == other.italic && maxWidth == other.maxWidth &&
                font_family == other.font_family && text == other.text && mode == other.mode &&
-               orientation == other.orientation && letterSpacing == other.letterSpacing &&
+               orientation == other.orientation && textCombineUpright == other.textCombineUpright &&
+               letterSpacing == other.letterSpacing &&
                wordSpacing == other.wordSpacing;
     }
 };
@@ -104,6 +106,7 @@ struct MeasureKeyHash {
         h ^= std::hash<double>{}(k.maxWidth) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<int>{}(k.mode) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<int>{}(k.orientation) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<int>{}(k.textCombineUpright) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<float>{}(k.letterSpacing) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<float>{}(k.wordSpacing) + 0x9e3779b9 + (h << 6) + (h >> 2);
         return h;
@@ -124,6 +127,7 @@ struct ShapingKey {
     bool is_rtl;
     litehtml::writing_mode mode;
     litehtml::text_orientation orientation;
+    litehtml::text_combine_upright textCombineUpright;
     float letterSpacing;
     float wordSpacing;
 
@@ -131,7 +135,8 @@ struct ShapingKey {
         return font_size == other.font_size && font_weight == other.font_weight &&
                italic == other.italic && is_rtl == other.is_rtl &&
                font_family == other.font_family && text == other.text && mode == other.mode &&
-               orientation == other.orientation && letterSpacing == other.letterSpacing &&
+               orientation == other.orientation && textCombineUpright == other.textCombineUpright &&
+               letterSpacing == other.letterSpacing &&
                wordSpacing == other.wordSpacing;
     }
 };
@@ -146,6 +151,7 @@ struct ShapingKeyHash {
         h ^= std::hash<bool>{}(k.is_rtl) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<int>{}(k.mode) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<int>{}(k.orientation) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<int>{}(k.textCombineUpright) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<float>{}(k.letterSpacing) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<float>{}(k.wordSpacing) + 0x9e3779b9 + (h << 6) + (h >> 2);
         return h;

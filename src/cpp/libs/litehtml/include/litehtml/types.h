@@ -901,6 +901,14 @@ namespace litehtml
 				text_orientation_sideways
 		};
 
+#define text_combine_upright_strings	"none;all"
+
+		enum text_combine_upright
+		{
+				text_combine_upright_none,
+				text_combine_upright_all
+		};
+
 #define text_transform_strings          "none;capitalize;uppercase;lowercase"
 
         enum text_transform

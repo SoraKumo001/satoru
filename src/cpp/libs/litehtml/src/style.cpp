@@ -85,6 +85,7 @@ namespace litehtml
           {_text_decoration_style_, style_text_decoration_style_strings},
           {_text_emphasis_position_, style_text_emphasis_position_strings},
           {_text_overflow_, text_overflow_strings},
+          {_text_combine_upright_, text_combine_upright_strings},
           {_container_type_, container_type_strings},
   };
   std::map<string_id, vector<string_id>> shorthands =
@@ -234,6 +235,7 @@ namespace litehtml
     case _text_transform_:
     case _white_space_:
     case _word_break_:
+    case _text_combine_upright_:
     case _overflow_wrap_:
     case _word_wrap_:
     case _font_style_:

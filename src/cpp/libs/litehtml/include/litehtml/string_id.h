@@ -325,6 +325,7 @@ namespace litehtml
       _direction_,
       _writing_mode_,
       _text_orientation_,
+      _text_combine_upright_,
       _visibility_,
       _appearance_,
       _box_sizing_,

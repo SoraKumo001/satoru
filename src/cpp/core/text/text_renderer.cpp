@@ -105,6 +105,17 @@ void TextBatcher::flush() {
         }
     }
     m_active = false;
+
+    // Reset current style to avoid using stale values in the next run
+    m_currentStyle = {nullptr,
+                      {0, 0, 0, 0},
+                      0.0f,
+                      false,
+                      litehtml::writing_mode_horizontal_tb,
+                      0.0f,
+                      true,
+                      false,
+                      litehtml::text_combine_upright_none};
 }
 
 void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* text, font_info* fi,
@@ -231,6 +242,14 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             analysis.chars[end].is_vertical_upright == analysis.chars[start].is_vertical_upright &&
             analysis.chars[end].is_vertical_punctuation ==
                 analysis.chars[start].is_vertical_punctuation) {
+            
+            // If text-combine-upright: all is used, we only want to combine characters 
+            // that are part of the same text-combine run. 
+            // In litehtml, a <span> with a property usually creates a separate element, 
+            // and thus a separate draw_text call. 
+            // However, analyzeText might have analyzed across multiple elements if not handled carefully.
+            // For now, let's assume one draw_text call corresponds to one text-combine group if it's set on the element.
+            
             end++;
         }
 
@@ -246,12 +265,29 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             continue;
         }
 
+        bool is_run_combine =
+            (is_vertical && is_upright &&
+             fi->desc.text_combine_upright == litehtml::text_combine_upright_all);
+
         if (tagging) {
             if (batcher) batcher->flush();
             SkTextBlob::Iter it(*shaped.blob);
             SkTextBlob::Iter::ExperimentalRun run;
             TaggingContext tagging_ctx(canvas, usedGlyphs, usedGlyphDraws, styleTag, styleIndex);
             TextGeometry geom(mode, pos, fi);
+
+            canvas->save();
+            if (is_run_combine) {
+                float scale = 1.0f;
+                if (shaped.width > pos.width && pos.width > 0) {
+                    scale = (float)pos.width / (float)shaped.width;
+                }
+                float centerX = (float)pos.x + (float)pos.width / 2.0f;
+                float runY = (float)pos.y + (float)current_l_pos.inline_offset;
+                canvas->translate(centerX, runY);
+                canvas->scale(scale, 1.0f);
+                canvas->translate(-centerX, -runY);
+            }
 
             while (it.experimentalNext(&run)) {
                 float logical_run_start = (float)current_l_pos.inline_offset;
@@ -263,8 +299,10 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                     tagging_ctx.drawGlyph(run.font, run.glyphs[i], p.x, p.y, p.rotation, paint);
                 }
             }
+            canvas->restore();
         } else if (batcher && fi->desc.text_shadow.empty() &&
-                   fi->desc.decoration_line == litehtml::text_decoration_line_none) {
+                   fi->desc.decoration_line == litehtml::text_decoration_line_none &&
+                   !is_run_combine) {
             TextBatcher::Style style;
             style.fi = fi;
             SkColor c = paint.getColor();
@@ -276,6 +314,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             style.line_width = is_vertical ? (float)pos.width : (float)pos.height;
             style.is_vertical_upright = is_upright;
             style.is_vertical_punctuation = is_punctuation;
+            style.text_combine_upright = fi->desc.text_combine_upright;
 
             if (is_vertical) {
                 batcher->addText(shaped.blob, (double)pos.x,
@@ -287,6 +326,19 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
         } else {
             if (batcher) batcher->flush();
             canvas->save();
+
+            if (is_run_combine) {
+                float scale = 1.0f;
+                if (shaped.width > pos.width && pos.width > 0) {
+                    scale = (float)pos.width / (float)shaped.width;
+                }
+                float centerX = (float)pos.x + (float)pos.width / 2.0f;
+                float runY = (float)pos.y + (float)current_l_pos.inline_offset;
+                canvas->translate(centerX, runY);
+                canvas->scale(scale, 1.0f);
+                canvas->translate(-centerX, -runY);
+            }
+
             if (is_vertical) {
                 TextGeometry geom(mode, pos, fi);
                 SkTextBlobBuilder builder;

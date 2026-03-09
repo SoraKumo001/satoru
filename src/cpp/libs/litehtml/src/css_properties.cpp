@@ -18,6 +18,7 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   m_direction = (direction)el->get_property<int>(_direction_, true, direction_ltr, offset(m_direction));
   m_writing_mode = (writing_mode)el->get_property<int>(_writing_mode_, true, writing_mode_horizontal_tb, offset(m_writing_mode));
   m_text_orientation = (text_orientation)el->get_property<int>(_text_orientation_, true, text_orientation_mixed, offset(m_text_orientation));
+  m_text_combine_upright = (text_combine_upright)el->get_property<int>(_text_combine_upright_, true, text_combine_upright_none, offset(m_text_combine_upright));
   
   m_display = (style_display)el->get_property<int>(_display_, false, display_inline, offset(m_display));
   m_visibility = (visibility)el->get_property<int>(_visibility_, true, visibility_visible, offset(m_visibility));
@@ -660,6 +661,7 @@ void litehtml::css_properties::compute_font(const element *el, const document::p
   descr.emphasis_color = m_text_emphasis_color;
   descr.emphasis_position = m_text_emphasis_position;
   descr.orientation = m_text_orientation;
+  descr.text_combine_upright = m_text_combine_upright;
   descr.letter_spacing = m_letter_spacing.is_predefined() ? 0 : m_letter_spacing.val();
   descr.word_spacing = m_word_spacing.is_predefined() ? 0 : m_word_spacing.val();
   descr.text_shadow = m_text_shadow;
@@ -899,6 +901,7 @@ std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_proper
   ret.emplace_back("direction", index_value(m_direction, direction_strings));
   ret.emplace_back("writing_mode", index_value(m_writing_mode, writing_mode_strings));
   ret.emplace_back("text_orientation", index_value(m_text_orientation, text_orientation_strings));
+  ret.emplace_back("text_combine_upright", index_value(m_text_combine_upright, text_combine_upright_strings));
   ret.emplace_back("el_position", index_value(m_el_position, element_position_strings));
   ret.emplace_back("text_align", index_value(m_text_align, text_align_strings));
   ret.emplace_back("font_size", m_font_size.to_string());

@@ -34,6 +34,7 @@ namespace litehtml
     direction m_direction;
     writing_mode m_writing_mode;
     text_orientation m_text_orientation;
+    text_combine_upright m_text_combine_upright;
     text_align m_text_align;
     overflow m_overflow;
     text_overflow m_text_overflow;
@@ -159,6 +160,7 @@ namespace litehtml
                        m_direction(direction_ltr),
                        m_writing_mode(writing_mode_horizontal_tb),
                        m_text_orientation(text_orientation_mixed),
+                       m_text_combine_upright(text_combine_upright_none),
                        m_text_align(text_align_start),
                        m_overflow(overflow_visible),
                        m_text_overflow(text_overflow_clip),
@@ -245,6 +247,9 @@ namespace litehtml
 
     text_orientation get_text_orientation() const;
     void set_text_orientation(text_orientation mTextOrientation);
+
+    text_combine_upright get_text_combine_upright() const;
+    void set_text_combine_upright(text_combine_upright val);
 
     text_align get_text_align() const;
     void set_text_align(text_align mTextAlign);
@@ -505,6 +510,16 @@ namespace litehtml
   inline void css_properties::set_text_orientation(text_orientation mTextOrientation)
   {
     m_text_orientation = mTextOrientation;
+  }
+
+  inline text_combine_upright css_properties::get_text_combine_upright() const
+  {
+    return m_text_combine_upright;
+  }
+
+  inline void css_properties::set_text_combine_upright(text_combine_upright val)
+  {
+    m_text_combine_upright = val;
   }
 
   inline text_align css_properties::get_text_align() const

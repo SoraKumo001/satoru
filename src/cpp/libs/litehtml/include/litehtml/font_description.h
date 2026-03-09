@@ -24,6 +24,7 @@ namespace litehtml
     web_color emphasis_color = web_color::current_color;                  // Text emphasis color
     int emphasis_position = text_emphasis_position_over;
     text_orientation orientation = text_orientation_mixed;
+    text_combine_upright text_combine_upright = text_combine_upright_none;
     pixel_t letter_spacing = 0;
     pixel_t word_spacing = 0;
     shadow_vector text_shadow;
@@ -44,6 +45,7 @@ namespace litehtml
       out += ":ephc=" + emphasis_color.to_string();
       out += ":ephp=" + std::to_string(emphasis_position);
       out += ":or=" + std::to_string(orientation);
+      out += ":tcu=" + std::to_string(text_combine_upright);
       out += ":ls=" + std::to_string(letter_spacing);
       out += ":ws=" + std::to_string(word_spacing);
       for(const auto& s : text_shadow)

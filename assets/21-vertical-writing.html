@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Vertical Writing Test</title>
+  <style>
+    @font-face {
+      font-family: 'Roboto';
+      src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2') format('woff2');
+    }
+
+    @font-face {
+      font-family: 'Noto Sans JP';
+      font-style: normal;
+      font-weight: 400;
+      src: url(https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2) format('woff2');
+    }
+
+    body {
+      font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+      padding: 30px;
+      line-height: 1.6;
+      background: #f9fafb;
+    }
+
+    .section {
+      margin-bottom: 30px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+
+    h1 {
+      margin-top: 0;
+      border-bottom: 2px solid #10b981;
+      padding-bottom: 5px;
+    }
+
+    h2 {
+      font-size: 18px;
+      color: #4b5563;
+      margin-bottom: 15px;
+      border-left: 4px solid #10b981;
+      padding-left: 10px;
+    }
+
+    .vertical-container {
+      border: 1px solid #d1d5db;
+      padding: 15px;
+      background: #f3f4f6;
+      height: 400px;
+    }
+
+    .v-rl {
+      writing-mode: vertical-rl;
+    }
+
+    .v-lr {
+      writing-mode: vertical-lr;
+    }
+
+    .box {
+      border: 1px solid #3b82f6;
+      padding: 10px;
+      margin: 10px;
+      background: white;
+    }
+
+    .text-combine {
+        text-combine-upright: all;
+    }
+
+    .flex-v {
+        display: flex;
+        gap: 10px;
+        height: 300px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Vertical Writing Layout Test</h1>
+
+  <div class="section">
+    <h2>1. writing-mode: vertical-rl (Right to Left)</h2>
+    <div class="vertical-container v-rl">
+      <div class="box">
+        <h3>吾輩は猫である</h3>
+        <p>
+          吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。
+          何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。
+          吾輩はここで始めて人間というものを見た。しかもあとで聞くとそれは書生という人間中で一番獰悪な種族であったそうだ。
+        </p>
+      </div>
+      <div class="box">
+        <h3>句読点と括弧のテスト</h3>
+        <p>
+          「こんにちは！」、彼は言った。
+          （これはカッコのテストです。）
+          …三点リーダーの向きはどうでしょうか？
+          ― ダッシュの向きも確認。
+        </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>2. writing-mode: vertical-lr (Left to Right)</h2>
+    <div class="vertical-container v-lr">
+      <div class="box">
+          縦書き（左から右へ流れる）のテストです。
+          通常、日本の縦書きは右から左ですが、CSSでは左からも可能です。
+      </div>
+      <div class="box">
+          ABC-123 English in Vertical Text.
+          Rotated English text should appear here.
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>3. Text Orientation & Combination</h2>
+    <div class="vertical-container v-rl" style="height: 200px;">
+        <p>
+            数字の縦中横： <span class="text-combine">21</span> 世紀<br>
+            日付のテスト： <span class="text-combine">2024</span>年<span class="text-combine">12</span>月<span class="text-combine">31</span>日
+        </p>
+        <p style="text-orientation: upright;">
+            UPRIGHT: English text should stay upright.
+        </p>
+    </div>
+  </div>
+
+  <div class="section">
+      <h2>4. Vertical Flexbox</h2>
+      <div class="flex-v">
+          <div class="box v-rl">
+              Flex Item 1 (Vertical RL)
+          </div>
+          <div class="box v-rl">
+              Flex Item 2 (Vertical RL)
+          </div>
+          <div class="box v-rl">
+              Flex Item 3 (Vertical RL)
+          </div>
+      </div>
+  </div>
+
+</body>
+
+</html>

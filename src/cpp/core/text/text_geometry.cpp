@@ -33,8 +33,7 @@ GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_
             }
         } else {
             placement.rotation = 90.0f;
-            float em_height = metrics.fDescent - metrics.fAscent;
-            float em_center = metrics.fAscent + em_height;
+            float em_center = (metrics.fAscent + metrics.fDescent) / 2.0f;
 
             placement.x = (float)m_line_pos.x + (float)m_line_pos.width / 2.0f - em_center;
             placement.y = (float)m_line_pos.y + inline_offset;

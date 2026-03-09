@@ -56,6 +56,12 @@ litehtml::pixel_t litehtml::render_item::measure(
         measured_size = _measure(containing_block_size, fmt_ctx);
     }
 
+    // Update self_size with actual measured dimensions
+    m_self_size.width = m_pos.width;
+    m_self_size.height = m_pos.height;
+    m_self_size.render_width = m_pos.width;
+    m_self_size.render_height = m_pos.height;
+
     // Container Queries Support: Detect size change and trigger restyle
     if (css().get_container_type() != container_type_none) {
         pixel_t current_w = m_pos.width - m_padding.width() - m_borders.width();

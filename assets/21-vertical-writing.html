@@ -77,6 +77,14 @@
         gap: 10px;
         height: 300px;
     }
+
+    .center-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+    }
   </style>
 </head>
 
@@ -145,6 +153,28 @@
               Flex Item 3 (Vertical RL)
           </div>
       </div>
+  </div>
+
+  <div class="section">
+    <h2>5. Vertical Writing Centering</h2>
+    <div class="center-container v-rl" style="height: 300px;">
+      <div class="box">
+        <h3>中央揃えのテスト</h3>
+        <p>
+          このテキストはコンテナの<br>
+          中央に配置されています。
+        </p>
+      </div>
+    </div>
+    <div class="center-container v-lr" style="height: 300px; margin-top: 20px;">
+      <div class="box">
+        <h3>Vertical LR Centering</h3>
+        <p>
+          Centering in vertical-lr mode.<br>
+          Left-to-right writing.
+        </p>
+      </div>
+    </div>
   </div>
 
 </body>

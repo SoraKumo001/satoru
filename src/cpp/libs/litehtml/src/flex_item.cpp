@@ -166,10 +166,11 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 		{
 			formatting_context fmt_ctx_copy;
 			if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-			min_main_size = el->measure(
+			el->measure(
 								  m_container_wm.is_vertical() ? self_size.new_height(content_offset, containing_block_context::size_mode_content | containing_block_context::size_mode_measure)
 															   : self_size.new_width(content_offset, containing_block_context::size_mode_content | containing_block_context::size_mode_measure),
 								  fmt_ctx ? &fmt_ctx_copy : nullptr);
+			min_main_size = get_el_main_size();
 			content_size = min_main_size;
 		} else
 		{
@@ -204,10 +205,11 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 				{
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-					flex_base_size = el->measure(
+					el->measure(
 						m_container_wm.is_vertical() ? self_size.new_height(self_size.height + content_offset, containing_block_context::size_mode_measure | containing_block_context::size_mode_content)
 													 : self_size.new_width(self_size.width + content_offset, containing_block_context::size_mode_measure | containing_block_context::size_mode_content),
 						fmt_ctx ? &fmt_ctx_copy : nullptr);
+					flex_base_size = get_el_main_size();
 				}
 				break;
 			case flex_basis_min_content:
@@ -215,10 +217,11 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 				{
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-					content_size = el->measure(
+					el->measure(
 						m_container_wm.is_vertical() ? self_size.new_height(content_offset, containing_block_context::size_mode_content | containing_block_context::size_mode_measure)
 													 : self_size.new_width(content_offset, containing_block_context::size_mode_content | containing_block_context::size_mode_measure),
 						fmt_ctx ? &fmt_ctx_copy : nullptr);
+					content_size = get_el_main_size();
 				}
 				flex_base_size = content_size;
 				break;

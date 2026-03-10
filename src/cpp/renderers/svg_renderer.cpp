@@ -1560,11 +1560,13 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
 static void dump_render_items_recursive(std::shared_ptr<litehtml::render_item> el, int depth) {
     if (!el) return;
     const char* tag = el->src_el()->get_tagName();
+    std::string classes = el->src_el()->get_attr("class", "");
+    std::string id = el->src_el()->get_attr("id", "");
     auto pos = el->pos();
     litehtml::position abs_pos = el->calc_placement(0, 0);
 
-    SATORU_LOG_INFO("RENDER_ITEM [%s] ABS_POS: x=%f, y=%f, w=%f, h=%f (depth=%d)",
-                    tag ? tag : "text/anon", (float)abs_pos.x, (float)abs_pos.y, (float)pos.width,
+    SATORU_LOG_INFO("RENDER_ITEM tag=[%s] class=[%s] id=[%s] ABS_POS: x=%f, y=%f, w=%f, h=%f (depth=%d)",
+                    tag ? tag : "text/anon", classes.c_str(), id.c_str(), (float)abs_pos.x, (float)abs_pos.y, (float)pos.width,
                     (float)pos.height, depth);
 
     for (auto& child : el->children()) {

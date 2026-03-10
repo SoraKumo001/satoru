@@ -877,16 +877,45 @@ void litehtml::css_properties::snap_border_width(css_length &width, const std::s
 template <class T>
 T litehtml::css_properties::get_logical_property(const element *el, string_id logical_side, string_id physical_side, string_id logical_all, T default_value, bool inherited, uint_ptr member_offset) const
 {
-  // Priority: logical-side > logical-all > physical-side
   const property_value &v_logical = el->get_property_value(logical_side);
-  if (!v_logical.is<invalid>())
-    return v_logical.get<T>();
-
   const property_value &v_logical_all = el->get_property_value(logical_all);
-  if (!v_logical_all.is<invalid>())
-    return v_logical_all.get<T>();
+  const property_value &v_physical = el->get_property_value(physical_side);
 
-  return el->get_property<T>(physical_side, inherited, default_value, member_offset);
+  if (v_logical.is<invalid>() && v_logical_all.is<invalid>() && v_physical.is<invalid>())
+  {
+    if (inherited)
+    {
+      if (auto p = el->parent())
+        return *(const T*) ((litehtml::byte*)&p->css() + member_offset);
+    }
+    return default_value;
+  }
+
+  const property_value* best = nullptr;
+
+  if (!v_physical.is<invalid>()) best = &v_physical;
+
+  if (!v_logical_all.is<invalid>())
+  {
+    if (!best || v_logical_all.m_priority >= best->m_priority)
+      best = &v_logical_all;
+  }
+
+  if (!v_logical.is<invalid>())
+  {
+    if (!best || v_logical.m_priority >= best->m_priority)
+      best = &v_logical;
+  }
+
+  if (best->is<inherit>())
+  {
+    if (auto p = el->parent())
+      return *(const T*) ((litehtml::byte*)&p->css() + member_offset);
+    else
+      return default_value;
+  }
+
+  return best->get<T>();
 }
 
 template litehtml::css_length litehtml::css_properties::get_logical_property<litehtml::css_length>(const element *el, string_id logical_side, string_id physical_side, string_id logical_all, litehtml::css_length default_value, bool inherited, uint_ptr member_offset) const;

@@ -131,11 +131,7 @@ litehtml::pixel_t litehtml::render_item_inline_context::_render_content(pixel_t 
 
 	if (self_size.size_mode & containing_block_context::size_mode_measure)
 	{
-		pixel_t ret;
-        if (self_size.mode == writing_mode_horizontal_tb)
-            ret = m_max_line_width;
-        else
-            ret = m_pos.width;
+		pixel_t ret = m_max_line_width;
 		m_line_boxes.clear();
 		return ret;
 	}

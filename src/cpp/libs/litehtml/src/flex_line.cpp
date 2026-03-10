@@ -354,7 +354,7 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container,
                                                      : baseline::baseline_type_bottom);
 
                     pixel_t top = -item->el->get_last_baseline();
-                    pixel_t bottom = top + item->el->height();
+                    pixel_t bottom = top + item->get_el_cross_size();
 
                     if (last_baseline_top.is_default())
                         last_baseline_top = top;
@@ -369,7 +369,7 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container,
                     first_baseline.type(reverse_cross ? baseline::baseline_type_bottom
                                                       : baseline::baseline_type_top);
                     pixel_t top = -item->el->get_first_baseline();
-                    pixel_t bottom = top + item->el->height();
+                    pixel_t bottom = top + item->get_el_cross_size();
 
                     if (first_baseline_top.is_default())
                         first_baseline_top = top;
@@ -382,10 +382,10 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container,
                         first_baseline_bottom = std::max((pixel_t)first_baseline_bottom, bottom);
                 }
             } else {
-                non_baseline_height = std::max(non_baseline_height, item->el->height());
+                non_baseline_height = std::max(non_baseline_height, item->get_el_cross_size());
             }
             if (main_size != 0) main_size += main_gap;
-            main_size += item->el->width();
+            main_size += item->get_el_main_size();
         }
 
         cross_size = std::max(first_baseline_bottom - first_baseline_top,
@@ -432,8 +432,8 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container,
             item->el->measure(child_cb, fmt_ctx);
 
             if (main_size != 0) main_size += main_gap;
-            main_size += item->el->height();
-            cross_size = std::max(cross_size, item->el->width());
+            main_size += item->get_el_main_size();
+            cross_size = std::max(cross_size, item->get_el_cross_size());
         }
         if (!max_cross_size.is_default() && cross_size > max_cross_size) {
             cross_size = max_cross_size;

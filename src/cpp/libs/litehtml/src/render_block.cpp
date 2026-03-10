@@ -252,10 +252,13 @@ litehtml::pixel_t litehtml::render_item_block::_measure(const containing_block_c
 	{
 		pixel_t calculated_size = (self_size.inline_size().type != containing_block_context::cbc_value_type_auto) ? (pixel_t)self_size.render_inline_size() : ret_inline_size;
 
-		if (containing_block_size.size_mode & containing_block_context::size_mode_exact_width)
-		{
-			calculated_size = self_size.render_inline_size();
-		}
+		bool is_exact_inline = (self_size.mode == writing_mode_horizontal_tb) ?
+		    (containing_block_size.size_mode & containing_block_context::size_mode_exact_width) :
+		(containing_block_size.size_mode & containing_block_context::size_mode_exact_height);
+		if (is_exact_inline)
+               {
+                       calculated_size = self_size.render_inline_size();
+               }
 		if(self_size.render_inline_size().type == containing_block_context::cbc_value_type_absolute)
 		{
 			ret_inline_size = self_size.render_inline_size();
@@ -415,10 +418,13 @@ void litehtml::render_item_block::_place(pixel_t inline_pos, pixel_t block_pos, 
 		{
 			physical_inline_size = self_size.render_inline_size();
 		}
-		if (containing_block_size.size_mode & containing_block_context::size_mode_exact_width)
-		{
-			physical_inline_size = self_size.render_inline_size();
-		}
+		bool is_exact_inline = (self_size.mode == writing_mode_horizontal_tb) ?
+		(containing_block_size.size_mode & containing_block_context::size_mode_exact_width) :
+		(containing_block_size.size_mode & containing_block_context::size_mode_exact_height);
+		if (is_exact_inline)
+        {
+            physical_inline_size = self_size.render_inline_size();
+        }
 	}
 
 	// Fix inline-size with max-inline-size attribute

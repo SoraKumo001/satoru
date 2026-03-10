@@ -16,6 +16,7 @@
 #include "include/core/SkImage.h"
 #include "include/core/SkSpan.h"
 #include "modules/skshaper/include/SkShaper_harfbuzz.h"
+#include "utils/image_decoder.h"
 #include "utils/skia_utils.h"
 #include "utils/skunicode_satoru.h"
 
@@ -54,26 +55,15 @@ void SatoruContext::loadImage(const char *name, const char *data_url, int width,
 
 void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, size_t size,
                                       const char *original_url) {
-    auto data_ptr = SkData::MakeWithCopy(data, size);
-    auto codec = SkCodec::MakeFromData(data_ptr, SkSpan<const SkCodecs::Decoder>({
-                                                     SkPngDecoder::Decoder(),
-                                                     SkJpegDecoder::Decoder(),
-                                                     SkWebpDecoder::Decoder(),
-                                                     SkAvifDecoder::Decoder(),
-                                                     SkBmpDecoder::Decoder(),
-                                                     SkIcoDecoder::Decoder(),
-                                                     SkGifDecoder::Decoder(),
-                                                 }));
-    if (codec) {
-        auto image = SkCodecs::DeferredImage(std::move(codec));
-        if (image) {
-            image_info info;
-            info.data_url = original_url ? original_url : "";
-            info.width = image->width();
-            info.height = image->height();
-            info.skImage = image;
-            imageCache[name] = info;
-        }
+    int width = 0, height = 0;
+    auto image = satoru::ImageDecoder::decode(data, size, width, height, fontManager.getFontMgr());
+    if (image) {
+        image_info info;
+        info.data_url = original_url ? original_url : "";
+        info.width = width;
+        info.height = height;
+        info.skImage = image;
+        imageCache[name] = info;
     }
 }
 

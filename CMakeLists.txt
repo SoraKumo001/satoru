@@ -290,6 +290,7 @@ target_sources(satoru_core PRIVATE
     src/cpp/utils/skia_utils.cpp
     src/cpp/utils/skia_stubs.cpp
     src/cpp/utils/skunicode_satoru.cpp
+    src/cpp/utils/image_decoder.cpp
 )
 target_include_directories(satoru_core PRIVATE
     "src/cpp"

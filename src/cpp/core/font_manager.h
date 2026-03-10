@@ -50,6 +50,8 @@ class SatoruFontManager {
     SkFont selectFont(char32_t u, font_info* fi, SkFont* lastSelectedFont,
                       const satoru::UnicodeService& unicode);
 
+    sk_sp<SkFontMgr> getFontMgr() const { return m_fontMgr; }
+
     // 全ての @font-face 定義を CSS 形式で取得
     std::string generateFontFaceCSS() const;
 

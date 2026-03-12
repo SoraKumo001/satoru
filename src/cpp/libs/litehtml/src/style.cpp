@@ -298,6 +298,10 @@ namespace litehtml
     case _max_height_:
       return add_length_property(name, val, "none", f_length_percentage | f_positive, important);
 
+    case _letter_spacing_:
+    case _word_spacing_:
+      return add_length_property(name, val, "normal", f_length, important);
+
     case _line_height_:
       return add_length_property(name, val, "normal", f_number | f_length_percentage | f_positive, important);
 

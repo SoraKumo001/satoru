@@ -63,7 +63,8 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
         TextGeometry geom(m_currentStyle.mode, line_pos, m_currentStyle.fi);
 
         if (geom.isVertical() && !m_currentStyle.is_vertical_upright) {
-            SATORU_LOG_INFO("DEBUG_BATCHER: ROTATING run, upright=%d", (int)m_currentStyle.is_vertical_upright);
+            SATORU_LOG_INFO("DEBUG_BATCHER: ROTATING run, upright=%d",
+                            (int)m_currentStyle.is_vertical_upright);
             auto builder_run = m_builder.allocRunRSXform(run.font, run.count);
             memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
             for (int i = 0; i < run.count; ++i) {
@@ -73,14 +74,14 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
                 builder_run.xforms()[i] = SkRSXform::Make(0, 1, p.x, p.y);
             }
         } else {
-            SATORU_LOG_INFO("DEBUG_BATCHER: NOT ROTATING run, upright=%d", (int)m_currentStyle.is_vertical_upright);
+            SATORU_LOG_INFO("DEBUG_BATCHER: NOT ROTATING run, upright=%d",
+                            (int)m_currentStyle.is_vertical_upright);
             auto builder_run = m_builder.allocRunPos(run.font, run.count);
             memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
             for (int i = 0; i < run.count; ++i) {
-                auto p = geom.getGlyphPlacement(run.positions[i].fX, run.positions[i].fY,
-                                                m_currentStyle.is_vertical_upright,
-                                                m_currentStyle.is_vertical_punctuation, run.font,
-                                                run.glyphs[i]);
+                auto p = geom.getGlyphPlacement(
+                    run.positions[i].fX, run.positions[i].fY, m_currentStyle.is_vertical_upright,
+                    m_currentStyle.is_vertical_punctuation, run.font, run.glyphs[i]);
                 builder_run.pos[i * 2] = p.x;
                 builder_run.pos[i * 2 + 1] = p.y;
             }
@@ -246,14 +247,14 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             analysis.chars[end].is_vertical_upright == analysis.chars[start].is_vertical_upright &&
             analysis.chars[end].is_vertical_punctuation ==
                 analysis.chars[start].is_vertical_punctuation) {
-            
-            // If text-combine-upright: all is used, we only want to combine characters 
-            // that are part of the same text-combine run. 
-            // In litehtml, a <span> with a property usually creates a separate element, 
-            // and thus a separate draw_text call. 
-            // However, analyzeText might have analyzed across multiple elements if not handled carefully.
-            // For now, let's assume one draw_text call corresponds to one text-combine group if it's set on the element.
-            
+            // If text-combine-upright: all is used, we only want to combine characters
+            // that are part of the same text-combine run.
+            // In litehtml, a <span> with a property usually creates a separate element,
+            // and thus a separate draw_text call.
+            // However, analyzeText might have analyzed across multiple elements if not handled
+            // carefully. For now, let's assume one draw_text call corresponds to one text-combine
+            // group if it's set on the element.
+
             end++;
         }
 
@@ -269,9 +270,8 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             continue;
         }
 
-        bool is_run_combine =
-            (is_vertical && is_upright &&
-             fi->desc.text_combine_upright == litehtml::text_combine_upright_all);
+        bool is_run_combine = (is_vertical && is_upright &&
+                               fi->desc.text_combine_upright == litehtml::text_combine_upright_all);
 
         if (tagging) {
             if (batcher) batcher->flush();
@@ -295,7 +295,8 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                     run.font.getMetrics(&metrics);
                     // Center the run vertically in its font_size-tall slot.
                     float font_size = (float)fi->desc.size;
-                    float run_baselineY = font_size / 2.0f - (metrics.fAscent + metrics.fDescent) / 2.0f;
+                    float run_baselineY =
+                        font_size / 2.0f - (metrics.fAscent + metrics.fDescent) / 2.0f;
                     for (int i = 0; i < run.count; ++i) {
                         float px = -(float)shaped.width / 2.0f + run.positions[i].fX;
                         float py = run_baselineY + run.positions[i].fY;
@@ -356,8 +357,10 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 analysis.chars[start].font.getMetrics(&metrics);
                 // Center the run vertically in its font_size-tall slot.
                 float font_size = (float)fi->desc.size;
-                float run_baselineY = font_size / 2.0f - (metrics.fAscent + metrics.fDescent) / 2.0f;
-                canvas->drawTextBlob(shaped.blob, -(float)shaped.width / 2.0f, run_baselineY, paint);
+                float run_baselineY =
+                    font_size / 2.0f - (metrics.fAscent + metrics.fDescent) / 2.0f;
+                canvas->drawTextBlob(shaped.blob, -(float)shaped.width / 2.0f, run_baselineY,
+                                     paint);
             } else if (is_vertical) {
                 TextGeometry geom(mode, pos, fi);
                 SkTextBlobBuilder builder;
@@ -369,9 +372,9 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         auto builder_run = builder.allocRunPos(run.font, run.count);
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
-                            auto p = geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
-                                                            run.positions[i].fY, true,
-                                                            is_punctuation, run.font, run.glyphs[i]);
+                            auto p = geom.getGlyphPlacement(
+                                logical_run_start + run.positions[i].fX, run.positions[i].fY, true,
+                                is_punctuation, run.font, run.glyphs[i]);
                             builder_run.pos[i * 2] = p.x;
                             builder_run.pos[i * 2 + 1] = p.y;
                         }
@@ -379,10 +382,9 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                         auto builder_run = builder.allocRunRSXform(run.font, run.count);
                         memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
                         for (int i = 0; i < run.count; ++i) {
-                            auto p =
-                                geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
-                                                       run.positions[i].fY, false, false, run.font,
-                                                       run.glyphs[i]);
+                            auto p = geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
+                                                            run.positions[i].fY, false, false,
+                                                            run.font, run.glyphs[i]);
                             // Rotate 90 deg CW: cos=0, sin=1
                             builder_run.xforms()[i] = SkRSXform::Make(0, 1, p.x, p.y);
                         }

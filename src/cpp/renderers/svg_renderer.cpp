@@ -1565,9 +1565,10 @@ static void dump_render_items_recursive(std::shared_ptr<litehtml::render_item> e
     auto pos = el->pos();
     litehtml::position abs_pos = el->calc_placement(0, 0);
 
-    SATORU_LOG_INFO("RENDER_ITEM tag=[%s] class=[%s] id=[%s] ABS_POS: x=%f, y=%f, w=%f, h=%f (depth=%d)",
-                    tag ? tag : "text/anon", classes.c_str(), id.c_str(), (float)abs_pos.x, (float)abs_pos.y, (float)pos.width,
-                    (float)pos.height, depth);
+    SATORU_LOG_INFO(
+        "RENDER_ITEM tag=[%s] class=[%s] id=[%s] ABS_POS: x=%f, y=%f, w=%f, h=%f (depth=%d)",
+        tag ? tag : "text/anon", classes.c_str(), id.c_str(), (float)abs_pos.x, (float)abs_pos.y,
+        (float)pos.width, (float)pos.height, depth);
 
     for (auto& child : el->children()) {
         dump_render_items_recursive(child, depth + 1);

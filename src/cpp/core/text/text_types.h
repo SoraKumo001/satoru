@@ -93,8 +93,7 @@ struct MeasureKey {
                italic == other.italic && maxWidth == other.maxWidth &&
                font_family == other.font_family && text == other.text && mode == other.mode &&
                orientation == other.orientation && textCombineUpright == other.textCombineUpright &&
-               letterSpacing == other.letterSpacing &&
-               wordSpacing == other.wordSpacing;
+               letterSpacing == other.letterSpacing && wordSpacing == other.wordSpacing;
     }
 };
 
@@ -138,8 +137,7 @@ struct ShapingKey {
                italic == other.italic && is_rtl == other.is_rtl &&
                font_family == other.font_family && text == other.text && mode == other.mode &&
                orientation == other.orientation && textCombineUpright == other.textCombineUpright &&
-               letterSpacing == other.letterSpacing &&
-               wordSpacing == other.wordSpacing;
+               letterSpacing == other.letterSpacing && wordSpacing == other.wordSpacing;
     }
 };
 

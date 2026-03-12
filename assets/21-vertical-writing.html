@@ -78,6 +78,79 @@
         height: 300px;
     }
 
+    /* Complex Flex Styles */
+    .complex-flex-container {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      padding: 20px;
+      background: #eff6ff;
+      border: 2px dashed #3b82f6;
+      height: 600px;
+    }
+
+    .sidebar {
+      flex: 0 0 100px;
+      background: #dbeafe;
+      border: 1px solid #3b82f6;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px;
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .card-row {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .v-card {
+      flex: 1;
+      background: white;
+      border: 1px solid #93c5fd;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .v-card-header {
+      font-weight: bold;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+    }
+
+    .v-card-body {
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .v-card-footer {
+      margin-top: 10px;
+      text-align: end;
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .v-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #3b82f6;
+      color: white;
+      border-radius: 9999px;
+      font-size: 11px;
+      margin-bottom: 5px;
+    }
+
     .center-container {
       display: flex;
       justify-content: center;
@@ -173,6 +246,51 @@
           Centering in vertical-lr mode.<br>
           Left-to-right writing.
         </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>6. Complex Vertical Flexbox (Nested & Mixed Directions)</h2>
+    <div class="complex-flex-container v-rl">
+      <div class="sidebar">
+        <div class="v-badge">SIDEBAR</div>
+        <div style="font-weight: bold;">Menu Item A</div>
+        <div>Menu Item B</div>
+        <div>Menu Item C</div>
+        <div style="margin-top: auto; font-size: 12px;">© 2024 Satoru</div>
+      </div>
+
+      <div class="main-content">
+        <div class="box" style="margin: 0; flex: 0 0 auto;">
+          <h3 style="margin-top: 0;">Main Header (Flex: 0 0 auto)</h3>
+          <p>This header has a fixed size in the main axis of the parent flex container.</p>
+        </div>
+
+        <div class="card-row">
+          <div class="v-card">
+            <div class="v-card-header">Card One</div>
+            <div class="v-card-body">
+              縦書きのカードレイアウトです。Flexboxを使用して、ヘッダー、ボディ、フッターを垂直方向に配置しています。
+              ボディ部分は flex: 1 を持っているため、余白を埋めるように伸びます。
+            </div>
+            <div class="v-card-footer">Updated: 2024/05/20</div>
+          </div>
+
+          <div class="v-card">
+            <div class="v-card-header">Card Two (Longer)</div>
+            <div class="v-card-body">
+              吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。
+              何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。
+              吾輩はここで始めて人間というものを見た。
+            </div>
+            <div class="v-card-footer">Updated: 2024/05/21</div>
+          </div>
+        </div>
+
+        <div class="box" style="margin: 0; flex: 0 0 80px; background: #fef3c7; border-color: #f59e0b;">
+          Footer Area (Fixed 80px block-size)
+        </div>
       </div>
     </div>
   </div>

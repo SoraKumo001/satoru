@@ -19,6 +19,47 @@ namespace litehtml
 
     class render_item : public std::enable_shared_from_this<render_item>
     {
+    public:
+        struct logical_accessor
+        {
+            const render_item* item;
+            satoru::WritingModeContext wm;
+
+            pixel_t inline_size() const;
+            pixel_t block_size() const;
+
+            pixel_t inline_start_pos() const;
+            pixel_t inline_end_pos() const;
+            pixel_t block_start_pos() const;
+            pixel_t block_end_pos() const;
+
+            pixel_t margin_inline_start() const { return wm.inline_start(item->m_margins); }
+            pixel_t margin_inline_end() const { return wm.inline_end(item->m_margins); }
+            pixel_t margin_block_start() const { return wm.block_start(item->m_margins); }
+            pixel_t margin_block_end() const { return wm.block_end(item->m_margins); }
+
+            pixel_t padding_inline_start() const { return wm.inline_start(item->m_padding); }
+            pixel_t padding_inline_end() const { return wm.inline_end(item->m_padding); }
+            pixel_t padding_block_start() const { return wm.block_start(item->m_padding); }
+            pixel_t padding_block_end() const { return wm.block_end(item->m_padding); }
+
+            pixel_t border_inline_start() const { return wm.inline_start(item->m_borders); }
+            pixel_t border_inline_end() const { return wm.inline_end(item->m_borders); }
+            pixel_t border_block_start() const { return wm.block_start(item->m_borders); }
+            pixel_t border_block_end() const { return wm.block_end(item->m_borders); }
+
+            pixel_t content_inline_start() const { return margin_inline_start() + padding_inline_start() + border_inline_start(); }
+            pixel_t content_inline_end() const { return margin_inline_end() + padding_inline_end() + border_inline_end(); }
+            pixel_t content_block_start() const { return margin_block_start() + padding_block_start() + border_block_start(); }
+            pixel_t content_block_end() const { return margin_block_end() + padding_block_end() + border_block_end(); }
+            
+            pixel_t content_inline_offset() const { return content_inline_start() + content_inline_end(); }
+            pixel_t content_block_offset() const { return content_block_start() + content_block_end(); }
+        };
+
+        logical_accessor logical() const { return { this, get_wm_context() }; }
+        logical_accessor logical(const satoru::WritingModeContext& wm) const { return { this, wm }; }
+
     protected:
         std::shared_ptr<element>                    m_element;
         std::weak_ptr<render_item>                  m_parent;

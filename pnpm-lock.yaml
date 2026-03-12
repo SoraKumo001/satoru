@@ -17,6 +17,9 @@ importers:
       next-exec:
         specifier: 1.0.1
         version: 1.0.1
+      satoru-render:
+        specifier: workspace:*
+        version: link:packages/satoru
       tsx:
         specifier: ^4.21.0
         version: 4.21.0

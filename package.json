@@ -19,7 +19,8 @@
     "clang-format": "1.8.0",
     "next-exec": "1.0.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "satoru-render": "workspace:*"
   },
   "repository": "https://github.com/SoraKumo001/satoru",
   "author": "SoraKumo <info@croud.jp>",

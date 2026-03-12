@@ -1443,8 +1443,12 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
                 // In Flexbox, if flex-basis is set, width/height might be overridden
                 if (!css().get_flex_basis().is_predefined() && css().get_flex_basis().val() >= 0) {
                     auto flex_dir = par->css().get_flex_direction();
-                    bool is_main_axis_width =
-                        (flex_dir == flex_direction_row || flex_dir == flex_direction_row_reverse);
+                    bool is_main_axis_width = false;
+                    if (par->css().get_writing_mode() == writing_mode_horizontal_tb) {
+                        is_main_axis_width = (flex_dir == flex_direction_row || flex_dir == flex_direction_row_reverse);
+                    } else {
+                        is_main_axis_width = (flex_dir == flex_direction_column || flex_dir == flex_direction_column_reverse);
+                    }
                     if (is_main_axis_width) {
                         ret.width.type = containing_block_context::cbc_value_type_auto;
                         ret.width.value = 0;
@@ -1473,8 +1477,12 @@ litehtml::containing_block_context litehtml::render_item::calculate_containing_b
             if (is_flex_child) {
                 if (!css().get_flex_basis().is_predefined() && css().get_flex_basis().val() >= 0) {
                     auto flex_dir = par->css().get_flex_direction();
-                    bool is_main_axis_height = (flex_dir == flex_direction_column ||
-                                                flex_dir == flex_direction_column_reverse);
+                    bool is_main_axis_height = false;
+                    if (par->css().get_writing_mode() == writing_mode_horizontal_tb) {
+                        is_main_axis_height = (flex_dir == flex_direction_column || flex_dir == flex_direction_column_reverse);
+                    } else {
+                        is_main_axis_height = (flex_dir == flex_direction_row || flex_dir == flex_direction_row_reverse);
+                    }
                     if (is_main_axis_height) {
                         ret.height.type = containing_block_context::cbc_value_type_auto;
                         ret.height.value = 0;

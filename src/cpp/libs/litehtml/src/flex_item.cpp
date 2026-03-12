@@ -137,26 +137,24 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 	self_size.width = self_size.render_width;
 	self_size.height = self_size.render_height;
 
-	if (m_container_wm.is_vertical())
-	{
-		if(el->css().get_margins().top.is_predefined()) auto_margin_main_start = 0;
-		if(el->css().get_margins().bottom.is_predefined()) auto_margin_main_end = 0;
-		if(el->css().get_margins().left.is_predefined()) auto_margin_cross_start = true;
-		if(el->css().get_margins().right.is_predefined()) auto_margin_cross_end = true;
-	} else
-	{
-		if(el->css().get_margins().left.is_predefined()) auto_margin_main_start = 0;
-		if(el->css().get_margins().right.is_predefined()) auto_margin_main_end = 0;
-		if(el->css().get_margins().top.is_predefined()) auto_margin_cross_start = true;
-		if(el->css().get_margins().bottom.is_predefined()) auto_margin_cross_end = true;
-	}
-	
+    // Map logical margins to auto_margin flags
+    const auto& margins = el->css().get_margins();
+    if(m_container_wm.inline_start(margins).is_predefined()) auto_margin_main_start = 0;
+    if(m_container_wm.inline_end(margins).is_predefined()) auto_margin_main_end = 0;
+    if(m_container_wm.block_start(margins).is_predefined()) auto_margin_cross_start = true;
+    if(m_container_wm.block_end(margins).is_predefined()) auto_margin_cross_end = true;
+
 	def_value<pixel_t> content_size(0);
-	const css_length& min_size_prop = m_container_wm.is_vertical() ? el->css().get_min_height() : el->css().get_min_width();
-	const css_length& max_size_prop = m_container_wm.is_vertical() ? el->css().get_max_height() : el->css().get_max_width();
-	const css_length& size_prop = m_container_wm.is_vertical() ? el->css().get_height() : el->css().get_width();
-	pixel_t render_offset = m_container_wm.is_vertical() ? el->render_offset_height() : el->render_offset_width();
-	pixel_t content_offset = m_container_wm.is_vertical() ? el->content_offset_height() : el->content_offset_width();
+    
+    // No helpers for min/max properties in WritingModeContext, so manual branching
+    const css_length& min_size_prop = m_container_wm.is_vertical() ? el->css().get_min_height() : el->css().get_min_width();
+    const css_length& max_size_prop = m_container_wm.is_vertical() ? el->css().get_max_height() : el->css().get_max_width();
+    const css_length& size_prop = m_container_wm.get_inline_size(el->css()); // Main size prop
+
+    pixel_t render_offset = el->render_offset_width(); 
+    if(m_container_wm.is_vertical()) render_offset = el->render_offset_height();
+
+	pixel_t content_offset = el->content_offset_inline(m_container_wm);
 	pixel_t parent_size = self_size.render_inline_size();
 
 	if (min_size_prop.is_predefined())
@@ -166,10 +164,12 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 		{
 			formatting_context fmt_ctx_copy;
 			if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-			el->measure(
-								  m_container_wm.is_vertical() ? self_size.new_height(content_offset, containing_block_context::size_mode_content | containing_block_context::size_mode_measure)
-															   : self_size.new_width(content_offset, containing_block_context::size_mode_content | containing_block_context::size_mode_measure),
-								  fmt_ctx ? &fmt_ctx_copy : nullptr);
+            
+            containing_block_context::typed_pixel tp_content_offset(content_offset, containing_block_context::cbc_value_type_auto);
+            containing_block_context measure_cb = m_container_wm.update_logical(self_size, tp_content_offset, std::nullopt);
+            measure_cb.size_mode = containing_block_context::size_mode_content | containing_block_context::size_mode_measure;
+            el->measure(measure_cb, fmt_ctx ? &fmt_ctx_copy : nullptr);
+
 			min_main_size = get_el_main_size();
 			content_size = min_main_size;
 		} else
@@ -205,10 +205,14 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 				{
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-					el->measure(
-						m_container_wm.is_vertical() ? self_size.new_height(self_size.height + content_offset, containing_block_context::size_mode_measure | containing_block_context::size_mode_content)
-													 : self_size.new_width(self_size.width + content_offset, containing_block_context::size_mode_measure | containing_block_context::size_mode_content),
-						fmt_ctx ? &fmt_ctx_copy : nullptr);
+                    
+                    pixel_t logical_is_val = m_container_wm.to_logical(self_size.width, self_size.height).inline_size + content_offset;
+                    containing_block_context::typed_pixel tp_logical_is(logical_is_val, containing_block_context::cbc_value_type_auto);
+                    
+                    containing_block_context measure_cb = m_container_wm.update_logical(self_size, tp_logical_is, std::nullopt);
+                    measure_cb.size_mode = containing_block_context::size_mode_measure | containing_block_context::size_mode_content;
+                    
+					el->measure(measure_cb, fmt_ctx ? &fmt_ctx_copy : nullptr);
 					flex_base_size = get_el_main_size();
 				}
 				break;
@@ -217,10 +221,12 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 				{
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-					el->measure(
-						m_container_wm.is_vertical() ? self_size.new_height(content_offset, containing_block_context::size_mode_content | containing_block_context::size_mode_measure)
-													 : self_size.new_width(content_offset, containing_block_context::size_mode_content | containing_block_context::size_mode_measure),
-						fmt_ctx ? &fmt_ctx_copy : nullptr);
+                    
+                    containing_block_context::typed_pixel tp_content_offset(content_offset, containing_block_context::cbc_value_type_auto);
+                    containing_block_context measure_cb = m_container_wm.update_logical(self_size, tp_content_offset, std::nullopt);
+                    measure_cb.size_mode = containing_block_context::size_mode_content | containing_block_context::size_mode_measure;
+                    
+					el->measure(measure_cb, fmt_ctx ? &fmt_ctx_copy : nullptr);
 					content_size = get_el_main_size();
 				}
 				flex_base_size = content_size;
@@ -229,10 +235,12 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 				{
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
-					el->measure(
-						m_container_wm.is_vertical() ? self_size.new_height(0, containing_block_context::size_mode_measure | containing_block_context::size_mode_content)
-													 : self_size.new_width(0, containing_block_context::size_mode_measure | containing_block_context::size_mode_content),
-						fmt_ctx ? &fmt_ctx_copy : nullptr);
+                    
+                    containing_block_context::typed_pixel tp_zero(0, containing_block_context::cbc_value_type_auto);
+                    containing_block_context measure_cb = m_container_wm.update_logical(self_size, tp_zero, std::nullopt);
+                    measure_cb.size_mode = containing_block_context::size_mode_measure | containing_block_context::size_mode_content;
+                    
+					el->measure(measure_cb, fmt_ctx ? &fmt_ctx_copy : nullptr);
 					flex_base_size = get_el_main_size();
 				}
 				break;
@@ -250,21 +258,8 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 
 void litehtml::flex_item_row_direction::apply_main_auto_margins()
 {
-	if (m_container_wm.is_vertical())
-	{
-		if(!auto_margin_main_start.is_default())
-		{
-			el->get_margins().top = auto_margin_main_start;
-		}
-		if(!auto_margin_main_end.is_default()) el->get_margins().bottom = auto_margin_main_end;
-	} else
-	{
-		if(!auto_margin_main_start.is_default())
-		{
-			el->get_margins().left = auto_margin_main_start;
-		}
-		if(!auto_margin_main_end.is_default()) el->get_margins().right = auto_margin_main_end;
-	}
+    if(!auto_margin_main_start.is_default()) m_container_wm.set_inline_start(el->get_margins(), auto_margin_main_start);
+    if(!auto_margin_main_end.is_default()) m_container_wm.set_inline_end(el->get_margins(), auto_margin_main_end);
 }
 
 bool litehtml::flex_item_row_direction::apply_cross_auto_margins(pixel_t cross_size)
@@ -275,24 +270,10 @@ bool litehtml::flex_item_row_direction::apply_cross_auto_margins(pixel_t cross_s
 		if(auto_margin_cross_end) margins_num++;
 		if(auto_margin_cross_start) margins_num++;
 		pixel_t margin = (cross_size - get_el_cross_size()) / margins_num;
-		if (m_container_wm.is_vertical())
-		{
-			if(auto_margin_cross_start)
-			{
-                // In vertical-rl, "cross-start" is physically left, but logical block-start is right.
-                // However, litehtml's flex engine treats cross-start as the start of the cross axis.
-                // For vertical-rl, cross axis is physical X.
-				el->get_margins().left = margin;
-			}
-			if(auto_margin_cross_end) el->get_margins().right = margin;
-		} else
-		{
-			if(auto_margin_cross_start)
-			{
-				el->get_margins().top = margin;
-			}
-			if(auto_margin_cross_end) el->get_margins().bottom = margin;
-		}
+
+        if(auto_margin_cross_start) m_container_wm.set_block_start(el->get_margins(), margin);
+        if(auto_margin_cross_end) m_container_wm.set_block_end(el->get_margins(), margin);
+        
 		return true;
 	}
 	return false;
@@ -317,14 +298,17 @@ void litehtml::flex_item_row_direction::layout_item(litehtml::flex_line &ln,
 	self_size.height = self_size.render_height;
 
 	containing_block_context child_cb = self_size;
+	child_cb.mode = m_container_wm.mode();
+    // Main Axis = Inline
     child_cb.inline_size() = main_size - el->content_offset_inline(m_container_wm) + el->box_sizing_inline(m_container_wm);
     child_cb.render_inline_size() = child_cb.inline_size();
 
 	bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
-	const css_length& cross_prop = m_container_wm.is_vertical() ? el->css().get_width() : el->css().get_height();
+	const css_length& cross_prop = m_container_wm.get_block_size(el->css());
 
 	if (stretch && cross_prop.is_predefined())
 	{
+        // Cross Axis = Block
         child_cb.block_size() = ln.cross_size - el->content_offset_block(m_container_wm) + el->box_sizing_block(m_container_wm);
         child_cb.render_block_size() = child_cb.block_size();
 		child_cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;
@@ -361,25 +345,21 @@ void litehtml::flex_item_row_direction::align_stretch(flex_line &ln, const conta
 	self_size.height = self_size.render_height;
 
 	set_cross_position(ln.cross_start);
-	const css_length& cross_prop = m_container_wm.is_vertical() ? el->css().get_width() : el->css().get_height();
+    const css_length& cross_prop = m_container_wm.get_block_size(el->css());
 	if (cross_prop.is_predefined())
 	{
-		containing_block_context cb;
-		if (m_container_wm.is_vertical())
-		{
-			cb = self_size.new_width_height(
-					ln.cross_size - el->content_offset_width() + el->box_sizing_width(),
-					el->pos().height + el->box_sizing_height(),
-					containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height
-					);
-		} else
-		{
-			cb = self_size.new_width_height(
-					el->pos().width + el->box_sizing_width(),
-					ln.cross_size - el->content_offset_height() + el->box_sizing_height(),
-					containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height
-					);
-		}
+        pixel_t new_block_size = ln.cross_size - el->content_offset_block(m_container_wm) + el->box_sizing_block(m_container_wm);
+        
+        // Use current physical dimensions converted to logical inline size
+        satoru::logical_size current_content_size = m_container_wm.to_logical(el->pos().width, el->pos().height);
+        pixel_t new_inline_size = current_content_size.inline_size + el->box_sizing_inline(m_container_wm);
+
+        containing_block_context::typed_pixel tp_is(new_inline_size, containing_block_context::cbc_value_type_auto);
+        containing_block_context::typed_pixel tp_bs(new_block_size, containing_block_context::cbc_value_type_auto);
+
+        containing_block_context cb = m_container_wm.update_logical(self_size, tp_is, tp_bs);
+        cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;
+
 		if (self_size.size_mode & containing_block_context::size_mode_measure)
 		{
 			el->measure(cb, fmt_ctx);
@@ -407,12 +387,12 @@ void litehtml::flex_item_row_direction::align_baseline(litehtml::flex_line &ln,
 
 litehtml::pixel_t litehtml::flex_item_row_direction::get_el_main_size()
 {
-	return m_container_wm.is_vertical() ? el->height() : el->width();
+	return el->inline_size(m_container_wm);
 }
 
 litehtml::pixel_t litehtml::flex_item_row_direction::get_el_cross_size()
 {
-	return m_container_wm.is_vertical() ? el->width() : el->height();
+	return el->block_size(m_container_wm);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -424,25 +404,22 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 	self_size.width = self_size.render_width;
 	self_size.height = self_size.render_height;
 
-	if (m_container_wm.is_vertical())
-	{
-		if(el->css().get_margins().left.is_predefined()) auto_margin_main_start = 0;
-		if(el->css().get_margins().right.is_predefined()) auto_margin_main_end = 0;
-		if(el->css().get_margins().top.is_predefined()) auto_margin_cross_start = true;
-		if(el->css().get_margins().bottom.is_predefined()) auto_margin_cross_end = true;
-	} else
-	{
-		if(el->css().get_margins().top.is_predefined()) auto_margin_main_start = 0;
-		if(el->css().get_margins().bottom.is_predefined()) auto_margin_main_end = 0;
-		if(el->css().get_margins().left.is_predefined()) auto_margin_cross_start = true;
-		if(el->css().get_margins().right.is_predefined()) auto_margin_cross_end = true;
-	}
+    // Map logical margins to auto_margin flags (Main = Block, Cross = Inline)
+    const auto& margins = el->css().get_margins();
+    if(m_container_wm.block_start(margins).is_predefined()) auto_margin_main_start = 0;
+    if(m_container_wm.block_end(margins).is_predefined()) auto_margin_main_end = 0;
+    if(m_container_wm.inline_start(margins).is_predefined()) auto_margin_cross_start = true;
+    if(m_container_wm.inline_end(margins).is_predefined()) auto_margin_cross_end = true;
 	
-	const css_length& min_size_prop = m_container_wm.is_vertical() ? el->css().get_min_width() : el->css().get_min_height();
-	const css_length& max_size_prop = m_container_wm.is_vertical() ? el->css().get_max_width() : el->css().get_max_height();
-	const css_length& size_prop = m_container_wm.is_vertical() ? el->css().get_width() : el->css().get_height();
-	pixel_t render_offset = m_container_wm.is_vertical() ? el->render_offset_width() : el->render_offset_height();
-	pixel_t content_offset = m_container_wm.is_vertical() ? el->content_offset_width() : el->content_offset_height();
+    // Manual branching for min/max
+    const css_length& min_size_prop = m_container_wm.is_vertical() ? el->css().get_min_width() : el->css().get_min_height();
+    const css_length& max_size_prop = m_container_wm.is_vertical() ? el->css().get_max_width() : el->css().get_max_height();
+    const css_length& size_prop = m_container_wm.get_block_size(el->css()); // Main size
+    
+    pixel_t render_offset = el->render_offset_height();
+    if(m_container_wm.is_vertical()) render_offset = el->render_offset_width();
+
+    pixel_t content_offset = el->content_offset_block(m_container_wm);
 	pixel_t parent_size = self_size.render_block_size();
 
 	if (min_size_prop.is_predefined())
@@ -456,13 +433,16 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 			bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
 			if (!stretch) mode |= containing_block_context::size_mode_content;
 			
-            containing_block_context child_cb = self_size;
-            child_cb.width.type = containing_block_context::cbc_value_type_auto;
-            child_cb.height.type = containing_block_context::cbc_value_type_auto;
-            child_cb.size_mode &= ~(containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height);
-            child_cb.size_mode |= mode;
+            // Reset both? Original logic: 
+            // child_cb.width.type = auto; child_cb.height.type = auto;
+            // child_cb.size_mode &= ~exact; size_mode |= mode;
+            containing_block_context measure_cb = m_container_wm.update_logical(self_size, std::nullopt, std::nullopt); 
+            measure_cb.width.type = containing_block_context::cbc_value_type_auto;
+            measure_cb.height.type = containing_block_context::cbc_value_type_auto;
+            measure_cb.size_mode &= ~(containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height);
+            measure_cb.size_mode |= mode;
 
-			el->measure(child_cb, fmt_ctx ? &fmt_ctx_copy : nullptr);
+			el->measure(measure_cb, fmt_ctx ? &fmt_ctx_copy : nullptr);
 			min_main_size = get_el_main_size();
 		} else
 		{
@@ -522,21 +502,8 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 
 void litehtml::flex_item_column_direction::apply_main_auto_margins()
 {
-	if (m_container_wm.is_vertical())
-	{
-		if(!auto_margin_main_start.is_default())
-		{
-			el->get_margins().left = auto_margin_main_start;
-		}
-		if(!auto_margin_main_end.is_default()) el->get_margins().right = auto_margin_main_end;
-	} else
-	{
-		if(!auto_margin_main_start.is_default())
-		{
-			el->get_margins().top = auto_margin_main_start;
-		}
-		if(!auto_margin_main_end.is_default()) el->get_margins().bottom = auto_margin_main_end;
-	}
+    if(!auto_margin_main_start.is_default()) m_container_wm.set_block_start(el->get_margins(), auto_margin_main_start);
+    if(!auto_margin_main_end.is_default()) m_container_wm.set_block_end(el->get_margins(), auto_margin_main_end);
 }
 
 bool litehtml::flex_item_column_direction::apply_cross_auto_margins(pixel_t cross_size)
@@ -547,21 +514,10 @@ bool litehtml::flex_item_column_direction::apply_cross_auto_margins(pixel_t cros
 		if(auto_margin_cross_end) margins_num++;
 		if(auto_margin_cross_start) margins_num++;
 		pixel_t margin = (cross_size - get_el_cross_size()) / margins_num;
-		if (m_container_wm.is_vertical())
-		{
-			if(auto_margin_cross_start)
-			{
-				el->get_margins().top = margin;
-			}
-			if(auto_margin_cross_end) el->get_margins().bottom = margin;
-		} else
-		{
-			if(auto_margin_cross_start)
-			{
-				el->get_margins().left = margin;
-			}
-			if(auto_margin_cross_end) el->get_margins().right = margin;
-		}
+
+        if(auto_margin_cross_start) m_container_wm.set_inline_start(el->get_margins(), margin);
+        if(auto_margin_cross_end) m_container_wm.set_inline_end(el->get_margins(), margin);
+
 		return true;
 	}
 	return false;
@@ -586,30 +542,19 @@ void litehtml::flex_item_column_direction::layout_item(litehtml::flex_line &ln,
 	self_size.height = self_size.render_height;
 
 	containing_block_context child_cb = self_size;
-	if (m_container_wm.is_vertical())
-	{
-		child_cb.width = main_size - el->content_offset_width() + el->box_sizing_width();
-		child_cb.render_width = child_cb.width;
-	} else
-	{
-		child_cb.height = main_size - el->content_offset_height() + el->box_sizing_height();
-		child_cb.render_height = child_cb.height;
-	}
+	child_cb.mode = m_container_wm.mode();
+    // Main Axis = Block
+    child_cb.block_size() = main_size - el->content_offset_block(m_container_wm) + el->box_sizing_block(m_container_wm);
+    child_cb.render_block_size() = child_cb.block_size();
 
 	bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
-	const css_length& cross_prop = m_container_wm.is_vertical() ? el->css().get_height() : el->css().get_width();
+	const css_length& cross_prop = m_container_wm.get_inline_size(el->css());
 
 	if (stretch && cross_prop.is_predefined())
 	{
-		if (m_container_wm.is_vertical())
-		{
-			child_cb.height = ln.cross_size - el->content_offset_height() + el->box_sizing_height();
-			child_cb.render_height = child_cb.height;
-		} else
-		{
-			child_cb.width = ln.cross_size - el->content_offset_width() + el->box_sizing_width();
-			child_cb.render_width = child_cb.width;
-		}
+        // Cross Axis = Inline
+        child_cb.inline_size() = ln.cross_size - el->content_offset_inline(m_container_wm) + el->box_sizing_inline(m_container_wm);
+        child_cb.render_inline_size() = child_cb.inline_size();
 		child_cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;
 	} else {
         child_cb.width.type = containing_block_context::cbc_value_type_auto;
@@ -648,25 +593,20 @@ void litehtml::flex_item_column_direction::align_stretch(flex_line &ln, const co
 	self_size.height = self_size.render_height;
 
 	set_cross_position(ln.cross_start);
-	const css_length& cross_prop = m_container_wm.is_vertical() ? el->css().get_height() : el->css().get_width();
+	const css_length& cross_prop = m_container_wm.get_inline_size(el->css());
 	if (cross_prop.is_predefined())
 	{
-		containing_block_context cb;
-		if (m_container_wm.is_vertical())
-		{
-			cb = self_size.new_width_height(
-					el->pos().width + el->box_sizing_width(),
-					ln.cross_size - el->content_offset_height() + el->box_sizing_height(),
-					containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height
-					);
-		} else
-		{
-			cb = self_size.new_width_height(
-					ln.cross_size - el->content_offset_width() + el->box_sizing_width(),
-					el->pos().height + el->box_sizing_height(),
-					containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height
-					);
-		}
+        pixel_t new_inline_size = ln.cross_size - el->content_offset_inline(m_container_wm) + el->box_sizing_inline(m_container_wm);
+        
+        // Use current physical dimensions converted to logical block size
+        satoru::logical_size current_content_size = m_container_wm.to_logical(el->pos().width, el->pos().height);
+        pixel_t new_block_size = current_content_size.block_size + el->box_sizing_block(m_container_wm);
+
+        containing_block_context::typed_pixel tp_is(new_inline_size, containing_block_context::cbc_value_type_auto);
+        containing_block_context::typed_pixel tp_bs(new_block_size, containing_block_context::cbc_value_type_auto);
+
+        containing_block_context cb = m_container_wm.update_logical(self_size, tp_is, tp_bs);
+        cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;
 
 		if (self_size.size_mode & containing_block_context::size_mode_measure)
 		{
@@ -689,10 +629,10 @@ void litehtml::flex_item_column_direction::align_baseline(litehtml::flex_line &l
 
 litehtml::pixel_t litehtml::flex_item_column_direction::get_el_main_size()
 {
-	return m_container_wm.is_vertical() ? el->width() : el->height();
+	return el->block_size(m_container_wm);
 }
 
 litehtml::pixel_t litehtml::flex_item_column_direction::get_el_cross_size()
 {
-	return m_container_wm.is_vertical() ? el->height() : el->width();
+	return el->inline_size(m_container_wm);
 }

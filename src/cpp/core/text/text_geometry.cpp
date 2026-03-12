@@ -20,15 +20,16 @@ GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_
             placement.x = (float)m_line_pos.x + (float)m_line_pos.width / 2.0f - width / 2.0f;
 
             // Center the character vertically in its font_size-tall slot.
-            // (metrics.fAscent + metrics.fDescent) / 2.0f is the center of the glyph relative to the baseline.
-            // We want this to be at (inline_offset + font_size / 2.0f).
+            // (metrics.fAscent + metrics.fDescent) / 2.0f is the center of the glyph relative to
+            // the baseline. We want this to be at (inline_offset + font_size / 2.0f).
             float v_shift = font_size / 2.0f - (metrics.fAscent + metrics.fDescent) / 2.0f;
 
             if (is_punctuation) {
                 float h_shift = (font_size - width) / 2.0f + width * 0.58f;
-                placement.y = (float)m_line_pos.y + inline_offset + block_offset + v_shift -
-                              width * 0.5f;
-                placement.x = (float)m_line_pos.x + (float)m_line_pos.width / 2.0f - width / 2.0f + h_shift;
+                placement.y =
+                    (float)m_line_pos.y + inline_offset + block_offset + v_shift - width * 0.5f;
+                placement.x =
+                    (float)m_line_pos.x + (float)m_line_pos.width / 2.0f - width / 2.0f + h_shift;
             } else {
                 placement.y = (float)m_line_pos.y + inline_offset + block_offset + v_shift;
             }

@@ -1685,8 +1685,9 @@ void container_skia::push_transform(litehtml::uint_ptr hdc,
                             v /= 100.0f;
                         }
                     }
-                    if (arg_tok.type == litehtml::DIMENSION && 
-                        (litehtml::lowcase(arg_tok.unit) == "rad" || litehtml::lowcase(arg_tok.unit) == "turn")) {
+                    if (arg_tok.type == litehtml::DIMENSION &&
+                        (litehtml::lowcase(arg_tok.unit) == "rad" ||
+                         litehtml::lowcase(arg_tok.unit) == "turn")) {
                         if (litehtml::lowcase(arg_tok.unit) == "rad") {
                             v = v * 180.0f / 3.14159265f;
                         } else if (litehtml::lowcase(arg_tok.unit) == "turn") {

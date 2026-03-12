@@ -3,6 +3,8 @@
 
 #include <litehtml.h>
 
+#include <optional>
+
 namespace satoru {
 
 using pixel_t = litehtml::pixel_t;
@@ -35,6 +37,168 @@ struct logical_pos {
     }
 };
 
+class WritingModeContext {
+   public:
+    WritingModeContext(litehtml::writing_mode mode, pixel_t container_width,
+                       pixel_t container_height)
+        : m_mode(mode), m_container_width(container_width), m_container_height(container_height) {}
+
+    bool is_vertical() const {
+        return m_mode == litehtml::writing_mode_vertical_rl ||
+               m_mode == litehtml::writing_mode_vertical_lr;
+    }
+
+    litehtml::writing_mode mode() const { return m_mode; }
+    pixel_t container_width() const { return m_container_width; }
+    pixel_t container_height() const { return m_container_height; }
+
+    void update_container_size(pixel_t width, pixel_t height) {
+        m_container_width = width;
+        m_container_height = height;
+    }
+
+    // Coordinate conversions
+    litehtml::position to_physical(const logical_pos& pos, const logical_size& size) const {
+        litehtml::position phys;
+        switch (m_mode) {
+            case litehtml::writing_mode_vertical_rl:
+                phys.x = m_container_width - pos.block_offset - size.block_size;
+                phys.y = pos.inline_offset;
+                phys.width = size.block_size;
+                phys.height = size.inline_size;
+                break;
+            case litehtml::writing_mode_vertical_lr:
+                phys.x = pos.block_offset;
+                phys.y = pos.inline_offset;
+                phys.width = size.block_size;
+                phys.height = size.inline_size;
+                break;
+            default:
+                phys.x = pos.inline_offset;
+                phys.y = pos.block_offset;
+                phys.width = size.inline_size;
+                phys.height = size.block_size;
+                break;
+        }
+        return phys;
+    }
+
+    logical_size to_logical(pixel_t width, pixel_t height) const {
+        return is_vertical() ? logical_size(height, width) : logical_size(width, height);
+    }
+
+    logical_pos to_logical_pos(pixel_t x, pixel_t y, pixel_t width, pixel_t height) const {
+        switch (m_mode) {
+            case litehtml::writing_mode_vertical_rl:
+                return {y, m_container_width - x - width};
+            case litehtml::writing_mode_vertical_lr:
+                return {y, x};
+            default:
+                return {x, y};
+        }
+    }
+
+    // Logical property helpers
+    pixel_t inline_start(const litehtml::margins& m) const {
+        return is_vertical() ? m.top : m.left;
+    }
+    pixel_t inline_end(const litehtml::margins& m) const {
+        return is_vertical() ? m.bottom : m.right;
+    }
+    pixel_t block_start(const litehtml::margins& m) const {
+        if (m_mode == litehtml::writing_mode_vertical_rl) return m.right;
+        return is_vertical() ? m.left : m.top;
+    }
+    pixel_t block_end(const litehtml::margins& m) const {
+        if (m_mode == litehtml::writing_mode_vertical_rl) return m.left;
+        return is_vertical() ? m.right : m.bottom;
+    }
+
+    const litehtml::css_length& inline_start(const litehtml::css_margins& m) const {
+        return is_vertical() ? m.top : m.left;
+    }
+    const litehtml::css_length& inline_end(const litehtml::css_margins& m) const {
+        return is_vertical() ? m.bottom : m.right;
+    }
+    const litehtml::css_length& block_start(const litehtml::css_margins& m) const {
+        if (m_mode == litehtml::writing_mode_vertical_rl) return m.right;
+        return is_vertical() ? m.left : m.top;
+    }
+    const litehtml::css_length& block_end(const litehtml::css_margins& m) const {
+        if (m_mode == litehtml::writing_mode_vertical_rl) return m.left;
+        return is_vertical() ? m.right : m.bottom;
+    }
+
+    void set_inline_start(litehtml::margins& m, pixel_t val) const {
+        if (is_vertical())
+            m.top = val;
+        else
+            m.left = val;
+    }
+    void set_inline_end(litehtml::margins& m, pixel_t val) const {
+        if (is_vertical())
+            m.bottom = val;
+        else
+            m.right = val;
+    }
+    void set_block_start(litehtml::margins& m, pixel_t val) const {
+        if (m_mode == litehtml::writing_mode_vertical_rl)
+            m.right = val;
+        else if (is_vertical())
+            m.left = val;
+        else
+            m.top = val;
+    }
+    void set_block_end(litehtml::margins& m, pixel_t val) const {
+        if (m_mode == litehtml::writing_mode_vertical_rl)
+            m.left = val;
+        else if (is_vertical())
+            m.right = val;
+        else
+            m.bottom = val;
+    }
+
+    // CSS length helpers
+    const litehtml::css_length& get_inline_size(const litehtml::css_properties& css) const {
+        return is_vertical() ? css.get_height() : css.get_width();
+    }
+    const litehtml::css_length& get_block_size(const litehtml::css_properties& css) const {
+        return is_vertical() ? css.get_width() : css.get_height();
+    }
+
+    litehtml::containing_block_context update_logical(
+        const litehtml::containing_block_context& cb,
+        std::optional<litehtml::containing_block_context::typed_pixel> isize,
+        std::optional<litehtml::containing_block_context::typed_pixel> bsize) const {
+        litehtml::containing_block_context ret = cb;
+        ret.mode = m_mode;
+        if (isize) {
+            if (is_vertical()) {
+                ret.height = *isize;
+                ret.render_height = *isize;
+            } else {
+                ret.width = *isize;
+                ret.render_width = *isize;
+            }
+        }
+        if (bsize) {
+            if (is_vertical()) {
+                ret.width = *bsize;
+                ret.render_width = *bsize;
+            } else {
+                ret.height = *bsize;
+                ret.render_height = *bsize;
+            }
+        }
+        return ret;
+    }
+
+   private:
+    litehtml::writing_mode m_mode;
+    pixel_t m_container_width;
+    pixel_t m_container_height;
+};
+
 struct logical_rect {
     pixel_t inline_offset;
     pixel_t block_offset;
@@ -52,245 +216,10 @@ struct logical_rect {
     pixel_t inline_end() const { return inline_offset + inline_size; }
     pixel_t block_start() const { return block_offset; }
     pixel_t block_end() const { return block_offset + block_size; }
-};
 
-struct logical_edges {
-    pixel_t inline_start;
-    pixel_t inline_end;
-    pixel_t block_start;
-    pixel_t block_end;
-
-    logical_edges() : inline_start(0), inline_end(0), block_start(0), block_end(0) {}
-};
-
-class WritingModeContext {
-   public:
-    WritingModeContext(litehtml::writing_mode mode, pixel_t container_width,
-                       pixel_t container_height)
-        : m_mode(mode), m_container_width(container_width), m_container_height(container_height) {}
-
-    // 論理座標から物理座標（litehtml::position）への変換
-    litehtml::position to_physical(const logical_pos& pos, const logical_size& size) const {
-        litehtml::position phys;
-        switch (m_mode) {
-            case litehtml::writing_mode_vertical_rl:
-                phys.x = m_container_width - pos.block_offset - size.block_size;
-                phys.y = pos.inline_offset;
-                phys.width = size.block_size;
-                phys.height = size.inline_size;
-                break;
-            case litehtml::writing_mode_vertical_lr:
-                phys.x = pos.block_offset;
-                phys.y = pos.inline_offset;
-                phys.width = size.block_size;
-                phys.height = size.inline_size;
-                break;
-            case litehtml::writing_mode_horizontal_tb:
-            default:
-                phys.x = pos.inline_offset;
-                phys.y = pos.block_offset;
-                phys.width = size.inline_size;
-                phys.height = size.block_size;
-                break;
-        }
-        return phys;
+    litehtml::position to_physical(const WritingModeContext& wm) const {
+        return wm.to_physical(pos(), size());
     }
-
-    litehtml::position to_physical(const logical_rect& rect) const {
-        return to_physical(rect.pos(), rect.size());
-    }
-
-    // 物理サイズから論理サイズへの変換
-    logical_size to_logical(pixel_t width, pixel_t height) const {
-        if (is_vertical()) {
-            return {height, width};
-        }
-        return {width, height};
-    }
-
-    logical_pos to_logical_pos(pixel_t x, pixel_t y, pixel_t width, pixel_t height) const {
-        switch (m_mode) {
-            case litehtml::writing_mode_vertical_rl:
-                return {y, m_container_width - x - width};
-            case litehtml::writing_mode_vertical_lr:
-                return {y, x};
-            default:
-                return {x, y};
-        }
-    }
-
-    logical_rect to_logical(const litehtml::position& pos) const {
-        logical_pos lp = to_logical_pos(pos.x, pos.y, pos.width, pos.height);
-        logical_size ls = to_logical(pos.width, pos.height);
-        return {lp.inline_offset, lp.block_offset, ls.inline_size, ls.block_size};
-    }
-
-    bool is_vertical() const {
-        return m_mode == litehtml::writing_mode_vertical_rl ||
-               m_mode == litehtml::writing_mode_vertical_lr;
-    }
-
-    pixel_t container_width() const { return m_container_width; }
-    pixel_t container_height() const { return m_container_height; }
-
-    void update_container_size(pixel_t width, pixel_t height) {
-        m_container_width = width;
-        m_container_height = height;
-    }
-
-    litehtml::writing_mode mode() const { return m_mode; }
-
-    litehtml::containing_block_context::typed_pixel inline_size(
-        const litehtml::containing_block_context& cb) const {
-        return is_vertical() ? cb.height : cb.width;
-    }
-    litehtml::containing_block_context::typed_pixel block_size(
-        const litehtml::containing_block_context& cb) const {
-        return is_vertical() ? cb.width : cb.height;
-    }
-
-    const litehtml::css_length& get_inline_size(const litehtml::css_properties& css) const {
-        return is_vertical() ? css.get_height() : css.get_width();
-    }
-    const litehtml::css_length& get_block_size(const litehtml::css_properties& css) const {
-        return is_vertical() ? css.get_width() : css.get_height();
-    }
-    const litehtml::css_length& get_min_inline_size(const litehtml::css_properties& css) const {
-        return is_vertical() ? css.get_min_height() : css.get_min_width();
-    }
-    const litehtml::css_length& get_min_block_size(const litehtml::css_properties& css) const {
-        return is_vertical() ? css.get_min_width() : css.get_min_height();
-    }
-    const litehtml::css_length& get_max_inline_size(const litehtml::css_properties& css) const {
-        return is_vertical() ? css.get_max_height() : css.get_max_width();
-    }
-    const litehtml::css_length& get_max_block_size(const litehtml::css_properties& css) const {
-        return is_vertical() ? css.get_max_width() : css.get_max_height();
-    }
-
-    litehtml::containing_block_context update_logical(
-        const litehtml::containing_block_context& cb,
-        std::optional<litehtml::containing_block_context::typed_pixel> inline_size,
-        std::optional<litehtml::containing_block_context::typed_pixel> block_size) const {
-        litehtml::containing_block_context ret = cb;
-        if (inline_size) {
-            if (is_vertical()) {
-                ret.height = *inline_size;
-                ret.render_height = *inline_size;
-            } else {
-                ret.width = *inline_size;
-                ret.render_width = *inline_size;
-            }
-        }
-        if (block_size) {
-            if (is_vertical()) {
-                ret.width = *block_size;
-                ret.render_width = *block_size;
-            } else {
-                ret.height = *block_size;
-                ret.render_height = *block_size;
-            }
-        }
-        return ret;
-    }
-
-    pixel_t inline_start(const litehtml::margins& m) const {
-        return is_vertical() ? m.top : m.left;
-    }
-    pixel_t inline_end(const litehtml::margins& m) const {
-        return is_vertical() ? m.bottom : m.right;
-    }
-    pixel_t block_start(const litehtml::margins& m) const {
-        switch (m_mode) {
-            case litehtml::writing_mode_vertical_rl:
-                return m.right;
-            case litehtml::writing_mode_vertical_lr:
-                return m.left;
-            default:
-                return m.top;
-        }
-    }
-    pixel_t block_end(const litehtml::margins& m) const {
-        switch (m_mode) {
-            case litehtml::writing_mode_vertical_rl:
-                return m.left;
-            case litehtml::writing_mode_vertical_lr:
-                return m.right;
-            default:
-                return m.bottom;
-        }
-    }
-
-    const litehtml::css_length& inline_start(const litehtml::css_margins& m) const {
-        return is_vertical() ? m.top : m.left;
-    }
-    const litehtml::css_length& inline_end(const litehtml::css_margins& m) const {
-        return is_vertical() ? m.bottom : m.right;
-    }
-    const litehtml::css_length& block_start(const litehtml::css_margins& m) const {
-        switch (m_mode) {
-            case litehtml::writing_mode_vertical_rl:
-                return m.right;
-            case litehtml::writing_mode_vertical_lr:
-                return m.left;
-            default:
-                return m.top;
-        }
-    }
-    const litehtml::css_length& block_end(const litehtml::css_margins& m) const {
-        switch (m_mode) {
-            case litehtml::writing_mode_vertical_rl:
-                return m.left;
-            case litehtml::writing_mode_vertical_lr:
-                return m.right;
-            default:
-                return m.bottom;
-        }
-    }
-
-    void set_inline_start(litehtml::margins& m, pixel_t val) const {
-        if (is_vertical())
-            m.top = val;
-        else
-            m.left = val;
-    }
-    void set_inline_end(litehtml::margins& m, pixel_t val) const {
-        if (is_vertical())
-            m.bottom = val;
-        else
-            m.right = val;
-    }
-    void set_block_start(litehtml::margins& m, pixel_t val) const {
-        switch (m_mode) {
-            case litehtml::writing_mode_vertical_rl:
-                m.right = val;
-                break;
-            case litehtml::writing_mode_vertical_lr:
-                m.left = val;
-                break;
-            default:
-                m.top = val;
-                break;
-        }
-    }
-    void set_block_end(litehtml::margins& m, pixel_t val) const {
-        switch (m_mode) {
-            case litehtml::writing_mode_vertical_rl:
-                m.left = val;
-                break;
-            case litehtml::writing_mode_vertical_lr:
-                m.right = val;
-                break;
-            default:
-                m.bottom = val;
-                break;
-        }
-    }
-
-   private:
-    litehtml::writing_mode m_mode;
-    pixel_t m_container_width;
-    pixel_t m_container_height;
 };
 
 }  // namespace satoru

@@ -107,9 +107,6 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
     }
 
     if (typeface) {
-        SATORU_LOG_INFO("loadFont: SUCCESS loaded font '%s' (%d bytes) from %s%s", cleaned.c_str(),
-                        size, (url ? url : "memory"), (from_cache ? " (cache)" : ""));
-
         bool duplicate = false;
         for (const auto &existing : m_typefaceCache[cleaned]) {
             if (existing.get() == typeface.get()) {

@@ -3,13 +3,9 @@
 #include "html_tag.h"
 #include "document.h"
 
-extern "C" void satoru_log_printf(int level, const char* format, ...);
-#define SATORU_LOG_DEBUG(...) satoru_log_printf(4, __VA_ARGS__) // LogLevel::Debug is 4
-
 litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t y, bool /*second_pass*/, const containing_block_context &self_size, formatting_context* fmt_ctx)
 {
-    SATORU_LOG_DEBUG("render_item_flex::_render_content: mode=%d, self_width=%.2f(%d), self_height=%.2f(%d)", 
-        self_size.mode, (float)self_size.width, self_size.width.type, (float)self_size.height, self_size.height.type);
+
 	m_pos.width = 0;
 	m_pos.height = 0;
 
@@ -73,8 +69,7 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	pixel_t sum_main_size = 0;
 	pixel_t max_inline_size = 0;
 
-    SATORU_LOG_DEBUG("render_item_flex: is_main_inline=%d, container_main_size=%.2f, num_lines=%zu", 
-        is_main_inline, (float)container_main_size, m_lines.size());
+
 
 	/////////////////////////////////////////////////////////////////
 	/// Resolving Flexible Lengths
@@ -88,7 +83,7 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 		}
 		ln.init(container_main_size, fit_container, is_main_inline, self_size, fmt_ctx);   
 		sum_cross_size += ln.cross_size;
-        SATORU_LOG_DEBUG("  line: cross_size=%.2f, sum_cross_size=%.2f", (float)ln.cross_size, (float)sum_cross_size);
+
 		sum_main_size = std::max(sum_main_size, ln.main_size);
 		if(reverse)
 		{
@@ -277,8 +272,7 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 		m_pos.height = is_main_inline ? container_main_size : sum_cross_size;
 	}
 
-    SATORU_LOG_DEBUG("render_item_flex: final_pos_size: width=%.2f, height=%.2f, sum_cross_size=%.2f", 
-        (float)m_pos.width, (float)m_pos.height, (float)sum_cross_size);
+
 
 	// Override with explicit sizes if provided
 	if (self_size.width.type != containing_block_context::cbc_value_type_auto && self_size.width > 0)

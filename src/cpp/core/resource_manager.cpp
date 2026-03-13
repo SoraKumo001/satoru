@@ -7,6 +7,7 @@
 #include "../utils/skia_utils.h"
 #include "container_skia.h"
 #include "satoru_context.h"
+#include "utils/logging.h"
 
 extern container_skia* g_discovery_container;
 
@@ -63,7 +64,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
     m_resolvedUrls[url] = type;
 
     if (!data || size == 0) {
-        std::cerr << "ResourceManager: Received empty data for " << url << std::endl;
+        SATORU_LOG_ERROR("ResourceManager: Received empty data for %s", url.c_str());
         return;
     }
 

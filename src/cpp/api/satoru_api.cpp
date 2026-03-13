@@ -98,21 +98,6 @@ std::string codepoints_to_utf8(const std::set<char32_t>& cps) {
     }
     return res;
 }
-
-void dump_elements_recursive(litehtml::element::ptr el) {
-    if (!el) return;
-    const char* tag = el->get_tagName();
-    if (tag && strcmp(tag, "div") == 0) {
-        auto attrs = el->css().dump_get_attrs();
-        for (const auto& attr : attrs) {
-            satoru_log_printf(LogLevel::Info, "API DIV [%s] CSS ATTR: %s = %s", tag,
-                              std::get<0>(attr).c_str(), std::get<1>(attr).c_str());
-        }
-    }
-    for (auto& child : el->children()) {
-        dump_elements_recursive(child);
-    }
-}
 }  // namespace
 
 // --- SatoruInstance Implementation ---
@@ -135,10 +120,6 @@ void SatoruInstance::init_document(const char* html, int width, int height) {
     doc = litehtml::document::createFromString(html, render_container.get(), css.c_str());
     if (render_container) {
         render_container->set_document(doc.get());
-    }
-
-    if (doc && doc->root()) {
-        dump_elements_recursive(doc->root());
     }
 }
 

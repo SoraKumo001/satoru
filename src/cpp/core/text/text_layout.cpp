@@ -415,11 +415,6 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
                     ca.is_vertical_upright = unicode.isVerticalUpright(ca.codepoint);
                 }
             }
-            if (ca.codepoint > 32) {
-                SATORU_LOG_INFO("DEBUG_LAYOUT: cp=%u, orient=%d, upright=%d, sub_fail=%d",
-                                (unsigned int)ca.codepoint, (int)fi->desc.orientation,
-                                (int)ca.is_vertical_upright, (int)ca.is_substitution_failed);
-            }
         }
 
         last_font = ca.font;

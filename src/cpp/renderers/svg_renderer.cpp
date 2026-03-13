@@ -885,15 +885,6 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
         size_t tagEnd = scanner.getPos();
         std::string_view rawTag = svg.substr(tagStart, tagEnd - tagStart);
 
-        if (!defsInjected) {
-            SATORU_LOG_INFO("finalizeSvg: Tag [%.*s] (closing=%d)", (int)tag.name.size(),
-                            tag.name.data(), tag.closing);
-            if (tag.name == "svg") {
-                SATORU_LOG_INFO("finalizeSvg: matched 'svg' exactly. closing=%d, defsInjected=%d",
-                                tag.closing, defsInjected);
-            }
-        }
-
         if (tag.name.empty() || tag.name[0] == '!' || tag.name[0] == '?') {
             serializeFastTag(result, tag);
             continue;
@@ -1508,10 +1499,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
             }
 
             if (isSvg && !tag.closing && !defsInjected) {
-                SATORU_LOG_INFO("finalizeSvg: Injecting defs into <%.*s>", (int)tag.name.size(),
-                                tag.name.data());
                 std::string defs = generateDefs(container, context, options);
-                SATORU_LOG_INFO("finalizeSvg: Defs size: %d", (int)defs.size());
                 result.append("<defs><!--SATORU_DEFS-->");
                 result.append(defs);
                 result.append("</defs>");
@@ -1557,24 +1545,6 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
     return finalizeSvg(svg, inst->context, *inst->render_container, options);
 }
 
-static void dump_render_items_recursive(std::shared_ptr<litehtml::render_item> el, int depth) {
-    if (!el) return;
-    const char* tag = el->src_el()->get_tagName();
-    std::string classes = el->src_el()->get_attr("class", "");
-    std::string id = el->src_el()->get_attr("id", "");
-    auto pos = el->pos();
-    litehtml::position abs_pos = el->calc_placement(0, 0);
-
-    SATORU_LOG_INFO(
-        "RENDER_ITEM tag=[%s] class=[%s] id=[%s] ABS_POS: x=%f, y=%f, w=%f, h=%f (depth=%d)",
-        tag ? tag : "text/anon", classes.c_str(), id.c_str(), (float)abs_pos.x, (float)abs_pos.y,
-        (float)pos.width, (float)pos.height, depth);
-
-    for (auto& child : el->children()) {
-        dump_render_items_recursive(child, depth + 1);
-    }
-}
-
 std::string renderHtmlToSvg(const char* html, int width, int height, SatoruContext& context,
                             const char* master_css, const RenderOptions& options) {
     int initial_height = (height > 0) ? height : 3000;
@@ -1586,10 +1556,6 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
     auto doc = litehtml::document::createFromString(html, &container, css.c_str());
     if (!doc) return "";
     doc->render(width);
-
-    if (doc->root_render()) {
-        dump_render_items_recursive(doc->root_render(), 0);
-    }
 
     int content_height = (height > 0) ? height : (int)doc->height();
     if (content_height < 1) content_height = 1;

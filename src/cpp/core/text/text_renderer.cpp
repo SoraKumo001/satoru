@@ -63,8 +63,6 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
         TextGeometry geom(m_currentStyle.mode, line_pos, m_currentStyle.fi);
 
         if (geom.isVertical() && !m_currentStyle.is_vertical_upright) {
-            SATORU_LOG_INFO("DEBUG_BATCHER: ROTATING run, upright=%d",
-                            (int)m_currentStyle.is_vertical_upright);
             auto builder_run = m_builder.allocRunRSXform(run.font, run.count);
             memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
             for (int i = 0; i < run.count; ++i) {
@@ -74,8 +72,6 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
                 builder_run.xforms()[i] = SkRSXform::Make(0, 1, p.x, p.y);
             }
         } else {
-            SATORU_LOG_INFO("DEBUG_BATCHER: NOT ROTATING run, upright=%d",
-                            (int)m_currentStyle.is_vertical_upright);
             auto builder_run = m_builder.allocRunPos(run.font, run.count);
             memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
             for (int i = 0; i < run.count; ++i) {

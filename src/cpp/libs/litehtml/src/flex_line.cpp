@@ -358,9 +358,7 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container,
                                                    : containing_block_context::size_mode_exact_width) |
                                  containing_block_context::size_mode_measure;
 
-            bool stretch = (item->align & 0xFF) == flex_align_items_stretch ||
-                           (item->align & 0xFF) == flex_align_items_normal;
-            if (!stretch && wm.get_block_size(item->el->css()).is_predefined()) {
+                        if (wm.get_block_size(item->el->css()).is_predefined()) {
                 child_cb.size_mode |= containing_block_context::size_mode_content;
             }
 
@@ -457,9 +455,7 @@ void litehtml::flex_line::init(pixel_t container_main_size, bool fit_container,
                                                    : containing_block_context::size_mode_exact_height) |
                                  containing_block_context::size_mode_measure;
 
-            bool stretch = (item->align & 0xFF) == flex_align_items_stretch ||
-                           (item->align & 0xFF) == flex_align_items_normal;
-            if (!stretch && wm.get_inline_size(item->el->css()).is_predefined()) {
+                        if (wm.get_inline_size(item->el->css()).is_predefined()) {
                 child_cb.size_mode |= containing_block_context::size_mode_content;
             }
 

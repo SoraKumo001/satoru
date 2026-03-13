@@ -279,6 +279,8 @@ litehtml::pixel_t litehtml::render_item_flex::_render_content(pixel_t x, pixel_t
 	{
 		m_pos.width = self_size.render_width;
 	}
+    
+
 	if (self_size.height.type != containing_block_context::cbc_value_type_auto && self_size.height > 0)
 	{
 		m_pos.height = self_size.render_height;

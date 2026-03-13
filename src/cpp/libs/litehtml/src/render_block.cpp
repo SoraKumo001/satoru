@@ -282,6 +282,9 @@ litehtml::pixel_t litehtml::render_item_block::_measure(const containing_block_c
 	
 	// The returned inline-size should not exceed the element's actual inline-size
     pixel_t current_inline_size = (self_size.mode == writing_mode_horizontal_tb) ? m_pos.width : m_pos.height;
+    
+
+
 	ret_inline_size = std::min(ret_inline_size, current_inline_size);
 
 	// Fix inline-size with min-inline-size attribute

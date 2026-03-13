@@ -191,6 +191,17 @@ void litehtml::flex_item_row_direction::direction_specific_init(const litehtml::
 	if(flex_basis_predefined) predef = el->css().get_flex_basis().predef();
 	else if(el->css().get_flex_basis().val() < 0) flex_basis_predefined = true;
 
+	// Fix: If we are measuring the container (intrinsic sizes), we should treat
+	// flex-basis as content for growable items or if basis is 0/percentage.
+	// CAUTION: Using flex_basis_content instead of flex_basis_max_content so it can wrap appropriately
+	// in normal flow.
+	if (!flex_basis_predefined && (self_size.size_mode & containing_block_context::size_mode_measure)) {
+		if (grow > 0 || el->css().get_flex_basis().units() == css_units_percentage || el->css().get_flex_basis().val() == 0) {
+			flex_basis_predefined = true;
+			predef = flex_basis_content;
+		}
+	}
+
 	if (flex_basis_predefined)
 	{
 		if(predef == flex_basis_auto && size_prop.is_predefined()) predef = flex_basis_content;
@@ -354,8 +365,8 @@ void litehtml::flex_item_row_direction::align_stretch(flex_line &ln, const conta
         satoru::logical_size current_content_size = m_container_wm.to_logical(el->pos().width, el->pos().height);
         pixel_t new_inline_size = current_content_size.inline_size + el->box_sizing_inline(m_container_wm);
 
-        containing_block_context::typed_pixel tp_is(new_inline_size, containing_block_context::cbc_value_type_auto);
-        containing_block_context::typed_pixel tp_bs(new_block_size, containing_block_context::cbc_value_type_auto);
+        containing_block_context::typed_pixel tp_is(new_inline_size, containing_block_context::cbc_value_type_absolute);
+        containing_block_context::typed_pixel tp_bs(new_block_size, containing_block_context::cbc_value_type_absolute);
 
         containing_block_context cb = m_container_wm.update_logical(self_size, tp_is, tp_bs);
         cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;
@@ -431,7 +442,7 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 			if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
 			int mode = containing_block_context::size_mode_measure;
 			bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
-			if (!stretch) mode |= containing_block_context::size_mode_content;
+			mode |= containing_block_context::size_mode_content;
 			
             // Reset both? Original logic: 
             // child_cb.width.type = auto; child_cb.height.type = auto;
@@ -462,6 +473,17 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
 	if(flex_basis_predefined) predef = el->css().get_flex_basis().predef();
 	else if(el->css().get_flex_basis().val() < 0) flex_basis_predefined = true;
 
+	// Fix: If we are measuring the container (intrinsic sizes), we should treat
+	// flex-basis as content for growable items or if basis is 0/percentage.
+	// CAUTION: Using flex_basis_content instead of flex_basis_max_content so it can wrap appropriately
+	// in normal flow.
+	if (!flex_basis_predefined && (self_size.size_mode & containing_block_context::size_mode_measure)) {
+		if (grow > 0 || el->css().get_flex_basis().units() == css_units_percentage || el->css().get_flex_basis().val() == 0) {
+			flex_basis_predefined = true;
+			predef = flex_basis_content;
+		}
+	}
+
 	if (flex_basis_predefined)
 	{
 		if(predef == flex_basis_auto && size_prop.is_predefined()) predef = flex_basis_fit_content;
@@ -479,7 +501,7 @@ void litehtml::flex_item_column_direction::direction_specific_init(const litehtm
                     measure_size.size_mode &= ~(containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height);
 					measure_size.size_mode |= containing_block_context::size_mode_measure;
 					bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
-					if (!stretch) measure_size.size_mode |= containing_block_context::size_mode_content;
+					measure_size.size_mode |= containing_block_context::size_mode_content;
 					formatting_context fmt_ctx_copy;
 					if(fmt_ctx) fmt_ctx_copy = *fmt_ctx;
 					el->measure(measure_size, fmt_ctx ? &fmt_ctx_copy : nullptr);
@@ -602,8 +624,8 @@ void litehtml::flex_item_column_direction::align_stretch(flex_line &ln, const co
         satoru::logical_size current_content_size = m_container_wm.to_logical(el->pos().width, el->pos().height);
         pixel_t new_block_size = current_content_size.block_size + el->box_sizing_block(m_container_wm);
 
-        containing_block_context::typed_pixel tp_is(new_inline_size, containing_block_context::cbc_value_type_auto);
-        containing_block_context::typed_pixel tp_bs(new_block_size, containing_block_context::cbc_value_type_auto);
+        containing_block_context::typed_pixel tp_is(new_inline_size, containing_block_context::cbc_value_type_absolute);
+        containing_block_context::typed_pixel tp_bs(new_block_size, containing_block_context::cbc_value_type_absolute);
 
         containing_block_context cb = m_container_wm.update_logical(self_size, tp_is, tp_bs);
         cb.size_mode = containing_block_context::size_mode_exact_width | containing_block_context::size_mode_exact_height;

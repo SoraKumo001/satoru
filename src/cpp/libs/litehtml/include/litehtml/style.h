@@ -24,7 +24,7 @@ namespace litehtml
                 if (important != other.important)
                     return important;
                 if (layer_rank != other.layer_rank)
-                    return layer_rank > other.layer_rank;
+                    return important ? (layer_rank < other.layer_rank) : (layer_rank > other.layer_rank);
                 return specificity >= other.specificity;
             }
 
@@ -33,7 +33,7 @@ namespace litehtml
                 if (important != other.important)
                     return !important;
                 if (layer_rank != other.layer_rank)
-                    return layer_rank < other.layer_rank;
+                    return important ? (layer_rank > other.layer_rank) : (layer_rank < other.layer_rank);
                 return specificity < other.specificity;
             }
         };

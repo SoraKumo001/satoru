@@ -67,6 +67,7 @@ struct image_draw_info {
     litehtml::position clip_pos;
     litehtml::border_radiuses clip_radius;
     litehtml::object_fit object_fit = litehtml::object_fit_fill;
+    litehtml::css_token_vector object_position;
     int tag_index = 0;
 };
 

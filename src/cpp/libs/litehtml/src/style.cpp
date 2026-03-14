@@ -74,6 +74,7 @@ namespace litehtml
           {_flex_wrap_, flex_wrap_strings},
           {_justify_content_, flex_justify_content_strings},
           {_justify_self_, flex_justify_content_strings},
+          {_justify_items_, flex_justify_content_strings},
           {_align_content_, flex_align_content_strings},
           {_align_items_, flex_align_items_strings},
           {_align_self_, flex_align_items_strings},
@@ -214,9 +215,23 @@ namespace litehtml
     case _backdrop_filter_:
     case __webkit_backdrop_filter_:
     case _clip_path_:
+    case _object_position_:
     case _mask_:
     case __webkit_mask_:
+    case _pointer_events_:
+    case _user_select_:
+    case __webkit_user_select_:
+    case _scroll_behavior_:
+    case _transform_style_:
+    case _perspective_:
+    case _backface_visibility_:
       add_parsed_property(name, property_value(value, important, false, m_layer, m_specificity));
+      break;
+
+    case _place_items_:
+    case _place_content_:
+    case _place_self_:
+      parse_place_shorthand(name, value, important);
       break;
 
     case _display_:
@@ -258,6 +273,7 @@ namespace litehtml
     case _flex_wrap_:
     case _justify_content_:
     case _justify_self_:
+    case _justify_items_:
     case _align_content_:
     case _caption_side_:
     case _object_fit_:
@@ -2225,5 +2241,29 @@ namespace litehtml
     }
     if (!shadows.empty())
       add_parsed_property(name, property_value(shadows, important, false, m_layer, m_specificity));
+  }
+
+  void style::parse_place_shorthand(string_id name, const css_token_vector& tokens, bool important)
+  {
+    css_token_vector values;
+    for (const auto& tok : tokens)
+    {
+      if (tok.type != WHITESPACE)
+        values.push_back(tok);
+    }
+
+    if (values.empty() || values.size() > 2) return;
+
+    string_id align_id, justify_id;
+    if (name == _place_items_) { align_id = _align_items_; justify_id = _justify_items_; }
+    else if (name == _place_content_) { align_id = _align_content_; justify_id = _justify_content_; }
+    else if (name == _place_self_) { align_id = _align_self_; justify_id = _justify_self_; }
+    else return;
+
+    add_property(align_id, {values[0]}, "", important);
+    if (values.size() == 2)
+      add_property(justify_id, {values[1]}, "", important);
+    else
+      add_property(justify_id, {values[0]}, "", important);
   }
 } // namespace litehtml

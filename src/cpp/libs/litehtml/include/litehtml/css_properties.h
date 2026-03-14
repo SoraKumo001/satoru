@@ -121,6 +121,7 @@ namespace litehtml
 
     caption_side m_caption_side;
     object_fit m_object_fit;
+    css_token_vector m_object_position;
     shadow_vector m_box_shadow;
     shadow_vector m_text_shadow;
 
@@ -464,6 +465,7 @@ namespace litehtml
     const css_token_vector &get_transform_origin() const;
     const css_token_vector &get_filter() const;
     const css_token_vector &get_backdrop_filter() const;
+    const css_token_vector &get_object_position() const;
     const css_token_vector &get_mask() const;
 
     struct {
@@ -1201,6 +1203,11 @@ namespace litehtml
   inline const css_token_vector &css_properties::get_backdrop_filter() const
   {
     return m_backdrop_filter;
+  }
+
+  inline const css_token_vector &css_properties::get_object_position() const
+  {
+    return m_object_position;
   }
 
   inline const css_token_vector &css_properties::get_mask() const

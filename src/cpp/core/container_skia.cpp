@@ -589,7 +589,8 @@ void container_skia::draw_box_shadow(litehtml::uint_ptr hdc, const litehtml::sha
 
 void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer& layer,
                                 const std::string& url, const std::string& base_url,
-                                litehtml::object_fit fit) {
+                                litehtml::object_fit fit,
+                                const litehtml::css_token_vector& object_position) {
     if (!m_canvas) return;
     flush();
     if (m_tagging) {
@@ -598,6 +599,7 @@ void container_skia::draw_image(litehtml::uint_ptr hdc, const litehtml::backgrou
         draw.layer = layer;
         draw.opacity = 1.0f;
         draw.object_fit = fit;
+        draw.object_position = object_position;
 
         // Use background layer's clip_box as primary clipping
         draw.has_clip = true;

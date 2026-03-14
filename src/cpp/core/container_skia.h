@@ -209,7 +209,9 @@ class container_skia : public litehtml::document_container {
     virtual void get_image_size(const char *src, const char *baseurl, litehtml::size &sz) override;
     virtual void draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
                             const std::string &url, const std::string &base_url,
-                            litehtml::object_fit fit = litehtml::object_fit_fill) override;
+                            litehtml::object_fit fit = litehtml::object_fit_fill,
+                            const litehtml::css_token_vector &object_position =
+                                litehtml::css_token_vector()) override;
     virtual void draw_solid_fill(litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
                                  const litehtml::web_color &color) override;
     virtual void draw_linear_gradient(

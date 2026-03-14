@@ -83,7 +83,7 @@ void litehtml::el_image::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position
 				get_document()->container()->set_clip(pos, content_radius);
 			}
 
-			get_document()->container()->draw_image(hdc, layer, m_src, {}, fit);
+			get_document()->container()->draw_image(hdc, layer, m_src, {}, fit, css().get_object_position());
 
 			if (!content_radius.is_zero())
 			{

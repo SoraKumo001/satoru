@@ -61,6 +61,7 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   {
     m_backdrop_filter = el->get_property<css_token_vector>(__webkit_backdrop_filter_, false, css_token_vector(), offset(m_backdrop_filter));
   }
+  m_object_position = el->get_property<css_token_vector>(_object_position_, false, css_token_vector(), offset(m_object_position));
   m_mask = el->get_property<css_token_vector>(_mask_, false, css_token_vector(), offset(m_mask));
   if (m_mask.empty())
   {

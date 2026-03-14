@@ -801,6 +801,8 @@ namespace litehtml
       if (_s(name).substr(0, 2) == "--" && _s(name).size() >= 3 &&
           (value.empty() || is_declaration_value(value)))
         add_parsed_property(name, property_value(value, important, false, m_layer, m_specificity));
+      else if (container)
+        container->on_unknown_property(_s(name), value);
     }
   }
 

@@ -1975,6 +1975,12 @@ void container_skia::pop_mask(litehtml::uint_ptr hdc) {
     }
 }
 
+void container_skia::on_unknown_property(const litehtml::string& name,
+                                         const litehtml::css_token_vector& value) {
+    SATORU_LOG_WARN("Unsupported CSS property: %s: %s", name.c_str(),
+                    litehtml::get_repr(value).c_str());
+}
+
 SkPath container_skia::parse_clip_path(const litehtml::css_token_vector& tokens,
                                        const litehtml::position& pos) {
     SkPathBuilder builder;

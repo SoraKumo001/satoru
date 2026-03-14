@@ -272,6 +272,9 @@ class container_skia : public litehtml::document_container {
                            const litehtml::position &pos) override;
     virtual void pop_mask(litehtml::uint_ptr hdc) override;
 
+    virtual void on_unknown_property(const litehtml::string &name,
+                                     const litehtml::css_token_vector &value) override;
+
     virtual void pop_backdrop_filter(litehtml::uint_ptr hdc) override;
     virtual void push_backdrop_filter(litehtml::uint_ptr hdc,
                                       const std::shared_ptr<litehtml::render_item> &el) override;

@@ -92,6 +92,8 @@ namespace litehtml
                 virtual void                            push_mask(uint_ptr hdc, const css_token_vector& mask, const position& pos) {}
                 virtual void                            pop_mask(uint_ptr hdc) {}
 
+                virtual void                            on_unknown_property(const string& /*name*/, const css_token_vector& /*value*/) {}
+
         protected:
                 virtual ~document_container() = default;
         };

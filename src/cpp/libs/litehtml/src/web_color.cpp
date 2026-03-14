@@ -305,9 +305,9 @@ bool parse_rgb_func(const css_token& tok, web_color& color, document_container* 
 		web_color base_color;
 		if (!parse_color(tok.value[1], base_color, container)) return false;
 
-		float r_base = base_color.red / 255.0f;
-		float g_base = base_color.green / 255.0f;
-		float b_base = base_color.blue / 255.0f;
+		float r_base = (float)base_color.red;
+		float g_base = (float)base_color.green;
+		float b_base = (float)base_color.blue;
 		float a_base = base_color.alpha / 255.0f;
 
 		std::map<string, float> channels = { {"r", r_base}, {"g", g_base}, {"b", b_base}, {"alpha", a_base} };
@@ -315,10 +315,8 @@ bool parse_rgb_func(const css_token& tok, web_color& color, document_container* 
 		css_token_vector r_toks, g_toks, b_toks, alpha_toks;
 		size_t i = 2;
 		auto collect_component = [&](css_token_vector& dest) {
-			while (i < tok.value.size() && tok.value[i].ch != '/') {
-				dest.push_back(tok.value[i++]);
-				if (dest.size() == 1 && (dest[0].type == NUMBER || dest[0].type == PERCENTAGE || dest[0].type == DIMENSION || (dest[0].type == IDENT && channels.count(lowcase(dest[0].name))))) break;
-			}
+			while (i < tok.value.size() && tok.value[i].type == WHITESPACE) i++;
+			if (i < tok.value.size() && tok.value[i].ch != '/') dest.push_back(tok.value[i++]);
 		};
 
 		collect_component(r_toks);
@@ -327,7 +325,7 @@ bool parse_rgb_func(const css_token& tok, web_color& color, document_container* 
 
 		if (i < tok.value.size() && tok.value[i].ch == '/') {
 			i++;
-			while (i < tok.value.size()) alpha_toks.push_back(tok.value[i++]);
+			collect_component(alpha_toks);
 		}
 
 		if (r_toks.empty()) r_toks.push_back(css_token(IDENT, "r"));
@@ -531,10 +529,8 @@ bool parse_oklch_func(const css_token& tok, web_color& color, document_container
 		css_token_vector l_toks, c_toks, h_toks, a_toks;
 		size_t i = 2;
 		auto collect_component = [&](css_token_vector& dest) {
-			while (i < tokens.size() && tokens[i].ch != '/') {
-				dest.push_back(tokens[i++]);
-				if (dest.size() == 1 && (dest[0].type == NUMBER || dest[0].type == PERCENTAGE || dest[0].type == DIMENSION || (dest[0].type == IDENT && channels.count(lowcase(dest[0].name))))) break;
-			}
+			while (i < tokens.size() && tokens[i].type == WHITESPACE) i++;
+			if (i < tokens.size() && tokens[i].ch != '/') dest.push_back(tokens[i++]);
 		};
 
 		collect_component(l_toks);
@@ -543,7 +539,7 @@ bool parse_oklch_func(const css_token& tok, web_color& color, document_container
 
 		if (i < tokens.size() && tokens[i].ch == '/') {
 			i++;
-			while (i < tokens.size()) a_toks.push_back(tokens[i++]);
+			collect_component(a_toks);
 		}
 
 		if (l_toks.empty()) l_toks.push_back(css_token(IDENT, "l"));
@@ -865,10 +861,8 @@ bool parse_oklab_func(const css_token& tok, web_color& color, document_container
 		css_token_vector l_toks, a_toks, b_toks, alpha_toks;
 		size_t i = 2;
 		auto collect_component = [&](css_token_vector& dest) {
-			while (i < tokens.size() && tokens[i].ch != '/') {
-				dest.push_back(tokens[i++]);
-				if (dest.size() == 1 && (dest[0].type == NUMBER || dest[0].type == PERCENTAGE || dest[0].type == DIMENSION || (dest[0].type == IDENT && channels.count(lowcase(dest[0].name))))) break;
-			}
+			while (i < tokens.size() && tokens[i].type == WHITESPACE) i++;
+			if (i < tokens.size() && tokens[i].ch != '/') dest.push_back(tokens[i++]);
 		};
 
 		collect_component(l_toks);
@@ -877,7 +871,7 @@ bool parse_oklab_func(const css_token& tok, web_color& color, document_container
 
 		if (i < tokens.size() && tokens[i].ch == '/') {
 			i++;
-			while (i < tokens.size()) alpha_toks.push_back(tokens[i++]);
+			collect_component(alpha_toks);
 		}
 
 		if (l_toks.empty()) l_toks.push_back(css_token(IDENT, "l"));

@@ -75,7 +75,7 @@ namespace litehtml
                 virtual litehtml::string        resolve_color(const litehtml::string& /*color*/) const { return litehtml::string(); }
                 virtual void                            split_text(const char* text, const std::function<void(const char*)>& on_word, const std::function<void(const char*)>& on_space);
 
-                virtual void                            push_layer(uint_ptr hdc, float opacity) {}
+                virtual void                            push_layer(uint_ptr hdc, float opacity, blend_mode bm) {}
                 virtual void                            pop_layer(uint_ptr hdc) {}
 
                 virtual void                            push_transform(uint_ptr hdc, const css_token_vector& transform, const css_token_vector& origin, const position& pos) {}

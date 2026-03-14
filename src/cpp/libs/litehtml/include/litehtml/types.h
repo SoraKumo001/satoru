@@ -807,6 +807,28 @@ namespace litehtml
                 box_orient_vertical
         };
 
+#define blend_mode_strings "normal;multiply;screen;overlay;darken;lighten;color-dodge;color-burn;hard-light;soft-light;difference;exclusion;hue;saturation;color;luminosity"
+
+        enum blend_mode
+        {
+                blend_mode_normal,
+                blend_mode_multiply,
+                blend_mode_screen,
+                blend_mode_overlay,
+                blend_mode_darken,
+                blend_mode_lighten,
+                blend_mode_color_dodge,
+                blend_mode_color_burn,
+                blend_mode_hard_light,
+                blend_mode_soft_light,
+                blend_mode_difference,
+                blend_mode_exclusion,
+                blend_mode_hue,
+                blend_mode_saturation,
+                blend_mode_color,
+                blend_mode_luminosity
+        };
+
 #define  css_units_strings      "none;%;in;cm;mm;em;ex;pt;pc;px;vw;vh;vmin;vmax;rem;ch;fr"
 
 	enum css_units : byte // see css_length
@@ -929,6 +951,17 @@ namespace litehtml
                 white_space_pre_line,
                 white_space_pre_wrap
         };
+
+#define text_wrap_strings               "wrap;nowrap;balance;pretty"
+
+        enum text_wrap
+        {
+                text_wrap_wrap,
+                text_wrap_nowrap,
+                text_wrap_balance,
+                text_wrap_pretty
+        };
+
 
 #define text_overflow_strings           "clip;ellipsis"
 

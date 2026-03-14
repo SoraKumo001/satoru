@@ -42,6 +42,7 @@ namespace litehtml
           {_vertical_align_, vertical_align_strings},
           {_text_transform_, text_transform_strings},
           {_white_space_, white_space_strings},
+          {_text_wrap_, text_wrap_strings},
           {_word_break_, word_break_strings},
           {_overflow_wrap_, overflow_wrap_strings},
           {_word_wrap_, overflow_wrap_strings},
@@ -88,6 +89,8 @@ namespace litehtml
           {_text_overflow_, text_overflow_strings},
           {_text_combine_upright_, text_combine_upright_strings},
           {_container_type_, container_type_strings},
+          {_mix_blend_mode_, blend_mode_strings},
+          {_background_blend_mode_, blend_mode_strings},
   };
   std::map<string_id, vector<string_id>> shorthands =
       {
@@ -214,6 +217,8 @@ namespace litehtml
     case _filter_:
     case _backdrop_filter_:
     case __webkit_backdrop_filter_:
+    case _mix_blend_mode_:
+    case _background_blend_mode_:
     case _clip_path_:
     case _object_position_:
     case _mask_:
@@ -250,6 +255,7 @@ namespace litehtml
     case _vertical_align_:
     case _text_transform_:
     case _white_space_:
+    case _text_wrap_:
     case _word_break_:
     case _text_combine_upright_:
     case _overflow_wrap_:

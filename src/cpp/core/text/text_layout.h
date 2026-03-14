@@ -37,6 +37,9 @@ class TextLayout {
     static void splitText(SatoruContext* ctx, const char* text,
                           const std::function<void(const char*)>& onWord,
                           const std::function<void(const char*)>& onSpace);
+
+    static double balanceText(SatoruContext* ctx, const char* text, font_info* fi,
+                              litehtml::writing_mode mode, double maxWidth);
 };
 
 }  // namespace satoru

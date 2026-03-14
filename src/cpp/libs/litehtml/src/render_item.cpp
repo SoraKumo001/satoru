@@ -956,12 +956,13 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                 css_token_vector clip_path;
                 el->src_el()->get_custom_property(_clip_path_, clip_path);
 
-                bool has_props = (opacity < 1.0f) || !transform.empty() || !rotate.empty() ||
+                blend_mode mix_blend = el->src_el()->css().get_mix_blend_mode();
+                bool has_props = (opacity < 1.0f) || (mix_blend != blend_mode_normal) || !transform.empty() || !rotate.empty() ||
                                  !scale.empty() || !translate.empty() || !filter.empty() ||
                                  !backdrop_filter.empty() || !clip_path.empty() || !mask.empty();
 
                 if (has_props) {
-                    if (opacity < 1.0f) doc->container()->push_layer(hdc, opacity);
+                    if (opacity < 1.0f || mix_blend != blend_mode_normal) doc->container()->push_layer(hdc, opacity, mix_blend);
                     if (!backdrop_filter.empty()) doc->container()->push_backdrop_filter(hdc, el);
 
                     css_token_vector merged_transform;

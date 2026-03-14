@@ -255,7 +255,7 @@ class container_skia : public litehtml::document_container {
     virtual void split_text(const char *text, const std::function<void(const char *)> &on_word,
                             const std::function<void(const char *)> &on_space) override;
 
-    virtual void push_layer(litehtml::uint_ptr hdc, float opacity) override;
+    virtual void push_layer(litehtml::uint_ptr hdc, float opacity, litehtml::blend_mode bm) override;
     virtual void pop_layer(litehtml::uint_ptr hdc) override;
 
     virtual void push_transform(litehtml::uint_ptr hdc, const litehtml::css_token_vector &transform,

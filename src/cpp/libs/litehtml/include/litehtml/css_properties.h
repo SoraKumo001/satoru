@@ -39,6 +39,7 @@ namespace litehtml
     overflow m_overflow;
     text_overflow m_text_overflow;
     white_space m_white_space;
+    text_wrap m_text_wrap;
     style_display m_display;
     visibility m_visibility;
     appearance m_appearance;
@@ -140,6 +141,8 @@ namespace litehtml
     css_token_vector m_mask;
     word_break m_word_break;
     overflow_wrap m_overflow_wrap;
+    blend_mode m_mix_blend_mode;
+    blend_mode m_background_blend_mode;
 
     isolation m_isolation;
     container_type m_container_type;
@@ -166,6 +169,7 @@ namespace litehtml
                        m_overflow(overflow_visible),
                        m_text_overflow(text_overflow_clip),
                        m_white_space(white_space_normal),
+                       m_text_wrap(text_wrap_wrap),
                        m_display(display_inline),
                        m_visibility(visibility_visible),
                        m_appearance(appearance_none),
@@ -229,6 +233,8 @@ namespace litehtml
                        m_mask(),
                        m_word_break(word_break_normal),
                        m_overflow_wrap(overflow_wrap_normal),
+                       m_mix_blend_mode(blend_mode_normal),
+                       m_background_blend_mode(blend_mode_normal),
                        m_isolation(isolation_auto),
                        m_container_type(container_type_none)
     {
@@ -263,6 +269,8 @@ namespace litehtml
 
     white_space get_white_space() const;
     void set_white_space(white_space mWhiteSpace);
+    text_wrap get_text_wrap() const;
+    void set_text_wrap(text_wrap mTextWrap);
 
     word_break get_word_break() const;
     void set_word_break(word_break mWordBreak);
@@ -467,6 +475,10 @@ namespace litehtml
     const css_token_vector &get_backdrop_filter() const;
     const css_token_vector &get_object_position() const;
     const css_token_vector &get_mask() const;
+    blend_mode get_mix_blend_mode() const;
+    void set_mix_blend_mode(blend_mode mBlendMode);
+    blend_mode get_background_blend_mode() const;
+    void set_background_blend_mode(blend_mode mBlendMode);
 
     struct {
         pixel_t width = -1;
@@ -562,6 +574,16 @@ namespace litehtml
   inline void css_properties::set_white_space(white_space mWhiteSpace)
   {
     m_white_space = mWhiteSpace;
+  }
+
+  inline text_wrap css_properties::get_text_wrap() const
+  {
+    return m_text_wrap;
+  }
+
+  inline void css_properties::set_text_wrap(text_wrap mTextWrap)
+  {
+    m_text_wrap = mTextWrap;
   }
 
   inline word_break css_properties::get_word_break() const
@@ -1213,6 +1235,26 @@ namespace litehtml
   inline const css_token_vector &css_properties::get_mask() const
   {
     return m_mask;
+  }
+
+  inline blend_mode css_properties::get_mix_blend_mode() const
+  {
+    return m_mix_blend_mode;
+  }
+
+  inline void css_properties::set_mix_blend_mode(blend_mode mBlendMode)
+  {
+    m_mix_blend_mode = mBlendMode;
+  }
+
+  inline blend_mode css_properties::get_background_blend_mode() const
+  {
+    return m_background_blend_mode;
+  }
+
+  inline void css_properties::set_background_blend_mode(blend_mode mBlendMode)
+  {
+    m_background_blend_mode = mBlendMode;
   }
 }
 

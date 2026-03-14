@@ -302,6 +302,7 @@ namespace litehtml
       _text_emphasis_position_,
 
       _white_space_,
+      _text_wrap_,
       _word_break_,
       _overflow_wrap_,
       _word_wrap_,
@@ -391,6 +392,8 @@ namespace litehtml
       _filter_,
       _backdrop_filter_,
       __webkit_backdrop_filter_,
+      _mix_blend_mode_,
+      _background_blend_mode_,
       _clip_path_,
       _mask_,
       __webkit_mask_,

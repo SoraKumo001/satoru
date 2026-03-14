@@ -32,6 +32,7 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   m_vertical_align = (vertical_align)el->get_property<int>(_vertical_align_, false, va_baseline, offset(m_vertical_align));
   m_text_transform = (text_transform)el->get_property<int>(_text_transform_, true, text_transform_none, offset(m_text_transform));
   m_white_space = (white_space)el->get_property<int>(_white_space_, true, white_space_normal, offset(m_white_space));
+  m_text_wrap = (text_wrap)el->get_property<int>(_text_wrap_, true, text_wrap_wrap, offset(m_text_wrap));
   m_word_break = (word_break)el->get_property<int>(_word_break_, true, word_break_normal, offset(m_word_break));
   m_overflow_wrap = (overflow_wrap)el->get_property<int>(_overflow_wrap_, true, overflow_wrap_normal, offset(m_overflow_wrap));
   if (m_overflow_wrap == overflow_wrap_normal)
@@ -39,6 +40,8 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
     m_overflow_wrap = (overflow_wrap)el->get_property<int>(_word_wrap_, true, overflow_wrap_normal, offset(m_overflow_wrap));
   }
   m_isolation = (isolation)el->get_property<int>(_isolation_, false, isolation_auto, offset(m_isolation));
+  m_mix_blend_mode = (blend_mode)el->get_property<int>(_mix_blend_mode_, false, blend_mode_normal, offset(m_mix_blend_mode));
+  m_background_blend_mode = (blend_mode)el->get_property<int>(_background_blend_mode_, false, blend_mode_normal, offset(m_background_blend_mode));
   m_caption_side = (caption_side)el->get_property<int>(_caption_side_, true, caption_side_top, offset(m_caption_side));
   m_object_fit = (object_fit)el->get_property<int>(_object_fit_, false, object_fit_fill, offset(m_object_fit));
   m_table_layout = (table_layout)el->get_property<int>(_table_layout_, true, table_layout_auto, offset(m_table_layout));
@@ -969,8 +972,11 @@ std::vector<std::tuple<litehtml::string, litehtml::string>> litehtml::css_proper
   ret.emplace_back("webkit_box_orient", index_value(m_webkit_box_orient, box_orient_strings));
   ret.emplace_back("word_break", index_value(m_word_break, word_break_strings));
   ret.emplace_back("overflow_wrap", index_value(m_overflow_wrap, overflow_wrap_strings));
+  ret.emplace_back("text_wrap", index_value(m_text_wrap, text_wrap_strings));
   ret.emplace_back("opacity", std::to_string(m_opacity));
   ret.emplace_back("object_fit", index_value(m_object_fit, object_fit_strings));
+  ret.emplace_back("mix_blend_mode", index_value(m_mix_blend_mode, blend_mode_strings));
+  ret.emplace_back("background_blend_mode", index_value(m_background_blend_mode, blend_mode_strings));
 
   return ret;
 }

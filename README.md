@@ -265,28 +265,6 @@ pnpm --filter visual-test test
 
 ---
 
-## 🗺️ Roadmap
-
-### Features & Optimization (In Progress / Future)
-
-- [x] **Optimization & Refactoring (Layout Pipeline)**:
-- [x] **SVG Pipeline & Performance**:
-- [x] **Performance Optimization (Text & Layout)**:
-- [x] **Full CSS Grid Support**: Migrating Grid to the new multi-step resolution pipeline.
-- [x] **Inline overflow control**: Implementation of `overflow: hidden` and `text-overflow` for line boxes.
-- [x] **Advanced CSS Shapes**: Fix `clip-path` rendering and parsing issues.
-- [x] **Radial Gradients**: Support for complex `radial-gradient` syntax.
-- [x] **Font Subsetting**: Optimizing Wasm memory by loading only required glyphs.
-- [ ] **Vertical Writing Support (Writing Modes)**:
-  - [ ] **Phase 1: Infrastructure Logicalization**: Expand `containing_block_context` with logical sizes and implement complete logical setters/methods in `render_item` (e.g., `place_logical`).
-  - [ ] **Phase 2: Layout Engine Refactoring (Flexbox focus)**: Transition `flex_item` and `flex_line` to pure logical axis mapping (`Main`/`Cross`), decoupling layout logic from physical `width`/`height`.
-  - [ ] **Phase 3: Physical Mapping & Sync**: Centralize logical-to-physical coordinate conversion within `render_item` based on `writing-mode`.
-  - [ ] **Phase 4: Validation & Zero-Regression**: Ensure "Horizontal Identity" (0-bit diff for horizontal-tb) across all existing visual tests while establishing vertical baselines.
-- [x] **SVG Backdrop Filter**: Implement `backdrop-filter` support in the SVG vector pipeline using SVG filters.
-- [x] **Clip Radius Optimization**: Adjust `border-radius` correctly when clipping with `background-clip` in `container_skia`.
-
----
-
 ## 📜 License
 
 MIT License - SoraKumo <info@croud.jp>

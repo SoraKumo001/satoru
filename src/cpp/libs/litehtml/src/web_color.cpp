@@ -3,6 +3,7 @@
 #include "css_parser.h"
 #include "os_types.h"
 #include "document_container.h"
+#include <map>
 
 namespace litehtml
 {
@@ -222,6 +223,32 @@ float clamp(float x, float min, float max)
 	return x;
 }
 
+bool evaluate_calc(css_token_vector& tokens, const html_tag* el);
+
+void evaluate_color_channel(css_token_vector& tokens, const std::map<string, float>& channels)
+{
+	for (auto& tok : tokens)
+	{
+		if (tok.type == IDENT)
+		{
+			string name = lowcase(tok.name);
+			auto it = channels.find(name);
+			if (it != channels.end())
+			{
+				tok.type = NUMBER;
+				tok.n.number = it->second;
+				tok.n.number_type = css_number_number;
+			}
+		}
+		else if (tok.type == CV_FUNCTION && (lowcase(tok.name) == "calc" || lowcase(tok.name) == "min" || lowcase(tok.name) == "max" || lowcase(tok.name) == "clamp"))
+		{
+			evaluate_color_channel(tok.value, channels);
+		}
+	}
+	evaluate_calc(tokens, nullptr);
+}
+
+
 // [ <number> | <percentage> | none ]{3}  [ / [<alpha-value> | none] ]?
 bool parse_modern_syntax(const css_token_vector& tokens, bool is_hsl,
 	css_length& x, css_length& y, css_length& z, css_length& a)
@@ -278,34 +305,55 @@ bool parse_rgb_func(const css_token& tok, web_color& color, document_container* 
 		web_color base_color;
 		if (!parse_color(tok.value[1], base_color, container)) return false;
 
-		// The rest are r, g, b components. Tailwind v4 uses "from var(--color) r g b / opacity"
-		// For now, we only support the standard components mapping.
-		float r = base_color.red / 255.0f;
-		float g = base_color.green / 255.0f;
-		float b = base_color.blue / 255.0f;
-		float a = base_color.alpha / 255.0f;
+		float r_base = base_color.red / 255.0f;
+		float g_base = base_color.green / 255.0f;
+		float b_base = base_color.blue / 255.0f;
+		float a_base = base_color.alpha / 255.0f;
 
-		// Default to base color
-		color = base_color;
+		std::map<string, float> channels = { {"r", r_base}, {"g", g_base}, {"b", b_base}, {"alpha", a_base} };
 
-		// Parse components (very simplified: just looking for / alpha)
-		for (size_t i = 2; i < tok.value.size(); i++)
-		{
-			if (tok.value[i].ch == '/')
-			{
-				if (i + 1 < tok.value.size())
-				{
-					css_length alpha_len;
-					if (alpha_len.from_token(tok.value[i+1], f_number | f_percentage))
-					{
-						color.alpha = calc_percent_and_clamp(alpha_len, 1);
-					}
-				}
-				break;
+		css_token_vector r_toks, g_toks, b_toks, alpha_toks;
+		size_t i = 2;
+		auto collect_component = [&](css_token_vector& dest) {
+			while (i < tok.value.size() && tok.value[i].ch != '/') {
+				dest.push_back(tok.value[i++]);
+				if (dest.size() == 1 && (dest[0].type == NUMBER || dest[0].type == PERCENTAGE || dest[0].type == DIMENSION || (dest[0].type == IDENT && channels.count(lowcase(dest[0].name))))) break;
 			}
+		};
+
+		collect_component(r_toks);
+		collect_component(g_toks);
+		collect_component(b_toks);
+
+		if (i < tok.value.size() && tok.value[i].ch == '/') {
+			i++;
+			while (i < tok.value.size()) alpha_toks.push_back(tok.value[i++]);
 		}
+
+		if (r_toks.empty()) r_toks.push_back(css_token(IDENT, "r"));
+		if (g_toks.empty()) g_toks.push_back(css_token(IDENT, "g"));
+		if (b_toks.empty()) b_toks.push_back(css_token(IDENT, "b"));
+		if (alpha_toks.empty()) alpha_toks.push_back(css_token(IDENT, "alpha"));
+
+		evaluate_color_channel(r_toks, channels);
+		evaluate_color_channel(g_toks, channels);
+		evaluate_color_channel(b_toks, channels);
+		evaluate_color_channel(alpha_toks, channels);
+
+		css_length r_len, g_len, b_len, alpha_len;
+		if (!r_toks.empty()) r_len.from_token(r_toks[0], f_number | f_percentage);
+		if (!g_toks.empty()) g_len.from_token(g_toks[0], f_number | f_percentage);
+		if (!b_toks.empty()) b_len.from_token(b_toks[0], f_number | f_percentage);
+		if (!alpha_toks.empty()) alpha_len.from_token(alpha_toks[0], f_number | f_percentage);
+
+		color = web_color(
+			calc_percent_and_clamp(r_len),
+			calc_percent_and_clamp(g_len),
+			calc_percent_and_clamp(b_len),
+			calc_percent_and_clamp(alpha_len, 1));
 		return true;
 	}
+
 
 	auto list = parse_comma_separated_list(tok.value);
 	int n = (int)list.size();
@@ -474,31 +522,61 @@ bool parse_oklch_func(const css_token& tok, web_color& color, document_container
 		web_color base_color;
 		if (!parse_color(tokens[1], base_color, container)) return false;
 
-		float l, c, h;
-		rgb_to_oklch(base_color.red / 255.0f, base_color.green / 255.0f, base_color.blue / 255.0f, l, c, h);
-		float a = base_color.alpha / 255.0f;
+		float l_base, c_base, h_base;
+		rgb_to_oklch(base_color.red / 255.0f, base_color.green / 255.0f, base_color.blue / 255.0f, l_base, c_base, h_base);
+		float a_base = base_color.alpha / 255.0f;
 
-		// Tailwind v4: oklch(from var(--color) l c h / opacity)
-		// For now, simple mapping
-		color = base_color;
+		std::map<string, float> channels = { {"l", l_base}, {"c", c_base}, {"h", h_base}, {"alpha", a_base} };
 
-		for (size_t i = 2; i < tokens.size(); i++)
-		{
-			if (tokens[i].ch == '/')
-			{
-				if (i + 1 < tokens.size())
-				{
-					css_length alpha_len;
-					if (alpha_len.from_token(tokens[i+1], f_number | f_percentage))
-					{
-						color.alpha = calc_percent_and_clamp(alpha_len, 1);
-					}
-				}
-				break;
+		css_token_vector l_toks, c_toks, h_toks, a_toks;
+		size_t i = 2;
+		auto collect_component = [&](css_token_vector& dest) {
+			while (i < tokens.size() && tokens[i].ch != '/') {
+				dest.push_back(tokens[i++]);
+				if (dest.size() == 1 && (dest[0].type == NUMBER || dest[0].type == PERCENTAGE || dest[0].type == DIMENSION || (dest[0].type == IDENT && channels.count(lowcase(dest[0].name))))) break;
+			}
+		};
+
+		collect_component(l_toks);
+		collect_component(c_toks);
+		collect_component(h_toks);
+
+		if (i < tokens.size() && tokens[i].ch == '/') {
+			i++;
+			while (i < tokens.size()) a_toks.push_back(tokens[i++]);
+		}
+
+		if (l_toks.empty()) l_toks.push_back(css_token(IDENT, "l"));
+		if (c_toks.empty()) c_toks.push_back(css_token(IDENT, "c"));
+		if (h_toks.empty()) h_toks.push_back(css_token(IDENT, "h"));
+		if (a_toks.empty()) a_toks.push_back(css_token(IDENT, "alpha"));
+
+		evaluate_color_channel(l_toks, channels);
+		evaluate_color_channel(c_toks, channels);
+		evaluate_color_channel(h_toks, channels);
+		evaluate_color_channel(a_toks, channels);
+
+		css_length l_len, c_len, h_len, a_len;
+		if (!l_toks.empty()) l_len.from_token(l_toks[0], f_number | f_percentage);
+		if (!c_toks.empty()) c_len.from_token(c_toks[0], f_number | f_percentage);
+		if (!h_toks.empty()) {
+			if (!h_len.from_token(h_toks[0], f_number)) {
+				float hue; if (parse_angle(h_toks[0], hue)) h_len.set_value(hue, css_units_none);
 			}
 		}
+		if (!a_toks.empty()) a_len.from_token(a_toks[0], f_number | f_percentage);
+
+		float l_val = l_len.val(); if (l_len.units() == css_units_percentage) l_val /= 100;
+		float c_val = c_len.val(); if (c_len.units() == css_units_percentage) c_val /= 100;
+		float h_val = h_len.val();
+		float a_val = a_len.val(); if (a_len.units() == css_units_percentage) a_val /= 100;
+
+		float r, g, b;
+		oklch_to_rgb(l_val, c_val, h_val, a_val, r, g, b);
+		color = web_color((byte)round(clamp(r,0,1)*255), (byte)round(clamp(g,0,1)*255), (byte)round(clamp(b,0,1)*255), (byte)round(clamp(a_val,0,1)*255));
 		return true;
 	}
+
 
 	auto n = tokens.size();
 	if (!(n == 3 || n == 5)) return false;
@@ -778,28 +856,57 @@ bool parse_oklab_func(const css_token& tok, web_color& color, document_container
 		web_color base_color;
 		if (!parse_color(tokens[1], base_color, container)) return false;
 
-		float l, a, b;
-		rgb_to_oklab(base_color.red / 255.0f, base_color.green / 255.0f, base_color.blue / 255.0f, l, a, b);
-		
-		color = base_color;
+		float l_base, a_base, b_base;
+		rgb_to_oklab(base_color.red / 255.0f, base_color.green / 255.0f, base_color.blue / 255.0f, l_base, a_base, b_base);
+		float alpha_base = base_color.alpha / 255.0f;
 
-		for (size_t i = 2; i < tokens.size(); i++)
-		{
-			if (tokens[i].ch == '/')
-			{
-				if (i + 1 < tokens.size())
-				{
-					css_length alpha_len;
-					if (alpha_len.from_token(tokens[i+1], f_number | f_percentage))
-					{
-						color.alpha = calc_percent_and_clamp(alpha_len, 1);
-					}
-				}
-				break;
+		std::map<string, float> channels = { {"l", l_base}, {"a", a_base}, {"b", b_base}, {"alpha", alpha_base} };
+
+		css_token_vector l_toks, a_toks, b_toks, alpha_toks;
+		size_t i = 2;
+		auto collect_component = [&](css_token_vector& dest) {
+			while (i < tokens.size() && tokens[i].ch != '/') {
+				dest.push_back(tokens[i++]);
+				if (dest.size() == 1 && (dest[0].type == NUMBER || dest[0].type == PERCENTAGE || dest[0].type == DIMENSION || (dest[0].type == IDENT && channels.count(lowcase(dest[0].name))))) break;
 			}
+		};
+
+		collect_component(l_toks);
+		collect_component(a_toks);
+		collect_component(b_toks);
+
+		if (i < tokens.size() && tokens[i].ch == '/') {
+			i++;
+			while (i < tokens.size()) alpha_toks.push_back(tokens[i++]);
 		}
+
+		if (l_toks.empty()) l_toks.push_back(css_token(IDENT, "l"));
+		if (a_toks.empty()) a_toks.push_back(css_token(IDENT, "a"));
+		if (b_toks.empty()) b_toks.push_back(css_token(IDENT, "b"));
+		if (alpha_toks.empty()) alpha_toks.push_back(css_token(IDENT, "alpha"));
+
+		evaluate_color_channel(l_toks, channels);
+		evaluate_color_channel(a_toks, channels);
+		evaluate_color_channel(b_toks, channels);
+		evaluate_color_channel(alpha_toks, channels);
+
+		css_length l_len, a_len, b_len, alpha_len;
+		if (!l_toks.empty()) l_len.from_token(l_toks[0], f_number | f_percentage);
+		if (!a_toks.empty()) a_len.from_token(a_toks[0], f_number | f_percentage);
+		if (!b_toks.empty()) b_len.from_token(b_toks[0], f_number | f_percentage);
+		if (!alpha_toks.empty()) alpha_len.from_token(alpha_toks[0], f_number | f_percentage);
+
+		float l_v = l_len.val(); if (l_len.units() == css_units_percentage) l_v /= 100;
+		float a_v = a_len.val(); if (a_len.units() == css_units_percentage) a_v /= 100;
+		float b_v = b_len.val(); if (b_len.units() == css_units_percentage) b_v /= 100;
+		float alpha_v = alpha_len.val(); if (alpha_len.units() == css_units_percentage) alpha_v /= 100;
+
+		float r, g, b_out;
+		oklab_to_rgb(l_v, a_v, b_v, r, g, b_out);
+		color = web_color((byte)round(clamp(r,0,1)*255), (byte)round(clamp(g,0,1)*255), (byte)round(clamp(b_out,0,1)*255), (byte)round(clamp(alpha_v,0,1)*255));
 		return true;
 	}
+
 
 	auto n = tokens.size();
 	if (!(n == 3 || n == 5)) return false;

@@ -212,6 +212,7 @@ namespace litehtml
     case _scale_:
     case _filter_:
     case _backdrop_filter_:
+    case __webkit_backdrop_filter_:
     case _clip_path_:
     case _mask_:
     case __webkit_mask_:

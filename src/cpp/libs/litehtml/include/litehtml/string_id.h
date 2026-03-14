@@ -385,6 +385,7 @@ namespace litehtml
       _order_,
       _filter_,
       _backdrop_filter_,
+      __webkit_backdrop_filter_,
       _clip_path_,
       _mask_,
       __webkit_mask_,

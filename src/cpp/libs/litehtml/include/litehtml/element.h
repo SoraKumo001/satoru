@@ -232,6 +232,7 @@ namespace litehtml
 	{
 		if(	css().get_position() > element_position_static || 
 			css().get_opacity() < 1.0f ||
+			css().get_mix_blend_mode() != blend_mode_normal ||
 			!css().get_transform().empty() ||
 			!css().get_filter().empty() ||
 			!css().get_backdrop_filter().empty() ||

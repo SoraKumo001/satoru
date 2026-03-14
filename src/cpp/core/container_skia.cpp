@@ -1617,8 +1617,13 @@ void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity, litehtml:
 
         if (m_tagging) {
             SkPaint p;
-            p.setColor(make_magic_color(satoru::MagicTag::LayerPush, (int)(opacity * 255.0f)));
-            // Note: If we need to pass blend mode to post-processor, we might need a new magic tag or extra data
+            if (bm == litehtml::blend_mode_normal) {
+                p.setColor(make_magic_color(satoru::MagicTag::LayerPush, (int)(opacity * 255.0f)));
+            } else {
+                // Pack opacity (8-bit) and blend mode (4-bit) into index
+                int packed = ((int)(opacity * 255.0f) << 4) | ((int)bm & 0x0F);
+                p.setColor(make_magic_color(satoru::MagicTag::LayerPushBlend, packed));
+            }
             SkRect rect;
             if (!m_clips.empty()) {
                 rect = SkRect::MakeXYWH(

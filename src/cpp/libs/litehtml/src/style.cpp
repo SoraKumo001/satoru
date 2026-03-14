@@ -91,6 +91,7 @@ namespace litehtml
           {_container_type_, container_type_strings},
           {_mix_blend_mode_, blend_mode_strings},
           {_background_blend_mode_, blend_mode_strings},
+          {_isolation_, isolation_strings},
   };
   std::map<string_id, vector<string_id>> shorthands =
       {
@@ -217,8 +218,6 @@ namespace litehtml
     case _filter_:
     case _backdrop_filter_:
     case __webkit_backdrop_filter_:
-    case _mix_blend_mode_:
-    case _background_blend_mode_:
     case _clip_path_:
     case _object_position_:
     case _mask_:
@@ -285,7 +284,13 @@ namespace litehtml
     case _object_fit_:
     case __webkit_box_orient_:
     case _container_type_:
+    case _mix_blend_mode_:
+    case _background_blend_mode_:
+    case _isolation_:
       if (int index = value_index(ident, m_valid_values[name]); index >= 0)
+
+
+
         add_parsed_property(name, property_value(index, important, false, m_layer, m_specificity));
       break;
 

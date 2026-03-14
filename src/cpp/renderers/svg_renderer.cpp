@@ -953,6 +953,16 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                         replaced = true;
                         break;
                     }
+                    case satoru::MagicTag::LayerPushBlend: {
+                        float opacity = (float)((fullIndex >> 4) & 0xFF) / 255.0f;
+                        int bm_idx = fullIndex & 0x0F;
+                        const char* bm_str = "normal";
+                        const char* bm_table[] = { "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity" };
+                        if (bm_idx >= 0 && bm_idx < 16) bm_str = bm_table[bm_idx];
+                        result.append("<g opacity=\"" + std::to_string(opacity) + "\" style=\"mix-blend-mode: " + bm_str + "\">");
+                        replaced = true;
+                        break;
+                    }
                     case satoru::MagicTag::LayerPop:
                         result.append("</g>");
                         replaced = true;

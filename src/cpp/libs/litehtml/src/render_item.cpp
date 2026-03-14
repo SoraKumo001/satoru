@@ -1035,7 +1035,7 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                     if (!filter.empty()) doc->container()->pop_filter(hdc);
                     if (!rotate.empty() || !scale.empty() || !translate.empty() || !transform.empty()) doc->container()->pop_transform(hdc);
                     if (!backdrop_filter.empty()) doc->container()->pop_backdrop_filter(hdc);
-                    if (opacity < 1.0f) doc->container()->pop_layer(hdc);
+                    if (opacity < 1.0f || mix_blend != blend_mode_normal) doc->container()->pop_layer(hdc);
                 }
             }
 

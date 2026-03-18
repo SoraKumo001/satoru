@@ -231,6 +231,36 @@ const html = toHtml(<div style={{ color: "red" }}>React Component</div>);
 const png = await render({ value: html, width: 600, format: "png" });
 ```
 
+### 6. JSDOM Hydration (For Next.js / SPAs)
+
+For complex client-side applications (like Next.js) that require full Javascript evaluation and DOM hydration before rendering, Satoru provides an optional `jsdom` helper. 
+
+*Note: `jsdom` must be installed separately in your project (`npm install jsdom`).*
+
+```typescript
+import { render } from "satoru-render";
+import { hydrateHtml } from "satoru-render/jsdom";
+
+// 1. Let JSDOM fetch the URL, execute scripts, and wait for network/hydration
+const hydratedHtml = await hydrateHtml({
+  urlOrHtml: 'https://zenn.dev/',
+  waitUntil: 'networkidle', // Wait until Next.js finishes loading chunks
+  beforeParse: (window) => {
+    // Provide polyfills if the target site requires them
+    window.matchMedia = () => ({ matches: false, addListener: () => {} });
+    window.IntersectionObserver = class { observe(){} unobserve(){} disconnect(){} };
+  }
+});
+
+// 2. Render the fully constructed DOM in Satoru (at native speed)
+const pngBytes = await render({
+  value: hydratedHtml,
+  baseUrl: 'https://zenn.dev/',
+  width: 1200,
+  format: 'png'
+});
+```
+
 ---
 
 ## 💻 CLI Usage

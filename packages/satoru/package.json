@@ -59,6 +59,10 @@
     "./tailwind": {
       "types": "./dist/tailwind.d.ts",
       "import": "./dist/tailwind.js"
+    },
+    "./jsdom": {
+      "types": "./dist/jsdom.d.ts",
+      "import": "./dist/jsdom.js"
     }
   },
   "typesVersions": {
@@ -77,6 +81,9 @@
       ],
       "tailwind": [
         "./dist/tailwind.d.ts"
+      ],
+      "jsdom": [
+        "./dist/jsdom.d.ts"
       ],
       "*": [
         "./dist/single.d.ts"
@@ -124,12 +131,16 @@
   "peerDependencies": {
     "@unocss/core": "^66.6.5",
     "@unocss/preset-wind4": "^66.6.5",
+    "jsdom": "^20.0.0 || ^21.0.0 || ^22.0.0 || ^23.0.0 || ^24.0.0 || ^25.0.0 || ^29.0.0",
     "preact": "^10.28.0",
     "preact-render-to-string": "^6.6.0",
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
     "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
   },
   "peerDependenciesMeta": {
+    "jsdom": {
+      "optional": true
+    },
     "react": {
       "optional": true
     },

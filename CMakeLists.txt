@@ -121,6 +121,7 @@ set(SATORU_LIBS
         -fexceptions
         -msimd128
         -flto=thin
+        -mbulk-memory
     )
     set(COMMON_LINK_OPTIONS
         "--bind"
@@ -129,6 +130,7 @@ set(SATORU_LIBS
         -fexceptions
         -msimd128
         "-flto=thin"
+        "-mbulk-memory"
         "-sWASM_BIGINT=1"
         "-sSUPPORT_LONGJMP=emscripten"
         "-sDISABLE_EXCEPTION_CATCHING=0"

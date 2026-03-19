@@ -1556,14 +1556,14 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
 }
 
 std::string renderHtmlToSvg(const char* html, int width, int height, SatoruContext& context,
-                            const char* master_css, const RenderOptions& options) {
+                            const char* master_css, const char* user_css, const RenderOptions& options) {
     int initial_height = (height > 0) ? height : 3000;
     container_skia container(width, initial_height, nullptr, context, nullptr, false);
 
     std::string css = master_css ? master_css : litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";
 
-    auto doc = litehtml::document::createFromString(html, &container, css.c_str());
+    auto doc = litehtml::document::createFromString(html, &container, css.c_str(), user_css);
     if (!doc) return "";
     doc->render(width);
 

@@ -9,6 +9,6 @@ sk_sp<SkData> renderDocumentToPng(SatoruInstance* inst, int width, int height,
                                   const RenderOptions& options);
 
 sk_sp<SkData> renderHtmlToPng(const char* html, int width, int height, SatoruContext& context,
-                              const char* master_css);
+                              const char* master_css, const char* user_css);
 
 #endif  // PNG_RENDERER_H

@@ -61,7 +61,7 @@ sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height,
 }
 
 sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width, int height,
-                               SatoruContext& context, const char* master_css) {
+                               SatoruContext& context, const char* master_css, const char* user_css) {
     if (htmls.empty()) return nullptr;
 
     SkDynamicMemoryWStream stream;
@@ -81,8 +81,8 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width,
         // Measure pass
         container_skia measure_container(width, height > 0 ? height : 3000, nullptr, context,
                                          nullptr, false);
-        auto measure_doc =
-            litehtml::document::createFromString(html.c_str(), &measure_container, css.c_str());
+        auto measure_doc = litehtml::document::createFromString(html.c_str(), &measure_container,
+                                                                css.c_str(), user_css);
         if (!measure_doc) continue;
 
         measure_doc->render(width);
@@ -95,8 +95,8 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width,
 
         // Render pass
         container_skia render_container(width, content_height, canvas, context, nullptr, false);
-        auto render_doc =
-            litehtml::document::createFromString(html.c_str(), &render_container, css.c_str());
+        auto render_doc = litehtml::document::createFromString(html.c_str(), &render_container,
+                                                               css.c_str(), user_css);
         render_doc->render(width);
 
         litehtml::position clip(0, 0, width, content_height);

@@ -107,8 +107,7 @@ SatoruInstance::SatoruInstance() : resourceManager(context) { context.init(); }
 SatoruInstance::~SatoruInstance() {}
 
 std::string SatoruInstance::get_full_master_css() const {
-    return std::string(litehtml::master_css) + "\n" + satoru_master_css + "\n" +
-           context.getExtraCss();
+    return std::string(litehtml::master_css) + "\n" + satoru_master_css;
 }
 
 void SatoruInstance::init_document(const char* html, int width, int height) {
@@ -116,8 +115,11 @@ void SatoruInstance::init_document(const char* html, int width, int height) {
     render_container = std::make_unique<container_skia>(width, initial_height, nullptr, context,
                                                         &resourceManager, false);
 
-    std::string css = get_full_master_css() + "\nbr { display: -litehtml-br !important; }\n";
-    doc = litehtml::document::createFromString(html, render_container.get(), css.c_str());
+    std::string master_css =
+        get_full_master_css() + "\nbr { display: -litehtml-br !important; }\n";
+    std::string user_css = context.getExtraCss();
+    doc = litehtml::document::createFromString(html, render_container.get(), master_css.c_str(),
+                                                user_css.c_str());
     if (render_container) {
         render_container->set_document(doc.get());
     }
@@ -165,8 +167,9 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
 
     context.fontManager.scanFontFaces(html.c_str());
 
-    auto temp_doc = litehtml::document::createFromString(html.c_str(), discovery_container.get(),
-                                                         get_full_master_css().c_str());
+    auto temp_doc = litehtml::document::createFromString(
+        html.c_str(), discovery_container.get(), get_full_master_css().c_str(),
+        context.getExtraCss().c_str());
     if (discovery_container) {
         discovery_container->set_document(temp_doc.get());
     }
@@ -290,7 +293,7 @@ void api_destroy_instance(SatoruInstance* inst) { delete inst; }
 std::string api_html_to_svg(SatoruInstance* inst, const char* html, int width, int height,
                             const RenderOptions& options) {
     return renderHtmlToSvg(html, width, height, inst->context, inst->get_full_master_css().c_str(),
-                           options);
+                           inst->context.getExtraCss().c_str(), options);
 }
 
 const uint8_t* api_html_to_png(SatoruInstance* inst, const char* html, int width, int height,
@@ -299,7 +302,8 @@ const uint8_t* api_html_to_png(SatoruInstance* inst, const char* html, int width
         inst,
         [&]() {
             return renderHtmlToPng(html, width, height, inst->context,
-                                   inst->get_full_master_css().c_str());
+                                   inst->get_full_master_css().c_str(),
+                                   inst->context.getExtraCss().c_str());
         },
         &SatoruContext::set_last_png, out_size);
 }
@@ -310,7 +314,8 @@ const uint8_t* api_html_to_webp(SatoruInstance* inst, const char* html, int widt
         inst,
         [&]() {
             return renderHtmlToWebp(html, width, height, inst->context,
-                                    inst->get_full_master_css().c_str());
+                                    inst->get_full_master_css().c_str(),
+                                    inst->context.getExtraCss().c_str());
         },
         &SatoruContext::set_last_webp, out_size);
 }
@@ -322,7 +327,8 @@ const uint8_t* api_html_to_pdf(SatoruInstance* inst, const char* html, int width
         [&]() {
             std::vector<std::string> htmls = {html};
             return renderHtmlsToPdf(htmls, width, height, inst->context,
-                                    inst->get_full_master_css().c_str());
+                                    inst->get_full_master_css().c_str(),
+                                    inst->context.getExtraCss().c_str());
         },
         &SatoruContext::set_last_pdf, out_size);
 }
@@ -334,7 +340,8 @@ const uint8_t* api_htmls_to_pdf(SatoruInstance* inst, const std::vector<std::str
         inst,
         [&]() {
             return renderHtmlsToPdf(htmls, width, height, inst->context,
-                                    inst->get_full_master_css().c_str());
+                                    inst->get_full_master_css().c_str(),
+                                    inst->context.getExtraCss().c_str());
         },
         &SatoruContext::set_last_pdf, out_size);
 }

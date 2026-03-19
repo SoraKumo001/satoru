@@ -66,7 +66,7 @@ center
 	display:block;
 }
 
-a:link
+a
 {
 	text-decoration: underline;
 	color: #00f;

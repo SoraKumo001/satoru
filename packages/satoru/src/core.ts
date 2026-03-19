@@ -453,7 +453,7 @@ export abstract class SatoruBase {
         resolvedUrls.forEach((url) => {
           const escapedUrl = url.replace(/[.*+?^${}()|[\]]/g, "\\$&");
           const linkRegex = new RegExp(
-            `<link[^>]*href\\s*=\\s*(["'])${escapedUrl}\\1[^>]*>`,
+            `<link[^>]*href\\s*=\\s*(["']?)${escapedUrl}\\1[^>]*>`,
             "gi",
           );
           processedHtml = processedHtml.replace(linkRegex, "");

@@ -26,6 +26,14 @@ export interface SatoruModule {
     width: number,
     height: number,
   ) => void;
+  load_image_pixels: (
+    inst: any,
+    name: string,
+    width: number,
+    height: number,
+    pixels: Uint8Array,
+    data_url: string,
+  ) => void;
   set_font_map: (inst: any, fontMap: Record<string, string>) => void;
   set_log_level: (level: number) => void;
   init_document: (
@@ -447,6 +455,23 @@ export abstract class SatoruBase {
                           (data as ArrayBufferView).byteOffset,
                           (data as ArrayBufferView).byteLength,
                         );
+                  if (r.type === "image" && typeof createImageBitmap !== "undefined" && typeof OffscreenCanvas !== "undefined") {
+                    try {
+                      const blob = new Blob([uint8.buffer as ArrayBuffer]);
+                      const bitmap = await createImageBitmap(blob);
+                      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+                      const ctx = canvas.getContext("2d");
+                      if (ctx) {
+                        ctx.drawImage(bitmap, 0, 0);
+                        const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+                        mod.load_image_pixels(instancePtr, r.url, bitmap.width, bitmap.height, new Uint8Array(imageData.data.buffer), r.url);
+                        return;
+                      }
+                    } catch (e) {
+                      // fallback to passing raw binary if decoding fails
+                    }
+                  }
+
                   let typeInt = 1;
                   if (r.type === "image") typeInt = 2;
                   if (r.type === "css") typeInt = 3;
@@ -503,7 +528,7 @@ export abstract class SatoruBase {
         return new TextDecoder().decode(result);
       }
 
-      return new Uint8Array(result);
+      return new Uint8Array(result.slice());
     } finally {
       mod.destroy_instance(instancePtr);
       mod.logLevel = prevLogLevel;

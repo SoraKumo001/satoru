@@ -859,7 +859,7 @@ static std::string generateDefs(const container_skia& render_container,
 static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                                const container_skia& container, const RenderOptions& options) {
     std::string result;
-    result.reserve(svg.size() + 8192);
+    result.reserve(svg.size() + svg.size() / 2 + 8192);
 
     const auto& shadows = container.get_used_shadows();
     const auto& textShadows = container.get_used_text_shadows();

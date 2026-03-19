@@ -78,6 +78,13 @@ void load_image_val(SatoruInstance* inst, std::string name, std::string data_url
     api_load_image(inst, name, data_url, width, height);
 }
 
+void load_image_pixels_val(SatoruInstance* inst, std::string name, int width, int height,
+                           val pixels, std::string data_url) {
+    if (!inst) return;
+    auto vec = val_to_vector(pixels);
+    inst->load_image_pixels(name, width, height, vec, data_url);
+}
+
 void collect_resources_val(SatoruInstance* inst, std::string html, int width, int height) {
     if (!inst) return;
     api_collect_resources(inst, html, width, height);
@@ -134,6 +141,7 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("scan_css", &scan_css_val, allow_raw_pointers());
     function("load_font", &load_font_val, allow_raw_pointers());
     function("load_image", &load_image_val, allow_raw_pointers());
+    function("load_image_pixels", &load_image_pixels_val, allow_raw_pointers());
     function("set_font_map", &set_font_map_val, allow_raw_pointers());
     function("set_log_level", &api_set_log_level);
 

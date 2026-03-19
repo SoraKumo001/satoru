@@ -67,6 +67,21 @@ void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, siz
     }
 }
 
+void SatoruContext::loadImageFromPixels(const char *name, int width, int height, const uint8_t *pixels,
+                                        const char *original_url) {
+    SkImageInfo img_info = SkImageInfo::Make(width, height, kRGBA_8888_SkColorType, kUnpremul_SkAlphaType);
+    SkPixmap pixmap(img_info, pixels, width * 4);
+    auto image = SkImages::RasterFromPixmapCopy(pixmap);
+    if (image) {
+        image_info info;
+        info.data_url = original_url ? original_url : "";
+        info.width = width;
+        info.height = height;
+        info.skImage = image;
+        imageCache[name] = info;
+    }
+}
+
 sk_sp<SkTypeface> SatoruContext::get_typeface(const std::string &family, int weight,
                                               SkFontStyle::Slant slant, bool &out_fake_bold) {
     auto tfs = get_typefaces(family, weight, slant, out_fake_bold);

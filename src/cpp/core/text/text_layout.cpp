@@ -184,11 +184,27 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
 
     double width() const { return fWidth; }
     double widthAtOffset(size_t offset) const {
-        double w = 0;
-        for (const auto& g : fGlyphs) {
-            if (g.utf8_offset < offset) w += g.advance;
+        if (!fLookupsPrepared) {
+            std::sort(fGlyphs.begin(), fGlyphs.end(), [](const GlyphInfo& a, const GlyphInfo& b) {
+                return a.utf8_offset < b.utf8_offset;
+            });
+            double sum = 0;
+            fCumulativeWidths.reserve(fGlyphs.size());
+            for (const auto& g : fGlyphs) {
+                sum += g.advance;
+                fCumulativeWidths.push_back(sum);
+            }
+            fLookupsPrepared = true;
         }
-        return w;
+
+        auto it = std::lower_bound(fGlyphs.begin(), fGlyphs.end(), offset,
+            [](const GlyphInfo& g, size_t off) {
+                return g.utf8_offset < off;
+            });
+        
+        if (it == fGlyphs.begin()) return 0;
+        size_t idx = std::distance(fGlyphs.begin(), it) - 1;
+        return fCumulativeWidths[idx];
     }
 
    private:
@@ -200,8 +216,10 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
     float fCurrentFontSize;
     std::vector<uint32_t> fCurrentRunOffsets;
     std::vector<SkPoint> fCurrentRunPositions;
-    std::vector<GlyphInfo> fGlyphs;
-};
+    mutable std::vector<GlyphInfo> fGlyphs;
+    mutable std::vector<double> fCumulativeWidths;
+    mutable bool fLookupsPrepared = false;
+};;
 }  // namespace
 
 MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font_info* fi,

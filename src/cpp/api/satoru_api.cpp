@@ -160,26 +160,30 @@ static void scan_image_sizes(litehtml::element::ptr el, SatoruContext& context) 
 }
 
 void SatoruInstance::collect_resources(const std::string& html, int width, int height) {
-    int initial_height = (height > 0) ? height : 3000;
-    discovery_container = std::make_unique<container_skia>(width, initial_height, nullptr, context,
-                                                           &resourceManager, false);
+    if (!doc || html != last_parsed_html) {
+        last_parsed_html = html;
+        int initial_height = (height > 0) ? height : 3000;
+        render_container = std::make_unique<container_skia>(width, initial_height, nullptr, context,
+                                                            &resourceManager, false);
 
-    context.fontManager.scanFontFaces(html.c_str());
+        context.fontManager.scanFontFaces(html.c_str());
 
-    auto temp_doc = litehtml::document::createFromString(html.c_str(), discovery_container.get(),
-                                                         get_full_master_css().c_str(),
-                                                         context.getExtraCss().c_str());
-    if (discovery_container) {
-        discovery_container->set_document(temp_doc.get());
+        doc = litehtml::document::createFromString(html.c_str(), render_container.get(),
+                                                   get_full_master_css().c_str(),
+                                                   context.getExtraCss().c_str());
+        if (render_container) {
+            render_container->set_document(doc.get());
+        }
     }
-    if (temp_doc) {
-        temp_doc->render(width);
-        scan_image_sizes(temp_doc->root(), context);
+
+    if (doc) {
+        doc->render(width);
+        scan_image_sizes(doc->root(), context);
     }
 
-    const auto& usedCodepoints = discovery_container->get_used_codepoints();
-    auto requestedAttribs = discovery_container->get_requested_font_attributes();
-    const auto& usedFontCharacters = discovery_container->get_used_fonts_characters();
+    const auto& usedCodepoints = render_container->get_used_codepoints();
+    auto requestedAttribs = render_container->get_requested_font_attributes();
+    const auto& usedFontCharacters = render_container->get_used_fonts_characters();
 
     // Ensure sans-serif is always requested as a fallback if not already present
     bool hasSansSerif = false;
@@ -258,6 +262,11 @@ void SatoruInstance::load_font(const std::string& name, const std::vector<uint8_
 void SatoruInstance::load_image(const std::string& name, const std::string& data_url, int width,
                                 int height) {
     context.load_image(name.c_str(), data_url.c_str(), width, height);
+}
+
+void SatoruInstance::load_image_pixels(const std::string& name, int width, int height,
+                                       const std::vector<uint8_t>& pixels, const std::string& data_url) {
+    context.loadImageFromPixels(name.c_str(), width, height, pixels.data(), data_url.c_str());
 }
 
 std::string SatoruInstance::get_pending_resources_json() {

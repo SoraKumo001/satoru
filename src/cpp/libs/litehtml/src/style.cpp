@@ -712,6 +712,9 @@ namespace litehtml
     case _grid_column_end_:
     case _grid_row_start_:
     case _grid_row_end_:
+      add_parsed_property(name, property_value(value, important, false, m_layer, m_specificity));
+      break;
+
     case _column_rule_width_:
     case _outline_width_:
       if (parse_border_width(val, *len))
@@ -1940,17 +1943,50 @@ namespace litehtml
   void style::parse_grid_template(string_id name, const css_token_vector& tokens, bool important)
   {
     length_vector tracks;
-    for (const auto& tok : tokens)
-    {
+    auto add_track = [&](const css_token& tok) {
       css_length len;
       if (len.from_token(tok, f_length_percentage | f_positive))
       {
         tracks.push_back(len);
+        return true;
       }
-      else if (tok.ident() == "auto")
+      else if (tok.type == IDENT && tok.ident() == "auto")
       {
         len.predef(0);
         tracks.push_back(len);
+        return true;
+      }
+      return false;
+    };
+
+    for (const auto& tok : tokens)
+    {
+      if (tok.type == CV_FUNCTION && lowcase(tok.name) == "repeat")
+      {
+        int count = 0;
+        css_token_vector sub_tokens;
+        bool comma_found = false;
+        for (const auto& t : tok.value)
+        {
+          if (!comma_found && t.type == NUMBER)
+            count = (int)t.n.number;
+          else if (t.type == ',')
+            comma_found = true;
+          else if (comma_found && t.type != WHITESPACE)
+            sub_tokens.push_back(t);
+        }
+        if (count > 0)
+        {
+          for (int i = 0; i < count; i++)
+          {
+            for (const auto& st : sub_tokens)
+              add_track(st);
+          }
+        }
+      }
+      else if (tok.type != WHITESPACE)
+      {
+        add_track(tok);
       }
     }
     if (!tracks.empty())

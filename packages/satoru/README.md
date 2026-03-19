@@ -220,16 +220,51 @@ const png = await render({
 
 ---
 
+### 6. JSDOM Hydration (For Next.js / SPAs)
+
+For complex client-side applications (like Next.js) that require full Javascript evaluation and DOM hydration before rendering, Satoru provides an optional `jsdom` helper. 
+
+*Note: `jsdom` must be installed separately in your project (`npm install jsdom`).*
+
+```typescript
+import { render } from "satoru-render";
+import { getHtml } from "satoru-render/jsdom";
+
+// 1. Let JSDOM fetch the URL, execute scripts, and wait for network/hydration
+const hydratedHtml = await getHtml({
+  src: 'https://zenn.dev/',
+  waitUntil: 'networkidle', // Wait until Next.js finishes loading chunks
+  beforeParse: (window) => {
+    // Provide polyfills if the target site requires them
+    window.matchMedia = () => ({ matches: false, addListener: () => {} });
+    window.IntersectionObserver = class { observe(){} unobserve(){} disconnect(){} };
+  }
+});
+
+// 2. Render the fully constructed DOM in Satoru (at native speed)
+const pngBytes = await render({
+  value: hydratedHtml,
+  baseUrl: 'https://zenn.dev/',
+  width: 1200,
+  format: 'png'
+});
+```
+
+---
+
 ## 💻 CLI Tool
 
 Convert files or URLs directly from your terminal.
 
 ```bash
-# Local HTML to PNG
+# Local HTML to PNG (JSDOM hydration enabled by default)
 npx satoru-render input.html -o output.png
 
 # URL to PDF with specific width
 npx satoru-render https://example.com -o site.pdf -w 1280
+
+# Convert without JSDOM hydration
+npx satoru-render https://example.com --no-jsdom -o example.pdf
 
 # WebP conversion with verbose logs
 npx satoru-render input.html -f webp --verbose

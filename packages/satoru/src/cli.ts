@@ -8,6 +8,7 @@ async function main() {
   const options: any = {
     width: 800,
     format: "png",
+    jsdom: true, // Default to true
   };
 
   let input: string | undefined;
@@ -22,6 +23,8 @@ async function main() {
       options.format = args[++i];
     } else if (arg === "-o" || arg === "--output") {
       options.output = args[++i];
+    } else if (arg === "--no-jsdom") {
+      options.jsdom = false;
     } else if (arg === "--verbose") {
       options.verbose = true;
     } else if (arg === "--help") {
@@ -74,15 +77,57 @@ async function main() {
     };
   }
 
+  let finalHtml: string | undefined;
+  let baseUrl: string | undefined;
+
   if (isUrl) {
-    renderOptions.url = input;
+    baseUrl = input;
+    if (options.jsdom) {
+      try {
+        const { getHtml } = await import("./jsdom.js");
+        if (options.verbose) console.error(`[Satoru] Hydrating URL via JSDOM: ${input}`);
+        finalHtml = await getHtml({
+          src: input,
+          waitUntil: "networkidle",
+          forwardConsole: options.verbose,
+        });
+      } catch (err) {
+        if (options.verbose) console.error(`[Satoru] JSDOM hydration failed or not available, falling back to direct URL fetch:`, err);
+        renderOptions.url = input;
+      }
+    } else {
+      renderOptions.url = input;
+    }
   } else {
     if (!fs.existsSync(input)) {
       console.error(`Error: File not found: ${input}`);
       process.exit(1);
     }
-    renderOptions.value = fs.readFileSync(input, "utf-8");
-    renderOptions.baseUrl = path.dirname(path.resolve(input));
+    const rawContent = fs.readFileSync(input, "utf-8");
+    baseUrl = path.dirname(path.resolve(input));
+    
+    if (options.jsdom) {
+      try {
+        const { getHtml } = await import("./jsdom.js");
+        if (options.verbose) console.error(`[Satoru] Hydrating file via JSDOM: ${input}`);
+        finalHtml = await getHtml({
+          src: rawContent,
+          baseUrl: `file://${baseUrl}/`,
+          waitUntil: "networkidle",
+          forwardConsole: options.verbose,
+        });
+      } catch (err) {
+        if (options.verbose) console.error(`[Satoru] JSDOM hydration failed or not available, falling back to raw file content:`, err);
+        finalHtml = rawContent;
+      }
+    } else {
+      finalHtml = rawContent;
+    }
+  }
+
+  if (finalHtml !== undefined) {
+    renderOptions.value = finalHtml;
+    renderOptions.baseUrl = baseUrl;
   }
 
   try {
@@ -104,6 +149,7 @@ Options:
   -w, --width <number>   Viewport width (default: 800)
   -h, --height <number>  Viewport height (default: 0, auto-calculate)
   -f, --format <format>  Output format: svg, png, webp, pdf
+  --no-jsdom             Disable JSDOM hydration (enabled by default)
   --verbose              Enable detailed logging
   --help                 Show this help message
 `);

@@ -239,11 +239,11 @@ For complex client-side applications (like Next.js) that require full Javascript
 
 ```typescript
 import { render } from "satoru-render";
-import { hydrateHtml } from "satoru-render/jsdom";
+import { getHtml } from "satoru-render/jsdom";
 
 // 1. Let JSDOM fetch the URL, execute scripts, and wait for network/hydration
-const hydratedHtml = await hydrateHtml({
-  urlOrHtml: 'https://zenn.dev/',
+const hydratedHtml = await getHtml({
+  src: 'https://zenn.dev/',
   waitUntil: 'networkidle', // Wait until Next.js finishes loading chunks
   beforeParse: (window) => {
     // Provide polyfills if the target site requires them
@@ -269,8 +269,11 @@ const pngBytes = await render({
 # Convert HTML file to PNG
 npx satoru input.html -o output.png -w 1024
 
-# Convert URL to PDF
+# Convert URL to PDF (JSDOM hydration enabled by default)
 npx satoru https://example.com -o example.pdf -f pdf
+
+# Convert without JSDOM hydration
+npx satoru https://example.com --no-jsdom -o example.pdf
 ```
 
 ---

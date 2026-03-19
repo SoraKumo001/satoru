@@ -2,7 +2,7 @@ export interface HydrateOptions {
   /**
    * Target URL or raw HTML string to render.
    */
-  urlOrHtml: string;
+  src: string;
 
   /**
    * Base URL for resolving relative paths and fetching resources.
@@ -16,7 +16,10 @@ export interface HydrateOptions {
    * - function: Polling function that receives the window object and returns true when done
    * - "networkidle": Waits until network requests settle (basic implementation)
    */
-  waitUntil?: number | ((window: any) => boolean | Promise<boolean>) | "networkidle";
+  waitUntil?:
+    | number
+    | ((window: any) => boolean | Promise<boolean>)
+    | "networkidle";
 
   /**
    * Maximum time to wait in milliseconds. Default: 10000ms.
@@ -45,7 +48,7 @@ export interface HydrateOptions {
  * Hydrates an HTML string or URL using JSDOM and returns the final rendered HTML.
  * Note: Requires 'jsdom' to be installed as a peer dependency.
  */
-export async function hydrateHtml(options: HydrateOptions): Promise<string> {
+export async function getHtml(options: HydrateOptions): Promise<string> {
   let jsdomModule: any;
   try {
     jsdomModule = await import("jsdom");
@@ -55,60 +58,53 @@ export async function hydrateHtml(options: HydrateOptions): Promise<string> {
     );
   }
 
-  const { JSDOM, ResourceLoader, VirtualConsole } = jsdomModule;
+  const { JSDOM, VirtualConsole } = jsdomModule.default || jsdomModule;
 
-  const isUrl = /^https?:\/\//.test(options.urlOrHtml);
-  const finalBaseUrl = options.baseUrl || (isUrl ? options.urlOrHtml : "http://localhost/");
-
-  let activeRequests = 0;
-
-  // Custom resource loader to track network idle state
-  class TrackingResourceLoader extends ResourceLoader {
-    constructor(opts?: any) {
-      super(opts);
-    }
-    fetch(url: string, fetchOptions: any) {
-      activeRequests++;
-      const promise = super.fetch(url, fetchOptions);
-      if (promise && promise.then) {
-        promise
-          .then(() => {
-            activeRequests--;
-          })
-          .catch(() => {
-            activeRequests--;
-          });
-      } else {
-        activeRequests--;
-      }
-      return promise;
-    }
-  }
+  const isUrl = /^https?:\/\//.test(options.src);
+  const finalBaseUrl =
+    options.baseUrl || (isUrl ? options.src : "http://localhost/");
 
   const virtualConsole = new VirtualConsole();
   if (options.forwardConsole) {
-    virtualConsole.sendTo(console);
+    virtualConsole.forwardTo(console);
   }
 
   const jsdomOptions: any = {
     runScripts: "dangerously",
-    resources: options.waitUntil === "networkidle" ? new TrackingResourceLoader({ strictSSL: false }) : "usable",
+    resources: "usable",
     pretendToBeVisual: true,
     url: finalBaseUrl,
     virtualConsole,
     beforeParse: (window: any) => {
-      // Provide basic polyfills often needed by modern frameworks if not present
+      // Provide basic polyfills often needed by modern frameworks
       if (!window.fetch) {
         window.fetch = async (url: string, opts: any) => {
           const absoluteUrl = new URL(url, finalBaseUrl).href;
-          activeRequests++;
-          try {
-            return await globalThis.fetch(absoluteUrl, opts);
-          } finally {
-            activeRequests--;
-          }
+          return await globalThis.fetch(absoluteUrl, opts);
         };
       }
+
+      window.matchMedia = window.matchMedia || (() => ({
+        matches: false,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }));
+
+      window.IntersectionObserver = window.IntersectionObserver || class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+
+      window.ResizeObserver = window.ResizeObserver || class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+
       if (options.beforeParse) {
         options.beforeParse(window);
       }
@@ -117,9 +113,10 @@ export async function hydrateHtml(options: HydrateOptions): Promise<string> {
 
   let dom;
   if (isUrl) {
-    dom = await JSDOM.fromURL(options.urlOrHtml, jsdomOptions);
+    const { url, ...fromUrlOptions } = jsdomOptions;
+    dom = await JSDOM.fromURL(options.src, fromUrlOptions);
   } else {
-    dom = new JSDOM(options.urlOrHtml, jsdomOptions);
+    dom = new JSDOM(options.src, jsdomOptions);
   }
 
   const timeoutMs = options.timeout || 10000;
@@ -135,7 +132,8 @@ export async function hydrateHtml(options: HydrateOptions): Promise<string> {
     }
 
     if (options.waitUntil === "networkidle") {
-      return activeRequests === 0;
+        // Wait at least 2 seconds for heavy sites like Zenn
+        return Date.now() - startTime >= 2000;
     }
 
     if (typeof options.waitUntil === "function") {

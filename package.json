@@ -24,5 +24,8 @@
   },
   "repository": "https://github.com/SoraKumo001/satoru",
   "author": "SoraKumo <info@croud.jp>",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "jsdom": "29.0.0"
+  }
 }

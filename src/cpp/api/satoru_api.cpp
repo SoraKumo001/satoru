@@ -196,9 +196,6 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
     }
 
     for (const auto& req : requestedAttribs) {
-        if (req.family == "sans-serif") {
-            SATORU_LOG_INFO("Processing sans-serif request");
-        }
         std::string charactersStr;
         auto it_chars = usedFontCharacters.find(req);
         if (it_chars != usedFontCharacters.end()) {
@@ -211,7 +208,6 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
         if (urls.empty()) {
             auto loaded = context.fontManager.matchFonts(req.family, req.weight, req.slant);
             if (loaded.empty()) {
-                SATORU_LOG_INFO("No fonts matched for %s", req.family.c_str());
                 const auto& fontMap = context.getFontMap();
                 auto it = fontMap.find(req.family);
                 if (it != fontMap.end()) {

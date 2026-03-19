@@ -298,6 +298,16 @@ export abstract class SatoruBase {
     mod.destroy_instance(inst);
   }
 
+  async loadFallbackFont(data: Uint8Array): Promise<void> {
+    const mod = await this.getModule();
+    const inst = mod.create_instance();
+    try {
+      mod.load_fallback_font(inst, data);
+    } finally {
+      mod.destroy_instance(inst);
+    }
+  }
+
   protected abstract resolveDefaultResource(
     resource: RequiredResource,
     baseUrl?: string,
@@ -364,6 +374,11 @@ export abstract class SatoruBase {
           mod.load_font(instancePtr, f.name, f.data);
         }
       }
+      if (options.fallbackFonts) {
+        for (const data of options.fallbackFonts) {
+          mod.load_fallback_font(instancePtr, data);
+        }
+      }
       if (images) {
         for (const img of images) {
           mod.load_image(
@@ -410,10 +425,6 @@ export abstract class SatoruBase {
             return !resolvedResources.has(key);
           });
           if (pending.length === 0) break;
-
-          if (mod.logLevel >= LogLevel.Info) {
-            console.log(`[Satoru] Pending resources:`, pending.map(p => `${p.name} (${p.url})`));
-          }
 
           await Promise.all(
             pending.map(async (r) => {

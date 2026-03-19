@@ -110,7 +110,8 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
                 registered = true;
 
                 if (name == "sans-serif" || name == "serif" || name == "monospace") {
-                    auto tfs = m_context.fontManager.matchFonts(name, 400, SkFontStyle::kUpright_Slant);
+                    auto tfs =
+                        m_context.fontManager.matchFonts(name, 400, SkFontStyle::kUpright_Slant);
                     if (!tfs.empty()) {
                         m_context.fontManager.addFallbackTypeface(tfs[0]);
                     }

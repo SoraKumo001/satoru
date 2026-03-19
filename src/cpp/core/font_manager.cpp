@@ -305,8 +305,9 @@ std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string &
     }
 
     if (cleanFamily == "serif" || cleanFamily == "sans-serif" || cleanFamily == "monospace") {
-        // Only return default if it's explicitly allowed or if we have no other choice during rendering.
-        // During resource collection, we want to know if we actually have the specific generic family.
+        // Only return default if it's explicitly allowed or if we have no other choice during
+        // rendering. During resource collection, we want to know if we actually have the specific
+        // generic family.
     }
 
     return {};

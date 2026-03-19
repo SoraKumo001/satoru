@@ -957,9 +957,14 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                         float opacity = (float)((fullIndex >> 4) & 0xFF) / 255.0f;
                         int bm_idx = fullIndex & 0x0F;
                         const char* bm_str = "normal";
-                        const char* bm_table[] = { "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity" };
+                        const char* bm_table[] = {
+                            "normal",     "multiply",   "screen",      "overlay",
+                            "darken",     "lighten",    "color-dodge", "color-burn",
+                            "hard-light", "soft-light", "difference",  "exclusion",
+                            "hue",        "saturation", "color",       "luminosity"};
                         if (bm_idx >= 0 && bm_idx < 16) bm_str = bm_table[bm_idx];
-                        result.append("<g opacity=\"" + std::to_string(opacity) + "\" style=\"mix-blend-mode: " + bm_str + "\">");
+                        result.append("<g opacity=\"" + std::to_string(opacity) +
+                                      "\" style=\"mix-blend-mode: " + bm_str + "\">");
                         replaced = true;
                         break;
                     }
@@ -1556,7 +1561,8 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
 }
 
 std::string renderHtmlToSvg(const char* html, int width, int height, SatoruContext& context,
-                            const char* master_css, const char* user_css, const RenderOptions& options) {
+                            const char* master_css, const char* user_css,
+                            const RenderOptions& options) {
     int initial_height = (height > 0) ? height : 3000;
     container_skia container(width, initial_height, nullptr, context, nullptr, false);
 

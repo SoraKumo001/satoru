@@ -10,6 +10,7 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
                                 const RenderOptions& options);
 
 std::string renderHtmlToSvg(const char* html, int width, int height, SatoruContext& context,
-                            const char* master_css, const char* user_css, const RenderOptions& options);
+                            const char* master_css, const char* user_css,
+                            const RenderOptions& options);
 
 #endif  // SVG_RENDERER_H

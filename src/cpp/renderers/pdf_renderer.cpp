@@ -61,7 +61,8 @@ sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height,
 }
 
 sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width, int height,
-                               SatoruContext& context, const char* master_css, const char* user_css) {
+                               SatoruContext& context, const char* master_css,
+                               const char* user_css) {
     if (htmls.empty()) return nullptr;
 
     SkDynamicMemoryWStream stream;

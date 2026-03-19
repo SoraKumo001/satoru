@@ -115,11 +115,10 @@ void SatoruInstance::init_document(const char* html, int width, int height) {
     render_container = std::make_unique<container_skia>(width, initial_height, nullptr, context,
                                                         &resourceManager, false);
 
-    std::string master_css =
-        get_full_master_css() + "\nbr { display: -litehtml-br !important; }\n";
+    std::string master_css = get_full_master_css() + "\nbr { display: -litehtml-br !important; }\n";
     std::string user_css = context.getExtraCss();
     doc = litehtml::document::createFromString(html, render_container.get(), master_css.c_str(),
-                                                user_css.c_str());
+                                               user_css.c_str());
     if (render_container) {
         render_container->set_document(doc.get());
     }
@@ -167,9 +166,9 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
 
     context.fontManager.scanFontFaces(html.c_str());
 
-    auto temp_doc = litehtml::document::createFromString(
-        html.c_str(), discovery_container.get(), get_full_master_css().c_str(),
-        context.getExtraCss().c_str());
+    auto temp_doc = litehtml::document::createFromString(html.c_str(), discovery_container.get(),
+                                                         get_full_master_css().c_str(),
+                                                         context.getExtraCss().c_str());
     if (discovery_container) {
         discovery_container->set_document(temp_doc.get());
     }
@@ -396,7 +395,8 @@ void api_load_font(SatoruInstance* inst, const std::string& name,
 
 void api_load_fallback_font(SatoruInstance* inst, const std::vector<uint8_t>& data) {
     inst->context.fontManager.loadFont("__fallback__", data.data(), (int)data.size());
-    auto tfs = inst->context.fontManager.matchFonts("__fallback__", 400, SkFontStyle::kUpright_Slant);
+    auto tfs =
+        inst->context.fontManager.matchFonts("__fallback__", 400, SkFontStyle::kUpright_Slant);
     if (!tfs.empty()) {
         inst->context.fontManager.addFallbackTypeface(tfs[0]);
     }

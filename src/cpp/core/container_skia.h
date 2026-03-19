@@ -207,11 +207,10 @@ class container_skia : public litehtml::document_container {
                                   const litehtml::list_marker &marker) override;
     virtual void load_image(const char *src, const char *baseurl, bool redraw_on_ready) override;
     virtual void get_image_size(const char *src, const char *baseurl, litehtml::size &sz) override;
-    virtual void draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
-                            const std::string &url, const std::string &base_url,
-                            litehtml::object_fit fit = litehtml::object_fit_fill,
-                            const litehtml::css_token_vector &object_position =
-                                litehtml::css_token_vector()) override;
+    virtual void draw_image(
+        litehtml::uint_ptr hdc, const litehtml::background_layer &layer, const std::string &url,
+        const std::string &base_url, litehtml::object_fit fit = litehtml::object_fit_fill,
+        const litehtml::css_token_vector &object_position = litehtml::css_token_vector()) override;
     virtual void draw_solid_fill(litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
                                  const litehtml::web_color &color) override;
     virtual void draw_linear_gradient(
@@ -255,7 +254,8 @@ class container_skia : public litehtml::document_container {
     virtual void split_text(const char *text, const std::function<void(const char *)> &on_word,
                             const std::function<void(const char *)> &on_space) override;
 
-    virtual void push_layer(litehtml::uint_ptr hdc, float opacity, litehtml::blend_mode bm) override;
+    virtual void push_layer(litehtml::uint_ptr hdc, float opacity,
+                            litehtml::blend_mode bm) override;
     virtual void pop_layer(litehtml::uint_ptr hdc) override;
 
     virtual void push_transform(litehtml::uint_ptr hdc, const litehtml::css_token_vector &transform,

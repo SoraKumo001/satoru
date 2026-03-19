@@ -1614,22 +1614,53 @@ void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity, litehtml:
 
         SkBlendMode sk_bm = SkBlendMode::kSrcOver;
         switch (bm) {
-            case litehtml::blend_mode_multiply:    sk_bm = SkBlendMode::kMultiply; break;
-            case litehtml::blend_mode_screen:      sk_bm = SkBlendMode::kScreen; break;
-            case litehtml::blend_mode_overlay:     sk_bm = SkBlendMode::kOverlay; break;
-            case litehtml::blend_mode_darken:      sk_bm = SkBlendMode::kDarken; break;
-            case litehtml::blend_mode_lighten:     sk_bm = SkBlendMode::kLighten; break;
-            case litehtml::blend_mode_color_dodge: sk_bm = SkBlendMode::kColorDodge; break;
-            case litehtml::blend_mode_color_burn:  sk_bm = SkBlendMode::kColorBurn; break;
-            case litehtml::blend_mode_hard_light:  sk_bm = SkBlendMode::kHardLight; break;
-            case litehtml::blend_mode_soft_light:  sk_bm = SkBlendMode::kSoftLight; break;
-            case litehtml::blend_mode_difference:  sk_bm = SkBlendMode::kDifference; break;
-            case litehtml::blend_mode_exclusion:   sk_bm = SkBlendMode::kExclusion; break;
-            case litehtml::blend_mode_hue:         sk_bm = SkBlendMode::kHue; break;
-            case litehtml::blend_mode_saturation:  sk_bm = SkBlendMode::kSaturation; break;
-            case litehtml::blend_mode_color:       sk_bm = SkBlendMode::kColor; break;
-            case litehtml::blend_mode_luminosity:  sk_bm = SkBlendMode::kLuminosity; break;
-            default: break;
+            case litehtml::blend_mode_multiply:
+                sk_bm = SkBlendMode::kMultiply;
+                break;
+            case litehtml::blend_mode_screen:
+                sk_bm = SkBlendMode::kScreen;
+                break;
+            case litehtml::blend_mode_overlay:
+                sk_bm = SkBlendMode::kOverlay;
+                break;
+            case litehtml::blend_mode_darken:
+                sk_bm = SkBlendMode::kDarken;
+                break;
+            case litehtml::blend_mode_lighten:
+                sk_bm = SkBlendMode::kLighten;
+                break;
+            case litehtml::blend_mode_color_dodge:
+                sk_bm = SkBlendMode::kColorDodge;
+                break;
+            case litehtml::blend_mode_color_burn:
+                sk_bm = SkBlendMode::kColorBurn;
+                break;
+            case litehtml::blend_mode_hard_light:
+                sk_bm = SkBlendMode::kHardLight;
+                break;
+            case litehtml::blend_mode_soft_light:
+                sk_bm = SkBlendMode::kSoftLight;
+                break;
+            case litehtml::blend_mode_difference:
+                sk_bm = SkBlendMode::kDifference;
+                break;
+            case litehtml::blend_mode_exclusion:
+                sk_bm = SkBlendMode::kExclusion;
+                break;
+            case litehtml::blend_mode_hue:
+                sk_bm = SkBlendMode::kHue;
+                break;
+            case litehtml::blend_mode_saturation:
+                sk_bm = SkBlendMode::kSaturation;
+                break;
+            case litehtml::blend_mode_color:
+                sk_bm = SkBlendMode::kColor;
+                break;
+            case litehtml::blend_mode_luminosity:
+                sk_bm = SkBlendMode::kLuminosity;
+                break;
+            default:
+                break;
         }
 
         if (m_tagging) {
@@ -2025,10 +2056,9 @@ void container_skia::pop_mask(litehtml::uint_ptr hdc) {
 void container_skia::on_unknown_property(const litehtml::string& name,
                                          const litehtml::css_token_vector& value) {
     if (name == "transition" || name == "animation" || name == "resize" ||
-        name == "scrollbar-width" || name == "-webkit-box-flex" ||
-        name == "-ms-overflow-style" || name == "-webkit-overflow-scrolling" ||
-        name == "-webkit-font-smoothing" || name == "color-scheme" ||
-        name == "-webkit-text-size-adjust" || name == "line-break" ||
+        name == "scrollbar-width" || name == "-webkit-box-flex" || name == "-ms-overflow-style" ||
+        name == "-webkit-overflow-scrolling" || name == "-webkit-font-smoothing" ||
+        name == "color-scheme" || name == "-webkit-text-size-adjust" || name == "line-break" ||
         name == "text-size-adjust") {
         return;
     }

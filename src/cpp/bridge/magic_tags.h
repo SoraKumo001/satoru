@@ -30,7 +30,7 @@ enum class MagicTag : uint8_t {
     BackdropFilterPop = 14,
     MaskPush = 15,
     MaskPop = 16,
-    LayerPushBlend = 17, // 不透明度 + ブレンドモード開始
+    LayerPushBlend = 17,  // 不透明度 + ブレンドモード開始
 };
 
 enum class MagicTagExtended : uint8_t {

@@ -12,6 +12,7 @@ sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height,
                                   const RenderOptions& options);
 
 sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width, int height,
-                               SatoruContext& context, const char* master_css, const char* user_css);
+                               SatoruContext& context, const char* master_css,
+                               const char* user_css);
 
 #endif  // PDF_RENDERER_H

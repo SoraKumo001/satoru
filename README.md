@@ -98,6 +98,13 @@ graph TD
 
 ## 📋 Supported CSS Properties
 
+- [x] Support `grid-gap` aliases (`grid-gap`, `grid-row-gap`, `grid-column-gap`)
+- [x] Support `overflow-x` and `overflow-y` separately
+- [x] Support `outline` properties (`outline`, `outline-offset`)
+- [x] Support legacy `clip: rect()` property
+- [x] Support `fill: currentColor` for SVG styling
+- [ ] Improve `gap` support for Grid layout
+
 <details>
 <summary>Click to expand supported properties list</summary>
 
@@ -122,6 +129,7 @@ graph TD
 - `background` (Color, Image, Position, Size, Repeat, Clip, Origin)
 - `border-radius`, `box-shadow` (Outer & Inset)
 - `border-image` (Source, Slice, Width, Outset, Repeat)
+- `outline` (Width, Style, Color), `outline-offset`
 
 ### Flexbox & Grid
 
@@ -130,8 +138,8 @@ graph TD
 
 ### Effects, Shapes & Functions
 
-- `clip-path` (circle, ellipse, inset, polygon, path)
-- `filter`, `backdrop-filter`, `opacity`
+- `clip-path` (circle, ellipse, inset, polygon, path), `clip` (rect)
+- `filter`, `backdrop-filter`, `opacity`, `fill`, `stroke`
 - **Gradients**: `linear-gradient`, `radial-gradient`, `conic-gradient`
 - **Modern Functions**: `calc()`, `min()`, `max()`, `clamp()`, `oklch()`, `oklab()`, `color-mix()`, `light-dark()`, `env()`, `var()`
 - **Container Queries**: `@container`, `container-type`, `container-name`

@@ -2024,6 +2024,14 @@ void container_skia::pop_mask(litehtml::uint_ptr hdc) {
 
 void container_skia::on_unknown_property(const litehtml::string& name,
                                          const litehtml::css_token_vector& value) {
+    if (name == "transition" || name == "animation" || name == "resize" ||
+        name == "scrollbar-width" || name == "-webkit-box-flex" ||
+        name == "-ms-overflow-style" || name == "-webkit-overflow-scrolling" ||
+        name == "-webkit-font-smoothing" || name == "color-scheme" ||
+        name == "-webkit-text-size-adjust" || name == "line-break" ||
+        name == "text-size-adjust") {
+        return;
+    }
     SATORU_LOG_WARN("Unsupported CSS property: %s: %s", name.c_str(),
                     litehtml::get_repr(value).c_str());
 }

@@ -38,6 +38,9 @@ namespace litehtml
           {_appearance_, appearance_strings},
           {_box_sizing_, box_sizing_strings},
 
+          {_overflow_x_, overflow_strings},
+          {_overflow_y_, overflow_strings},
+
           {_text_align_, text_align_strings},
           {_vertical_align_, vertical_align_strings},
           {_text_transform_, text_transform_strings},
@@ -63,6 +66,7 @@ namespace litehtml
           {_border_block_start_style_, border_style_strings},
           {_border_block_end_style_, border_style_strings},
           {_column_rule_style_, border_style_strings},
+          {_outline_style_, border_style_strings},
           {_border_collapse_, border_collapse_strings},
           {_table_layout_, table_layout_strings},
 
@@ -118,6 +122,10 @@ namespace litehtml
           {_gap_, {_row_gap_, _column_gap_}},
           {_grid_column_, {_grid_column_start_, _grid_column_end_}},
           {_grid_row_, {_grid_row_start_, _grid_row_end_}},
+          {_grid_gap_, {_row_gap_, _column_gap_}},
+          {_grid_row_gap_, {_row_gap_}},
+          {_grid_column_gap_, {_column_gap_}},
+          {_outline_, {_outline_width_, _outline_style_, _outline_color_}},
           {_column_rule_, {_column_rule_width_, _column_rule_style_, _column_rule_color_}},
 
           {_text_decoration_, {_text_decoration_color_, _text_decoration_line_, _text_decoration_style_, _text_decoration_thickness_}},
@@ -249,6 +257,8 @@ namespace litehtml
     case _appearance_:
     case _box_sizing_:
     case _overflow_:
+    case _overflow_x_:
+    case _overflow_y_:
     case _text_overflow_:
     case _text_align_:
     case _vertical_align_:
@@ -588,9 +598,13 @@ namespace litehtml
       }
       break;
 
+    case _outline_:
     case _column_rule_:
       parse_border_side(name, value, important, container);
       break;
+
+    case _outline_offset_:
+      return add_length_property(name, val, "0", f_length, important);
 
     case _list_style_:
       parse_list_style(value, baseurl, important);
@@ -699,9 +713,21 @@ namespace litehtml
     case _grid_row_start_:
     case _grid_row_end_:
     case _column_rule_width_:
+    case _outline_width_:
+      if (parse_border_width(val, *len))
+        add_parsed_property(name, property_value(*len, important, false, m_layer, m_specificity));
+      break;
+
     case _column_rule_style_:
+    case _outline_style_:
+      if (int index = value_index(ident, m_valid_values[name]); index >= 0)
+        add_parsed_property(name, property_value(index, important, false, m_layer, m_specificity));
+      break;
+
     case _column_rule_color_:
-      add_parsed_property(name, property_value(value, important, false, m_layer, m_specificity));
+    case _outline_color_:
+      if (parse_color(val, *clr, container))
+        add_parsed_property(name, property_value(*clr, important, false, m_layer, m_specificity));
       break;
 
     case _grid_column_:
@@ -737,9 +763,12 @@ namespace litehtml
 
     case _column_gap_:
     case _row_gap_:
+    case _grid_column_gap_:
+    case _grid_row_gap_:
       return add_length_property(name, val, "normal", f_length_percentage | f_positive, important);
 
     case _gap_:
+    case _grid_gap_:
       if (parse_two_lengths(value, len, f_length_percentage | f_positive))
       {
         add_parsed_property(_row_gap_, property_value(len[0], important, false, m_layer, m_specificity));
@@ -817,6 +846,9 @@ namespace litehtml
       break;
     }
 
+    case _fill_:
+    case _stroke_:
+    case _clip_:
     case _margin_trim_:
     case __webkit_hyphens_:
     case __moz_orient_:

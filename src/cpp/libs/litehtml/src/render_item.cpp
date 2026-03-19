@@ -2,6 +2,7 @@
 
 #include <typeinfo>
 
+#include "css_parser.h"
 #include "document.h"
 #include "document_container.h"
 #include "types.h"
@@ -895,6 +896,33 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
             doc->container()->set_clip(clip_box, bdr_radius);
             overflow_clipped = true;
         }
+    } else if (!src_el()->css().get_clip().empty()) {
+        const auto& clip_tokens = src_el()->css().get_clip();
+        if (clip_tokens.size() == 1 && clip_tokens[0].type == CV_FUNCTION &&
+            lowcase(clip_tokens[0].name) == "rect") {
+            auto args = parse_comma_separated_list(clip_tokens[0].value);
+            if (args.size() == 4) {
+                css_length top_l, right_l, bottom_l, left_l;
+                top_l.from_token(args[0][0], f_length);
+                right_l.from_token(args[1][0], f_length);
+                bottom_l.from_token(args[2][0], f_length);
+                left_l.from_token(args[3][0], f_length);
+
+                pixel_t top = doc->to_pixels(top_l, css().get_font_metrics(), 0);
+                pixel_t right = doc->to_pixels(right_l, css().get_font_metrics(), 0);
+                pixel_t bottom = doc->to_pixels(bottom_l, css().get_font_metrics(), 0);
+                pixel_t left = doc->to_pixels(left_l, css().get_font_metrics(), 0);
+
+                position clip_rect;
+                clip_rect.x = x + m_pos.x + left;
+                clip_rect.y = y + m_pos.y + top;
+                clip_rect.width = right - left;
+                clip_rect.height = bottom - top;
+
+                doc->container()->set_clip(clip_rect, border_radiuses());
+                overflow_clipped = true;
+            }
+        }
     }
 
     for (const auto& el : m_children) {
@@ -1057,6 +1085,24 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
 
     if (overflow_clipped) {
         doc->container()->del_clip();
+    }
+
+    if (!src_el()->css().get_outline().top.width.is_predefined() &&
+        src_el()->css().get_outline().top.width.val() > 0) {
+        position outline_box = m_pos;
+        outline_box += m_padding;
+        outline_box += m_borders;
+        outline_box.x += x;
+        outline_box.y += y;
+
+        pixel_t offset = doc->to_pixels(src_el()->css().get_outline_offset(),
+                                        src_el()->css().get_font_metrics(), 0);
+        outline_box.x -= offset;
+        outline_box.y -= offset;
+        outline_box.width += offset * 2;
+        outline_box.height += offset * 2;
+
+        doc->container()->draw_borders(hdc, src_el()->css().get_outline(), outline_box, false);
     }
 }
 

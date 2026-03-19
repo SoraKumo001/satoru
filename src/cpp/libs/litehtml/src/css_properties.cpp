@@ -27,6 +27,8 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   m_appearance = (appearance)el->get_property<int>(_appearance_, false, appearance_none, offset(m_appearance));
   m_box_sizing = (box_sizing)el->get_property<int>(_box_sizing_, false, box_sizing_content_box, offset(m_box_sizing));
   m_overflow = (overflow)el->get_property<int>(_overflow_, false, overflow_visible, offset(m_overflow));
+  m_overflow_x = (overflow)el->get_property<int>(_overflow_x_, false, m_overflow, offset(m_overflow_x));
+  m_overflow_y = (overflow)el->get_property<int>(_overflow_y_, false, m_overflow, offset(m_overflow_y));
   m_text_overflow = (text_overflow)el->get_property<int>(_text_overflow_, false, text_overflow_clip, offset(m_text_overflow));
   m_text_align = (text_align)el->get_property<int>(_text_align_, true, text_align_start, offset(m_text_align));
   m_vertical_align = (vertical_align)el->get_property<int>(_vertical_align_, false, va_baseline, offset(m_vertical_align));
@@ -70,6 +72,7 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   {
     m_mask = el->get_property<css_token_vector>(__webkit_mask_, false, css_token_vector(), offset(m_mask));
   }
+  m_clip = el->get_property<css_token_vector>(_clip_, false, css_token_vector(), offset(m_clip));
 
   // https://www.w3.org/TR/CSS22/visuren.html#dis-pos-flo
   if (m_display == display_none)
@@ -355,6 +358,27 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
 
   doc->cvt_units(m_css_border_spacing_x, m_font_metrics, 0);
   doc->cvt_units(m_css_border_spacing_y, m_font_metrics, 0);
+
+  m_outline.top.width = m_outline.bottom.width = m_outline.left.width = m_outline.right.width = el->get_property<css_length>(_outline_width_, false, border_width_medium_value, offset(m_outline.top.width));
+  m_outline.top.style = m_outline.bottom.style = m_outline.left.style = m_outline.right.style = (border_style)el->get_property<int>(_outline_style_, false, border_style_none, offset(m_outline.top.style));
+  m_outline.top.color = m_outline.bottom.color = m_outline.left.color = m_outline.right.color = get_color_property(el, _outline_color_, false, m_color, offset(m_outline.top.color));
+  m_outline_offset = el->get_property<css_length>(_outline_offset_, false, 0, offset(m_outline_offset));
+
+  doc->cvt_units(m_outline.top.width, m_font_metrics, 0);
+  doc->cvt_units(m_outline.bottom.width, m_font_metrics, 0);
+  doc->cvt_units(m_outline.left.width, m_font_metrics, 0);
+  doc->cvt_units(m_outline.right.width, m_font_metrics, 0);
+  doc->cvt_units(m_outline_offset, m_font_metrics, 0);
+
+  if (m_outline.top.style == border_style_none) m_outline.top.width = 0;
+  if (m_outline.bottom.style == border_style_none) m_outline.bottom.width = 0;
+  if (m_outline.left.style == border_style_none) m_outline.left.width = 0;
+  if (m_outline.right.style == border_style_none) m_outline.right.width = 0;
+
+  snap_border_width(m_outline.top.width, doc);
+  snap_border_width(m_outline.bottom.width, doc);
+  snap_border_width(m_outline.left.width, doc);
+  snap_border_width(m_outline.right.width, doc);
 
   if (m_writing_mode == writing_mode_vertical_rl || m_writing_mode == writing_mode_vertical_lr)
   {

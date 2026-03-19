@@ -37,6 +37,8 @@ namespace litehtml
     text_combine_upright m_text_combine_upright;
     text_align m_text_align;
     overflow m_overflow;
+    overflow m_overflow_x;
+    overflow m_overflow_y;
     text_overflow m_text_overflow;
     white_space m_white_space;
     text_wrap m_text_wrap;
@@ -89,6 +91,9 @@ namespace litehtml
     table_layout m_table_layout;
     css_length m_css_border_spacing_x;
     css_length m_css_border_spacing_y;
+
+    css_borders m_outline;
+    css_length m_outline_offset;
 
     float m_flex_grow;
     float m_flex_shrink;
@@ -147,6 +152,7 @@ namespace litehtml
     isolation m_isolation;
     container_type m_container_type;
     string m_container_name;
+    css_token_vector m_clip;
 
   private:
     void compute_font(const element *el, const std::shared_ptr<document> &doc);
@@ -167,6 +173,8 @@ namespace litehtml
                        m_text_combine_upright(text_combine_upright_none),
                        m_text_align(text_align_start),
                        m_overflow(overflow_visible),
+                       m_overflow_x(overflow_visible),
+                       m_overflow_y(overflow_visible),
                        m_text_overflow(text_overflow_clip),
                        m_white_space(white_space_normal),
                        m_text_wrap(text_wrap_wrap),
@@ -231,6 +239,7 @@ namespace litehtml
                        m_filter(),
                        m_backdrop_filter(),
                        m_mask(),
+                       m_clip(),
                        m_word_break(word_break_normal),
                        m_overflow_wrap(overflow_wrap_normal),
                        m_mix_blend_mode(blend_mode_normal),
@@ -263,6 +272,12 @@ namespace litehtml
 
     overflow get_overflow() const;
     void set_overflow(overflow mOverflow);
+
+    overflow get_overflow_x() const;
+    void set_overflow_x(overflow val);
+
+    overflow get_overflow_y() const;
+    void set_overflow_y(overflow val);
 
     text_overflow get_text_overflow() const;
     void set_text_overflow(text_overflow mTextOverflow);
@@ -312,6 +327,12 @@ namespace litehtml
     const css_borders &get_borders() const;
     css_borders &get_borders_w();
     void set_borders(const css_borders &mCssBorders);
+
+    const css_borders &get_outline() const;
+    void set_outline(const css_borders &val);
+
+    const css_length &get_outline_offset() const;
+    void set_outline_offset(const css_length &val);
 
     const css_length &get_width() const;
     void set_width(const css_length &mCssWidth);
@@ -475,6 +496,7 @@ namespace litehtml
     const css_token_vector &get_backdrop_filter() const;
     const css_token_vector &get_object_position() const;
     const css_token_vector &get_mask() const;
+    const css_token_vector &get_clip() const;
     blend_mode get_mix_blend_mode() const;
     void set_mix_blend_mode(blend_mode mBlendMode);
     blend_mode get_background_blend_mode() const;
@@ -554,6 +576,28 @@ namespace litehtml
   inline void css_properties::set_overflow(overflow mOverflow)
   {
     m_overflow = mOverflow;
+    m_overflow_x = mOverflow;
+    m_overflow_y = mOverflow;
+  }
+
+  inline overflow css_properties::get_overflow_x() const
+  {
+    return m_overflow_x;
+  }
+
+  inline void css_properties::set_overflow_x(overflow val)
+  {
+    m_overflow_x = val;
+  }
+
+  inline overflow css_properties::get_overflow_y() const
+  {
+    return m_overflow_y;
+  }
+
+  inline void css_properties::set_overflow_y(overflow val)
+  {
+    m_overflow_y = val;
   }
 
   inline text_overflow css_properties::get_text_overflow() const
@@ -718,6 +762,26 @@ namespace litehtml
   inline void css_properties::set_borders(const css_borders &mCssBorders)
   {
     m_css_borders = mCssBorders;
+  }
+
+  inline const css_borders &css_properties::get_outline() const
+  {
+    return m_outline;
+  }
+
+  inline void css_properties::set_outline(const css_borders &val)
+  {
+    m_outline = val;
+  }
+
+  inline const css_length &css_properties::get_outline_offset() const
+  {
+    return m_outline_offset;
+  }
+
+  inline void css_properties::set_outline_offset(const css_length &val)
+  {
+    m_outline_offset = val;
   }
 
   inline const css_length &css_properties::get_width() const
@@ -1235,6 +1299,11 @@ namespace litehtml
   inline const css_token_vector &css_properties::get_mask() const
   {
     return m_mask;
+  }
+
+  inline const css_token_vector &css_properties::get_clip() const
+  {
+    return m_clip;
   }
 
   inline blend_mode css_properties::get_mix_blend_mode() const

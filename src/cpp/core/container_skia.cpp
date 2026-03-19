@@ -421,6 +421,23 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
         }
     }
 
+    // Add global fallbacks
+    for (auto& tf : m_context.fontManager.getFallbackTypefaces()) {
+        bool duplicate = false;
+        for (auto& existing : fi->fonts) {
+            if (existing->getTypeface()->uniqueID() == tf->uniqueID()) {
+                duplicate = true;
+                break;
+            }
+        }
+        if (!duplicate) {
+            SkFont* font = m_context.fontManager.createSkFont(tf, (float)desc.size, desc.weight);
+            if (font) {
+                fi->fonts.push_back(font);
+            }
+        }
+    }
+
     if (fi->fonts.empty()) {
         sk_sp<SkTypeface> def = m_context.fontManager.getDefaultTypeface();
         if (def) {

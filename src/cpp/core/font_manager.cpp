@@ -254,33 +254,8 @@ std::vector<std::string> SatoruFontManager::getFontUrls(
         }
     }
 
-    if (urls.empty() &&
-        (req.family == "sans-serif" || req.family == "serif" || req.family == "monospace")) {
-        if (!m_fontFaces.empty()) {
-            std::string fallbackFamily = m_fontFaces.begin()->first.family;
-            for (const auto &entry : m_fontFaces) {
-                if (entry.first.family == fallbackFamily) {
-                    for (const auto &src : entry.second) {
-                        if (std::find(urls.begin(), urls.end(), src.url) == urls.end()) {
-                            bool needed = true;
-                            if (usedCodepoints && !src.unicode_range.empty()) {
-                                needed = false;
-                                for (char32_t cp : *usedCodepoints) {
-                                    if (checkUnicodeRange(cp, src.ranges)) {
-                                        needed = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (needed) {
-                                urls.push_back(src.url);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    // Removed automatic fallback to first font face for generic families.
+    // This was causing issues when we want to request a real fallback from the font map.
 
     return urls;
 }
@@ -330,7 +305,8 @@ std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string &
     }
 
     if (cleanFamily == "serif" || cleanFamily == "sans-serif" || cleanFamily == "monospace") {
-        if (m_defaultTypeface) return {m_defaultTypeface};
+        // Only return default if it's explicitly allowed or if we have no other choice during rendering.
+        // During resource collection, we want to know if we actually have the specific generic family.
     }
 
     return {};

@@ -176,10 +176,29 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
     }
 
     const auto& usedCodepoints = discovery_container->get_used_codepoints();
-    const auto& requestedAttribs = discovery_container->get_requested_font_attributes();
+    auto requestedAttribs = discovery_container->get_requested_font_attributes();
     const auto& usedFontCharacters = discovery_container->get_used_fonts_characters();
 
+    // Ensure sans-serif is always requested as a fallback if not already present
+    bool hasSansSerif = false;
     for (const auto& req : requestedAttribs) {
+        if (req.family == "sans-serif") {
+            hasSansSerif = true;
+            break;
+        }
+    }
+    if (!hasSansSerif) {
+        font_request req;
+        req.family = "sans-serif";
+        req.weight = 400;
+        req.slant = SkFontStyle::kUpright_Slant;
+        requestedAttribs.insert(req);
+    }
+
+    for (const auto& req : requestedAttribs) {
+        if (req.family == "sans-serif") {
+            SATORU_LOG_INFO("Processing sans-serif request");
+        }
         std::string charactersStr;
         auto it_chars = usedFontCharacters.find(req);
         if (it_chars != usedFontCharacters.end()) {
@@ -192,6 +211,7 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
         if (urls.empty()) {
             auto loaded = context.fontManager.matchFonts(req.family, req.weight, req.slant);
             if (loaded.empty()) {
+                SATORU_LOG_INFO("No fonts matched for %s", req.family.c_str());
                 const auto& fontMap = context.getFontMap();
                 auto it = fontMap.find(req.family);
                 if (it != fontMap.end()) {
@@ -369,6 +389,14 @@ void api_scan_css(SatoruInstance* inst, const std::string& css) { inst->scan_css
 void api_load_font(SatoruInstance* inst, const std::string& name,
                    const std::vector<uint8_t>& data) {
     inst->load_font(name, data);
+}
+
+void api_load_fallback_font(SatoruInstance* inst, const std::vector<uint8_t>& data) {
+    inst->context.fontManager.loadFont("__fallback__", data.data(), (int)data.size());
+    auto tfs = inst->context.fontManager.matchFonts("__fallback__", 400, SkFontStyle::kUpright_Slant);
+    if (!tfs.empty()) {
+        inst->context.fontManager.addFallbackTypeface(tfs[0]);
+    }
 }
 
 void api_load_image(SatoruInstance* inst, const std::string& name, const std::string& data_url,

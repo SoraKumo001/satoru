@@ -18,6 +18,7 @@ export interface SatoruModule {
   ) => void;
   scan_css: (inst: any, css: string) => void;
   load_font: (inst: any, name: string, data: Uint8Array) => void;
+  load_fallback_font: (inst: any, data: Uint8Array) => void;
   load_image: (
     inst: any,
     name: string,
@@ -75,6 +76,7 @@ export interface RenderOptions {
   textToPaths?: boolean;
   resolveResource?: ResourceResolver;
   fonts?: { name: string; data: Uint8Array }[];
+  fallbackFonts?: Uint8Array[];
   images?: { name: string; url: string; width?: number; height?: number }[];
   css?: string;
   baseUrl?: string;
@@ -408,6 +410,10 @@ export abstract class SatoruBase {
             return !resolvedResources.has(key);
           });
           if (pending.length === 0) break;
+
+          if (mod.logLevel >= LogLevel.Info) {
+            console.log(`[Satoru] Pending resources:`, pending.map(p => `${p.name} (${p.url})`));
+          }
 
           await Promise.all(
             pending.map(async (r) => {

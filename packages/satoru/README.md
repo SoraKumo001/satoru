@@ -103,9 +103,9 @@ const png = await render({
 
 ## 🛠️ Advanced Usage
 
-### 1. Dynamic Resource Resolution
+### 1. Dynamic Resource Resolution & Caching
 
-Satoru can automatically fetch missing fonts, images, or external CSS via a `resolveResource` callback.
+Satoru can automatically fetch missing fonts, images, or external CSS via a `resolveResource` callback. You can also implement high-performance caching using the browser's `CacheStorage` API.
 
 ```typescript
 const pdf = await render({
@@ -114,17 +114,58 @@ const pdf = await render({
   format: "pdf",
   baseUrl: "https://example.com/assets/",
   resolveResource: async (resource, defaultResolver) => {
-    // Custom intercept logic
-    if (resource.url.startsWith("my-app://")) {
-      return myAssetBuffer;
+    // 1. Open Cache storage
+    const cache = await caches.open("satoru-resource-cache");
+    const cachedResponse = await cache.match(resource.url);
+
+    // 2. Return cached data if available
+    if (cachedResponse) {
+      const buf = await cachedResponse.arrayBuffer();
+      return new Uint8Array(buf);
     }
-    // Fallback to default fetch/filesystem resolver
+
+    // 3. Fetch using default resolver and save to cache
+    const data = await defaultResolver(resource);
+    if (data?.length) {
+      await cache.put(resource.url, new Response(data));
+    }
+
+    return data;
+  },
+});
+```
+
+### 2. Avoiding CORS Issues with Proxy
+
+If you encounter CORS errors when fetching images or fonts from other domains, you can use a proxy service within the `resolveResource` callback.
+
+```typescript
+const png = await render({
+  value: html,
+  width: 800,
+  format: "png",
+  resolveResource: async (resource, defaultResolver) => {
+    // Intercept external images to avoid CORS issues
+    if (resource.type === "image" && !resource.url.startsWith("data:")) {
+      const proxyUrl = `https://your-proxy-service.com/?url=${encodeURIComponent(resource.url)}`;
+      try {
+        const resp = await fetch(proxyUrl);
+        if (resp.ok) {
+          const buf = await resp.arrayBuffer();
+          return new Uint8Array(buf);
+        }
+      } catch (e) {
+        console.warn(`Failed to fetch via proxy: ${resource.url}`, e);
+      }
+    }
+    
+    // Fallback to default resolver for other resources
     return defaultResolver(resource);
   },
 });
 ```
 
-### 2. Multi-page PDF Generation
+### 3. Multi-page PDF Generation
 
 Generate complex documents by passing an array of HTML strings. Each element in the array becomes a new page.
 
@@ -254,6 +295,31 @@ const pngBytes = await render({
 });
 ```
 
+### 7. DOM Capture (html2canvas alternative)
+
+Satoru can capture live DOM elements directly in the browser, preserving computed styles, pseudo-elements (`::before`/`::after`), canvas contents, and form states.
+
+```typescript
+import { Satoru } from "satoru-render";
+import createSatoruModule from "satoru-render/satoru.js";
+
+const satoru = await Satoru.create(createSatoruModule);
+const element = document.getElementById("target-element");
+
+// 1. Capture to HTMLCanvasElement (Direct html2canvas replacement)
+const canvas = await satoru.capture(element, {
+  format: "png",
+});
+document.body.appendChild(canvas);
+
+// 2. Or render directly to binary (Uint8Array)
+const png = await satoru.render({
+  value: element, // Accepts HTMLElement directly
+  width: 800,
+  format: "png",
+});
+```
+
 ---
 
 ## 💻 CLI Tool
@@ -280,9 +346,9 @@ npx satoru-render input.html -f webp --verbose
 
 ### Render Options
 
-| Option            | Type                                | Description                                             |
-| :---------------- | :---------------------------------- | :------------------------------------------------------ |
-| `value`           | `string \| string[]`                | HTML string or array of strings (for multi-page PDF).   |
+| Option            | Type                                     | Description                                             |
+| :---------------- | :--------------------------------------- | :------------------------------------------------------ |
+| `value`           | `string \| string[] \| HTMLElement \| ...` | HTML string, array of strings, or DOM element(s).       |
 | `url`             | `string`                            | URL to fetch HTML from.                                 |
 | `width`           | `number`                            | **Required.** Output width in pixels.                   |
 | `height`          | `number`                            | Output height. Default: `0` (auto-calculate).           |

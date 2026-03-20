@@ -76,7 +76,7 @@ export type ResourceResolver = (
 ) => Promise<Uint8Array | ArrayBufferView | null>;
 
 export interface RenderOptions {
-  value?: string | string[];
+  value?: string | string[] | any | any[];
   url?: string;
   width: number;
   height?: number;

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Satoru Capture Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
+        .container { display: flex; gap: 40px; }
+        .box { flex: 1; }
+        
+        /* キャプチャ対象のスタイル */
+        #target-element {
+            padding: 20px;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            border: 4px solid #fff;
+            width: 300px;
+        }
+        #target-element h2 { margin-top: 0; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+        .badge {
+            display: inline-block;
+            background: #ff4081;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .sample-image {
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 2px solid rgba(255,255,255,0.5);
+        }
+
+        h3 { border-bottom: 2px solid #ccc; padding-bottom: 5px; }
+        canvas { border: 2px solid #333; background: white; max-width: 100%; }
+        #status { color: #666; font-style: italic; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Satoru .capture() Test</h1>
+    
+    <div class="container">
+        <!-- 元のDOM要素 -->
+        <div class="box">
+            <h3>1. Original DOM (Source)</h3>
+            <div id="target-element">
+                <span class="badge">LIVE DOM</span>
+                <h2>Hello Satoru!</h2>
+                <p>This element is styled with CSS gradients, border-radius, and box-shadow.</p>
+                <img src="https://picsum.photos/300/150" class="sample-image" alt="Sample">
+                <p style="font-size: 14px; opacity: 0.9;">
+                    Generated at: <span id="timestamp"></span>
+                </p>
+            </div>
+            <p>
+                <button id="capture-btn" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">
+                    Capture this element
+                </button>
+            </p>
+        </div>
+
+        <!-- キャプチャ結果の表示先 -->
+        <div class="box">
+            <h3>2. Captured Result (Canvas)</h3>
+            <div id="status">Click "Capture" to start...</div>
+            <div id="result-container"></div>
+        </div>
+    </div>
+
+    <!-- Satoruの読み込み (Playgroundのビルド済み成果物を利用する想定) -->
+    <script type="module">
+        // 注意: 実際の環境に合わせてインポートパスを調整する必要があります
+        // ここでは playground の環境で動くことを想定した ESM 形式の記述です
+        import { Satoru } from '../satoru/dist/index.js';
+        import createSatoruModule from '../satoru/dist/satoru.js';
+
+        document.getElementById('timestamp').textContent = new Date().toLocaleTimeString();
+
+        document.getElementById('capture-btn').onclick = async () => {
+            const status = document.getElementById('status');
+            const resultContainer = document.getElementById('result-container');
+            const target = document.getElementById('target-element');
+            
+            status.textContent = 'Initializing Satoru...';
+            resultContainer.innerHTML = '';
+
+            try {
+                // 1. Satoru インスタンスの作成
+                const satoru = await Satoru.create(createSatoruModule);
+                
+                status.textContent = 'Rendering element...';
+                const startTime = performance.now();
+
+                const rect = target.getBoundingClientRect();
+                const width = Math.ceil(rect.width);
+                const height = Math.ceil(rect.height);
+
+                // 2. render メソッドの実行 (HTMLElementを直接渡す)
+                const pngData = await satoru.render({
+                    value: target,
+                    width,
+                    height,
+                    format: 'png',
+                });
+
+                const endTime = performance.now();
+                status.textContent = `Rendered in ${(endTime - startTime).toFixed(2)}ms`;
+                
+                // 3. 結果の表示 (Uint8Array -> Blob -> Image Tag)
+                const blob = new Blob([pngData], { type: 'image/png' });
+                const url = URL.createObjectURL(blob);
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = 'Rendered result';
+                img.style.maxWidth = '100%';
+                img.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                resultContainer.appendChild(img);
+                
+                // Note: In a real app, you might want to revoke the URL later
+                // but for this test, we leave it so the image stays visible.
+                
+            } catch (err) {
+                console.error(err);
+                status.textContent = 'Error: ' + err.message;
+            }
+        };
+    </script>
+</body>
+</html>

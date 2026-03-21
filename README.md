@@ -94,24 +94,6 @@ graph TD
 - **Effects**: Box-shadow (Outer/Inset), Text-shadow, Gradients (Linear/Radial/Conic), and CSS Filters (Blur, Drop-shadow).
 - **Transforms**: Full support for `translate`, `rotate`, `scale`, `skew`, and `matrix` with correct stacking context.
 
----
-
-## 📋 Supported CSS Properties
-
-- [x] Optimize HTML parsing and resource collection loop to a single pass
-- [x] Offload image decoding to the JS side (e.g., using `createImageBitmap`)
-- [x] Improve text measurement algorithm using binary search instead of linear search
-- [x] Minimize memory reallocation during SVG generation (pre-allocate buffer)
-- [x] Implement zero-copy data transfer between JS and WASM
-
-
-- [x] Support `grid-gap` aliases (`grid-gap`, `grid-row-gap`, `grid-column-gap`)
-- [x] Support `overflow-x` and `overflow-y` separately
-- [x] Support `outline` properties (`outline`, `outline-offset`)
-- [x] Support legacy `clip: rect()` property
-- [x] Support `fill: currentColor` for SVG styling
-- [ ] Improve `gap` support for Grid layout
-
 <details>
 <summary>Click to expand supported properties list</summary>
 

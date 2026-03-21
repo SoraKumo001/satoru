@@ -99,22 +99,22 @@ export class Satoru extends SatoruBase {
       handlePseudo("::after");
 
       // Special handling for specific elements
-      if (src instanceof HTMLCanvasElement) {
+      if (typeof HTMLCanvasElement !== "undefined" && src instanceof HTMLCanvasElement) {
         const img = document.createElement("img");
         img.src = src.toDataURL();
         img.setAttribute("style", dest.getAttribute("style") || "");
         dest.replaceWith(img);
-      } else if (src instanceof HTMLImageElement) {
+      } else if (typeof HTMLImageElement !== "undefined" && src instanceof HTMLImageElement) {
         dest.setAttribute("src", absoluteUrl(src.src));
-      } else if (src instanceof HTMLInputElement) {
+      } else if (typeof HTMLInputElement !== "undefined" && src instanceof HTMLInputElement) {
         if (src.type === "checkbox" || src.type === "radio") {
           if (src.checked) dest.setAttribute("checked", "");
         } else {
           dest.setAttribute("value", src.value);
         }
-      } else if (src instanceof HTMLTextAreaElement) {
+      } else if (typeof HTMLTextAreaElement !== "undefined" && src instanceof HTMLTextAreaElement) {
         dest.innerText = src.value;
-      } else if (src instanceof HTMLSelectElement) {
+      } else if (typeof HTMLSelectElement !== "undefined" && src instanceof HTMLSelectElement) {
         // Find the selected option and mark it
         const index = src.selectedIndex;
         const clonedSelect = dest as HTMLSelectElement;
@@ -184,7 +184,7 @@ export class Satoru extends SatoruBase {
       let hasElement = false;
 
       for (const val of values) {
-        if (val instanceof HTMLElement) {
+        if (typeof HTMLElement !== "undefined" && val instanceof HTMLElement) {
           processedValues.push(this.serializeElement(val));
           hasElement = true;
         } else {

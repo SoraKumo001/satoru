@@ -95,16 +95,11 @@ export interface RenderOptions {
 }
 
 export const DEFAULT_FONT_MAP: Record<string, string> = {
-  "sans-serif":
-    "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2",
-  serif:
-    "https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-jp/files/noto-serif-jp-japanese-400-normal.woff2",
-  monospace:
-    "https://cdn.jsdelivr.net/npm/@fontsource/m-plus-1-code/files/m-plus-1-code-japanese-400-normal.woff2",
-  cursive:
-    "https://cdn.jsdelivr.net/npm/@fontsource/yuji-syuku/files/yuji-syuku-japanese-400-normal.woff2",
-  fantasy:
-    "https://cdn.jsdelivr.net/npm/@fontsource/reggae-one/files/reggae-one-japanese-400-normal.woff2",
+  "sans-serif": "https://fonts.googleapis.com/css2?family=Noto+Sans+JP",
+  serif: "https://fonts.googleapis.com/css2?family=Noto+Serif+JP",
+  monospace: "https://fonts.googleapis.com/css2?family=M+PLUS+1+Code",
+  cursive: "https://fonts.googleapis.com/css2?family=Yuji+Syuku",
+  fantasy: "https://fonts.googleapis.com/css2?family=Reggae+One",
   emoji:
     "https://cdn.jsdelivr.net/npm/@fontsource/noto-color-emoji/files/noto-color-emoji-emoji-400-normal.woff2",
   "Noto Color Emoji":
@@ -455,16 +450,35 @@ export abstract class SatoruBase {
                           (data as ArrayBufferView).byteOffset,
                           (data as ArrayBufferView).byteLength,
                         );
-                  if (r.type === "image" && typeof createImageBitmap !== "undefined" && typeof OffscreenCanvas !== "undefined") {
+                  if (
+                    r.type === "image" &&
+                    typeof createImageBitmap !== "undefined" &&
+                    typeof OffscreenCanvas !== "undefined"
+                  ) {
                     try {
                       const blob = new Blob([uint8.buffer as ArrayBuffer]);
                       const bitmap = await createImageBitmap(blob);
-                      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+                      const canvas = new OffscreenCanvas(
+                        bitmap.width,
+                        bitmap.height,
+                      );
                       const ctx = canvas.getContext("2d");
                       if (ctx) {
                         ctx.drawImage(bitmap, 0, 0);
-                        const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
-                        mod.load_image_pixels(instancePtr, r.url, bitmap.width, bitmap.height, new Uint8Array(imageData.data.buffer), r.url);
+                        const imageData = ctx.getImageData(
+                          0,
+                          0,
+                          bitmap.width,
+                          bitmap.height,
+                        );
+                        mod.load_image_pixels(
+                          instancePtr,
+                          r.url,
+                          bitmap.width,
+                          bitmap.height,
+                          new Uint8Array(imageData.data.buffer),
+                          r.url,
+                        );
                         return;
                       }
                     } catch (e) {

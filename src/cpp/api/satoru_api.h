@@ -38,7 +38,8 @@ class SatoruInstance {
     void scan_css(const std::string &css);
     void load_font(const std::string &name, const std::vector<uint8_t> &data);
     void load_image(const std::string &name, const std::string &data_url, int width, int height);
-    void load_image_pixels(const std::string &name, int width, int height, const std::vector<uint8_t> &pixels, const std::string &data_url);
+    void load_image_pixels(const std::string &name, int width, int height,
+                           const std::vector<uint8_t> &pixels, const std::string &data_url);
     std::string get_pending_resources_json();
 };
 

@@ -449,9 +449,23 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
     }
 
     if (!fi->fonts.empty()) {
-        int actual_weight = fi->fonts[0]->getTypeface()->fontStyle().weight();
+        auto typeface = fi->fonts[0]->getTypeface();
+        // Use getMatchedWeight to get the INTENDED weight (handles subset fonts with broken
+        // metadata)
+        int actual_weight =
+            m_context.fontManager.getMatchedWeight(sk_ref_sp(typeface), desc.family);
+
+        // If the matched weight is sufficient, disable fake_bold
         if (actual_weight >= desc.weight) {
             fi->fake_bold = false;
+        } else {
+            // Check if it's a variable font by looking for variation axes
+            int count = typeface->getVariationDesignPosition(
+                SkSpan<SkFontArguments::VariationPosition::Coordinate>());
+            if (count > 0) {
+                // If it's a variable font, we trust that createSkFont handled the weight axis
+                fi->fake_bold = false;
+            }
         }
     }
 

@@ -64,7 +64,6 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
     m_resolvedUrls[url] = type;
 
     if (!data || size == 0) {
-        SATORU_LOG_ERROR("ResourceManager: Received empty data for %s", url.c_str());
         return;
     }
 
@@ -80,7 +79,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
                 // Add aliases for requested names (e.g. serif -> Noto Serif JP)
                 auto it = m_urlToNames.find(url);
                 if (it != m_urlToNames.end()) {
-                    std::regex re(R"(font-family:\s*['"]?([^'";\}]+)['"]?)");
+                    std::regex re(R"(font-family:\s*['"]?([^'\";\}]+)['\"]?)");
 
                     for (const auto& name : it->second) {
                         // Check if the name is already in the CSS (simple check)
@@ -164,6 +163,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
         if (lowerUrl.find(".woff2") != std::string::npos ||
             lowerUrl.find(".woff") != std::string::npos ||
             lowerUrl.find(".ttf") != std::string::npos ||
+            lowerUrl.find(".otf") != std::string::npos ||
             lowerUrl.find(".otf") != std::string::npos ||
             lowerUrl.find(".ttc") != std::string::npos ||
             lowerUrl.find("font-woff") != std::string::npos ||

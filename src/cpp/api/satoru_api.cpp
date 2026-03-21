@@ -213,7 +213,18 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
 
         if (urls.empty()) {
             auto loaded = context.fontManager.matchFonts(req.family, req.weight, req.slant);
-            if (loaded.empty()) {
+            bool needRequest = loaded.empty();
+
+            if (!loaded.empty()) {
+                // If the loaded font has a significantly different weight, we might still want to
+                // request a specific weight from the font map.
+                int loadedWeight = loaded[0]->fontStyle().weight();
+                if (std::abs(loadedWeight - req.weight) > 100) {
+                    needRequest = true;
+                }
+            }
+
+            if (needRequest) {
                 const auto& fontMap = context.getFontMap();
                 auto it = fontMap.find(req.family);
                 if (it != fontMap.end()) {
@@ -265,7 +276,8 @@ void SatoruInstance::load_image(const std::string& name, const std::string& data
 }
 
 void SatoruInstance::load_image_pixels(const std::string& name, int width, int height,
-                                       const std::vector<uint8_t>& pixels, const std::string& data_url) {
+                                       const std::vector<uint8_t>& pixels,
+                                       const std::string& data_url) {
     context.loadImageFromPixels(name.c_str(), width, height, pixels.data(), data_url.c_str());
 }
 

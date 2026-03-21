@@ -57,6 +57,8 @@ export class Satoru extends SatoruBase {
 
       if (!finalUrl) return null;
 
+
+
       const headers: Record<string, string> = {};
       if (userAgent) {
         headers["User-Agent"] = userAgent;

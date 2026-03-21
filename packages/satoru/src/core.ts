@@ -137,6 +137,8 @@ export async function resolveGoogleFonts(
     targetFamily,
   )}:ital,wght@${useItalic ? "1" : "0"},${weight}&display=swap`;
 
+
+
   if (text) {
     // Google Fonts text parameter has a limit (around 1000 chars is usually safe for URL length)
     // If it's too long, we fall back to full character set to avoid URL too long errors
@@ -437,6 +439,7 @@ export abstract class SatoruBase {
                 }
                 const key = `${r.type}:${r.url}:${r.characters ?? ""}`;
                 resolvedResources.add(key);
+
                 const data = await resolver({ ...r });
                 if (
                   data &&

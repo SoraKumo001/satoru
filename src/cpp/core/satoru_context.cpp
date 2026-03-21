@@ -67,9 +67,10 @@ void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, siz
     }
 }
 
-void SatoruContext::loadImageFromPixels(const char *name, int width, int height, const uint8_t *pixels,
-                                        const char *original_url) {
-    SkImageInfo img_info = SkImageInfo::Make(width, height, kRGBA_8888_SkColorType, kUnpremul_SkAlphaType);
+void SatoruContext::loadImageFromPixels(const char *name, int width, int height,
+                                        const uint8_t *pixels, const char *original_url) {
+    SkImageInfo img_info =
+        SkImageInfo::Make(width, height, kRGBA_8888_SkColorType, kUnpremul_SkAlphaType);
     SkPixmap pixmap(img_info, pixels, width * 4);
     auto image = SkImages::RasterFromPixmapCopy(pixmap);
     if (image) {

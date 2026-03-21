@@ -62,13 +62,11 @@ sk_sp<SkFontMgr> get_global_font_mgr() {
 SatoruFontManager::SatoruFontManager() { m_fontMgr = get_global_font_mgr(); }
 
 void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size, const char *url) {
-    std::string cleaned = cleanName(name);
+    if (!name || !*name) return;
     if (!m_fontMgr) m_fontMgr = get_global_font_mgr();
 
     sk_sp<SkTypeface> typeface;
     uint64_t data_hash = 0;
-
-    bool from_cache = false;
 
     // Check global caches first
     {
@@ -77,7 +75,6 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
             auto it = g_url_to_typeface.find(url);
             if (it != g_url_to_typeface.end()) {
                 typeface = it->second;
-                from_cache = true;
             }
         }
         if (!typeface && data && size > 0) {
@@ -85,12 +82,11 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
             auto it = g_hash_to_typeface.find(data_hash);
             if (it != g_hash_to_typeface.end()) {
                 typeface = it->second;
-                from_cache = true;
             }
         }
     }
 
-    if (!typeface) {
+    if (!typeface && data && size > 0) {
         auto data_ptr = SkData::MakeWithCopy(data, size);
         typeface = m_fontMgr->makeFromData(std::move(data_ptr));
 
@@ -99,28 +95,49 @@ void SatoruFontManager::loadFont(const char *name, const uint8_t *data, int size
             if (url && *url) {
                 g_url_to_typeface[url] = typeface;
             }
-            if (data && size > 0) {
-                if (data_hash == 0) data_hash = compute_data_hash(data, size);
-                g_hash_to_typeface[data_hash] = typeface;
-            }
+            if (data_hash == 0) data_hash = compute_data_hash(data, size);
+            g_hash_to_typeface[data_hash] = typeface;
         }
     }
 
     if (typeface) {
-        bool duplicate = false;
-        for (const auto &existing : m_typefaceCache[cleaned]) {
-            if (existing.get() == typeface.get()) {
-                duplicate = true;
-                break;
+        std::stringstream ss(name);
+        std::string item;
+        while (std::getline(ss, item, ',')) {
+            std::string cleaned = cleanName(trim(item).c_str());
+            if (cleaned.empty()) continue;
+
+            // Determine intended style from m_fontFaces if url matches
+            SkFontStyle intended_style = typeface->fontStyle();
+            if (url && *url) {
+                for (const auto &entry : m_fontFaces) {
+                    if (entry.first.family == cleaned) {
+                        for (const auto &src : entry.second) {
+                            if (src.url == url) {
+                                intended_style =
+                                    SkFontStyle(entry.first.weight, SkFontStyle::kNormal_Width,
+                                                entry.first.slant);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            bool duplicate = false;
+            for (const auto &existing : m_typefaceCache[cleaned]) {
+                if (existing.typeface->uniqueID() == typeface->uniqueID() &&
+                    existing.intended_style == intended_style) {
+                    duplicate = true;
+                    break;
+                }
+            }
+
+            if (!duplicate) {
+                m_typefaceCache[cleaned].push_back({typeface, intended_style});
+                if (!m_defaultTypeface) m_defaultTypeface = typeface;
             }
         }
-
-        if (!duplicate) {
-            m_typefaceCache[cleaned].push_back(typeface);
-            if (!m_defaultTypeface) m_defaultTypeface = typeface;
-        }
-    } else {
-        SATORU_LOG_ERROR("loadFont: FAILED to load font data (%d bytes)", size);
     }
 }
 
@@ -175,6 +192,7 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
             if (auto m = ctre::search<R"((?i)url\s*\(\s*['"]?([^'\"\)]+)['"]?\s*\))">(body_str)) {
                 font_face_source src;
                 src.url = trim(m.get<1>().to_string());
+
                 if (auto m2 = ctre::search<R"((?i)unicode-range:\s*([^;\}]+);?)">(body_str)) {
                     src.unicode_range = trim(m2.get<1>().to_string());
                     parseUnicodeRange(src.unicode_range, src.ranges);
@@ -205,34 +223,46 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
 std::vector<std::string> SatoruFontManager::getFontUrls(
     const std::string &family, int weight, SkFontStyle::Slant slant,
     const std::set<char32_t> *usedCodepoints) const {
-    font_request req;
-    req.family = cleanName(family.c_str());
-    req.weight = weight;
-    req.slant = slant;
-
     std::vector<std::string> urls;
-    auto it = m_fontFaces.find(req);
-    if (it != m_fontFaces.end()) {
-        for (const auto &src : it->second) {
-            bool needed = true;
-            if (usedCodepoints && !src.unicode_range.empty()) {
-                needed = false;
-                for (char32_t cp : *usedCodepoints) {
-                    if (checkUnicodeRange(cp, src.ranges)) {
-                        needed = true;
-                        break;
+    std::stringstream ss(family);
+    std::string item;
+
+    while (std::getline(ss, item, ',')) {
+        std::string cleanedFamily = cleanName(trim(item).c_str());
+        if (cleanedFamily.empty()) continue;
+
+        font_request req;
+        req.family = cleanedFamily;
+        req.weight = weight;
+        req.slant = slant;
+
+        auto it = m_fontFaces.find(req);
+        if (it != m_fontFaces.end()) {
+            for (const auto &src : it->second) {
+                if (std::find(urls.begin(), urls.end(), src.url) != urls.end()) continue;
+
+                bool needed = true;
+                if (usedCodepoints && !src.unicode_range.empty()) {
+                    needed = false;
+                    for (char32_t cp : *usedCodepoints) {
+                        if (checkUnicodeRange(cp, src.ranges)) {
+                            needed = true;
+                            break;
+                        }
                     }
                 }
-            }
-            if (needed) {
-                urls.push_back(src.url);
+                if (needed) {
+                    urls.push_back(src.url);
+                }
             }
         }
-    }
 
-    if (urls.empty()) {
+        // If no exact weight match, look for same family and slant but different weight
+        // (This helps finding the best available weight if requested weight is missing)
         for (const auto &entry : m_fontFaces) {
-            if (entry.first.family == req.family && entry.first.slant == req.slant) {
+            if (entry.first.family == cleanedFamily && entry.first.slant == slant) {
+                if (entry.first.weight == weight) continue;  // Already checked
+
                 for (const auto &src : entry.second) {
                     if (std::find(urls.begin(), urls.end(), src.url) == urls.end()) {
                         bool needed = true;
@@ -254,9 +284,6 @@ std::vector<std::string> SatoruFontManager::getFontUrls(
         }
     }
 
-    // Removed automatic fallback to first font face for generic families.
-    // This was causing issues when we want to request a real fallback from the font map.
-
     return urls;
 }
 
@@ -271,46 +298,53 @@ std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string &
     std::string cleanFamily = cleanName(family.c_str());
     auto it = m_typefaceCache.find(cleanFamily);
     if (it != m_typefaceCache.end()) {
-        const auto &typefaces = it->second;
-        if (typefaces.empty()) return {};
+        const auto &cached = it->second;
+        if (cached.empty()) return {};
 
-        // Find the best match for weight and slant
-        sk_sp<SkTypeface> bestMatch = nullptr;
+        // Find the best match for weight and slant using intended_style
+        cached_typeface bestMatch = {nullptr, SkFontStyle()};
         int minDiff = 10000;
 
-        for (const auto &tf : typefaces) {
-            SkFontStyle style = tf->fontStyle();
+        for (const auto &c : cached) {
+            SkFontStyle style = c.intended_style;
             int diff = std::abs(style.weight() - weight);
             if (style.slant() != slant) diff += 1000;
 
             if (diff < minDiff) {
                 minDiff = diff;
-                bestMatch = tf;
+                bestMatch = c;
             }
         }
 
-        if (bestMatch) {
+        if (bestMatch.typeface) {
             // Also include other typefaces that might have different glyph sets (subsets)
             // but have the same weight/slant. This is important for Google Fonts subsets.
             std::vector<sk_sp<SkTypeface>> matches;
-            SkFontStyle bestStyle = bestMatch->fontStyle();
+            SkFontStyle bestStyle = bestMatch.intended_style;
 
-            for (const auto &tf : typefaces) {
-                if (tf->fontStyle() == bestStyle) {
-                    matches.push_back(tf);
+            for (const auto &c : cached) {
+                if (c.intended_style == bestStyle) {
+                    matches.push_back(c.typeface);
                 }
             }
             return matches;
         }
     }
 
-    if (cleanFamily == "serif" || cleanFamily == "sans-serif" || cleanFamily == "monospace") {
-        // Only return default if it's explicitly allowed or if we have no other choice during
-        // rendering. During resource collection, we want to know if we actually have the specific
-        // generic family.
-    }
-
     return {};
+}
+
+int SatoruFontManager::getMatchedWeight(sk_sp<SkTypeface> typeface, const std::string &family) {
+    std::string cleanFamily = cleanName(family.c_str());
+    auto it = m_typefaceCache.find(cleanFamily);
+    if (it != m_typefaceCache.end()) {
+        for (const auto &c : it->second) {
+            if (c.typeface->uniqueID() == typeface->uniqueID()) {
+                return c.intended_style.weight();
+            }
+        }
+    }
+    return typeface->fontStyle().weight();
 }
 
 SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, int weight) {

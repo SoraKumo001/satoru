@@ -68,6 +68,7 @@ describe("PNG (Skia) Visual Tests", () => {
         format: "png",
         baseUrl: ASSETS_DIR,
         css: "body { margin: 8px; }",
+
       })) as Uint8Array;
 
       fs.writeFileSync(

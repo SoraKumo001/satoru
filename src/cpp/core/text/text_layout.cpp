@@ -197,11 +197,10 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
             fLookupsPrepared = true;
         }
 
-        auto it = std::lower_bound(fGlyphs.begin(), fGlyphs.end(), offset,
-            [](const GlyphInfo& g, size_t off) {
-                return g.utf8_offset < off;
-            });
-        
+        auto it =
+            std::lower_bound(fGlyphs.begin(), fGlyphs.end(), offset,
+                             [](const GlyphInfo& g, size_t off) { return g.utf8_offset < off; });
+
         if (it == fGlyphs.begin()) return 0;
         size_t idx = std::distance(fGlyphs.begin(), it) - 1;
         return fCumulativeWidths[idx];
@@ -219,7 +218,8 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
     mutable std::vector<GlyphInfo> fGlyphs;
     mutable std::vector<double> fCumulativeWidths;
     mutable bool fLookupsPrepared = false;
-};;
+};
+;
 }  // namespace
 
 MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font_info* fi,

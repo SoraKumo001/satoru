@@ -330,17 +330,31 @@ export abstract class SatoruBase {
   async render(options: RenderOptions & { format?: "svg" }): Promise<string>;
   async render(options: RenderOptions): Promise<string | Uint8Array>;
   async render(options: RenderOptions): Promise<string | Uint8Array> {
+    let { format = "svg", value, url, baseUrl } = options;
+
+    if (format === "pdf" && Array.isArray(value) && value.length > 1) {
+      const pagePdfs: Uint8Array[] = [];
+      const SatoruClass = this.constructor as any;
+      
+      for (const html of value) {
+        const engine = await SatoruClass.create();
+        const pagePdf = await engine.render({
+          ...options,
+          value: html,
+          format: "pdf",
+        });
+        pagePdfs.push(pagePdf);
+      }
+      return this.mergeSimplePDFs(pagePdfs);
+    }
+
     const mod = await this.getModule();
-    let {
-      value,
-      url,
+    const {
       width,
       height = 0,
-      format = "svg",
       fonts,
       images,
       css,
-      baseUrl,
       logLevel,
       onLog,
     } = options;
@@ -552,5 +566,126 @@ export abstract class SatoruBase {
       mod.onLog = prevOnLog;
       this.currentFontMap = prevFontMap;
     }
+  }
+
+  /**
+   * Combines multiple simple PDF files into one.
+   * This is a minimal implementation specialized for Skia-generated PDFs.
+   */
+  private mergeSimplePDFs(pdfs: Uint8Array[]): Uint8Array {
+    if (pdfs.length === 0) return new Uint8Array();
+    if (pdfs.length === 1) return pdfs[0];
+
+    const decoder = new TextDecoder();
+    const encoder = new TextEncoder();
+
+    let maxObjNum = 0;
+    const allObjects: { id: number; content: Uint8Array }[] = [];
+    const pageIds: number[] = [];
+
+    for (const pdf of pdfs) {
+      const offset = maxObjNum;
+      const content = decoder.decode(pdf);
+
+      // Find all objects
+      const objRegex = /(\d+)\s+0\s+obj([\s\S]*?)endobj/g;
+      let match;
+      let currentPdfMax = 0;
+
+      while ((match = objRegex.exec(content)) !== null) {
+        const oldId = parseInt(match[1], 10);
+        const objBody = match[2];
+        const newId = oldId + offset;
+        if (oldId > currentPdfMax) currentPdfMax = oldId;
+
+        // Shift references within the object body: "N 0 R" -> "(N+offset) 0 R"
+        const shiftedBody = objBody.replace(/(\d+)\s+0\s+R/g, (_, id) => {
+          return `${parseInt(id, 10) + offset} 0 R`;
+        });
+
+        // Detect if this is a Page object
+        if (
+          shiftedBody.includes("/Type /Page") &&
+          !shiftedBody.includes("/Type /Pages")
+        ) {
+          pageIds.push(newId);
+        }
+
+        // We skip Catalog and original Pages root, we'll create new ones
+        if (
+          !shiftedBody.includes("/Type /Catalog") &&
+          !shiftedBody.includes("/Type /Pages")
+        ) {
+          allObjects.push({
+            id: newId,
+            content: encoder.encode(`${newId} 0 obj${shiftedBody}endobj\n`),
+          });
+        }
+      }
+      maxObjNum += currentPdfMax;
+    }
+
+    // Create new Catalog and Pages root
+    const catalogId = ++maxObjNum;
+    const pagesRootId = ++maxObjNum;
+
+    const newPagesRoot = encoder.encode(
+      `${pagesRootId} 0 obj\n<< /Type /Pages /Kids [${pageIds
+        .map((id) => `${id} 0 R`)
+        .join(" ")}] /Count ${pageIds.length} >>\nendobj\n`,
+    );
+    const newCatalog = encoder.encode(
+      `${catalogId} 0 obj\n<< /Type /Catalog /Pages ${pagesRootId} 0 R >>\nendobj\n`,
+    );
+
+    allObjects.push({ id: pagesRootId, content: newPagesRoot });
+    allObjects.push({ id: catalogId, content: newCatalog });
+
+    // Build the final PDF
+    const resultParts: Uint8Array[] = [encoder.encode("%PDF-1.4\n")];
+    const xref: { id: number; offset: number }[] = [];
+    let currentOffset = resultParts[0].length;
+
+    // Sort objects by ID for a clean xref table
+    allObjects.sort((a, b) => a.id - b.id);
+
+    for (const obj of allObjects) {
+      xref.push({ id: obj.id, offset: currentOffset });
+      resultParts.push(obj.content);
+      currentOffset += obj.content.length;
+    }
+
+    const startXref = currentOffset;
+    resultParts.push(encoder.encode("xref\n"));
+    resultParts.push(encoder.encode(`0 ${maxObjNum + 1}\n`));
+    resultParts.push(encoder.encode("0000000000 65535 f \n"));
+
+    const xrefMap = new Map(xref.map((x) => [x.id, x.offset]));
+    for (let i = 1; i <= maxObjNum; i++) {
+      const offset = xrefMap.get(i);
+      if (offset !== undefined) {
+        resultParts.push(
+          encoder.encode(`${offset.toString().padStart(10, "0")} 00000 n \n`),
+        );
+      } else {
+        resultParts.push(encoder.encode("0000000000 00001 f \n"));
+      }
+    }
+
+    resultParts.push(
+      encoder.encode(`trailer\n<< /Size ${maxObjNum + 1} /Root ${catalogId} 0 R >>\n`),
+    );
+    resultParts.push(encoder.encode(`startxref\n${startXref}\n%%EOF`));
+
+    // Combine all parts
+    const totalLength = resultParts.reduce((acc, part) => acc + part.length, 0);
+    const merged = new Uint8Array(totalLength);
+    let pos = 0;
+    for (const part of resultParts) {
+      merged.set(part, pos);
+      pos += part.length;
+    }
+
+    return merged;
   }
 }

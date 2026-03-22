@@ -66,6 +66,8 @@ const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::str
 const uint8_t *api_render(SatoruInstance *inst, const std::vector<std::string> &htmls, int width,
                           int height, RenderFormat format, const RenderOptions &options,
                           int &out_size);
+const uint8_t *api_merge_pdfs(SatoruInstance *inst, const std::vector<sk_sp<SkData>> &pdfs,
+                              int &out_size);
 int api_get_last_png_size(SatoruInstance *inst);
 int api_get_last_webp_size(SatoruInstance *inst);
 int api_get_last_pdf_size(SatoruInstance *inst);

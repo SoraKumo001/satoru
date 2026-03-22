@@ -14,6 +14,7 @@
 #include "renderers/png_renderer.h"
 #include "renderers/svg_renderer.h"
 #include "renderers/webp_renderer.h"
+#include "utils/pdf_merger.h"
 
 // --- Logging ---
 static LogLevel g_log_level = LogLevel::None;
@@ -475,4 +476,32 @@ const uint8_t* api_render_from_state(SatoruInstance* inst, int width, int height
     }
     out_size = 0;
     return nullptr;
+}
+
+const uint8_t* api_merge_pdfs(SatoruInstance* inst, const std::vector<sk_sp<SkData>>& pdfs,
+                              int& out_size) {
+    if (pdfs.empty()) {
+        out_size = 0;
+        return nullptr;
+    }
+
+    std::vector<const uint8_t*> data_ptrs;
+    std::vector<size_t> sizes;
+    for (auto& pdf : pdfs) {
+        if (pdf) {
+            data_ptrs.push_back(reinterpret_cast<const uint8_t*>(pdf->data()));
+            sizes.push_back(pdf->size());
+        }
+    }
+
+    auto merged = satoru::merge_pdf_binaries(data_ptrs, sizes);
+    if (merged.empty()) {
+        out_size = 0;
+        return nullptr;
+    }
+
+    auto merged_data = SkData::MakeWithCopy(merged.data(), merged.size());
+    inst->context.set_last_pdf(merged_data);
+    out_size = (int)merged_data->size();
+    return reinterpret_cast<const uint8_t*>(merged_data->data());
 }

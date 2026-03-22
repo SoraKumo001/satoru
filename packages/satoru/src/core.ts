@@ -58,6 +58,7 @@ export interface SatoruModule {
     format: number,
     svgTextToPaths: boolean,
   ) => Uint8Array | null;
+  merge_pdfs: (inst: any, pdfs: Uint8Array[]) => Uint8Array | null;
   onLog?: (level: LogLevel, message: string) => void;
   logLevel: LogLevel;
 }
@@ -137,11 +138,7 @@ export async function resolveGoogleFonts(
     targetFamily,
   )}:ital,wght@${useItalic ? "1" : "0"},${weight}&display=swap`;
 
-
-
   if (text) {
-    // Google Fonts text parameter has a limit (around 1000 chars is usually safe for URL length)
-    // If it's too long, we fall back to full character set to avoid URL too long errors
     if (text.length < 800) {
       googleFontUrl += `&text=${encodeURIComponent(text)}`;
     }
@@ -214,16 +211,12 @@ export abstract class SatoruBase {
 
         mod.logLevel = LogLevel.None;
 
-        // Sync mod state to our local variables
         const originalSetLogLevel = mod.set_log_level;
         mod.set_log_level = (level: number) => {
           currentLogLevel = level;
           originalSetLogLevel(level);
         };
 
-        // We need to intercept mod.onLog and mod.logLevel updates
-        // In render(), these are set directly.
-        // So we use getters/setters on mod itself.
         let internalOnLog = mod.onLog;
         Object.defineProperty(mod, "onLog", {
           get: () => internalOnLog,
@@ -335,7 +328,7 @@ export abstract class SatoruBase {
     if (format === "pdf" && Array.isArray(value) && value.length > 1) {
       const pagePdfs: Uint8Array[] = [];
       const SatoruClass = this.constructor as any;
-      
+
       for (const html of value) {
         const engine = await SatoruClass.create();
         const pagePdf = await engine.render({
@@ -345,7 +338,16 @@ export abstract class SatoruBase {
         });
         pagePdfs.push(pagePdf);
       }
-      return this.mergeSimplePDFs(pagePdfs);
+      
+      const mod = await this.getModule();
+      const instancePtr = mod.create_instance();
+      try {
+        const result = mod.merge_pdfs(instancePtr, pagePdfs);
+        if (!result) return new Uint8Array();
+        return new Uint8Array(result.slice());
+      } finally {
+        mod.destroy_instance(instancePtr);
+      }
     }
 
     const mod = await this.getModule();
@@ -499,7 +501,6 @@ export abstract class SatoruBase {
                         return;
                       }
                     } catch (e) {
-                      // fallback to passing raw binary if decoding fails
                     }
                   }
 
@@ -566,126 +567,5 @@ export abstract class SatoruBase {
       mod.onLog = prevOnLog;
       this.currentFontMap = prevFontMap;
     }
-  }
-
-  /**
-   * Combines multiple simple PDF files into one.
-   * This is a minimal implementation specialized for Skia-generated PDFs.
-   */
-  private mergeSimplePDFs(pdfs: Uint8Array[]): Uint8Array {
-    if (pdfs.length === 0) return new Uint8Array();
-    if (pdfs.length === 1) return pdfs[0];
-
-    const decoder = new TextDecoder();
-    const encoder = new TextEncoder();
-
-    let maxObjNum = 0;
-    const allObjects: { id: number; content: Uint8Array }[] = [];
-    const pageIds: number[] = [];
-
-    for (const pdf of pdfs) {
-      const offset = maxObjNum;
-      const content = decoder.decode(pdf);
-
-      // Find all objects
-      const objRegex = /(\d+)\s+0\s+obj([\s\S]*?)endobj/g;
-      let match;
-      let currentPdfMax = 0;
-
-      while ((match = objRegex.exec(content)) !== null) {
-        const oldId = parseInt(match[1], 10);
-        const objBody = match[2];
-        const newId = oldId + offset;
-        if (oldId > currentPdfMax) currentPdfMax = oldId;
-
-        // Shift references within the object body: "N 0 R" -> "(N+offset) 0 R"
-        const shiftedBody = objBody.replace(/(\d+)\s+0\s+R/g, (_, id) => {
-          return `${parseInt(id, 10) + offset} 0 R`;
-        });
-
-        // Detect if this is a Page object
-        if (
-          shiftedBody.includes("/Type /Page") &&
-          !shiftedBody.includes("/Type /Pages")
-        ) {
-          pageIds.push(newId);
-        }
-
-        // We skip Catalog and original Pages root, we'll create new ones
-        if (
-          !shiftedBody.includes("/Type /Catalog") &&
-          !shiftedBody.includes("/Type /Pages")
-        ) {
-          allObjects.push({
-            id: newId,
-            content: encoder.encode(`${newId} 0 obj${shiftedBody}endobj\n`),
-          });
-        }
-      }
-      maxObjNum += currentPdfMax;
-    }
-
-    // Create new Catalog and Pages root
-    const catalogId = ++maxObjNum;
-    const pagesRootId = ++maxObjNum;
-
-    const newPagesRoot = encoder.encode(
-      `${pagesRootId} 0 obj\n<< /Type /Pages /Kids [${pageIds
-        .map((id) => `${id} 0 R`)
-        .join(" ")}] /Count ${pageIds.length} >>\nendobj\n`,
-    );
-    const newCatalog = encoder.encode(
-      `${catalogId} 0 obj\n<< /Type /Catalog /Pages ${pagesRootId} 0 R >>\nendobj\n`,
-    );
-
-    allObjects.push({ id: pagesRootId, content: newPagesRoot });
-    allObjects.push({ id: catalogId, content: newCatalog });
-
-    // Build the final PDF
-    const resultParts: Uint8Array[] = [encoder.encode("%PDF-1.4\n")];
-    const xref: { id: number; offset: number }[] = [];
-    let currentOffset = resultParts[0].length;
-
-    // Sort objects by ID for a clean xref table
-    allObjects.sort((a, b) => a.id - b.id);
-
-    for (const obj of allObjects) {
-      xref.push({ id: obj.id, offset: currentOffset });
-      resultParts.push(obj.content);
-      currentOffset += obj.content.length;
-    }
-
-    const startXref = currentOffset;
-    resultParts.push(encoder.encode("xref\n"));
-    resultParts.push(encoder.encode(`0 ${maxObjNum + 1}\n`));
-    resultParts.push(encoder.encode("0000000000 65535 f \n"));
-
-    const xrefMap = new Map(xref.map((x) => [x.id, x.offset]));
-    for (let i = 1; i <= maxObjNum; i++) {
-      const offset = xrefMap.get(i);
-      if (offset !== undefined) {
-        resultParts.push(
-          encoder.encode(`${offset.toString().padStart(10, "0")} 00000 n \n`),
-        );
-      } else {
-        resultParts.push(encoder.encode("0000000000 00001 f \n"));
-      }
-    }
-
-    resultParts.push(
-      encoder.encode(`trailer\n<< /Size ${maxObjNum + 1} /Root ${catalogId} 0 R >>\n`),
-    );
-    resultParts.push(encoder.encode(`startxref\n${startXref}\n%%EOF`));
-
-    // Combine all parts
-    const totalLength = resultParts.reduce((acc, part) => acc + part.length, 0);
-    const merged = new Uint8Array(totalLength);
-    let pos = 0;
-    for (const part of resultParts) {
-      merged.set(part, pos);
-      pos += part.length;
-    }
-
-    return merged;
   }
 }

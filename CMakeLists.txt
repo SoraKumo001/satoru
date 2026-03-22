@@ -85,6 +85,7 @@ find_package(ctre CONFIG REQUIRED)
 find_package(utf8proc CONFIG REQUIRED)
 find_package(libunibreak CONFIG REQUIRED)
 find_package(harfbuzz REQUIRED)
+find_package(qpdf CONFIG REQUIRED)
 
 # Workaround for vcpkg harfbuzz path bug
 if(TARGET harfbuzz)
@@ -113,6 +114,7 @@ set(SATORU_LIBS
     utf8proc::utf8proc
     libunibreak::libunibreak
     harfbuzz::harfbuzz
+    qpdf::libqpdf
 )
 
     set(COMMON_COMPILE_OPTIONS
@@ -289,6 +291,7 @@ target_sources(satoru_core PRIVATE
     src/cpp/renderers/png_renderer.cpp
     src/cpp/renderers/webp_renderer.cpp
     src/cpp/renderers/pdf_renderer.cpp
+    src/cpp/utils/pdf_merger.cpp
     src/cpp/utils/skia_utils.cpp
     src/cpp/utils/skia_stubs.cpp
     src/cpp/utils/skunicode_satoru.cpp

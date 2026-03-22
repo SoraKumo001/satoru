@@ -22,6 +22,7 @@
     "ctre",
     "utf8proc",
     "libunibreak",
+    "qpdf",
     {
       "name": "harfbuzz",
       "features": [

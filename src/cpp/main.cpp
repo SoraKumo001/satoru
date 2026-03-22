@@ -117,6 +117,27 @@ val render_from_state_val(SatoruInstance* inst, int width, int height, int forma
     return val(typed_memory_view(size, data));
 }
 
+val merge_pdfs_val(SatoruInstance* inst, val pdfs) {
+    if (!inst || !pdfs.isArray()) return val::null();
+
+    unsigned len = pdfs["length"].as<unsigned>();
+    std::vector<sk_sp<SkData>> pdf_vector;
+    for (unsigned i = 0; i < len; ++i) {
+        val pdf_val = pdfs[i];
+        unsigned pdf_len = pdf_val["length"].as<unsigned>();
+        std::vector<uint8_t> vec(pdf_len);
+        val memoryView = val(typed_memory_view(pdf_len, vec.data()));
+        memoryView.call<void>("set", pdf_val);
+        pdf_vector.push_back(SkData::MakeWithCopy(vec.data(), vec.size()));
+    }
+
+    int out_size = 0;
+    const uint8_t* data = api_merge_pdfs(inst, pdf_vector, out_size);
+    if (!data || out_size == 0) return val::null();
+
+    return val(typed_memory_view(out_size, data));
+}
+
 void set_font_map_val(SatoruInstance* inst, val fontMap) {
     if (!inst) return;
     std::map<std::string, std::string> map;
@@ -148,4 +169,5 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("init_document", &init_document_val, allow_raw_pointers());
     function("layout_document", &layout_document_val, allow_raw_pointers());
     function("render_from_state", &render_from_state_val, allow_raw_pointers());
+    function("merge_pdfs", &merge_pdfs_val, allow_raw_pointers());
 }

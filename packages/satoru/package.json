@@ -42,7 +42,7 @@
       "types": "./dist/workers.d.ts",
       "workerd": "./dist/workers-dummy.js",
       "node": "./dist/workers.js",
-      "browser": "./dist/workers.js",
+      "browser": "./dist/workers-parent.js",
       "default": "./dist/workers-dummy.js"
     },
     "./single": {

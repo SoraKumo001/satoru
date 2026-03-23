@@ -18,7 +18,7 @@ export default defineConfig([
   {
     input: "src/workers.ts",
     output: {
-      file: "dist/workers.js",
+      file: "dist/workers-parent.js",
       format: "esm",
       codeSplitting: false,
     },

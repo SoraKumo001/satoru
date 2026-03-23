@@ -2,6 +2,7 @@ import { createWorker, Worker } from "worker-lib";
 import type { SatoruWorker } from "./child-workers.js";
 export type { SatoruWorker } from "./child-workers.js";
 import { type RenderOptions } from "./index.js";
+export { type RenderOptions } from "./index.js";
 export { Satoru } from "./index.js";
 export * from "./index.js";
 export * from "./log-level.js";
@@ -58,3 +59,8 @@ export const createSatoruWorker = (params?: {
 
   return proxy;
 };
+
+const { close, render, launchWorker, setLimit, waitAll, waitReady } =
+  createSatoruWorker({ maxParallel: 1 });
+
+export { close, render, launchWorker, setLimit, waitAll, waitReady };

@@ -40,7 +40,10 @@
     },
     "./workers": {
       "types": "./dist/workers.d.ts",
-      "import": "./dist/workers.js"
+      "workerd": "./dist/workers-dummy.js",
+      "node": "./dist/workers.js",
+      "browser": "./dist/workers.js",
+      "default": "./dist/workers-dummy.js"
     },
     "./single": {
       "types": "./dist/single.d.ts",

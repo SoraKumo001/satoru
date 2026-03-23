@@ -11,33 +11,56 @@ jobs:
     if: github.event.ref_type == 'branch'
     runs-on: ubuntu-latest
     steps:
+      - name: Check if gh-pages exists
+        id: check_branch
+        run: |
+          if git ls-remote --exit-code --heads origin gh-pages; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout gh-pages
+        if: steps.check_branch.outputs.exists == 'true'
         uses: actions/checkout@v4
         with:
           ref: gh-pages
 
       - name: Delete branch folder
+        if: steps.check_branch.outputs.exists == 'true'
         run: |
-          if [ -d "${{ github.event.ref }}" ]; then
-            rm -rf "${{ github.event.ref }}"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          
+          for i in {1..10}; do
+            if [ -d "${{ github.event.ref }}" ]; then
+              rm -rf "${{ github.event.ref }}"
+            fi
             
             # Regenerate index.html
             echo "<!DOCTYPE html><html><head><title>Satoru Render - Branch Previews</title>" > index.html
             echo "<style>body{font-family:sans-serif;padding:40px;line-height:1.6;}ul{list-style:none;padding:0;}li{margin:10px 0;}a{text-decoration:none;color:#0366d6;}a:hover{text-decoration:underline;}</style>" >> index.html
             echo "</head><body><h1>Satoru Render Previews</h1><ul>" >> index.html
             for d in */ ; do
-              if [ "$d" != "node_modules/" ] && [ "$d" != "assets/" ]; then
+              if [ "$d" != "node_modules/" ] && [ "$d" != "assets/" ] && [ -d "$d" ]; then
                 BN=$(basename "$d")
                 echo "<li><a href=\"./$BN/\">$BN</a></li>" >> index.html
               fi
             done
             echo "</ul></body></html>" >> index.html
             
-            git config user.name github-actions
-            git config user.email github-actions@github.com
             git add .
-            git commit -m "Delete branch pages for ${{ github.event.ref }} and update index"
-            git push origin gh-pages
-          else
-            echo "Folder ${{ github.event.ref }} not found, skipping deletion."
-          fi
+            if git commit -m "Delete branch pages for ${{ github.event.ref }} and update index"; then
+              if git push origin gh-pages; then
+                exit 0
+              fi
+            else
+              exit 0 # Nothing to delete/update
+            fi
+            
+            # If push failed, pull and retry
+            git fetch origin gh-pages
+            git reset --hard origin/gh-pages
+            sleep $(( i * 2 ))
+          done
+          exit 1

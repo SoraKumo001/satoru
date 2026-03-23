@@ -103,13 +103,14 @@ std::string codepoints_to_utf8(const std::set<char32_t>& cps) {
 
 // --- SatoruInstance Implementation ---
 
-SatoruInstance::SatoruInstance() : resourceManager(context) { context.init(); }
+SatoruInstance::SatoruInstance() : resourceManager(context) {
+    context.init();
+    cached_full_master_css = std::string(litehtml::master_css) + "\n" + satoru_master_css;
+}
 
 SatoruInstance::~SatoruInstance() {}
 
-std::string SatoruInstance::get_full_master_css() const {
-    return std::string(litehtml::master_css) + "\n" + satoru_master_css;
-}
+std::string SatoruInstance::get_full_master_css() const { return cached_full_master_css; }
 
 void SatoruInstance::init_document(const char* html, int width, int height) {
     int initial_height = (height > 0) ? height : 3000;
@@ -126,8 +127,9 @@ void SatoruInstance::init_document(const char* html, int width, int height) {
 }
 
 void SatoruInstance::layout_document(int width) {
-    if (doc) {
+    if (doc && width != last_width) {
         doc->render(width);
+        last_width = width;
         if (render_container) {
             render_container->set_height(doc->height());
         }
@@ -163,6 +165,7 @@ static void scan_image_sizes(litehtml::element::ptr el, SatoruContext& context) 
 void SatoruInstance::collect_resources(const std::string& html, int width, int height) {
     if (!doc || html != last_parsed_html) {
         last_parsed_html = html;
+        last_width = -1;  // Force re-layout
         int initial_height = (height > 0) ? height : 3000;
         render_container = std::make_unique<container_skia>(width, initial_height, nullptr, context,
                                                             &resourceManager, false);
@@ -178,7 +181,14 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
     }
 
     if (doc) {
-        doc->render(width);
+        if (width != last_width || height != last_height) {
+            doc->render(width);
+            last_width = width;
+            last_height = height;
+            if (render_container) {
+                render_container->set_height(doc->height());
+            }
+        }
         scan_image_sizes(doc->root(), context);
     }
 

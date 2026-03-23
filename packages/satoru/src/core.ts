@@ -344,13 +344,13 @@ export abstract class SatoruBase {
       try {
         const result = mod.merge_pdfs(instancePtr, pagePdfs);
         if (!result) return new Uint8Array();
-        return new Uint8Array(result.slice());
+        return new Uint8Array(result);
       } finally {
         mod.destroy_instance(instancePtr);
       }
     }
 
-    const mod = await this.getModule();
+    let mod = await this.getModule();
     const {
       width,
       height = 0,
@@ -560,7 +560,7 @@ export abstract class SatoruBase {
         return new TextDecoder().decode(result);
       }
 
-      return new Uint8Array(result.slice());
+      return new Uint8Array(result);
     } finally {
       mod.destroy_instance(instancePtr);
       mod.logLevel = prevLogLevel;

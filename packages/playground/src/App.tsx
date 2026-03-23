@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import {
-  createSatoruWorker,
-  LogLevel,
-  DEFAULT_FONT_MAP,
-} from "satoru-render/workers";
-
-const satoru = createSatoruWorker({
-  maxParallel: 1,
-});
+import { render, LogLevel, DEFAULT_FONT_MAP } from "satoru-render/workers";
 
 type Params = {
   asset?: string;
@@ -232,7 +224,7 @@ const App: React.FC = () => {
   const handleConvert = async () => {
     if (property.current.isRender) return;
     const currentHtml = params.value;
-    if (!satoru || !currentHtml) return;
+    if (!currentHtml) return;
     const requestId = ++latestRenderId.current;
 
     setIsRendering(true);
@@ -255,7 +247,7 @@ const App: React.FC = () => {
 
       console.log(`[Satoru] Rendering via Worker (ID: ${requestId})`);
       const { width, height, format, textToPaths } = params;
-      const result = await satoru.render({
+      const result = await render({
         value: currentHtml,
         width,
         height,

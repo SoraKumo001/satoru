@@ -26,6 +26,6 @@
   "author": "SoraKumo <info@croud.jp>",
   "license": "MIT",
   "dependencies": {
-    "jsdom": "29.0.0"
+    "jsdom": "29.0.1"
   }
 }

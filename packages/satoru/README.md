@@ -1,6 +1,6 @@
 # Satoru Render: High-Performance HTML to Image/PDF Engine
 
-[![Playground](https://img.shields.io/badge/Demo-Playground-blueviolet)](https://sorakumo001.github.io/satoru/)
+[![Playground](https://img.shields.io/badge/Demo-Playground-blueviolet)](https://sorakumo001.github.io/satoru/master)
 [![npm license](https://img.shields.io/npm/l/satoru-render.svg)](https://www.npmjs.com/package/satoru-render)
 [![npm version](https://img.shields.io/npm/v/satoru-render.svg)](https://www.npmjs.com/package/satoru-render)
 [![npm download](https://img.shields.io/npm/dw/satoru-render.svg)](https://www.npmjs.com/package/satoru-render)
@@ -158,7 +158,7 @@ const png = await render({
         console.warn(`Failed to fetch via proxy: ${resource.url}`, e);
       }
     }
-    
+
     // Fallback to default resolver for other resources
     return defaultResolver(resource);
   },
@@ -346,18 +346,18 @@ npx satoru-render input.html -f webp --verbose
 
 ### Render Options
 
-| Option            | Type                                     | Description                                             |
-| :---------------- | :--------------------------------------- | :------------------------------------------------------ |
+| Option            | Type                                       | Description                                             |
+| :---------------- | :----------------------------------------- | :------------------------------------------------------ |
 | `value`           | `string \| string[] \| HTMLElement \| ...` | HTML string, array of strings, or DOM element(s).       |
-| `url`             | `string`                            | URL to fetch HTML from.                                 |
-| `width`           | `number`                            | **Required.** Output width in pixels.                   |
-| `height`          | `number`                            | Output height. Default: `0` (auto-calculate).           |
-| `format`          | `"svg" \| "png" \| "webp" \| "pdf"` | Output format. Default: `"svg"`.                        |
-| `resolveResource` | `ResourceResolver`                  | Async callback to fetch assets (fonts, images, CSS).    |
-| `fonts`           | `Object[]`                          | Pre-load fonts: `[{ name, data: Uint8Array }]`.         |
-| `css`             | `string`                            | Extra CSS to inject into the document.                  |
-| `baseUrl`         | `string`                            | Base URL for relative path resolution.                  |
-| `logLevel`        | `LogLevel`                          | Verbosity: `None`, `Error`, `Warning`, `Info`, `Debug`. |
+| `url`             | `string`                                   | URL to fetch HTML from.                                 |
+| `width`           | `number`                                   | **Required.** Output width in pixels.                   |
+| `height`          | `number`                                   | Output height. Default: `0` (auto-calculate).           |
+| `format`          | `"svg" \| "png" \| "webp" \| "pdf"`        | Output format. Default: `"svg"`.                        |
+| `resolveResource` | `ResourceResolver`                         | Async callback to fetch assets (fonts, images, CSS).    |
+| `fonts`           | `Object[]`                                 | Pre-load fonts: `[{ name, data: Uint8Array }]`.         |
+| `css`             | `string`                                   | Extra CSS to inject into the document.                  |
+| `baseUrl`         | `string`                                   | Base URL for relative path resolution.                  |
+| `logLevel`        | `LogLevel`                                 | Verbosity: `None`, `Error`, `Warning`, `Info`, `Debug`. |
 
 ---
 

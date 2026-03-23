@@ -41,10 +41,16 @@ jobs:
             echo "<!DOCTYPE html><html><head><title>Satoru Render - Branch Previews</title>" > index.html
             echo "<style>body{font-family:sans-serif;padding:40px;line-height:1.6;}ul{list-style:none;padding:0;}li{margin:10px 0;}a{text-decoration:none;color:#0366d6;}a:hover{text-decoration:underline;}</style>" >> index.html
             echo "</head><body><h1>Satoru Render Previews</h1><ul>" >> index.html
+            
+            # Get list of remote branches
+            BRANCHES=$(git ls-remote --heads origin | awk -F'refs/heads/' '{print $2}')
+            
             for d in */ ; do
-              if [ "$d" != "node_modules/" ] && [ "$d" != "assets/" ] && [ -d "$d" ]; then
-                BN=$(basename "$d")
-                echo "<li><a href=\"./$BN/\">$BN</a></li>" >> index.html
+              BN=$(basename "$d")
+              if [ "$BN" != "node_modules" ] && [ "$BN" != "assets" ] && [ -d "$d" ]; then
+                if echo "$BRANCHES" | grep -qxw "$BN"; then
+                  echo "<li><a href=\"./$BN/\">$BN</a></li>" >> index.html
+                fi
               fi
             done
             echo "</ul></body></html>" >> index.html

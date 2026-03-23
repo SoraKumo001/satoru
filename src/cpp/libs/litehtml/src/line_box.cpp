@@ -275,7 +275,7 @@ std::list< std::unique_ptr<litehtml::line_box_item> > litehtml::line_box::finish
 
 		// 2. Determine if we NEED ellipsis. 
 		// We need it if physically overflowing OR if it's logically forced.
-		if (m_inline_size > container_width || m_text_overflow == text_overflow_ellipsis)
+		if (m_inline_size > container_width + 0.01)
 		{
 			auto it_f = m_items.begin();
 			auto last_visible_it = m_items.end();

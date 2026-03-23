@@ -2,16 +2,14 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ["master"]
+    branches: ["**"]
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: "pages"
+  group: "pages-${{ github.ref_name }}"
   cancel-in-progress: true
 
 jobs:
@@ -105,17 +103,38 @@ jobs:
       - name: Run Visual Tests
         run: pnpm --filter visual-test test
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: "packages/playground/dist"
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: packages/playground/dist
+          target-folder: ${{ github.ref_name }}
+          branch: gh-pages
+          clean: false
+
+      - name: Update Index Page
+        run: |
+          git fetch origin gh-pages
+          git checkout gh-pages
+          
+          # Generate index.html
+          echo "<!DOCTYPE html><html><head><title>Satoru Render - Branch Previews</title>" > index.html
+          echo "<style>body{font-family:sans-serif;padding:40px;line-height:1.6;}ul{list-style:none;padding:0;}li{margin:10px 0;}a{text-decoration:none;color:#0366d6;}a:hover{text-decoration:underline;}</style>" >> index.html
+          echo "</head><body><h1>Satoru Render Previews</h1><ul>" >> index.html
+          
+          # List all directories excluding hidden ones and the root itself
+          for d in */ ; do
+            if [ "$d" != "node_modules/" ] && [ "$d" != "assets/" ]; then
+              BN=$(basename "$d")
+              echo "<li><a href=\"./$BN/\">$BN</a></li>" >> index.html
+            fi
+          done
+          
+          echo "</ul></body></html>" >> index.html
+          
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add index.html
+          if git commit -m "Update index page"; then
+            git push origin gh-pages
+          fi
+

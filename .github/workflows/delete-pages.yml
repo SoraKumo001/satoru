@@ -1,0 +1,43 @@
+name: Delete Branch Pages
+
+on:
+  delete:
+
+permissions:
+  contents: write
+
+jobs:
+  delete-pages:
+    if: github.event.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Delete branch folder
+        run: |
+          if [ -d "${{ github.event.ref }}" ]; then
+            rm -rf "${{ github.event.ref }}"
+            
+            # Regenerate index.html
+            echo "<!DOCTYPE html><html><head><title>Satoru Render - Branch Previews</title>" > index.html
+            echo "<style>body{font-family:sans-serif;padding:40px;line-height:1.6;}ul{list-style:none;padding:0;}li{margin:10px 0;}a{text-decoration:none;color:#0366d6;}a:hover{text-decoration:underline;}</style>" >> index.html
+            echo "</head><body><h1>Satoru Render Previews</h1><ul>" >> index.html
+            for d in */ ; do
+              if [ "$d" != "node_modules/" ] && [ "$d" != "assets/" ]; then
+                BN=$(basename "$d")
+                echo "<li><a href=\"./$BN/\">$BN</a></li>" >> index.html
+              fi
+            done
+            echo "</ul></body></html>" >> index.html
+            
+            git config user.name github-actions
+            git config user.email github-actions@github.com
+            git add .
+            git commit -m "Delete branch pages for ${{ github.event.ref }} and update index"
+            git push origin gh-pages
+          else
+            echo "Folder ${{ github.event.ref }} not found, skipping deletion."
+          fi

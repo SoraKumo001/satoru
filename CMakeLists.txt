@@ -35,6 +35,7 @@ FetchContent_MakeAvailable(skia)
 
 # --- libavif ---
 set(VCPKG_INSTALLED_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/wasm32-emscripten-wasm-eh")
+link_directories("${VCPKG_INSTALLED_DIR}/lib")
 
 if(NOT TARGET dav1d::dav1d)
     add_library(dav1d::dav1d STATIC IMPORTED GLOBAL)
@@ -95,7 +96,6 @@ endif()
 set(SATORU_LIBS
     Freetype::Freetype
     PNG::PNG
-    JPEG::JPEG
     WebP::webp
     WebP::webpdecoder
     WebP::webpdemux
@@ -103,7 +103,6 @@ set(SATORU_LIBS
     WebP::sharpyuv
     avif
     dav1d::dav1d
-    ZLIB::ZLIB
     expat::expat
     unofficial::gumbo::gumbo
     unofficial::brotli::brotlidec
@@ -115,6 +114,8 @@ set(SATORU_LIBS
     libunibreak::libunibreak
     harfbuzz::harfbuzz
     qpdf::libqpdf
+    JPEG::JPEG
+    ZLIB::ZLIB
 )
 
     set(COMMON_COMPILE_OPTIONS

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Comprehensive Grid Test</title>
+  <style>
+    @font-face {
+      font-family: 'Roboto';
+      src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'Noto Sans JP';
+      font-style: normal;
+      font-weight: 400;
+      src: url(https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2) format('woff2');
+    }
+    body {
+      font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+      padding: 20px;
+      background-color: #f8fafc;
+    }
+    .section {
+      margin-bottom: 30px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    h1 { margin-top: 0; color: #1e293b; }
+    h2 { font-size: 18px; color: #64748b; margin-bottom: 15px; }
+    h3 { font-size: 16px; margin-bottom: 10px; }
+
+    .grid-item {
+      background: #3b82f6;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+      border: 1px solid #1e3a8a;
+    }
+
+    /* 1. Basic Grid */
+    .grid-basic {
+      display: grid;
+      grid-template-columns: 100px 1fr 2fr;
+      gap: 15px;
+      background: #f1f5f9;
+      padding: 15px;
+    }
+
+    /* 2. Spanning */
+    .grid-span {
+      display: grid;
+      grid-template-columns: 100px 100px 100px;
+      gap: 10px;
+      background-color: #f1f5f9;
+      padding: 10px;
+    }
+    .span-col { grid-column: 1 / span 2; background-color: #ef4444; }
+    .span-row { grid-row: 1 / span 2; grid-column: 3; background-color: #10b981; }
+    .span-all { grid-column: 1 / span 3; grid-row: 3; background-color: #f59e0b; }
+
+    /* 3. Alignment */
+    .align-container {
+      display: grid;
+      grid-template-columns: 80px 80px;
+      grid-template-rows: 40px 40px;
+      gap: 5px;
+      width: 300px;
+      height: 150px;
+      border: 2px solid #333;
+      background-color: #f1f5f9;
+      margin-bottom: 10px;
+    }
+    .jc-center { justify-content: center; }
+    .ac-center { align-content: center; }
+    .jc-sb { justify-content: space-between; }
+    .ac-sb { align-content: space-between; }
+
+    /* 4. Media Queries */
+    .mq-box {
+      width: 150px;
+      height: 80px;
+      background-color: #ef4444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    @media (width >= 600px) { .mq-box { background-color: #10b981; } .mq-box::after { content: " (>= 600px)"; } }
+    @media (width < 400px) { .mq-box { background-color: #3b82f6; } .mq-box::after { content: " (< 400px)"; } }
+  </style>
+</head>
+<body>
+  <h1>Grid Layout Comprehensive Test</h1>
+
+  <div class="section">
+    <h2>1. Basic Grid (Fixed & fr)</h2>
+    <div class="grid-basic">
+      <div class="grid-item">100px</div>
+      <div class="grid-item">1fr</div>
+      <div class="grid-item">2fr</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>2. Grid Spanning</h2>
+    <div class="grid-span">
+        <div class="grid-item span-col">Span Col 2</div>
+        <div class="grid-item span-row">Span Row 2</div>
+        <div class="grid-item">Item 3</div>
+        <div class="grid-item">Item 4</div>
+        <div class="grid-item span-all">Span All Columns</div>
+        <div class="grid-item">Item 6</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>3. Alignment (justify-content / align-content)</h2>
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+      <div>
+        <h3>jc: center, ac: center</h3>
+        <div class="align-container jc-center ac-center">
+          <div class="grid-item">1</div><div class="grid-item">2</div>
+          <div class="grid-item">3</div><div class="grid-item">4</div>
+        </div>
+      </div>
+      <div>
+        <h3>jc: sb, ac: sb</h3>
+        <div class="align-container jc-sb ac-sb">
+          <div class="grid-item">1</div><div class="grid-item">2</div>
+          <div class="grid-item">3</div><div class="grid-item">4</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>4. Media Queries</h2>
+    <div class="mq-box">Status</div>
+  </div>
+</body>
+</html>

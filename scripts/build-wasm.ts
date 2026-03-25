@@ -84,10 +84,8 @@ if (action === "configure") {
     `cmake .. -G "${generator}" ` +
     `-Wno-dev ` +
     `-DCMAKE_BUILD_TYPE=${buildType} ` +
-    `-DCMAKE_TOOLCHAIN_FILE="${vcpkgCmake}" ` +
-    `-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${emscriptenCmake}" ` +
-    `-DVCPKG_TARGET_TRIPLET=wasm32-emscripten-wasm-eh ` +
-    `-DVCPKG_OVERLAY_TRIPLETS="${projectRoot}/triplets" ` +
+    `-DCMAKE_TOOLCHAIN_FILE="${emscriptenCmake}" ` +
+    `-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY ` +
     `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`;
 
   run(cmakeCmd, buildDir);

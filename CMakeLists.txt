@@ -1,13 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 
-# --- Toolchain setup ---
-set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
-set(VCPKG_TARGET_TRIPLET "wasm32-emscripten-wasm-eh" CACHE STRING "")
-set(VCPKG_OVERLAY_TRIPLETS "${CMAKE_CURRENT_SOURCE_DIR}/triplets" CACHE STRING "")
-set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "$ENV{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" CACHE STRING "")
-
 project(satoru_wasm)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 # --- Enable ccache ---
 find_program(CCACHE_PROGRAM ccache)
@@ -23,6 +18,7 @@ set(LITEHTML_DIR "${LIBS_DIR}/litehtml")
 set(SKIA_CONFIG_DIR "${LIBS_DIR}/skia")
 
 include(FetchContent)
+set(CMAKE_SKIP_INSTALL_RULES ON CACHE BOOL "" FORCE)
 
 # --- Skia ---
 FetchContent_Declare(
@@ -33,36 +29,535 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(skia)
 
-# --- libavif ---
-set(VCPKG_INSTALLED_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/wasm32-emscripten-wasm-eh")
-link_directories("${VCPKG_INSTALLED_DIR}/lib")
-
-if(NOT TARGET dav1d::dav1d)
-    add_library(dav1d::dav1d STATIC IMPORTED GLOBAL)
-    set_target_properties(dav1d::dav1d PROPERTIES
-        IMPORTED_LOCATION "${VCPKG_INSTALLED_DIR}/lib/libdav1d.a"
-        INTERFACE_INCLUDE_DIRECTORIES "${VCPKG_INSTALLED_DIR}/include"
+# --- zlib ---
+FetchContent_Declare(
+  zlib
+  GIT_REPOSITORY https://github.com/madler/zlib.git
+  GIT_TAG        v1.3.1
+)
+FetchContent_GetProperties(zlib)
+if(NOT zlib_POPULATED)
+    FetchContent_Populate(zlib)
+    add_library(zlib_static STATIC
+        ${zlib_SOURCE_DIR}/adler32.c
+        ${zlib_SOURCE_DIR}/compress.c
+        ${zlib_SOURCE_DIR}/crc32.c
+        ${zlib_SOURCE_DIR}/deflate.c
+        ${zlib_SOURCE_DIR}/gzclose.c
+        ${zlib_SOURCE_DIR}/gzlib.c
+        ${zlib_SOURCE_DIR}/gzread.c
+        ${zlib_SOURCE_DIR}/gzwrite.c
+        ${zlib_SOURCE_DIR}/infback.c
+        ${zlib_SOURCE_DIR}/inffast.c
+        ${zlib_SOURCE_DIR}/inflate.c
+        ${zlib_SOURCE_DIR}/inftrees.c
+        ${zlib_SOURCE_DIR}/trees.c
+        ${zlib_SOURCE_DIR}/uncompr.c
+        ${zlib_SOURCE_DIR}/zutil.c
     )
+    # Generate complete enough zconf.h for WASM
+    file(WRITE "${zlib_SOURCE_DIR}/zconf.h" "
+#ifndef ZCONF_H
+#define ZCONF_H
+#define STDC
+#include <stddef.h>
+#include <limits.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#define FAR
+#define z_const const
+#define ZEXPORT
+#define ZEXPORTVA
+#define ZEXTERN extern
+typedef unsigned char  Byte;
+typedef unsigned int   uInt;
+typedef unsigned long  uLong;
+typedef Byte Bytef;
+typedef char charf;
+typedef int intf;
+typedef uInt uIntf;
+typedef uLong uLongf;
+typedef void const *voidpc;
+typedef void   *voidpf;
+typedef void       *voidp;
+typedef size_t z_size_t;
+typedef int64_t z_off64_t;
+typedef uint32_t z_crc_t;
+typedef int64_t z_off_t;
+#ifndef SEEK_SET
+#  define SEEK_SET        0
+#  define SEEK_CUR        1
+#  define SEEK_END        2
+#endif
+#define MAX_MEM_LEVEL 9
+#define MAX_WBITS 15
+#endif
+")
+    target_include_directories(zlib_static PUBLIC ${zlib_SOURCE_DIR})
+endif()
+if(NOT TARGET ZLIB::ZLIB)
+    add_library(ZLIB::ZLIB ALIAS zlib_static)
+    set(ZLIB_LIBRARY zlib_static CACHE INTERNAL "")
+    set(ZLIB_INCLUDE_DIR ${zlib_SOURCE_DIR} CACHE INTERNAL "")
+    set(ZLIB_FOUND TRUE CACHE INTERNAL "")
 endif()
 
-find_package(ZLIB REQUIRED)
+# --- libpng ---
+FetchContent_Declare(
+  libpng
+  GIT_REPOSITORY https://github.com/pnggroup/libpng.git
+  GIT_TAG        v1.6.43
+)
+FetchContent_GetProperties(libpng)
+if(NOT libpng_POPULATED)
+    FetchContent_Populate(libpng)
+    add_library(png_static STATIC
+        ${libpng_SOURCE_DIR}/png.c
+        ${libpng_SOURCE_DIR}/pngerror.c
+        ${libpng_SOURCE_DIR}/pngget.c
+        ${libpng_SOURCE_DIR}/pngmem.c
+        ${libpng_SOURCE_DIR}/pngpread.c
+        ${libpng_SOURCE_DIR}/pngread.c
+        ${libpng_SOURCE_DIR}/pngrio.c
+        ${libpng_SOURCE_DIR}/pngrtran.c
+        ${libpng_SOURCE_DIR}/pngrutil.c
+        ${libpng_SOURCE_DIR}/pngset.c
+        ${libpng_SOURCE_DIR}/pngtrans.c
+        ${libpng_SOURCE_DIR}/pngwio.c
+        ${libpng_SOURCE_DIR}/pngwrite.c
+        ${libpng_SOURCE_DIR}/pngwtran.c
+        ${libpng_SOURCE_DIR}/pngwutil.c
+    )
+    target_include_directories(png_static PUBLIC ${libpng_SOURCE_DIR} ${zlib_SOURCE_DIR})
+    # Use prebuilt pnglibconf.h
+    file(COPY "${libpng_SOURCE_DIR}/scripts/pnglibconf.h.prebuilt" DESTINATION "${libpng_SOURCE_DIR}")
+    file(RENAME "${libpng_SOURCE_DIR}/pnglibconf.h.prebuilt" "${libpng_SOURCE_DIR}/pnglibconf.h")
+endif()
+if(NOT TARGET PNG::PNG)
+    add_library(PNG::PNG ALIAS png_static)
+endif()
 
-set(AVIF_CODEC_DAV1D SYSTEM CACHE STRING "" FORCE)
-set(AVIF_LIBYUV OFF CACHE BOOL "" FORCE)
-set(AVIF_BUILD_APPS OFF CACHE BOOL "" FORCE)
-set(AVIF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(AVIF_ENABLE_WASM OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE) # Force static for libavif
+# --- bzip2 ---
+FetchContent_Declare(
+  bzip2
+  URL https://www.sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz
+)
+FetchContent_GetProperties(bzip2)
+if(NOT bzip2_POPULATED)
+  FetchContent_Populate(bzip2)
+  add_library(bzip2 STATIC
+    ${bzip2_SOURCE_DIR}/blocksort.c
+    ${bzip2_SOURCE_DIR}/huffman.c
+    ${bzip2_SOURCE_DIR}/crctable.c
+    ${bzip2_SOURCE_DIR}/randtable.c
+    ${bzip2_SOURCE_DIR}/compress.c
+    ${bzip2_SOURCE_DIR}/decompress.c
+    ${bzip2_SOURCE_DIR}/bzlib.c
+  )
+  target_include_directories(bzip2 PUBLIC ${bzip2_SOURCE_DIR})
+  target_compile_definitions(bzip2 PRIVATE _POSIX_C_SOURCE=200809L _DEFAULT_SOURCE)
+endif()
+if(NOT TARGET BZip2::BZip2)
+    add_library(BZip2::BZip2 ALIAS bzip2)
+endif()
 
+# --- brotli ---
+FetchContent_Declare(
+  brotli
+  GIT_REPOSITORY https://github.com/google/brotli.git
+  GIT_TAG        v1.1.0
+)
+FetchContent_MakeAvailable(brotli)
+if(NOT TARGET unofficial::brotli::brotlidec)
+    add_library(unofficial::brotli::brotlidec ALIAS brotlidec)
+    add_library(unofficial::brotli::brotlienc ALIAS brotlienc)
+    add_library(unofficial::brotli::brotlicommon ALIAS brotlicommon)
+endif()
+
+# --- freetype ---
+FetchContent_Declare(
+  freetype
+  GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git
+  GIT_TAG        VER-2-13-3
+)
+set(FT_WITH_ZLIB ON CACHE BOOL "" FORCE)
+set(FT_WITH_PNG ON CACHE BOOL "" FORCE)
+set(FT_WITH_BZIP2 ON CACHE BOOL "" FORCE)
+set(FT_WITH_BROTLI ON CACHE BOOL "" FORCE)
+set(FT_WITH_HARFBUZZ OFF CACHE BOOL "" FORCE) # Avoid circular dependency
+FetchContent_MakeAvailable(freetype)
+if(NOT TARGET Freetype::Freetype)
+    add_library(Freetype::Freetype ALIAS freetype)
+endif()
+
+# --- harfbuzz ---
+FetchContent_Declare(
+  harfbuzz
+  GIT_REPOSITORY https://github.com/harfbuzz/harfbuzz.git
+  GIT_TAG        10.4.0
+)
+set(HB_HAVE_FREETYPE ON CACHE BOOL "" FORCE)
+set(HB_BUILD_SUBSET ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(harfbuzz)
+if(NOT TARGET harfbuzz::harfbuzz)
+    add_library(harfbuzz::harfbuzz ALIAS harfbuzz)
+endif()
+
+# --- expat ---
+FetchContent_Declare(
+  expat
+  GIT_REPOSITORY https://github.com/libexpat/libexpat.git
+  GIT_TAG        R_2_6_2
+  SOURCE_SUBDIR  expat
+)
+set(EXPAT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(EXPAT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(EXPAT_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(EXPAT_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(expat)
+if(TARGET expat AND NOT TARGET expat::expat)
+    add_library(expat::expat ALIAS expat)
+endif()
+
+# --- libjpeg-turbo ---
+FetchContent_Declare(
+  libjpeg_turbo
+  URL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/3.0.3.tar.gz
+)
+FetchContent_GetProperties(libjpeg_turbo)
+if(NOT libjpeg_turbo_POPULATED)
+    FetchContent_Populate(libjpeg_turbo)
+    add_library(jpeg-static STATIC
+        ${libjpeg_turbo_SOURCE_DIR}/jcapimin.c
+        ${libjpeg_turbo_SOURCE_DIR}/jcapistd.c
+        ${libjpeg_turbo_SOURCE_DIR}/jccoefct.c
+        ${libjpeg_turbo_SOURCE_DIR}/jccolor.c
+        ${libjpeg_turbo_SOURCE_DIR}/jcdctmgr.c
+        ${libjpeg_turbo_SOURCE_DIR}/jchuff.c
+        ${libjpeg_turbo_SOURCE_DIR}/jcinit.c
+        ${libjpeg_turbo_SOURCE_DIR}/jcmainct.c
+        ${libjpeg_turbo_SOURCE_DIR}/jcmarker.c
+        ${libjpeg_turbo_SOURCE_DIR}/jcmaster.c
+        ${libjpeg_turbo_SOURCE_DIR}/jcomapi.c
+        ${libjpeg_turbo_SOURCE_DIR}/jcparam.c
+        ${libjpeg_turbo_SOURCE_DIR}/jcphuff.c
+        ${libjpeg_turbo_SOURCE_DIR}/jcprepct.c
+        ${libjpeg_turbo_SOURCE_DIR}/jcsample.c
+        ${libjpeg_turbo_SOURCE_DIR}/jctrans.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdapimin.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdapistd.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdatadst.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdatasrc.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdcoefct.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdcolor.c
+        ${libjpeg_turbo_SOURCE_DIR}/jddctmgr.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdhuff.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdinput.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdmainct.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdmarker.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdmaster.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdmerge.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdphuff.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdpostct.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdsample.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdtrans.c
+        ${libjpeg_turbo_SOURCE_DIR}/jerror.c
+        ${libjpeg_turbo_SOURCE_DIR}/jfdctflt.c
+        ${libjpeg_turbo_SOURCE_DIR}/jfdctfst.c
+        ${libjpeg_turbo_SOURCE_DIR}/jfdctint.c
+        ${libjpeg_turbo_SOURCE_DIR}/jidctflt.c
+        ${libjpeg_turbo_SOURCE_DIR}/jidctfst.c
+        ${libjpeg_turbo_SOURCE_DIR}/jidctint.c
+        ${libjpeg_turbo_SOURCE_DIR}/jidctred.c
+        ${libjpeg_turbo_SOURCE_DIR}/jquant1.c
+        ${libjpeg_turbo_SOURCE_DIR}/jquant2.c
+        ${libjpeg_turbo_SOURCE_DIR}/jutils.c
+        ${libjpeg_turbo_SOURCE_DIR}/jmemmgr.c
+        ${libjpeg_turbo_SOURCE_DIR}/jmemnobs.c
+        ${libjpeg_turbo_SOURCE_DIR}/jaricom.c
+        ${libjpeg_turbo_SOURCE_DIR}/jcarith.c
+        ${libjpeg_turbo_SOURCE_DIR}/jdarith.c
+        ${libjpeg_turbo_SOURCE_DIR}/jpeg_nbits.c
+        ${libjpeg_turbo_SOURCE_DIR}/jsimd_none.c
+    )
+    target_include_directories(jpeg-static PUBLIC ${libjpeg_turbo_SOURCE_DIR})
+    # Generic jconfig.h/jconfigint.h/jversion.h for WASM
+    file(WRITE "${libjpeg_turbo_SOURCE_DIR}/jconfig.h" "
+#define HAVE_PROTOTYPES 1
+#define HAVE_UNSIGNED_CHAR 1
+#define HAVE_UNSIGNED_SHORT 1
+#define JPEG_LIB_VERSION 80
+#define BITS_IN_JSAMPLE 8
+#define HAVE_STDLIB_H 1
+#define HAVE_STDDEF_H 1
+#define C_ARITH_CODING_SUPPORTED 1
+#define D_ARITH_CODING_SUPPORTED 1
+")
+    file(WRITE "${libjpeg_turbo_SOURCE_DIR}/jconfigint.h" "
+#define BUILD \"20240324\"
+#define PACKAGE_NAME \"libjpeg-turbo\"
+#define VERSION \"3.0.3\"
+#define INLINE __inline__
+#define inline __inline__
+#define SIZEOF_SIZE_T 4
+#ifdef __clang__
+#define FALLTHROUGH __attribute__((fallthrough));
+#else
+#define FALLTHROUGH
+#endif
+#define HIDDEN
+")
+    file(WRITE "${libjpeg_turbo_SOURCE_DIR}/jversion.h" "
+#define JVERSION \"3.0.3\"
+#define JVERSION_MAIN \"3.0.3\"
+#define JVERSION_EXTRA \"\"
+#define JCOPYRIGHT \"Copyright (C) 1991-2023 The libjpeg-turbo Project and many others\"
+#define JCOPYRIGHT_SHORT \"Copyright (C) 1991-2023 The libjpeg-turbo Project\"
+")
+    target_compile_definitions(jpeg-static PRIVATE HAVE_CONFIG_H=1 _POSIX_C_SOURCE=200809L _DEFAULT_SOURCE)
+endif()
+if(NOT TARGET JPEG::JPEG)
+    add_library(JPEG::JPEG ALIAS jpeg-static)
+endif()
+
+# --- libwebp ---
+FetchContent_Declare(
+  libwebp
+  GIT_REPOSITORY https://github.com/webmproject/libwebp.git
+  GIT_TAG        v1.4.0
+)
+set(WEBP_BUILD_LIBWEBPMUX ON CACHE BOOL "" FORCE)
+set(WEBP_BUILD_WEBPDEMUX ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(libwebp)
+FetchContent_GetProperties(libwebp) # Ensure libwebp_SOURCE_DIR is set
+if(TARGET webp AND NOT TARGET WebP::webp)
+    add_library(WebP::webp ALIAS webp)
+endif()
+if(TARGET webpdecoder AND NOT TARGET WebP::webpdecoder)
+    add_library(WebP::webpdecoder ALIAS webpdecoder)
+endif()
+if(TARGET webpdemux AND NOT TARGET WebP::webpdemux)
+    add_library(WebP::webpdemux ALIAS webpdemux)
+endif()
+if(NOT TARGET WebP::libwebpmux)
+    file(GLOB WEBP_MUX_SOURCES "${libwebp_SOURCE_DIR}/src/mux/*.c")
+    add_library(webpmux_lib STATIC ${WEBP_MUX_SOURCES})
+    target_include_directories(webpmux_lib PUBLIC ${libwebp_SOURCE_DIR}/src ${libwebp_SOURCE_DIR})
+    add_library(WebP::libwebpmux ALIAS webpmux_lib)
+endif()
+if(TARGET sharpyuv AND NOT TARGET WebP::sharpyuv)
+    add_library(WebP::sharpyuv ALIAS sharpyuv)
+endif()
+
+# --- ctre ---
+FetchContent_Declare(
+  ctre
+  GIT_REPOSITORY https://github.com/hanickadot/compile-time-regular-expressions.git
+  GIT_TAG        v3.9.0
+)
+FetchContent_GetProperties(ctre)
+if(NOT ctre_POPULATED)
+    FetchContent_Populate(ctre)
+    # Patch ctre to fix Clang/Emscripten template issue
+    set(CTRE_WRAPPER_HPP "${ctre_SOURCE_DIR}/include/ctre/wrapper.hpp")
+    if(EXISTS "${CTRE_WRAPPER_HPP}")
+        file(READ "${CTRE_WRAPPER_HPP}" CTRE_WRAPPER_CONTENT)
+        string(REPLACE "return Method::template exec();" "return Method::exec();" CTRE_WRAPPER_PATCHED "${CTRE_WRAPPER_CONTENT}")
+        file(WRITE "${CTRE_WRAPPER_HPP}" "${CTRE_WRAPPER_PATCHED}")
+    endif()
+endif()
+if(NOT TARGET ctre)
+    add_library(ctre INTERFACE)
+    target_include_directories(ctre INTERFACE ${ctre_SOURCE_DIR}/include)
+endif()
+if(NOT TARGET ctre::ctre)
+    add_library(ctre::ctre ALIAS ctre)
+endif()
+
+# --- utf8proc ---
+FetchContent_Declare(
+  utf8proc
+  GIT_REPOSITORY https://github.com/JuliaStrings/utf8proc.git
+  GIT_TAG        v2.9.0
+)
+set(UTF8PROC_ENABLE_REPLACEMENT ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(utf8proc)
+if(NOT TARGET utf8proc::utf8proc)
+    add_library(utf8proc::utf8proc ALIAS utf8proc)
+endif()
+
+# --- libunibreak ---
+FetchContent_Declare(
+  libunibreak
+  GIT_REPOSITORY https://github.com/adah1972/libunibreak.git
+  GIT_TAG        libunibreak_6_1
+)
+FetchContent_GetProperties(libunibreak)
+if(NOT libunibreak_POPULATED)
+    FetchContent_Populate(libunibreak)
+    add_library(libunibreak STATIC
+        ${libunibreak_SOURCE_DIR}/src/unibreakbase.c
+        ${libunibreak_SOURCE_DIR}/src/unibreakdef.c
+        ${libunibreak_SOURCE_DIR}/src/linebreak.c
+        ${libunibreak_SOURCE_DIR}/src/linebreakdata.c
+        ${libunibreak_SOURCE_DIR}/src/linebreakdef.c
+        ${libunibreak_SOURCE_DIR}/src/wordbreak.c
+        ${libunibreak_SOURCE_DIR}/src/wordbreakdata.c
+        ${libunibreak_SOURCE_DIR}/src/graphemebreak.c
+        ${libunibreak_SOURCE_DIR}/src/graphemebreakdata.c
+        ${libunibreak_SOURCE_DIR}/src/emojidef.c
+        ${libunibreak_SOURCE_DIR}/src/eastasianwidthdef.c
+        ${libunibreak_SOURCE_DIR}/src/eastasianwidthdata.c
+    )
+    target_include_directories(libunibreak PUBLIC ${libunibreak_SOURCE_DIR}/src)
+    file(WRITE "${libunibreak_SOURCE_DIR}/src/config.h" "/* Generic config.h for WASM */\n")
+endif()
+if(NOT TARGET libunibreak::libunibreak)
+    add_library(libunibreak::libunibreak ALIAS libunibreak)
+endif()
+
+# --- dav1d ---
+FetchContent_Declare(
+  dav1d
+  GIT_REPOSITORY https://code.videolan.org/videolan/dav1d.git
+  GIT_TAG        1.4.2
+)
+FetchContent_GetProperties(dav1d)
+if(NOT dav1d_POPULATED)
+    FetchContent_Populate(dav1d)
+    
+    # Generate bitdepth-specific files
+    set(DAV1D_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/dav1d_gen")
+    file(MAKE_DIRECTORY "${DAV1D_GEN_DIR}")
+    
+    set(DAV1D_BIT_TEMPLATES 
+        cdef_apply cdef fg_apply filmgrain ipred_prepare ipred itx lf_apply 
+        loopfilter looprestoration lr_apply mc recon
+    )
+    
+    set(DAV1D_GEN_SOURCES "")
+    foreach(bit 8 16)
+        foreach(tmpl ${DAV1D_BIT_TEMPLATES})
+            set(gen_file "${DAV1D_GEN_DIR}/${tmpl}_${bit}.c")
+            file(WRITE "${gen_file}" "#define BITDEPTH ${bit}\n#include \"${tmpl}_tmpl.c\"\n")
+            list(APPEND DAV1D_GEN_SOURCES "${gen_file}")
+        endforeach()
+    endforeach()
+
+    # Core sources (excluding templates and wrappers)
+    file(GLOB DAV1D_CORE_SOURCES "${dav1d_SOURCE_DIR}/src/*.c")
+    list(FILTER DAV1D_CORE_SOURCES EXCLUDE REGEX ".*_tmpl.c|.*itx_1d.c")
+    
+    add_library(dav1d_static STATIC 
+        ${DAV1D_CORE_SOURCES}
+        ${DAV1D_GEN_SOURCES}
+        "${dav1d_SOURCE_DIR}/src/itx_1d.c"
+    )
+    target_include_directories(dav1d_static PUBLIC 
+        "${dav1d_SOURCE_DIR}/include"
+        "${dav1d_SOURCE_DIR}/include/dav1d"
+        "${dav1d_SOURCE_DIR}"
+        "${dav1d_SOURCE_DIR}/src"
+        "${DAV1D_GEN_DIR}"
+    )
+    # Generic config for WASM
+    file(WRITE "${dav1d_SOURCE_DIR}/config.h" "
+#define ARCH_X86 0
+#define ARCH_X86_64 0
+#define ARCH_X86_32 0
+#define ARCH_ARM 0
+#define ARCH_AARCH64 0
+#define ARCH_PPC 0
+#define ARCH_PPC64LE 0
+#define ARCH_LOONGARCH 0
+#define ARCH_RISCV 0
+#define ARCH_WASM 1
+#define HAVE_ASM 0
+#define CONFIG_LOG 1
+#define CONFIG_16BIT 1
+#define CONFIG_8BIT 1
+#define CONFIG_8BPC 1
+#define CONFIG_16BPC 1
+#define HAVE_PTHREAD_H 0
+#define HAVE_UNISTD_H 1
+#define HAVE_IO_H 0
+#define HAVE_DIRENT_H 1
+#define HAVE_GETAUXVAL 0
+#define HAVE_ELF_AUX_INFO 0
+#define HAVE_ASM_HWCAP_H 0
+#define TRIM_DSP_FUNCTIONS 0
+")
+    file(WRITE "${dav1d_SOURCE_DIR}/include/dav1d/version.h" "#define DAV1D_VERSION \"1.4.2\"\n#define DAV1D_API_VERSION_MAJOR 7\n#define DAV1D_API_VERSION_MINOR 0\n#define DAV1D_API_VERSION_PATCH 0\n")
+    file(WRITE "${dav1d_SOURCE_DIR}/src/vcs_version.h" "#define DAV1D_VERSION \"1.4.2\"\n")
+    target_compile_definitions(dav1d_static PRIVATE HAVE_CONFIG_H=1)
+endif()
+if(NOT TARGET dav1d::dav1d)
+    add_library(dav1d::dav1d ALIAS dav1d_static)
+endif()
+
+# --- gumbo ---
+FetchContent_Declare(
+  gumbo
+  GIT_REPOSITORY https://github.com/google/gumbo-parser.git
+  GIT_TAG        v0.10.1
+)
+FetchContent_GetProperties(gumbo)
+if(NOT gumbo_POPULATED)
+    FetchContent_Populate(gumbo)
+    file(GLOB GUMBO_SOURCES "${gumbo_SOURCE_DIR}/src/*.c")
+    add_library(gumbo STATIC ${GUMBO_SOURCES})
+    target_include_directories(gumbo PUBLIC "${gumbo_SOURCE_DIR}/src")
+endif()
+if(NOT TARGET unofficial::gumbo::gumbo)
+    add_library(unofficial::gumbo::gumbo ALIAS gumbo)
+endif()
+
+# --- libavif ---
 FetchContent_Declare(
   libavif
   GIT_REPOSITORY https://github.com/AOMediaCodec/libavif.git
   GIT_TAG        v1.1.1
 )
-
-set(CMAKE_SKIP_INSTALL_RULES ON)
-FetchContent_MakeAvailable(libavif)
-set(CMAKE_SKIP_INSTALL_RULES OFF)
+FetchContent_GetProperties(libavif)
+if(NOT libavif_POPULATED)
+    FetchContent_Populate(libavif)
+    add_library(avif STATIC
+        ${libavif_SOURCE_DIR}/src/alpha.c
+        ${libavif_SOURCE_DIR}/src/avif.c
+        ${libavif_SOURCE_DIR}/src/colr.c
+        ${libavif_SOURCE_DIR}/src/colrconvert.c
+        ${libavif_SOURCE_DIR}/src/diag.c
+        ${libavif_SOURCE_DIR}/src/exif.c
+        ${libavif_SOURCE_DIR}/src/gainmap.c
+        ${libavif_SOURCE_DIR}/src/io.c
+        ${libavif_SOURCE_DIR}/src/mem.c
+        ${libavif_SOURCE_DIR}/src/obu.c
+        ${libavif_SOURCE_DIR}/src/rawdata.c
+        ${libavif_SOURCE_DIR}/src/read.c
+        ${libavif_SOURCE_DIR}/src/reformat.c
+        ${libavif_SOURCE_DIR}/src/scale.c
+        ${libavif_SOURCE_DIR}/src/stream.c
+        ${libavif_SOURCE_DIR}/src/utils.c
+        ${libavif_SOURCE_DIR}/src/write.c
+        ${libavif_SOURCE_DIR}/src/codec_dav1d.c
+    )
+    target_include_directories(avif PUBLIC 
+        ${libavif_SOURCE_DIR}/include
+        ${libavif_SOURCE_DIR}/third_party/libyuv/include
+    )
+    target_include_directories(avif PRIVATE
+        ${libavif_SOURCE_DIR}/src
+        ${dav1d_SOURCE_DIR}/include
+        ${libwebp_SOURCE_DIR}
+        ${libwebp_SOURCE_DIR}/src
+    )
+    target_compile_definitions(avif PRIVATE AVIF_CODEC_DAV1D=1 AVIF_LIBYUV_ENABLED=0)
+    target_link_libraries(avif PRIVATE dav1d::dav1d WebP::sharpyuv)
+endif()
 
 # --- wuffs ---
 set(WUFFS_RELEASE_DIR "${CMAKE_BINARY_DIR}/wuffs")
@@ -73,29 +568,9 @@ if(NOT EXISTS "${WUFFS_RELEASE_DIR}/wuffs-v0.3.c")
          "${WUFFS_RELEASE_DIR}/wuffs-v0.3.c")
 endif()
 
-# --- Dependencies ---
-find_package(Freetype REQUIRED)
-find_package(PNG REQUIRED)
-find_package(JPEG REQUIRED)
-find_package(WebP REQUIRED)
-find_package(expat CONFIG REQUIRED)
-find_package(unofficial-gumbo CONFIG REQUIRED)
-find_package(unofficial-brotli CONFIG REQUIRED)
-find_package(BZip2 REQUIRED)
-find_package(ctre CONFIG REQUIRED)
-find_package(utf8proc CONFIG REQUIRED)
-find_package(libunibreak CONFIG REQUIRED)
-find_package(harfbuzz REQUIRED)
-find_package(qpdf CONFIG REQUIRED)
-
-# Workaround for vcpkg harfbuzz path bug
-if(TARGET harfbuzz)
-    set_target_properties(harfbuzz PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${VCPKG_INSTALLED_DIR}/include/harfbuzz")
-endif()
-
 set(SATORU_LIBS
     Freetype::Freetype
-    PNG::PNG
+    png_static
     WebP::webp
     WebP::webpdecoder
     WebP::webpdemux
@@ -113,9 +588,9 @@ set(SATORU_LIBS
     utf8proc::utf8proc
     libunibreak::libunibreak
     harfbuzz::harfbuzz
-    qpdf::libqpdf
-    JPEG::JPEG
-    ZLIB::ZLIB
+    # qpdf::libqpdf
+    jpeg-static
+    zlib_static
 )
 
     set(COMMON_COMPILE_OPTIONS
@@ -144,9 +619,7 @@ set(SATORU_LIBS
         "-sEXPORT_NAME='createSatoruModule'"
         "-sENVIRONMENT=web,worker"
         "-sFILESYSTEM=0"
-        # Some Skia symbols (SkSL, RuntimeEffect) are undefined because we exclude their sources
-        # to keep the binary size small. They are not used in our current rendering path.
-        "-sERROR_ON_UNDEFINED_SYMBOLS=0"
+        "-sERROR_ON_UNDEFINED_SYMBOLS=1"
         "-sWARN_ON_UNDEFINED_SYMBOLS=1"
         "-sALLOW_MEMORY_GROWTH=1"
     )
@@ -245,6 +718,7 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/src/pathops/*.cpp"
     "${skia_SOURCE_DIR}/modules/svg/src/*.cpp"
     "${skia_SOURCE_DIR}/modules/skresources/src/*.cpp"
+    "${skia_SOURCE_DIR}/modules/skresources/src/SkResources.cpp"
     "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper.cpp"
     "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper_primitive.cpp"
     "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper_harfbuzz.cpp"
@@ -258,7 +732,7 @@ list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*
 
 target_sources(skia_lib PRIVATE ${SKIA_CORE_SRC})
 target_include_directories(skia_lib PUBLIC
-    "${SKIA_CONFIG_DIR}"
+    "${LIBS_DIR}/skia"
     "${skia_SOURCE_DIR}"
     "${WUFFS_RELEASE_DIR}"
     "${skia_SOURCE_DIR}/modules/svg/include"
@@ -266,9 +740,20 @@ target_include_directories(skia_lib PUBLIC
     "${skia_SOURCE_DIR}/modules/skshaper/include"
     "${skia_SOURCE_DIR}/modules/skunicode/include"
 )
-target_compile_definitions(skia_lib PUBLIC SK_USER_CONFIG_HEADER="SkUserConfig.h" SK_ENABLE_SVG SK_SHAPER_HARFBUZZ_AVAILABLE SK_SHAPER_UNICODE_AVAILABLE SK_DISABLE_FILESYSTEM SKCMS_PORTABLE)
-target_compile_options(skia_lib PRIVATE ${COMMON_COMPILE_OPTIONS})
 target_link_libraries(skia_lib PUBLIC ${SATORU_LIBS})
+target_compile_definitions(skia_lib PUBLIC 
+    SK_USER_CONFIG_HEADER="SkUserConfig.h" 
+    SK_ENABLE_SVG 
+    SK_SHAPER_HARFBUZZ_AVAILABLE 
+    SK_SHAPER_UNICODE_AVAILABLE 
+    SK_UNICODE_AVAILABLE
+    SK_TYPEFACE_FACTORY_FREETYPE
+    SK_HAS_FREETYPE_SUPPORT
+    SK_UNICODE_HAS_HARFBUZZ
+    SK_DISABLE_FILESYSTEM 
+    SKCMS_PORTABLE
+)
+target_compile_options(skia_lib PRIVATE ${COMMON_COMPILE_OPTIONS})
 
 # --- Target: satoru_core ---
 add_library(satoru_core OBJECT)

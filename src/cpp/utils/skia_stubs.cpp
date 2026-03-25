@@ -71,6 +71,22 @@ void _ZN9SkOTUtils26LocalizedStrings_NameTable18MakeForFamilyNamesERK10SkTypefac
         *(void**)result_ptr = nullptr;
     }
 }
+
+// libyuv and libavif stubs to clear link warnings
+extern "C" {
+int ScalePlane(const uint8_t* src, int src_stride, int src_width, int src_height,
+               uint8_t* dst, int dst_stride, int dst_width, int dst_height, int filtering) {
+    return 0;
+}
+int ScalePlane_12(const uint16_t* src, int src_stride, int src_width, int src_height,
+                  uint16_t* dst, int dst_stride, int dst_width, int dst_height, int filtering) {
+    return 0;
+}
+int avifImageYUVToRGBLibYUV(const void* image, void* rgb) { return -1; }
+int avifRGBImagePremultiplyAlphaLibYUV(void* rgb) { return -1; }
+int avifRGBImageUnpremultiplyAlphaLibYUV(void* rgb) { return -1; }
+int avifRGBImageToF16LibYUV(void* rgb) { return -1; }
+}
 }
 
 namespace SkSL {

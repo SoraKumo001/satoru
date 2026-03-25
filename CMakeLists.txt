@@ -171,7 +171,11 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/google/brotli.git
   GIT_TAG        v1.1.0
 )
+set(BROTLI_DISABLE_TESTS ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(brotli)
+set(BROTLIDEC_FOUND TRUE CACHE INTERNAL "")
+set(BROTLIDEC_INCLUDE_DIRS "${brotli_SOURCE_DIR}/c/include" CACHE INTERNAL "")
+set(BROTLIDEC_LIBRARIES brotlidec brotlicommon CACHE INTERNAL "")
 if(NOT TARGET unofficial::brotli::brotlidec)
     add_library(unofficial::brotli::brotlidec ALIAS brotlidec)
     add_library(unofficial::brotli::brotlienc ALIAS brotlienc)
@@ -667,7 +671,7 @@ list(FILTER SKIA_CORE_SRC EXCLUDE REGEX ".*SkGetExecutablePath.*|.*SkThread.*|.*
 
 target_sources(skia_lib PRIVATE ${SKIA_CORE_SRC})
 target_include_directories(skia_lib PUBLIC
-    "${LIBS_DIR}/skia"
+    "${SKIA_CONFIG_DIR}"
     "${skia_SOURCE_DIR}"
     "${WUFFS_RELEASE_DIR}"
     "${skia_SOURCE_DIR}/modules/svg/include"
@@ -675,11 +679,9 @@ target_include_directories(skia_lib PUBLIC
     "${skia_SOURCE_DIR}/modules/skshaper/include"
     "${skia_SOURCE_DIR}/modules/skunicode/include"
 )
-target_link_libraries(skia_lib PUBLIC ${SATORU_LIBS})
-target_compile_definitions(skia_lib PUBLIC 
-    SK_USER_CONFIG_HEADER="SkUserConfig.h" 
-)
+target_compile_definitions(skia_lib PUBLIC SK_USER_CONFIG_HEADER="SkUserConfig.h")
 target_compile_options(skia_lib PRIVATE ${COMMON_COMPILE_OPTIONS})
+target_link_libraries(skia_lib PUBLIC ${SATORU_LIBS})
 
 # --- Target: satoru_core ---
 add_library(satoru_core OBJECT)

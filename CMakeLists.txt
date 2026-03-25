@@ -224,102 +224,36 @@ if(TARGET expat AND NOT TARGET expat::expat)
 endif()
 
 # --- libjpeg-turbo ---
-FetchContent_Declare(
-  libjpeg_turbo
-  URL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/3.0.3.tar.gz
+include(ExternalProject)
+
+# 1. Define paths upfront. Removed the "-static" suffix assumption.
+set(LIBJPEG_TURBO_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/libjpeg-turbo")
+set(LIBJPEG_TURBO_LIBRARY "${LIBJPEG_TURBO_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}jpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
+set(LIBJPEG_TURBO_INCLUDE_DIRS "${LIBJPEG_TURBO_INSTALL_DIR}/include")
+
+ExternalProject_Add(libjpeg-turbo-project
+  URL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.0.3.tar.gz
+  PREFIX "${LIBJPEG_TURBO_INSTALL_DIR}"
+  INSTALL_DIR "${LIBJPEG_TURBO_INSTALL_DIR}"
+  BUILD_BYPRODUCTS "${LIBJPEG_TURBO_LIBRARY}"
+  CMAKE_CACHE_ARGS
+  -DENABLE_SHARED:BOOL=OFF
+  -DENABLE_STATIC:BOOL=ON
+  -DWITH_SIMD:BOOL=OFF
+  -DCMAKE_BUILD_TYPE:STRING=${buildType}
+  -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
+  -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+  -DCMAKE_INSTALL_LIBDIR:PATH=lib # Force install to 'lib' instead of 'lib64'
 )
-FetchContent_GetProperties(libjpeg_turbo)
-if(NOT libjpeg_turbo_POPULATED)
-    FetchContent_Populate(libjpeg_turbo)
-    add_library(jpeg-static STATIC
-        ${libjpeg_turbo_SOURCE_DIR}/jcapimin.c
-        ${libjpeg_turbo_SOURCE_DIR}/jcapistd.c
-        ${libjpeg_turbo_SOURCE_DIR}/jccoefct.c
-        ${libjpeg_turbo_SOURCE_DIR}/jccolor.c
-        ${libjpeg_turbo_SOURCE_DIR}/jcdctmgr.c
-        ${libjpeg_turbo_SOURCE_DIR}/jchuff.c
-        ${libjpeg_turbo_SOURCE_DIR}/jcinit.c
-        ${libjpeg_turbo_SOURCE_DIR}/jcmainct.c
-        ${libjpeg_turbo_SOURCE_DIR}/jcmarker.c
-        ${libjpeg_turbo_SOURCE_DIR}/jcmaster.c
-        ${libjpeg_turbo_SOURCE_DIR}/jcomapi.c
-        ${libjpeg_turbo_SOURCE_DIR}/jcparam.c
-        ${libjpeg_turbo_SOURCE_DIR}/jcphuff.c
-        ${libjpeg_turbo_SOURCE_DIR}/jcprepct.c
-        ${libjpeg_turbo_SOURCE_DIR}/jcsample.c
-        ${libjpeg_turbo_SOURCE_DIR}/jctrans.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdapimin.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdapistd.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdatadst.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdatasrc.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdcoefct.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdcolor.c
-        ${libjpeg_turbo_SOURCE_DIR}/jddctmgr.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdhuff.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdinput.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdmainct.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdmarker.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdmaster.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdmerge.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdphuff.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdpostct.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdsample.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdtrans.c
-        ${libjpeg_turbo_SOURCE_DIR}/jerror.c
-        ${libjpeg_turbo_SOURCE_DIR}/jfdctflt.c
-        ${libjpeg_turbo_SOURCE_DIR}/jfdctfst.c
-        ${libjpeg_turbo_SOURCE_DIR}/jfdctint.c
-        ${libjpeg_turbo_SOURCE_DIR}/jidctflt.c
-        ${libjpeg_turbo_SOURCE_DIR}/jidctfst.c
-        ${libjpeg_turbo_SOURCE_DIR}/jidctint.c
-        ${libjpeg_turbo_SOURCE_DIR}/jidctred.c
-        ${libjpeg_turbo_SOURCE_DIR}/jquant1.c
-        ${libjpeg_turbo_SOURCE_DIR}/jquant2.c
-        ${libjpeg_turbo_SOURCE_DIR}/jutils.c
-        ${libjpeg_turbo_SOURCE_DIR}/jmemmgr.c
-        ${libjpeg_turbo_SOURCE_DIR}/jmemnobs.c
-        ${libjpeg_turbo_SOURCE_DIR}/jaricom.c
-        ${libjpeg_turbo_SOURCE_DIR}/jcarith.c
-        ${libjpeg_turbo_SOURCE_DIR}/jdarith.c
-        ${libjpeg_turbo_SOURCE_DIR}/jpeg_nbits.c
-        ${libjpeg_turbo_SOURCE_DIR}/jsimd_none.c
-    )
-    target_include_directories(jpeg-static PUBLIC ${libjpeg_turbo_SOURCE_DIR})
-    # Generic jconfig.h/jconfigint.h/jversion.h for WASM
-    file(WRITE "${libjpeg_turbo_SOURCE_DIR}/jconfig.h" "
-#define HAVE_PROTOTYPES 1
-#define HAVE_UNSIGNED_CHAR 1
-#define HAVE_UNSIGNED_SHORT 1
-#define JPEG_LIB_VERSION 80
-#define BITS_IN_JSAMPLE 8
-#define HAVE_STDLIB_H 1
-#define HAVE_STDDEF_H 1
-#define C_ARITH_CODING_SUPPORTED 1
-#define D_ARITH_CODING_SUPPORTED 1
-")
-    file(WRITE "${libjpeg_turbo_SOURCE_DIR}/jconfigint.h" "
-#define BUILD \"20240324\"
-#define PACKAGE_NAME \"libjpeg-turbo\"
-#define VERSION \"3.0.3\"
-#define INLINE __inline__
-#define inline __inline__
-#define SIZEOF_SIZE_T 4
-#ifdef __clang__
-#define FALLTHROUGH __attribute__((fallthrough));
-#else
-#define FALLTHROUGH
-#endif
-#define HIDDEN
-")
-    file(WRITE "${libjpeg_turbo_SOURCE_DIR}/jversion.h" "
-#define JVERSION \"3.0.3\"
-#define JVERSION_MAIN \"3.0.3\"
-#define JVERSION_EXTRA \"\"
-#define JCOPYRIGHT \"Copyright (C) 1991-2023 The libjpeg-turbo Project and many others\"
-#define JCOPYRIGHT_SHORT \"Copyright (C) 1991-2023 The libjpeg-turbo Project\"
-")
-    target_compile_definitions(jpeg-static PRIVATE HAVE_CONFIG_H=1 _POSIX_C_SOURCE=200809L _DEFAULT_SOURCE)
-endif()
+
+file(MAKE_DIRECTORY ${LIBJPEG_TURBO_INCLUDE_DIRS})
+
+add_library(jpeg-static STATIC IMPORTED)
+set_target_properties(jpeg-static PROPERTIES
+  IMPORTED_LOCATION ${LIBJPEG_TURBO_LIBRARY}
+  INTERFACE_INCLUDE_DIRECTORIES ${LIBJPEG_TURBO_INCLUDE_DIRS})
+add_dependencies(jpeg-static libjpeg-turbo-project)
+
 if(NOT TARGET JPEG::JPEG)
     add_library(JPEG::JPEG ALIAS jpeg-static)
 endif()
@@ -517,47 +451,49 @@ if(NOT TARGET unofficial::gumbo::gumbo)
 endif()
 
 # --- libavif ---
+set(AVIF_CODEC_AOM OFF CACHE BOOL "" FORCE)
+set(AVIF_CODEC_AOM_DECODE OFF CACHE BOOL "" FORCE)
+set(AVIF_CODEC_AOM_ENCODE OFF CACHE BOOL "" FORCE)
+set(AVIF_CODEC_DAV1D SYSTEM CACHE STRING "" FORCE)
+set(AVIF_LIBYUV OFF CACHE BOOL "" FORCE)
+set(AVIF_BUILD_APPS OFF CACHE BOOL "" FORCE)
+set(AVIF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(AVIF_ENABLE_WASM ON CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
   libavif
   GIT_REPOSITORY https://github.com/AOMediaCodec/libavif.git
   GIT_TAG        v1.1.1
 )
-FetchContent_GetProperties(libavif)
-if(NOT libavif_POPULATED)
-    FetchContent_Populate(libavif)
-    add_library(avif STATIC
-        ${libavif_SOURCE_DIR}/src/alpha.c
-        ${libavif_SOURCE_DIR}/src/avif.c
-        ${libavif_SOURCE_DIR}/src/colr.c
-        ${libavif_SOURCE_DIR}/src/colrconvert.c
-        ${libavif_SOURCE_DIR}/src/diag.c
-        ${libavif_SOURCE_DIR}/src/exif.c
-        ${libavif_SOURCE_DIR}/src/gainmap.c
-        ${libavif_SOURCE_DIR}/src/io.c
-        ${libavif_SOURCE_DIR}/src/mem.c
-        ${libavif_SOURCE_DIR}/src/obu.c
-        ${libavif_SOURCE_DIR}/src/rawdata.c
-        ${libavif_SOURCE_DIR}/src/read.c
-        ${libavif_SOURCE_DIR}/src/reformat.c
-        ${libavif_SOURCE_DIR}/src/scale.c
-        ${libavif_SOURCE_DIR}/src/stream.c
-        ${libavif_SOURCE_DIR}/src/utils.c
-        ${libavif_SOURCE_DIR}/src/write.c
-        ${libavif_SOURCE_DIR}/src/codec_dav1d.c
+
+set(CMAKE_SKIP_INSTALL_RULES ON)
+
+# Save current flags and suppress all warnings for libavif
+set(OLD_CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
+set(OLD_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
+set(UNIX 0)
+
+FetchContent_MakeAvailable(libavif)
+
+# Restore flags
+set(CMAKE_C_FLAGS ${OLD_CMAKE_C_FLAGS})
+set(CMAKE_CXX_FLAGS ${OLD_CMAKE_CXX_FLAGS})
+
+set(CMAKE_SKIP_INSTALL_RULES OFF)
+
+# Manually fix libavif missing include directories for aom
+if(TARGET avif_obj)
+    target_include_directories(avif_obj PRIVATE 
+        ${libaom_SOURCE_DIR}
+        ${libaom_BINARY_DIR}
+        ${libaom_SOURCE_DIR}/aom
     )
-    target_include_directories(avif PUBLIC 
-        ${libavif_SOURCE_DIR}/include
-        ${libavif_SOURCE_DIR}/third_party/libyuv/include
-    )
-    target_include_directories(avif PRIVATE
-        ${libavif_SOURCE_DIR}/src
-        ${dav1d_SOURCE_DIR}/include
-        ${libwebp_SOURCE_DIR}
-        ${libwebp_SOURCE_DIR}/src
-    )
-    target_compile_definitions(avif PRIVATE AVIF_CODEC_DAV1D=1 AVIF_LIBYUV_ENABLED=0)
-    target_link_libraries(avif PRIVATE dav1d::dav1d WebP::sharpyuv)
 endif()
+
+target_link_libraries(avif PRIVATE dav1d::dav1d WebP::sharpyuv)
 
 # --- wuffs ---
 set(WUFFS_RELEASE_DIR "${CMAKE_BINARY_DIR}/wuffs")

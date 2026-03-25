@@ -718,7 +718,6 @@ file(GLOB SKIA_CORE_SRC
     "${skia_SOURCE_DIR}/src/pathops/*.cpp"
     "${skia_SOURCE_DIR}/modules/svg/src/*.cpp"
     "${skia_SOURCE_DIR}/modules/skresources/src/*.cpp"
-    "${skia_SOURCE_DIR}/modules/skresources/src/SkResources.cpp"
     "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper.cpp"
     "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper_primitive.cpp"
     "${skia_SOURCE_DIR}/modules/skshaper/src/SkShaper_harfbuzz.cpp"
@@ -743,15 +742,6 @@ target_include_directories(skia_lib PUBLIC
 target_link_libraries(skia_lib PUBLIC ${SATORU_LIBS})
 target_compile_definitions(skia_lib PUBLIC 
     SK_USER_CONFIG_HEADER="SkUserConfig.h" 
-    SK_ENABLE_SVG 
-    SK_SHAPER_HARFBUZZ_AVAILABLE 
-    SK_SHAPER_UNICODE_AVAILABLE 
-    SK_UNICODE_AVAILABLE
-    SK_TYPEFACE_FACTORY_FREETYPE
-    SK_HAS_FREETYPE_SUPPORT
-    SK_UNICODE_HAS_HARFBUZZ
-    SK_DISABLE_FILESYSTEM 
-    SKCMS_PORTABLE
 )
 target_compile_options(skia_lib PRIVATE ${COMMON_COMPILE_OPTIONS})
 

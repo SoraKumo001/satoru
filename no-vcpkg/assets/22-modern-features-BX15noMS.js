@@ -1,0 +1,1 @@
+var e=``+new URL(`22-modern-features-BEOB_bcT.html`,import.meta.url).href;export{e as default};

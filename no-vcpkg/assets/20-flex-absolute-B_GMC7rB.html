@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Flexbox with Absolute Positioning</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&family=Noto+Sans+JP:wght@400;700&family=Noto+Serif+JP:wght@400;700&display=swap');
+
+    body {
+      font-family: 'Noto Sans JP', 'Noto Color Emoji';
+      padding: 40px;
+      background-color: #f8fafc;
+      color: #1e293b;
+    }
+
+    .section {
+      margin-bottom: 60px;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      margin-bottom: 20px;
+      color: #64748b;
+    }
+
+    /* Case 1: Absolute Badge inside Flex Item */
+    .card-grid {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      position: relative;
+      /* Container for absolute children */
+      display: flex;
+      flex-direction: column;
+      width: 200px;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+
+    .badge {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #ef4444;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    /* Case 2: Floating Action Button in Flex Container */
+    .chat-container {
+      position: relative;
+      /* For the floating button */
+      display: flex;
+      flex-direction: column;
+      height: 300px;
+      width: 350px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 15px;
+      background: #3b82f6;
+      color: white;
+      font-weight: 600;
+    }
+
+    .chat-messages {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 15px;
+      background: #f1f5f9;
+    }
+
+    .msg {
+      padding: 8px 12px;
+      border-radius: 12px;
+      max-width: 80%;
+      font-size: 0.9rem;
+    }
+
+    .msg-received {
+      background: white;
+      align-self: flex-start;
+    }
+
+    .msg-sent {
+      background: #dcf8c6;
+      align-self: flex-end;
+    }
+
+    .fab {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      background: #10b981;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+    }
+
+    /* Case 3: Absolute overlay in Flex Center */
+    .hero-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      border-radius: 12px;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-content {
+      text-align: center;
+      z-index: 1;
+    }
+
+    .decorative-circle {
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      top: -50px;
+      left: -50px;
+    }
+
+    .status-dot {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      width: 12px;
+      height: 12px;
+      background: #22c55e;
+      border: 2px solid white;
+      border-radius: 50%;
+    }
+
+    .avatar-wrapper {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 10px;
+    }
+
+    .avatar {
+      width: 100%;
+      height: 100%;
+      background: #cbd5e1;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Flexbox & Absolute Positioning</h1>
+
+  <div class="section">
+    <h2>1. Absolute Badge on Flex Items</h2>
+    <div class="card-grid">
+      <div class="card">
+        <span class="badge">NEW</span>
+        <div class="card-icon">📁</div>
+        <div style="font-weight: 600;">Documents</div>
+        <div style="font-size: 0.8rem; color: #64748b;">124 files</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🖼️</div>
+        <div style="font-weight: 600;">Photos</div>
+        <div style="font-size: 0.8rem; color: #64748b;">1.2 GB</div>
+      </div>
+      <div class="card">
+        <span class="badge" style="background: #f59e0b;">PRO</span>
+        <div class="card-icon">⚙️</div>
+        <div style="font-weight: 600;">Settings</div>
+        <div style="font-size: 0.8rem; color: #64748b;">Advanced usage</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>2. Floating Element in Flex Container</h2>
+    <div class="chat-container">
+      <div class="chat-header">Support Chat</div>
+      <div class="chat-messages">
+        <div class="msg msg-received">Hello! How can I help you?</div>
+        <div class="msg msg-sent">I have a question about the layout engine.</div>
+        <div class="msg msg-received">Sure, go ahead!</div>
+      </div>
+      <!-- This button stays in the corner regardless of flex flow -->
+      <div class="fab">+</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>3. Centered Flex with Absolute Overlays</h2>
+    <div class="hero-banner">
+      <div class="decorative-circle"></div>
+      <div class="hero-content">
+        <div class="avatar-wrapper">
+          <div class="avatar"></div>
+          <div class="status-dot"></div>
+        </div>
+        <div style="font-size: 1.2rem; font-weight: bold;">User Profile</div>
+        <div style="font-size: 0.9rem; opacity: 0.9;">System Administrator</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>

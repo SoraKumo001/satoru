@@ -1,0 +1,1 @@
+var e=``+new URL(`10-container-queries-sXXHYbdV.html`,import.meta.url).href;export{e as default};

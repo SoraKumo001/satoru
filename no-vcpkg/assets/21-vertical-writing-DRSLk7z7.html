@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Vertical Writing Test</title>
+  <style>
+    @font-face {
+      font-family: 'Roboto';
+      src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2') format('woff2');
+    }
+
+    @font-face {
+      font-family: 'Noto Sans JP';
+      font-style: normal;
+      font-weight: 400;
+      src: url(https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2) format('woff2');
+    }
+
+    body {
+      font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+      padding: 30px;
+      line-height: 1.6;
+      background: #f9fafb;
+    }
+
+    .section {
+      margin-bottom: 30px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+
+    h1 {
+      margin-top: 0;
+      border-bottom: 2px solid #10b981;
+      padding-bottom: 5px;
+    }
+
+    h2 {
+      font-size: 18px;
+      color: #4b5563;
+      margin-bottom: 15px;
+      border-left: 4px solid #10b981;
+      padding-left: 10px;
+    }
+
+    .vertical-container {
+      border: 1px solid #d1d5db;
+      padding: 15px;
+      background: #f3f4f6;
+      height: 400px;
+    }
+
+    .v-rl {
+      writing-mode: vertical-rl;
+    }
+
+    .v-lr {
+      writing-mode: vertical-lr;
+    }
+
+    .box {
+      border: 1px solid #3b82f6;
+      padding: 10px;
+      margin: 10px;
+      background: white;
+    }
+
+    .text-combine {
+        text-combine-upright: all;
+    }
+
+    .flex-v {
+        display: flex;
+        gap: 10px;
+        height: 300px;
+    }
+
+    /* Complex Flex Styles */
+    .complex-flex-container {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      padding: 20px;
+      background: #eff6ff;
+      border: 2px dashed #3b82f6;
+      height: 600px;
+    }
+
+    .sidebar {
+      flex: 0 0 100px;
+      background: #dbeafe;
+      border: 1px solid #3b82f6;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px;
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .card-row {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .v-card {
+      flex: 1;
+      background: white;
+      border: 1px solid #93c5fd;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .v-card-header {
+      font-weight: bold;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+    }
+
+    .v-card-body {
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .v-card-footer {
+      margin-top: 10px;
+      text-align: end;
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .v-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #3b82f6;
+      color: white;
+      border-radius: 9999px;
+      font-size: 11px;
+      margin-bottom: 5px;
+    }
+
+    .center-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Vertical Writing Layout Test</h1>
+
+  <div class="section">
+    <h2>1. writing-mode: vertical-rl (Right to Left)</h2>
+    <div class="vertical-container v-rl">
+      <div class="box">
+        <h3>吾輩は猫である</h3>
+        <p>
+          吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。
+          何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。
+          吾輩はここで始めて人間というものを見た。しかもあとで聞くとそれは書生という人間中で一番獰悪な種族であったそうだ。
+        </p>
+      </div>
+      <div class="box">
+        <h3>句読点と括弧のテスト</h3>
+        <p>
+          「こんにちは！」、彼は言った。
+          （これはカッコのテストです。）
+          …三点リーダーの向きはどうでしょうか？
+          ― ダッシュの向きも確認。
+        </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>2. writing-mode: vertical-lr (Left to Right)</h2>
+    <div class="vertical-container v-lr">
+      <div class="box">
+          縦書き（左から右へ流れる）のテストです。
+          通常、日本の縦書きは右から左ですが、CSSでは左からも可能です。
+      </div>
+      <div class="box">
+          ABC-123 English in Vertical Text.
+          Rotated English text should appear here.
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>3. Text Orientation & Combination</h2>
+    <div class="vertical-container v-rl" style="height: 200px;">
+        <p>
+            数字の縦中横： <span class="text-combine">21</span> 世紀<br>
+            日付のテスト： <span class="text-combine">2024</span>年<span class="text-combine">12</span>月<span class="text-combine">31</span>日
+        </p>
+        <p style="text-orientation: upright;">
+            UPRIGHT: English text should stay upright.
+        </p>
+    </div>
+  </div>
+
+  <div class="section">
+      <h2>4. Vertical Flexbox</h2>
+      <div class="flex-v">
+          <div class="box v-rl">
+              Flex Item 1 (Vertical RL)
+          </div>
+          <div class="box v-rl">
+              Flex Item 2 (Vertical RL)
+          </div>
+          <div class="box v-rl">
+              Flex Item 3 (Vertical RL)
+          </div>
+      </div>
+  </div>
+
+  <div class="section">
+    <h2>5. Vertical Writing Centering</h2>
+    <div class="center-container v-rl" style="height: 300px;">
+      <div class="box">
+        <h3>中央揃えのテスト</h3>
+        <p>
+          このテキストはコンテナの<br>
+          中央に配置されています。
+        </p>
+      </div>
+    </div>
+    <div class="center-container v-lr" style="height: 300px; margin-top: 20px;">
+      <div class="box">
+        <h3>Vertical LR Centering</h3>
+        <p>
+          Centering in vertical-lr mode.<br>
+          Left-to-right writing.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>6. Complex Vertical Flexbox (Nested & Mixed Directions)</h2>
+    <div class="complex-flex-container v-rl">
+      <div class="sidebar">
+        <div class="v-badge">SIDEBAR</div>
+        <div style="font-weight: bold;">Menu Item A</div>
+        <div>Menu Item B</div>
+        <div>Menu Item C</div>
+        <div style="margin-top: auto; font-size: 12px;">© 2024 Satoru</div>
+      </div>
+
+      <div class="main-content">
+        <div class="box" style="margin: 0; flex: 0 0 auto;">
+          <h3 style="margin-top: 0;">Main Header (Flex: 0 0 auto)</h3>
+          <p>This header has a fixed size in the main axis of the parent flex container.</p>
+        </div>
+
+        <div class="card-row">
+          <div class="v-card">
+            <div class="v-card-header">Card One</div>
+            <div class="v-card-body">
+              縦書きのカードレイアウトです。Flexboxを使用して、ヘッダー、ボディ、フッターを垂直方向に配置しています。
+              ボディ部分は flex: 1 を持っているため、余白を埋めるように伸びます。
+            </div>
+            <div class="v-card-footer">Updated: 2024/05/20</div>
+          </div>
+
+          <div class="v-card">
+            <div class="v-card-header">Card Two (Longer)</div>
+            <div class="v-card-body">
+              吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。
+              何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。
+              吾輩はここで始めて人間というものを見た。
+            </div>
+            <div class="v-card-footer">Updated: 2024/05/21</div>
+          </div>
+        </div>
+
+        <div class="box" style="margin: 0; flex: 0 0 80px; background: #fef3c7; border-color: #f59e0b;">
+          Footer Area (Fixed 80px block-size)
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>

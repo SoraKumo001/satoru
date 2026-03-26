@@ -499,6 +499,55 @@ endif()
 
 target_link_libraries(avif PRIVATE dav1d::dav1d WebP::sharpyuv)
 
+# --- qpdf ---
+FetchContent_Declare(
+  qpdf
+  GIT_REPOSITORY https://github.com/qpdf/qpdf.git
+  GIT_TAG        v11.9.1
+)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(QPDF_DEFAULT_CRYPTO "native" CACHE STRING "" FORCE)
+set(REQUIRE_CRYPTO_NATIVE ON CACHE BOOL "" FORCE)
+set(BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(SKIP_TESTS ON CACHE BOOL "" FORCE)
+set(QPDF_SKIP_ABI_CHECKS ON CACHE BOOL "" FORCE)
+
+# qpdf uses find_package for ZLIB and JPEG.
+# Since we use FetchContent, we need to help it.
+set(ZLIB_FOUND TRUE CACHE BOOL "" FORCE)
+set(ZLIB_INCLUDE_DIRS ${zlib_SOURCE_DIR} CACHE PATH "" FORCE)
+set(ZLIB_LIBRARIES zlib_static CACHE STRING "" FORCE)
+
+set(JPEG_FOUND TRUE CACHE BOOL "" FORCE)
+set(JPEG_INCLUDE_DIRS ${LIBJPEG_TURBO_INCLUDE_DIRS} CACHE PATH "" FORCE)
+set(JPEG_LIBRARIES jpeg-static CACHE STRING "" FORCE)
+
+# qpdf specifically looks for these variables:
+set(ZLIB_H_PATH ${zlib_SOURCE_DIR} CACHE PATH "" FORCE)
+set(ZLIB_LIB_PATH zlib_static CACHE STRING "" FORCE)
+set(LIBJPEG_H_PATH ${LIBJPEG_TURBO_INCLUDE_DIRS} CACHE PATH "" FORCE)
+set(LIBJPEG_LIB_PATH jpeg-static CACHE STRING "" FORCE)
+
+# Disable qpdf installation to avoid export issues with FetchContent
+set(INSTALL_CMAKE_PACKAGE OFF CACHE BOOL "" FORCE)
+set(INSTALL_PKGCONFIG OFF CACHE BOOL "" FORCE)
+set(INSTALL_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+FetchContent_GetProperties(qpdf)
+if(NOT qpdf_POPULATED)
+    FetchContent_Populate(qpdf)
+    add_subdirectory(${qpdf_SOURCE_DIR} ${qpdf_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+if(TARGET libqpdf)
+    add_dependencies(libqpdf libjpeg-turbo-project)
+    target_compile_definitions(libqpdf INTERFACE POINTERHOLDER_TRANSITION=4)
+    if(NOT TARGET qpdf::libqpdf)
+        add_library(qpdf::libqpdf ALIAS libqpdf)
+    endif()
+endif()
+
 # --- wuffs ---
 set(WUFFS_RELEASE_DIR "${CMAKE_BINARY_DIR}/wuffs")
 if(NOT EXISTS "${WUFFS_RELEASE_DIR}/wuffs-v0.3.c")
@@ -528,7 +577,7 @@ set(SATORU_LIBS
     utf8proc::utf8proc
     libunibreak::libunibreak
     harfbuzz::harfbuzz
-    # qpdf::libqpdf
+    qpdf::libqpdf
     jpeg-static
     zlib_static
 )

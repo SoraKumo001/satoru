@@ -1,14 +1,66 @@
 #include "pdf_merger.h"
+#include <qpdf/QPDF.hh>
+#include <qpdf/QPDFWriter.hh>
+#include <qpdf/BufferInputSource.hh>
+#include <qpdf/QPDFPageDocumentHelper.hh>
+#include <qpdf/QPDFPageObjectHelper.hh>
+#include <qpdf/Buffer.hh>
 #include <stdexcept>
+#include <string>
 
 namespace satoru {
-    std::vector<uint8_t> merge_pdf_binaries(const std::vector<const uint8_t*>& data_ptrs, 
-                                           const std::vector<size_t>& sizes) {
-        // PDF merging is currently disabled in WASM build due to QPDF dependency complexity.
-        // Return an empty vector or the first PDF if available as a placeholder.
-        if (data_ptrs.empty()) return {};
-        
-        // Just return the first PDF for now (not a real merge, but avoids crash)
+
+std::vector<uint8_t> merge_pdf_binaries(const std::vector<const uint8_t*>& data_ptrs, 
+                                       const std::vector<size_t>& sizes) {
+    if (data_ptrs.empty()) return {};
+    if (data_ptrs.size() == 1) {
         return std::vector<uint8_t>(data_ptrs[0], data_ptrs[0] + sizes[0]);
     }
+
+    try {
+        QPDF merged_qpdf;
+        merged_qpdf.emptyPDF();
+        QPDFPageDocumentHelper merged_helper(merged_qpdf);
+
+        for (size_t i = 0; i < data_ptrs.size(); ++i) {
+            // QPDF Buffer doesn't own memory by default if created this way
+            Buffer* buf = new Buffer(const_cast<unsigned char*>(data_ptrs[i]), sizes[i]);
+            auto input_source = std::shared_ptr<InputSource>(new BufferInputSource(
+                "pdf_part_" + std::to_string(i), 
+                buf,
+                true // own_memory = true, so it will delete buf
+            ));
+            
+            QPDF part_qpdf;
+            part_qpdf.processInputSource(input_source);
+            QPDFPageDocumentHelper part_helper(part_qpdf);
+            
+            std::vector<QPDFPageObjectHelper> pages = part_helper.getAllPages();
+            for (auto& page : pages) {
+                merged_helper.addPage(page, false);
+            }
+        }
+
+        QPDFWriter writer(merged_qpdf);
+        writer.setOutputMemory();
+        writer.write();
+        
+        Buffer* buffer = writer.getBuffer();
+        if (buffer) {
+            const uint8_t* buf_data = reinterpret_cast<const uint8_t*>(buffer->getBuffer());
+            std::vector<uint8_t> result(buf_data, buf_data + buffer->getSize());
+            delete buffer;
+            return result;
+        }
+        return {};
+
+    } catch (const std::exception& e) {
+        // In a real production app, we might want to log this error via SATORU_LOG_ERROR
+        if (!data_ptrs.empty()) {
+            return std::vector<uint8_t>(data_ptrs[0], data_ptrs[0] + sizes[0]);
+        }
+        return {};
+    }
 }
+
+} // namespace satoru

@@ -1,6 +1,7 @@
 import {
   SatoruBase,
   RequiredResource,
+  ResolvedFontResult,
   resolveGoogleFonts,
 } from "./core.js";
 import * as path from "path";
@@ -19,7 +20,7 @@ export class Satoru extends SatoruBase {
     resource: RequiredResource,
     baseUrl?: string,
     userAgent?: string,
-  ): Promise<Uint8Array | null> {
+  ): Promise<Uint8Array | ResolvedFontResult | null> {
     try {
       if (resource.url.startsWith("provider:google-fonts")) {
         return resolveGoogleFonts(resource, userAgent);
@@ -77,7 +78,7 @@ export class Satoru extends SatoruBase {
     resource: RequiredResource,
     baseUrl?: string,
     userAgent?: string,
-  ): Promise<Uint8Array | null> {
+  ): Promise<Uint8Array | ResolvedFontResult | null> {
     return Satoru.defaultResourceResolver(resource, baseUrl, userAgent);
   }
 

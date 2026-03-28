@@ -71,10 +71,15 @@ export interface RequiredResource {
   redraw_on_ready?: boolean;
 }
 
+export interface ResolvedFontResult {
+  css: Uint8Array;
+  fonts: { url: string; data: Uint8Array }[];
+}
+
 export type ResourceResolver = (
   resource: RequiredResource,
-  defaultResolver: (resource: RequiredResource) => Promise<Uint8Array | null>,
-) => Promise<Uint8Array | ArrayBufferView | null>;
+  defaultResolver: (resource: RequiredResource) => Promise<Uint8Array | ResolvedFontResult | null>,
+) => Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null>;
 
 export interface RenderOptions {
   value?: string | string[] | any | any[];
@@ -110,7 +115,7 @@ export const DEFAULT_FONT_MAP: Record<string, string> = {
 export async function resolveGoogleFonts(
   resource: RequiredResource,
   userAgent?: string,
-): Promise<Uint8Array | null> {
+): Promise<ResolvedFontResult | Uint8Array | null> {
   if (!resource.url.startsWith("provider:google-fonts")) return null;
 
   const urlObj = new URL(resource.url);
@@ -151,8 +156,44 @@ export async function resolveGoogleFonts(
   try {
     const resp = await fetch(googleFontUrl, { headers });
     if (!resp.ok) return null;
-    const buf = await resp.arrayBuffer();
-    return new Uint8Array(buf);
+    const cssText = await resp.text();
+    const cssBuf = new TextEncoder().encode(cssText);
+
+    // Extract .woff2 URLs from @font-face src: url(...)
+    const fontUrls: string[] = [];
+    const urlRegex = /src:\s*url\(([^)]+)\)/g;
+    let match: RegExpExecArray | null;
+    while ((match = urlRegex.exec(cssText)) !== null) {
+      const fontUrl = match[1].replace(/['"]*/g, "").trim();
+      if (fontUrl && !fontUrls.includes(fontUrl)) {
+        fontUrls.push(fontUrl);
+      }
+    }
+
+    if (fontUrls.length === 0) {
+      return cssBuf;
+    }
+
+    // Prefetch all font binaries in parallel
+    const fontResults = await Promise.all(
+      fontUrls.map(async (url) => {
+        try {
+          const fontResp = await fetch(url, { headers });
+          if (!fontResp.ok) return null;
+          const buf = await fontResp.arrayBuffer();
+          return { url, data: new Uint8Array(buf) };
+        } catch {
+          return null;
+        }
+      }),
+    );
+
+    const fonts: { url: string; data: Uint8Array }[] = [];
+    for (const f of fontResults) {
+      if (f !== null) fonts.push(f);
+    }
+
+    return { css: cssBuf, fonts };
   } catch {
     return null;
   }
@@ -162,6 +203,7 @@ export abstract class SatoruBase {
   private factory: any;
   private modPromise?: Promise<SatoruModule>;
   protected currentFontMap: Record<string, string> = DEFAULT_FONT_MAP;
+  private resourceCache = new Map<string, Uint8Array | ResolvedFontResult>();
 
   protected constructor(factory: any) {
     this.factory = factory;
@@ -310,7 +352,7 @@ export abstract class SatoruBase {
     resource: RequiredResource,
     baseUrl?: string,
     userAgent?: string,
-  ): Promise<Uint8Array | null>;
+  ): Promise<Uint8Array | ResolvedFontResult | null>;
 
   protected abstract fetchHtml(
     url: string,
@@ -420,12 +462,83 @@ export abstract class SatoruBase {
 
       const resolver: (
         resource: RequiredResource,
-      ) => Promise<Uint8Array | ArrayBufferView | null> =
+      ) => Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null> =
         options.resolveResource
           ? async (r) => {
               return await options.resolveResource!(r, defaultResolver);
             }
           : defaultResolver;
+
+      const cachedResolver = async (
+        r: RequiredResource,
+      ): Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null> => {
+        const cacheKey = `${r.type}:${r.url}:${r.characters ?? ""}`;
+        const cached = this.resourceCache.get(cacheKey);
+        if (cached) return cached;
+        const result = await resolver(r);
+        if (result) {
+          if (result instanceof Uint8Array) {
+            this.resourceCache.set(cacheKey, result);
+          } else if (
+            "css" in (result as any) &&
+            "fonts" in (result as any)
+          ) {
+            this.resourceCache.set(cacheKey, result as ResolvedFontResult);
+          }
+        }
+        return result;
+      };
+
+      const loadResourceData = (
+        r: RequiredResource,
+        uint8: Uint8Array,
+      ) => {
+        if (
+          r.type === "image" &&
+          typeof createImageBitmap !== "undefined" &&
+          typeof OffscreenCanvas !== "undefined"
+        ) {
+          return (async () => {
+            try {
+              const blob = new Blob([uint8.buffer as ArrayBuffer]);
+              const bitmap = await createImageBitmap(blob);
+              const canvas = new OffscreenCanvas(
+                bitmap.width,
+                bitmap.height,
+              );
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                ctx.drawImage(bitmap, 0, 0);
+                const imageData = ctx.getImageData(
+                  0,
+                  0,
+                  bitmap.width,
+                  bitmap.height,
+                );
+                mod.load_image_pixels(
+                  instancePtr,
+                  r.url,
+                  bitmap.width,
+                  bitmap.height,
+                  new Uint8Array(imageData.data.buffer),
+                  r.url,
+                );
+                return;
+              }
+            } catch (e) {
+              // fall through
+            }
+            let typeInt = 1;
+            if (r.type === "image") typeInt = 2;
+            if (r.type === "css") typeInt = 3;
+            mod.add_resource(instancePtr, r.url, typeInt, uint8);
+          })();
+        }
+        let typeInt = 1;
+        if (r.type === "image") typeInt = 2;
+        if (r.type === "css") typeInt = 3;
+        mod.add_resource(instancePtr, r.url, typeInt, uint8);
+      };
 
       const inputHtmls = Array.isArray(value) ? value : [value];
       const processedHtmls: string[] = [];
@@ -456,10 +569,41 @@ export abstract class SatoruBase {
                 const key = `${r.type}:${r.url}:${r.characters ?? ""}`;
                 resolvedResources.add(key);
 
-                const data = await resolver({ ...r });
+                const data = await cachedResolver({ ...r });
+                if (!data) return;
+
+                // Handle ResolvedFontResult (CSS + prefetched font binaries)
                 if (
-                  data &&
-                  (data instanceof Uint8Array || ArrayBuffer.isView(data))
+                  typeof data === "object" &&
+                  "css" in data &&
+                  "fonts" in data
+                ) {
+                  const fontResult = data as ResolvedFontResult;
+                  // Load the CSS first so C++ can parse @font-face
+                  mod.add_resource(
+                    instancePtr,
+                    r.url,
+                    1, // Font type
+                    fontResult.css,
+                  );
+                  // Then load all prefetched font binaries directly
+                  for (const font of fontResult.fonts) {
+                    const fontKey = `font:${font.url}:`;
+                    resolvedResources.add(fontKey);
+                    mod.add_resource(
+                      instancePtr,
+                      font.url,
+                      1, // Font type
+                      font.data,
+                    );
+                  }
+                  return;
+                }
+
+                // Handle regular Uint8Array / ArrayBufferView
+                if (
+                  data instanceof Uint8Array ||
+                  ArrayBuffer.isView(data)
                 ) {
                   const uint8 =
                     data instanceof Uint8Array
@@ -469,45 +613,7 @@ export abstract class SatoruBase {
                           (data as ArrayBufferView).byteOffset,
                           (data as ArrayBufferView).byteLength,
                         );
-                  if (
-                    r.type === "image" &&
-                    typeof createImageBitmap !== "undefined" &&
-                    typeof OffscreenCanvas !== "undefined"
-                  ) {
-                    try {
-                      const blob = new Blob([uint8.buffer as ArrayBuffer]);
-                      const bitmap = await createImageBitmap(blob);
-                      const canvas = new OffscreenCanvas(
-                        bitmap.width,
-                        bitmap.height,
-                      );
-                      const ctx = canvas.getContext("2d");
-                      if (ctx) {
-                        ctx.drawImage(bitmap, 0, 0);
-                        const imageData = ctx.getImageData(
-                          0,
-                          0,
-                          bitmap.width,
-                          bitmap.height,
-                        );
-                        mod.load_image_pixels(
-                          instancePtr,
-                          r.url,
-                          bitmap.width,
-                          bitmap.height,
-                          new Uint8Array(imageData.data.buffer),
-                          r.url,
-                        );
-                        return;
-                      }
-                    } catch (e) {
-                    }
-                  }
-
-                  let typeInt = 1;
-                  if (r.type === "image") typeInt = 2;
-                  if (r.type === "css") typeInt = 3;
-                  mod.add_resource(instancePtr, r.url, typeInt, uint8);
+                  await loadResourceData(r, uint8);
                 }
               } catch (e) {
                 console.warn(`Failed to resolve resource: ${r.url}`, e);

@@ -38,8 +38,8 @@ body {
 
 p {
 	display:block; 
-	margin-top:1em; 
-	margin-bottom:1em;
+	margin-block-start:1em; 
+	margin-block-end:1em;
 }
 
 b, strong {
@@ -79,42 +79,42 @@ h1, h2, h3, h4, h5, h6, div {
 
 h1 {
 	font-weight:bold; 
-	margin-top:0.67em; 
-	margin-bottom:0.67em; 
+	margin-block-start:0.67em; 
+	margin-block-end:0.67em; 
 	font-size: 2em;
 }
 
 h2 {
 	font-weight:bold; 
-	margin-top:0.83em; 
-	margin-bottom:0.83em; 
+	margin-block-start:0.83em; 
+	margin-block-end:0.83em; 
 	font-size: 1.5em;
 }
 
 h3 {
 	font-weight:bold; 
-	margin-top:1em; 
-	margin-bottom:1em; 
+	margin-block-start:1em; 
+	margin-block-end:1em; 
 	font-size:1.17em;
 }
 
 h4 {
 	font-weight:bold; 
-	margin-top:1.33em; 
-	margin-bottom:1.33em
+	margin-block-start:1.33em; 
+	margin-block-end:1.33em
 }
 
 h5 {
 	font-weight:bold; 
-	margin-top:1.67em; 
-	margin-bottom:1.67em;
+	margin-block-start:1.67em; 
+	margin-block-end:1.67em;
 	font-size:.83em;
 }
 
 h6 {
 	font-weight:bold; 
-	margin-top:2.33em; 
-	margin-bottom:2.33em;
+	margin-block-start:2.33em; 
+	margin-block-end:2.33em;
 	font-size:.67em;
 } 
 
@@ -157,10 +157,10 @@ img[align="left"]
 
 hr {
 	display: block;
-	margin-top: 0.5em;
-	margin-bottom: 0.5em;
-	margin-left: auto;
-	margin-right: auto;
+	margin-block-start: 0.5em;
+	margin-block-end: 0.5em;
+	margin-inline-start: auto;
+	margin-inline-end: auto;
 	border-style: inset;
 	border-width: 1px
 }
@@ -232,8 +232,8 @@ table[align=right] {
 }
 
 table[align=center] {
-   margin-left: auto;
-   margin-right: auto;
+   margin-inline-start: auto;
+   margin-inline-end: auto;
 }
 
 caption {
@@ -268,20 +268,20 @@ pre, xmp, plaintext, listing {
 ul, menu, dir {
 	display: block;
 	list-style-type: disc;
-	margin-top: 1em;
-	margin-bottom: 1em;
-	margin-left: 0;
-	margin-right: 0;
+	margin-block-start: 1em;
+	margin-block-end: 1em;
+	margin-inline-start: 0;
+	margin-inline-end: 0;
 	padding-left: 40px
 }
 
 ol {
 	display: block;
 	list-style-type: decimal;
-	margin-top: 1em;
-	margin-bottom: 1em;
-	margin-left: 0;
-	margin-right: 0;
+	margin-block-start: 1em;
+	margin-block-end: 1em;
+	margin-inline-start: 0;
+	margin-inline-end: 0;
 	padding-left: 40px
 }
 
@@ -299,15 +299,15 @@ ol ol ul, ol ul ul, ul ol ul, ul ul ul {
 
 dd {
 	display: block;
-	margin-left: 40px;
+	margin-inline-start: 40px;
 }
 
 dl {
 	display: block;
-	margin-top: 1em;
-	margin-bottom: 1em;
-	margin-left: 0;
-	margin-right: 0;
+	margin-block-start: 1em;
+	margin-block-end: 1em;
+	margin-inline-start: 0;
+	margin-inline-end: 0;
 }
 
 dt {
@@ -315,23 +315,23 @@ dt {
 }
 
 ol ul, ul ol, ul ul, ol ol {
-	margin-top: 0;
-	margin-bottom: 0
+	margin-block-start: 0;
+	margin-block-end: 0
 }
 
 blockquote {
 	display: block;
-	margin-top: 1em;
-	margin-bottom: 1em;
-	margin-left: 40px;
-	margin-right: 40px;
+	margin-block-start: 1em;
+	margin-block-end: 1em;
+	margin-inline-start: 40px;
+	margin-inline-end: 40px;
 }
 
 /*********** FORM ELEMENTS ************/
 
 form {
 	display: block;
-	margin-top: 0em;
+	margin-block-start: 0em;
 }
 
 option {
@@ -369,10 +369,10 @@ sup {
 
 figure {
 	display: block;
-	margin-top: 1em;
-	margin-bottom: 1em;
-	margin-left: 40px;
-	margin-right: 40px;
+	margin-block-start: 1em;
+	margin-block-end: 1em;
+	margin-inline-start: 40px;
+	margin-inline-end: 40px;
 }
 
 figcaption {

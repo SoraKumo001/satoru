@@ -112,6 +112,70 @@ export const DEFAULT_FONT_MAP: Record<string, string> = {
     "https://cdn.jsdelivr.net/npm/@fontsource/noto-color-emoji/files/noto-color-emoji-emoji-400-normal.woff2",
 };
 
+/**
+ * Parse unicode-range string into an array of [start, end] codepoint ranges.
+ * e.g. "U+0000-00FF, U+0131" → [[0x0000, 0x00FF], [0x0131, 0x0131]]
+ */
+function parseUnicodeRanges(rangeStr: string): [number, number][] {
+  const ranges: [number, number][] = [];
+  for (const part of rangeStr.split(",")) {
+    const m = part.trim().match(/U\+([0-9A-Fa-f?]+)(?:-([0-9A-Fa-f]+))?/);
+    if (!m) continue;
+    if (m[1].includes("?")) {
+      // Wildcard range: U+4?? means U+400-U+4FF
+      const lo = parseInt(m[1].replace(/\?/g, "0"), 16);
+      const hi = parseInt(m[1].replace(/\?/g, "F"), 16);
+      ranges.push([lo, hi]);
+    } else {
+      const start = parseInt(m[1], 16);
+      const end = m[2] ? parseInt(m[2], 16) : start;
+      ranges.push([start, end]);
+    }
+  }
+  return ranges;
+}
+
+/**
+ * Check if any character's codepoint falls within the given unicode ranges.
+ */
+function hasMatchingCodepoint(
+  ranges: [number, number][],
+  characters: string,
+): boolean {
+  for (let i = 0; i < characters.length; i++) {
+    const cp = characters.codePointAt(i)!;
+    if (cp > 0xffff) i++; // skip surrogate pair
+    for (const [start, end] of ranges) {
+      if (cp >= start && cp <= end) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Parse @font-face blocks from CSS text, extracting src url and unicode-range.
+ */
+function parseFontFaceBlocks(
+  cssText: string,
+): { url: string; unicodeRange: string | null }[] {
+  const blocks: { url: string; unicodeRange: string | null }[] = [];
+  const blockRegex = /@font-face\s*\{([^}]+)\}/g;
+  let blockMatch: RegExpExecArray | null;
+  while ((blockMatch = blockRegex.exec(cssText)) !== null) {
+    const body = blockMatch[1];
+    const srcMatch = body.match(/src:\s*url\(([^)]+)\)/);
+    const rangeMatch = body.match(/unicode-range:\s*([^;]+)/);
+    if (srcMatch) {
+      const url = srcMatch[1].replace(/['"]/g, "").trim();
+      blocks.push({
+        url,
+        unicodeRange: rangeMatch ? rangeMatch[1].trim() : null,
+      });
+    }
+  }
+  return blocks;
+}
+
 export async function resolveGoogleFonts(
   resource: RequiredResource,
   userAgent?: string,
@@ -159,29 +223,36 @@ export async function resolveGoogleFonts(
     const cssText = await resp.text();
     const cssBuf = new TextEncoder().encode(cssText);
 
-    // Extract .woff2 URLs from @font-face src: url(...)
-    const fontUrls: string[] = [];
-    const urlRegex = /src:\s*url\(([^)]+)\)/g;
-    let match: RegExpExecArray | null;
-    while ((match = urlRegex.exec(cssText)) !== null) {
-      const fontUrl = match[1].replace(/['"]*/g, "").trim();
-      if (fontUrl && !fontUrls.includes(fontUrl)) {
-        fontUrls.push(fontUrl);
-      }
-    }
+    // Parse @font-face blocks with their unicode-range
+    const blocks = parseFontFaceBlocks(cssText);
 
-    if (fontUrls.length === 0) {
+    if (blocks.length === 0) {
       return cssBuf;
     }
 
-    // Prefetch all font binaries in parallel
+    // Filter blocks by unicode-range if characters are available
+    let filteredBlocks = blocks;
+    if (text && text.length > 0) {
+      filteredBlocks = blocks.filter((block) => {
+        if (!block.unicodeRange) return true; // no range = always include
+        const ranges = parseUnicodeRanges(block.unicodeRange);
+        return hasMatchingCodepoint(ranges, text);
+      });
+    }
+
+    if (filteredBlocks.length === 0) {
+      // No matching subsets - still return CSS for C++ to parse
+      return cssBuf;
+    }
+
+    // Prefetch only the matching font binaries in parallel
     const fontResults = await Promise.all(
-      fontUrls.map(async (url) => {
+      filteredBlocks.map(async (block) => {
         try {
-          const fontResp = await fetch(url, { headers });
+          const fontResp = await fetch(block.url, { headers });
           if (!fontResp.ok) return null;
           const buf = await fontResp.arrayBuffer();
-          return { url, data: new Uint8Array(buf) };
+          return { url: block.url, data: new Uint8Array(buf) };
         } catch {
           return null;
         }

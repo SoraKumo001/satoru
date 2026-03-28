@@ -1,0 +1,1 @@
+var e=``+new URL(`21-vertical-writing-Do6WAYbY.html`,import.meta.url).href;export{e as default};

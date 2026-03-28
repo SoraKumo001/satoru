@@ -69,13 +69,13 @@
     }
 
     .text-combine {
-        text-combine-upright: all;
+      text-combine-upright: all;
     }
 
     .flex-v {
-        display: flex;
-        gap: 10px;
-        height: 300px;
+      display: flex;
+      gap: 10px;
+      height: 300px;
     }
 
     /* Complex Flex Styles */
@@ -182,7 +182,7 @@
           （これはカッコのテストです。）
           …三点リーダーの向きはどうでしょうか？
           ― ダッシュの向きも確認。
-        </div>
+      </div>
     </div>
   </div>
 
@@ -190,12 +190,12 @@
     <h2>2. writing-mode: vertical-lr (Left to Right)</h2>
     <div class="vertical-container v-lr">
       <div class="box">
-          縦書き（左から右へ流れる）のテストです。
-          通常、日本の縦書きは右から左ですが、CSSでは左からも可能です。
+        縦書き（左から右へ流れる）のテストです。
+        通常、日本の縦書きは右から左ですが、CSSでは左からも可能です。
       </div>
       <div class="box">
-          ABC-123 English in Vertical Text.
-          Rotated English text should appear here.
+        ABC-123 English in Vertical Text.
+        Rotated English text should appear here.
       </div>
     </div>
   </div>
@@ -203,29 +203,30 @@
   <div class="section">
     <h2>3. Text Orientation & Combination</h2>
     <div class="vertical-container v-rl" style="height: 200px;">
-        <p>
-            数字の縦中横： <span class="text-combine">21</span> 世紀<br>
-            日付のテスト： <span class="text-combine">2024</span>年<span class="text-combine">12</span>月<span class="text-combine">31</span>日
-        </p>
-        <p style="text-orientation: upright;">
-            UPRIGHT: English text should stay upright.
-        </p>
+      <p>
+        数字の縦中横： <span class="text-combine">21</span> 世紀<br>
+        日付のテスト： <span class="text-combine">2024</span>年<span class="text-combine">12</span>月<span
+          class="text-combine">31</span>日
+      </p>
+      <p style="text-orientation: upright;">
+        UPRIGHT: English text should stay upright.
+      </p>
     </div>
   </div>
 
   <div class="section">
-      <h2>4. Vertical Flexbox</h2>
-      <div class="flex-v">
-          <div class="box v-rl">
-              Flex Item 1 (Vertical RL)
-          </div>
-          <div class="box v-rl">
-              Flex Item 2 (Vertical RL)
-          </div>
-          <div class="box v-rl">
-              Flex Item 3 (Vertical RL)
-          </div>
+    <h2>4. Vertical Flexbox</h2>
+    <div class="flex-v">
+      <div class="box v-rl">
+        Flex Item 1 (Vertical RL)
       </div>
+      <div class="box v-rl">
+        Flex Item 2 (Vertical RL)
+      </div>
+      <div class="box v-rl">
+        Flex Item 3 (Vertical RL)
+      </div>
+    </div>
   </div>
 
   <div class="section">

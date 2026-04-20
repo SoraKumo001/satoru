@@ -24,6 +24,7 @@
 #include "include/effects/SkGradient.h"
 #include "include/encode/SkPngEncoder.h"
 #include "include/svg/SkSVGCanvas.h"
+#include "render_utils.h"
 #include "include/utils/SkParsePath.h"
 #include "utils/logging.h"
 #include "utils/skia_utils.h"
@@ -1530,8 +1531,17 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
                                 const RenderOptions& options) {
     if (!inst->doc || !inst->render_container) return "";
 
+    int content_width = width;
     int content_height = (height > 0) ? height : (int)inst->doc->height();
     if (content_height < 1) content_height = 1;
+
+    int src_x = options.cropX;
+    int src_y = options.cropY;
+    int src_w = options.cropWidth > 0 ? options.cropWidth : content_width;
+    int src_h = options.cropHeight > 0 ? options.cropHeight : content_height;
+
+    int out_width = options.outputWidth > 0 ? options.outputWidth : src_w;
+    int out_height = options.outputHeight > 0 ? options.outputHeight : src_h;
 
     SkDynamicMemoryWStream stream;
     SkSVGCanvas::Options svg_options;
@@ -1540,8 +1550,12 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
     } else {
         svg_options.flags = (SkSVGCanvas::Flags)0;
     }
-    auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, (float)content_height), &stream,
+    auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)out_width, (float)out_height), &stream,
                                     svg_options);
+
+    if (options.outputWidth > 0 || options.outputHeight > 0) {
+        apply_resize_transform(canvas.get(), src_w, src_h, out_width, out_height, options.fitType);
+    }
 
     inst->render_container->reset();
     inst->render_container->set_canvas(canvas.get());
@@ -1549,8 +1563,8 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
     inst->render_container->set_tagging(true);
     inst->render_container->set_text_to_paths(options.svgTextToPaths);
 
-    litehtml::position clip(0, 0, width, content_height);
-    inst->doc->draw(0, 0, 0, &clip);
+    litehtml::position clip(0, 0, src_w, src_h);
+    inst->doc->draw(0, -src_x, -src_y, &clip);
     inst->render_container->flush();
 
     canvas.reset();

@@ -1,6 +1,6 @@
 {
   "name": "satoru-render",
-  "version": "0.0.25",
+  "version": "1.0.0",
   "description": "High-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly",
   "type": "module",
   "main": "./dist/index.js",

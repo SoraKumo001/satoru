@@ -14,6 +14,13 @@ enum class RenderFormat { SVG = 0, PNG = 1, WebP = 2, PDF = 3 };
 
 struct RenderOptions {
     bool svgTextToPaths = true;
+    int fitType = 0; // 0=contain, 1=cover, 2=fill
+    int outputWidth = 0;
+    int outputHeight = 0;
+    int cropX = 0;
+    int cropY = 0;
+    int cropWidth = 0;
+    int cropHeight = 0;
 };
 
 void satoru_log(LogLevel level, const char *message);

@@ -352,6 +352,10 @@ npx satoru-render input.html -f webp --verbose
 | `url`             | `string`                                   | URL to fetch HTML from.                                 |
 | `width`           | `number`                                   | **Required.** Output width in pixels.                   |
 | `height`          | `number`                                   | Output height. Default: `0` (auto-calculate).           |
+| `crop`            | `{ x, y, width, height }`                  | Crop parameters to extract a specific region.           |
+| `outputWidth`     | `number`                                   | Target output width when scaling the image.             |
+| `outputHeight`    | `number`                                   | Target output height when scaling the image.            |
+| `fit`             | `"contain" \| "cover" \| "fill"`           | Resizing behavior when output scale differs.            |
 | `format`          | `"svg" \| "png" \| "webp" \| "pdf"`        | Output format. Default: `"svg"`.                        |
 | `resolveResource` | `ResourceResolver`                         | Async callback to fetch assets (fonts, images, CSS).    |
 | `fonts`           | `Object[]`                                 | Pre-load fonts: `[{ name, data: Uint8Array }]`.         |

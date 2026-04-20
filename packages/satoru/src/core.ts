@@ -48,7 +48,7 @@ export interface SatoruModule {
     width: number,
     height: number,
     format: number,
-    svgTextToPaths: boolean,
+    options: any,
   ) => Uint8Array | null;
   render: (
     inst: any,
@@ -56,7 +56,7 @@ export interface SatoruModule {
     width: number,
     height: number,
     format: number,
-    svgTextToPaths: boolean,
+    options: any,
   ) => Uint8Array | null;
   merge_pdfs: (inst: any, pdfs: Uint8Array[]) => Uint8Array | null;
   onLog?: (level: LogLevel, message: string) => void;
@@ -86,6 +86,10 @@ export interface RenderOptions {
   url?: string;
   width: number;
   height?: number;
+  crop?: { x: number; y: number; width: number; height: number };
+  outputWidth?: number;
+  outputHeight?: number;
+  fit?: "contain" | "cover" | "fill";
   format?: "svg" | "png" | "webp" | "pdf";
   textToPaths?: boolean;
   resolveResource?: ResourceResolver;
@@ -373,6 +377,10 @@ export abstract class SatoruBase {
     options: {
       width: number;
       height?: number;
+      crop?: { x: number; y: number; width: number; height: number };
+      outputWidth?: number;
+      outputHeight?: number;
+      fit?: "contain" | "cover" | "fill";
       format?: "svg" | "png" | "webp" | "pdf";
       textToPaths?: boolean;
     },
@@ -390,7 +398,16 @@ export abstract class SatoruBase {
       options.width,
       options.height ?? 0,
       format,
-      options.textToPaths ?? true,
+      {
+        svgTextToPaths: options.textToPaths ?? true,
+        outputWidth: options.outputWidth ?? 0,
+        outputHeight: options.outputHeight ?? 0,
+        fitType: options.fit === "cover" ? 1 : options.fit === "fill" ? 2 : 0,
+        cropX: options.crop?.x ?? 0,
+        cropY: options.crop?.y ?? 0,
+        cropWidth: options.crop?.width ?? 0,
+        cropHeight: options.crop?.height ?? 0,
+      }
     );
 
     if (!result) {
@@ -725,7 +742,16 @@ export abstract class SatoruBase {
         width,
         height,
         formatMap[format as keyof typeof formatMap] ?? 0,
-        options.textToPaths ?? true,
+        {
+          svgTextToPaths: options.textToPaths ?? true,
+          outputWidth: options.outputWidth ?? 0,
+          outputHeight: options.outputHeight ?? 0,
+          fitType: options.fit === "cover" ? 1 : options.fit === "fill" ? 2 : 0,
+          cropX: options.crop?.x ?? 0,
+          cropY: options.crop?.y ?? 0,
+          cropWidth: options.crop?.width ?? 0,
+          cropHeight: options.crop?.height ?? 0,
+        }
       );
 
       if (!result) {

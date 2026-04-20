@@ -31,7 +31,7 @@ std::vector<uint8_t> val_to_vector(val data) {
 
 // EMSCRIPTEN_BINDINGS helper
 val render_val(SatoruInstance* inst, val htmls, int width, int height, int format,
-               bool svgTextToPaths) {
+               val options_val) {
     if (!inst) return val::null();
 
     std::vector<std::string> html_vector;
@@ -45,7 +45,30 @@ val render_val(SatoruInstance* inst, val htmls, int width, int height, int forma
     }
 
     RenderOptions options;
-    options.svgTextToPaths = svgTextToPaths;
+    if (options_val.hasOwnProperty("svgTextToPaths")) {
+        options.svgTextToPaths = options_val["svgTextToPaths"].as<bool>();
+    }
+    if (options_val.hasOwnProperty("outputWidth")) {
+        options.outputWidth = options_val["outputWidth"].as<int>();
+    }
+    if (options_val.hasOwnProperty("outputHeight")) {
+        options.outputHeight = options_val["outputHeight"].as<int>();
+    }
+    if (options_val.hasOwnProperty("fitType")) {
+        options.fitType = options_val["fitType"].as<int>();
+    }
+    if (options_val.hasOwnProperty("cropX")) {
+        options.cropX = options_val["cropX"].as<int>();
+    }
+    if (options_val.hasOwnProperty("cropY")) {
+        options.cropY = options_val["cropY"].as<int>();
+    }
+    if (options_val.hasOwnProperty("cropWidth")) {
+        options.cropWidth = options_val["cropWidth"].as<int>();
+    }
+    if (options_val.hasOwnProperty("cropHeight")) {
+        options.cropHeight = options_val["cropHeight"].as<int>();
+    }
 
     int size = 0;
     const uint8_t* data =
@@ -106,10 +129,33 @@ void layout_document_val(SatoruInstance* inst, int width) {
 }
 
 val render_from_state_val(SatoruInstance* inst, int width, int height, int format,
-                          bool svgTextToPaths) {
+                          val options_val) {
     if (!inst) return val::null();
     RenderOptions options;
-    options.svgTextToPaths = svgTextToPaths;
+    if (options_val.hasOwnProperty("svgTextToPaths")) {
+        options.svgTextToPaths = options_val["svgTextToPaths"].as<bool>();
+    }
+    if (options_val.hasOwnProperty("outputWidth")) {
+        options.outputWidth = options_val["outputWidth"].as<int>();
+    }
+    if (options_val.hasOwnProperty("outputHeight")) {
+        options.outputHeight = options_val["outputHeight"].as<int>();
+    }
+    if (options_val.hasOwnProperty("fitType")) {
+        options.fitType = options_val["fitType"].as<int>();
+    }
+    if (options_val.hasOwnProperty("cropX")) {
+        options.cropX = options_val["cropX"].as<int>();
+    }
+    if (options_val.hasOwnProperty("cropY")) {
+        options.cropY = options_val["cropY"].as<int>();
+    }
+    if (options_val.hasOwnProperty("cropWidth")) {
+        options.cropWidth = options_val["cropWidth"].as<int>();
+    }
+    if (options_val.hasOwnProperty("cropHeight")) {
+        options.cropHeight = options_val["cropHeight"].as<int>();
+    }
     int size = 0;
     const uint8_t* data =
         api_render_from_state(inst, width, height, (RenderFormat)format, options, size);

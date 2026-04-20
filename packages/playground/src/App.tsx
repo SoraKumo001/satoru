@@ -292,8 +292,9 @@ const App: React.FC = () => {
 
           // Fetch using default resolver (or manual fetch if in worker proxy)
           const data = await defaultResolver(resource);
-          if (data?.length)
-            await cache.put(resource.url, new Response(data as BodyInit));
+          const bufferData = data instanceof Uint8Array ? data : (data as any)?.data;
+          if (bufferData?.length)
+            await cache.put(resource.url, new Response(bufferData as BodyInit));
 
           return data;
         },

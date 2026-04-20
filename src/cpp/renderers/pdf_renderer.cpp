@@ -13,6 +13,7 @@
 #include "include/core/SkStream.h"
 #include "include/docs/SkPDFDocument.h"
 #include "include/encode/SkJpegEncoder.h"
+#include "render_utils.h"
 
 namespace {
 std::unique_ptr<SkCodec> PdfJpegDecoder(sk_sp<const SkData> data) {
@@ -30,6 +31,18 @@ sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height,
                                   const RenderOptions& options) {
     if (!inst->doc || !inst->render_container) return nullptr;
 
+    int content_width = width;
+    int content_height = (height > 0) ? height : (int)inst->doc->height();
+    if (content_height < 1) content_height = 1;
+
+    int src_x = options.cropX;
+    int src_y = options.cropY;
+    int src_w = options.cropWidth > 0 ? options.cropWidth : content_width;
+    int src_h = options.cropHeight > 0 ? options.cropHeight : content_height;
+
+    int out_width = options.outputWidth > 0 ? options.outputWidth : src_w;
+    int out_height = options.outputHeight > 0 ? options.outputHeight : src_h;
+
     SkDynamicMemoryWStream stream;
     SkPDF::Metadata metadata;
     metadata.fTitle = "Satoru PDF Export";
@@ -40,18 +53,19 @@ sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height,
     auto pdf_doc = SkPDF::MakeDocument(&stream, metadata);
     if (!pdf_doc) return nullptr;
 
-    int content_height = (height > 0) ? height : (int)inst->doc->height();
-    if (content_height < 1) content_height = 1;
-
-    SkCanvas* canvas = pdf_doc->beginPage((SkScalar)width, (SkScalar)content_height);
+    SkCanvas* canvas = pdf_doc->beginPage((SkScalar)out_width, (SkScalar)out_height);
     if (canvas) {
+        if (options.outputWidth > 0 || options.outputHeight > 0) {
+            apply_resize_transform(canvas, src_w, src_h, out_width, out_height, options.fitType);
+        }
+
         inst->render_container->reset();
         inst->render_container->set_canvas(canvas);
         inst->render_container->set_height(content_height);
         inst->render_container->set_tagging(false);
 
-        litehtml::position clip(0, 0, width, content_height);
-        inst->doc->draw(0, 0, 0, &clip);
+        litehtml::position clip(0, 0, src_w, src_h);
+        inst->doc->draw(0, -src_x, -src_y, &clip);
         inst->render_container->flush();
 
         pdf_doc->endPage();

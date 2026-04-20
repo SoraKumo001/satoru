@@ -43,11 +43,35 @@ const shell = isWin ? "cmd.exe" : "/bin/sh";
 
 // Check if ninja is available
 let useNinja = false;
+let ninjaPath = "";
 try {
-  execSync("ninja --version", { stdio: "ignore" });
-  useNinja = true;
+  const result = execSync(isWin ? "where ninja" : "which ninja").toString().trim().split(/\r?\n/)[0];
+  if (result) {
+    ninjaPath = result;
+    execSync(`"${ninjaPath}" --version`, { stdio: "ignore" });
+    useNinja = true;
+  }
 } catch (e) {
   // Ninja not found
+}
+
+// Fix for broken patch.exe (e.g. BusyBox shim in Scoop)
+if (isWin) {
+  try {
+    execSync("patch --version", { stdio: "ignore" });
+  } catch (e) {
+    const commonPaths = [
+      "C:\\Program Files\\Git\\usr\\bin\\patch.exe",
+      path.join(process.env.USERPROFILE || "", "AppData\\Local\\Programs\\Git\\usr\\bin\\patch.exe"),
+    ];
+    for (const p of commonPaths) {
+      if (fs.existsSync(p)) {
+        console.log(`Using Git patch: ${p}`);
+        process.env.PATH = `${path.dirname(p)}${path.delimiter}${process.env.PATH}`;
+        break;
+      }
+    }
+  }
 }
 
 function run(cmd: string, cwd?: string) {
@@ -88,7 +112,8 @@ if (action === "configure") {
     `-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${emscriptenCmake}" ` +
     `-DVCPKG_TARGET_TRIPLET=wasm32-emscripten-wasm-eh ` +
     `-DVCPKG_OVERLAY_TRIPLETS="${projectRoot}/triplets" ` +
-    `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`;
+    `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` +
+    (useNinja && ninjaPath ? ` -DCMAKE_MAKE_PROGRAM="${ninjaPath.replace(/\\/g, "/")}"` : "");
 
   run(cmakeCmd, buildDir);
 } else if (action === "build") {

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .clipped {
+      font-size: 48px;
+      font-weight: bold;
+      background: linear-gradient(to right, red, blue);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent; /* Text should show the gradient */
+    }
+    .normal {
+      font-size: 24px;
+      color: black; /* Text should be black */
+      background: #eee;
+    }
+  </style>
+</head>
+<body>
+  <div class="clipped">This text should be a gradient.</div>
+  <div class="normal">This text should be normal black on gray background.</div>
+</body>
+</html>

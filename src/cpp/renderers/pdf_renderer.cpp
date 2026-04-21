@@ -75,8 +75,8 @@ sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height,
 }
 
 sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width, int height,
-                               SatoruContext& context, const char* master_css,
-                               const char* user_css) {
+                               SatoruContext& context, const char* master_css, const char* user_css,
+                               const RenderOptions& options) {
     if (htmls.empty()) return nullptr;
 
     SkDynamicMemoryWStream stream;
@@ -105,8 +105,18 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width,
         int content_height = (height > 0) ? height : (int)measure_doc->height();
         if (content_height < 1) content_height = 1;
 
-        SkCanvas* canvas = pdf_doc->beginPage((SkScalar)width, (SkScalar)content_height);
+        int src_w = width;
+        int src_h = content_height;
+
+        int out_width = options.outputWidth > 0 ? options.outputWidth : src_w;
+        int out_height = options.outputHeight > 0 ? options.outputHeight : src_h;
+
+        SkCanvas* canvas = pdf_doc->beginPage((SkScalar)out_width, (SkScalar)out_height);
         if (!canvas) continue;
+
+        if (options.outputWidth > 0 || options.outputHeight > 0) {
+            apply_resize_transform(canvas, src_w, src_h, out_width, out_height, options.fitType);
+        }
 
         // Render pass
         container_skia render_container(width, content_height, canvas, context, nullptr, false);

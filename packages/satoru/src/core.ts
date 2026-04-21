@@ -82,14 +82,23 @@ export type ResourceResolver = (
 ) => Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null>;
 
 export interface RenderOptions {
+  /** Input content (HTML string or state object) */
   value?: string | string[] | any | any[];
+  /** Source URL */
   url?: string;
+  /** Canvas width for layout (used for CSS calculations) */
   width: number;
+  /** Canvas height for layout. If omitted, determined automatically by content height */
   height?: number;
+  /** Cropping options for the source canvas */
   crop?: { x: number; y: number; width: number; height: number };
+  /** Final output image width. Defaults to width (or crop.width) */
   outputWidth?: number;
+  /** Final output image height. Defaults to height (or crop.height) */
   outputHeight?: number;
+  /** Resizing strategy to fit the canvas into the output size (default: "contain") */
   fit?: "contain" | "cover" | "fill";
+  /** Output format */
   format?: "svg" | "png" | "webp" | "pdf";
   textToPaths?: boolean;
   resolveResource?: ResourceResolver;

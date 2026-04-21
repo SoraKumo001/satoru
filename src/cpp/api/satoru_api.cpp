@@ -334,7 +334,7 @@ const uint8_t* api_html_to_png(SatoruInstance* inst, const char* html, int width
         [&]() {
             return renderHtmlToPng(html, width, height, inst->context,
                                    inst->get_full_master_css().c_str(),
-                                   inst->context.getExtraCss().c_str());
+                                   inst->context.getExtraCss().c_str(), options);
         },
         &SatoruContext::set_last_png, out_size);
 }
@@ -346,7 +346,7 @@ const uint8_t* api_html_to_webp(SatoruInstance* inst, const char* html, int widt
         [&]() {
             return renderHtmlToWebp(html, width, height, inst->context,
                                     inst->get_full_master_css().c_str(),
-                                    inst->context.getExtraCss().c_str());
+                                    inst->context.getExtraCss().c_str(), options);
         },
         &SatoruContext::set_last_webp, out_size);
 }
@@ -359,7 +359,7 @@ const uint8_t* api_html_to_pdf(SatoruInstance* inst, const char* html, int width
             std::vector<std::string> htmls = {html};
             return renderHtmlsToPdf(htmls, width, height, inst->context,
                                     inst->get_full_master_css().c_str(),
-                                    inst->context.getExtraCss().c_str());
+                                    inst->context.getExtraCss().c_str(), options);
         },
         &SatoruContext::set_last_pdf, out_size);
 }
@@ -372,7 +372,7 @@ const uint8_t* api_htmls_to_pdf(SatoruInstance* inst, const std::vector<std::str
         [&]() {
             return renderHtmlsToPdf(htmls, width, height, inst->context,
                                     inst->get_full_master_css().c_str(),
-                                    inst->context.getExtraCss().c_str());
+                                    inst->context.getExtraCss().c_str(), options);
         },
         &SatoruContext::set_last_pdf, out_size);
 }

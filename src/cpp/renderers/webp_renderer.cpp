@@ -60,7 +60,8 @@ sk_sp<SkData> renderDocumentToWebp(SatoruInstance* inst, int width, int height,
 }
 
 sk_sp<SkData> renderHtmlToWebp(const char* html, int width, int height, SatoruContext& context,
-                               const char* master_css, const char* user_css) {
+                               const char* master_css, const char* user_css,
+                               const RenderOptions& options) {
     int initial_height = (height > 0) ? height : 3000;
     container_skia container(width, initial_height, nullptr, context, nullptr, false);
 
@@ -76,26 +77,36 @@ sk_sp<SkData> renderHtmlToWebp(const char* html, int width, int height, SatoruCo
     int content_height = (height > 0) ? height : (int)doc->height();
     if (content_height < 1) content_height = 1;
 
-    container.set_height(content_height);
+    int src_w = width;
+    int src_h = content_height;
 
-    SkImageInfo info = SkImageInfo::MakeN32Premul(width, content_height, SkColorSpace::MakeSRGB());
+    int out_width = options.outputWidth > 0 ? options.outputWidth : src_w;
+    int out_height = options.outputHeight > 0 ? options.outputHeight : src_h;
+
+    SkImageInfo info = SkImageInfo::MakeN32Premul(out_width, out_height, SkColorSpace::MakeSRGB());
     SkBitmap bitmap;
     bitmap.allocPixels(info);
     bitmap.eraseColor(SkColorSetARGB(0, 0, 0, 0));  // Transparent background
 
     SkCanvas canvas(bitmap);
-    container.set_canvas(&canvas);
 
-    litehtml::position clip(0, 0, width, content_height);
+    if (options.outputWidth > 0 || options.outputHeight > 0) {
+        apply_resize_transform(&canvas, src_w, src_h, out_width, out_height, options.fitType);
+    }
+
+    container.set_canvas(&canvas);
+    container.set_height(content_height);
+
+    litehtml::position clip(0, 0, src_w, src_h);
     doc->draw(0, 0, 0, &clip);
     container.flush();
 
     SkDynamicMemoryWStream stream;
-    SkWebpEncoder::Options options;
-    options.fCompression = SkWebpEncoder::Compression::kLossless;
-    options.fQuality = 100.0f;
+    SkWebpEncoder::Options encode_options;
+    encode_options.fCompression = SkWebpEncoder::Compression::kLossless;
+    encode_options.fQuality = 100.0f;
 
-    if (SkWebpEncoder::Encode(&stream, bitmap.pixmap(), options)) {
+    if (SkWebpEncoder::Encode(&stream, bitmap.pixmap(), encode_options)) {
         return stream.detachAsData();
     }
 

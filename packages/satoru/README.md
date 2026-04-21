@@ -350,12 +350,12 @@ npx satoru-render input.html -f webp --verbose
 | :---------------- | :----------------------------------------- | :------------------------------------------------------ |
 | `value`           | `string \| string[] \| HTMLElement \| ...` | HTML string, array of strings, or DOM element(s).       |
 | `url`             | `string`                                   | URL to fetch HTML from.                                 |
-| `width`           | `number`                                   | **Required.** Output width in pixels.                   |
-| `height`          | `number`                                   | Output height. Default: `0` (auto-calculate).           |
+| `width`           | `number`                                   | **Required.** Canvas width in pixels (used for layout). |
+| `height`          | `number`                                   | Canvas height. Default: `0` (auto-calculate).           |
 | `crop`            | `{ x, y, width, height }`                  | Crop parameters to extract a specific region.           |
-| `outputWidth`     | `number`                                   | Target output width when scaling the image.             |
-| `outputHeight`    | `number`                                   | Target output height when scaling the image.            |
-| `fit`             | `"contain" \| "cover" \| "fill"`           | Resizing behavior when output scale differs.            |
+| `outputWidth`     | `number`                                   | Output image width. Default: canvas/crop width.         |
+| `outputHeight`    | `number`                                   | Output image height. Default: canvas/crop height.       |
+| `fit`             | `"contain" \| "cover" \| "fill"`           | Fit strategy when canvas/crop size differs from output. |
 | `format`          | `"svg" \| "png" \| "webp" \| "pdf"`        | Output format. Default: `"svg"`.                        |
 | `resolveResource` | `ResourceResolver`                         | Async callback to fetch assets (fonts, images, CSS).    |
 | `fonts`           | `Object[]`                                 | Pre-load fonts: `[{ name, data: Uint8Array }]`.         |

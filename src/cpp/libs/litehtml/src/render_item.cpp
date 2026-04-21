@@ -347,7 +347,7 @@ void litehtml::render_item::render_positioned(render_type rt) {
 
             auto fix_height_min_max = [&](pixel_t height) {
                 auto max_height = el->css().get_max_height();
-                auto min_height = el->css().get_max_height();
+                auto min_height = el->css().get_min_height();
                 if (!max_height.is_predefined()) {
                     pixel_t max_height_value =
                         max_height.calc_percent(containing_block_size.height);
@@ -608,7 +608,7 @@ void litehtml::render_item::render_positioned(render_type rt) {
                 }
                 if (!el->css().get_max_width().is_predefined()) {
                     pixel_t max_width =
-                        el->css().get_max_width().calc_percent(containing_block_size.height);
+                        el->css().get_max_width().calc_percent(containing_block_size.width);
                     if (width - el->content_offset_width() > max_width) {
                         pixel_t reminded = width - el->content_offset_width() - max_width;
                         width = max_width;
@@ -691,10 +691,26 @@ void litehtml::render_item::render_positioned(render_type rt) {
             if (need_render) {
                 if (el->css().get_width().is_predefined() || el->css().get_height().is_predefined()) {
                     containing_block_context measure_cb = containing_block_size;
-                    if (el->css().get_width().is_predefined())
-                        measure_cb.size_mode |= containing_block_context::size_mode_content;
-                    if (el->css().get_height().is_predefined())
-                        measure_cb.size_mode |= containing_block_context::size_mode_content;
+                    if (el->css().get_width().is_predefined()) {
+                        if (!css_left.is_predefined() && !css_right.is_predefined()) {
+                            measure_cb.width = width;
+                            measure_cb.size_mode |= (measure_cb.mode == writing_mode_horizontal_tb
+                                                         ? containing_block_context::size_mode_exact_width
+                                                         : containing_block_context::size_mode_exact_height);
+                        } else {
+                            measure_cb.size_mode |= containing_block_context::size_mode_content;
+                        }
+                    }
+                    if (el->css().get_height().is_predefined()) {
+                        if (!css_top.is_predefined() && !css_bottom.is_predefined()) {
+                            measure_cb.height = height;
+                            measure_cb.size_mode |= (measure_cb.mode == writing_mode_horizontal_tb
+                                                         ? containing_block_context::size_mode_exact_height
+                                                         : containing_block_context::size_mode_exact_width);
+                        } else {
+                            measure_cb.size_mode |= containing_block_context::size_mode_content;
+                        }
+                    }
                     el->measure(measure_cb, nullptr);
                     el->place(left, top, measure_cb, nullptr);
                 } else {

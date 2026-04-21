@@ -56,7 +56,7 @@ sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height,
     SkCanvas* canvas = pdf_doc->beginPage((SkScalar)out_width, (SkScalar)out_height);
     if (canvas) {
         if (options.outputWidth > 0 || options.outputHeight > 0) {
-            apply_resize_transform(canvas, src_w, src_h, out_width, out_height, options.fitType);
+            apply_resize_transform(canvas, src_w, src_h, options);
         }
 
         inst->render_container->reset();
@@ -116,8 +116,20 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width,
         SkCanvas* canvas = pdf_doc->beginPage((SkScalar)out_width, (SkScalar)out_height);
         if (!canvas) continue;
 
+        if (options.backgroundColor != 0) {
+            SkPaint paint;
+            paint.setColor(options.backgroundColor);
+            canvas->drawRect(SkRect::MakeWH(out_width, out_height), paint);
+        }
+
+        if (options.backgroundColor != 0) {
+            SkPaint paint;
+            paint.setColor(options.backgroundColor);
+            canvas->drawRect(SkRect::MakeWH(out_width, out_height), paint);
+        }
+
         if (options.outputWidth > 0 || options.outputHeight > 0) {
-            apply_resize_transform(canvas, src_w, src_h, out_width, out_height, options.fitType);
+            apply_resize_transform(canvas, src_w, src_h, options);
         }
 
         // Render pass

@@ -31,12 +31,12 @@ sk_sp<SkData> renderDocumentToWebp(SatoruInstance* inst, int width, int height,
     SkImageInfo info = SkImageInfo::MakeN32Premul(out_width, out_height, SkColorSpace::MakeSRGB());
     SkBitmap bitmap;
     bitmap.allocPixels(info);
-    bitmap.eraseColor(SkColorSetARGB(0, 0, 0, 0));
+    bitmap.eraseColor(options.backgroundColor);
 
     SkCanvas canvas(bitmap);
 
     if (options.outputWidth > 0 || options.outputHeight > 0) {
-        apply_resize_transform(&canvas, src_w, src_h, out_width, out_height, options.fitType);
+        apply_resize_transform(&canvas, src_w, src_h, options);
     }
 
     inst->render_container->reset();
@@ -88,12 +88,12 @@ sk_sp<SkData> renderHtmlToWebp(const char* html, int width, int height, SatoruCo
     SkImageInfo info = SkImageInfo::MakeN32Premul(out_width, out_height, SkColorSpace::MakeSRGB());
     SkBitmap bitmap;
     bitmap.allocPixels(info);
-    bitmap.eraseColor(SkColorSetARGB(0, 0, 0, 0));  // Transparent background
+    bitmap.eraseColor(options.backgroundColor);
 
     SkCanvas canvas(bitmap);
 
     if (options.outputWidth > 0 || options.outputHeight > 0) {
-        apply_resize_transform(&canvas, src_w, src_h, out_width, out_height, options.fitType);
+        apply_resize_transform(&canvas, src_w, src_h, options);
     }
 
     container.set_canvas(&canvas);

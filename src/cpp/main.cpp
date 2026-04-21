@@ -69,6 +69,15 @@ val render_val(SatoruInstance* inst, val htmls, int width, int height, int forma
     if (options_val.hasOwnProperty("cropHeight")) {
         options.cropHeight = options_val["cropHeight"].as<int>();
     }
+    if (options_val.hasOwnProperty("backgroundColor")) {
+        options.backgroundColor = options_val["backgroundColor"].as<uint32_t>();
+    }
+    if (options_val.hasOwnProperty("fitPositionX")) {
+        options.fitPositionX = options_val["fitPositionX"].as<float>();
+    }
+    if (options_val.hasOwnProperty("fitPositionY")) {
+        options.fitPositionY = options_val["fitPositionY"].as<float>();
+    }
 
     int size = 0;
     const uint8_t* data =
@@ -155,6 +164,15 @@ val render_from_state_val(SatoruInstance* inst, int width, int height, int forma
     }
     if (options_val.hasOwnProperty("cropHeight")) {
         options.cropHeight = options_val["cropHeight"].as<int>();
+    }
+    if (options_val.hasOwnProperty("backgroundColor")) {
+        options.backgroundColor = options_val["backgroundColor"].as<uint32_t>();
+    }
+    if (options_val.hasOwnProperty("fitPositionX")) {
+        options.fitPositionX = options_val["fitPositionX"].as<float>();
+    }
+    if (options_val.hasOwnProperty("fitPositionY")) {
+        options.fitPositionY = options_val["fitPositionY"].as<float>();
     }
     int size = 0;
     const uint8_t* data =

@@ -98,6 +98,8 @@ export interface RenderOptions {
   outputHeight?: number;
   /** Resizing strategy to fit the canvas into the output size (default: "contain") */
   fit?: "contain" | "cover" | "fill";
+  /** Alignment origin when fitted (default: {x: 0.5, y: 0.5}) */
+  fitPosition?: { x: number; y: number };
   /** Background color of the output canvas. (e.g., "#ffffff", "rgba(0,0,0,0.5)") */
   backgroundColor?: string;
   /** Output format */
@@ -392,6 +394,8 @@ export abstract class SatoruBase {
       outputWidth?: number;
       outputHeight?: number;
       fit?: "contain" | "cover" | "fill";
+      fitPosition?: { x: number; y: number };
+      backgroundColor?: string;
       format?: "svg" | "png" | "webp" | "pdf";
       textToPaths?: boolean;
     },
@@ -418,6 +422,9 @@ export abstract class SatoruBase {
         cropY: options.crop?.y ?? 0,
         cropWidth: options.crop?.width ?? 0,
         cropHeight: options.crop?.height ?? 0,
+        fitPositionX: options.fitPosition?.x ?? 0.5,
+        fitPositionY: options.fitPosition?.y ?? 0.5,
+        backgroundColor: this.parseColor(options.backgroundColor),
       }
     );
 
@@ -792,6 +799,8 @@ export abstract class SatoruBase {
           cropY: options.crop?.y ?? 0,
           cropWidth: options.crop?.width ?? 0,
           cropHeight: options.crop?.height ?? 0,
+          fitPositionX: options.fitPosition?.x ?? 0.5,
+          fitPositionY: options.fitPosition?.y ?? 0.5,
           backgroundColor: this.parseColor(options.backgroundColor),
         }
       );

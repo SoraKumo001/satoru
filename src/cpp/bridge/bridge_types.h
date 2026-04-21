@@ -22,6 +22,8 @@ struct RenderOptions {
     int cropWidth = 0;
     int cropHeight = 0;
     uint32_t backgroundColor = 0x00000000;
+    float fitPositionX = 0.5f;
+    float fitPositionY = 0.5f;
 };
 
 void satoru_log(LogLevel level, const char *message);

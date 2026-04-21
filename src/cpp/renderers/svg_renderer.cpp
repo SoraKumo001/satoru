@@ -1643,8 +1643,14 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
     auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)out_width, (float)out_height), &stream,
                                     svg_options);
 
+    if (options.backgroundColor != 0) {
+        SkPaint paint;
+        paint.setColor(options.backgroundColor);
+        canvas->drawRect(SkRect::MakeWH((float)out_width, (float)out_height), paint);
+    }
+
     if (options.outputWidth > 0 || options.outputHeight > 0) {
-        apply_resize_transform(canvas.get(), src_w, src_h, out_width, out_height, options.fitType);
+        apply_resize_transform(canvas.get(), src_w, src_h, options);
     }
 
     inst->render_container->reset();

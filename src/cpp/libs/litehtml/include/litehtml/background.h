@@ -38,12 +38,15 @@ namespace litehtml
                 background_repeat repeat;
                 // is_root is true for root element. Container can use this flag to apply background to the top window.
                 bool is_root;
+                bool is_text_clip;
 
-                background_layer() :
-                                attachment(background_attachment_scroll),
-                                repeat(background_repeat_repeat),
-                                is_root(false)
-                                {}
+                background_layer()
+                {
+                        attachment      = background_attachment_scroll;
+                        repeat          = background_repeat_repeat;
+                        is_root         = false;
+                        is_text_clip    = false;
+                }
 
                 class image
                 {

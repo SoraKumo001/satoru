@@ -85,6 +85,10 @@ bool litehtml::background::get_layer(int idx, position pos, const element* el, c
 		case background_box_content:
 			layer.clip_box = content_box;
 			break;
+		case background_box_text:
+			layer.clip_box = border_box;
+			layer.is_text_clip = true;
+			break;
 		default:
 			layer.clip_box = border_box;
 			break;

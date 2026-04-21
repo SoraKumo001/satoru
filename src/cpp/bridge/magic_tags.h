@@ -40,6 +40,7 @@ enum class MagicTagExtended : uint8_t {
     LinearGradient = 3,
     InlineSvg = 4,
     BorderImage = 5,
+    TextClipLinearGradient = 6,
 };
 
 /**

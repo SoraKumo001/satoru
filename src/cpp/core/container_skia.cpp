@@ -539,6 +539,68 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
             std::min(pos.width, (litehtml::pixel_t)(m_clips.back().first.right() - pos.x));
     }
 
+    // background-clip: text support for PNG rendering
+    // When text is transparent and there's a pending text-clip gradient,
+    // use saveLayer + SrcIn compositing to fill text shapes with the gradient
+    if (!m_tagging && color.alpha == 0 && !m_pending_text_clips.empty()) {
+        for (const auto& tc : m_pending_text_clips) {
+            const auto& clip = tc.layer.clip_box;
+            bool overlaps = (actual_pos.x < clip.right() && actual_pos.right() > clip.x &&
+                             actual_pos.y < clip.bottom() && actual_pos.bottom() > clip.y);
+            if (overlaps) {
+                flush();
+
+                SkRect bounds = SkRect::MakeXYWH((float)clip.x, (float)clip.y, (float)clip.width,
+                                                 (float)clip.height);
+                m_canvas->saveLayer(bounds, nullptr);
+
+                // Draw text as opaque white mask
+                litehtml::web_color maskColor;
+                maskColor.red = 255;
+                maskColor.green = 255;
+                maskColor.blue = 255;
+                maskColor.alpha = 255;
+                satoru::TextRenderer::drawText(
+                    &m_context, m_canvas, text, fi, maskColor, actual_pos, overflow, dir, mode,
+                    false, get_current_opacity(), m_usedTextShadows, m_usedTextDraws, m_usedGlyphs,
+                    m_usedGlyphDraws, m_resourceManager ? &m_usedCodepoints : nullptr,
+                    m_textBatcher);
+                flush();
+
+                // Draw gradient with SrcIn blend mode (only visible through text mask)
+                const auto& gradient = tc.gradient;
+                SkPoint pts[2] = {SkPoint::Make((float)gradient.start.x, (float)gradient.start.y),
+                                  SkPoint::Make((float)gradient.end.x, (float)gradient.end.y)};
+                std::vector<SkColor4f> colors;
+                std::vector<float> positions;
+                for (const auto& stop : gradient.color_points) {
+                    colors.push_back({stop.color.red / 255.0f, stop.color.green / 255.0f,
+                                      stop.color.blue / 255.0f, stop.color.alpha / 255.0f});
+                    positions.push_back(stop.offset);
+                }
+                SkGradient sk_grad(
+                    SkGradient::Colors(SkSpan(colors), SkSpan(positions), SkTileMode::kClamp),
+                    SkGradient::Interpolation());
+                SkPaint gradPaint;
+                gradPaint.setShader(SkShaders::LinearGradient(pts, sk_grad));
+                gradPaint.setBlendMode(SkBlendMode::kSrcIn);
+                gradPaint.setAntiAlias(true);
+                m_canvas->drawRect(bounds, gradPaint);
+
+                m_canvas->restore();
+
+                // Resource manager pass for font subsetting
+                if (fi && m_resourceManager) {
+                    satoru::TextRenderer::drawText(
+                        &m_context, nullptr, text, fi, maskColor, actual_pos, overflow, dir, mode,
+                        false, get_current_opacity(), m_usedTextShadows, m_usedTextDraws,
+                        m_usedGlyphs, m_usedGlyphDraws, &fi->used_codepoints, nullptr);
+                }
+                return;
+            }
+        }
+    }
+
     satoru::TextRenderer::drawText(&m_context, m_canvas, text, fi, color, actual_pos, overflow, dir,
                                    mode, m_tagging, get_current_opacity(), m_usedTextShadows,
                                    m_usedTextDraws, m_usedGlyphs, m_usedGlyphDraws,
@@ -750,10 +812,23 @@ void container_skia::draw_linear_gradient(
         m_usedLinearGradients.push_back(info);
         int index = (int)m_usedLinearGradients.size();
         SkPaint p;
-        p.setColor(make_magic_color(satoru::MagicTagExtended::LinearGradient, index));
+        if (layer.is_text_clip) {
+            p.setColor(make_magic_color(satoru::MagicTagExtended::TextClipLinearGradient, index));
+        } else {
+            p.setColor(make_magic_color(satoru::MagicTagExtended::LinearGradient, index));
+        }
         m_canvas->drawRRect(get_background_rrect(layer), p);
     } else {
         if (layer.origin_box.width <= 0 || layer.origin_box.height <= 0) return;
+
+        // Store text-clip gradients for compositing in draw_text
+        if (layer.is_text_clip) {
+            pending_text_clip tc;
+            tc.layer = layer;
+            tc.gradient = gradient;
+            m_pending_text_clips.push_back(tc);
+            return;
+        }
 
         SkBitmap tileBitmap;
         tileBitmap.allocN32Pixels((int)layer.origin_box.width, (int)layer.origin_box.height);

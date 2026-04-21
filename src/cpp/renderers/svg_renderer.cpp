@@ -24,8 +24,8 @@
 #include "include/effects/SkGradient.h"
 #include "include/encode/SkPngEncoder.h"
 #include "include/svg/SkSVGCanvas.h"
-#include "render_utils.h"
 #include "include/utils/SkParsePath.h"
+#include "render_utils.h"
 #include "utils/logging.h"
 #include "utils/skia_utils.h"
 
@@ -255,12 +255,60 @@ static void serializeFastTag(std::string& out, const FastTag& tag) {
     if (tag.selfClosing) out.append(" /");
     out.append(">");
 }
+struct TextClipBounds {
+    litehtml::position box;
+    std::string id;
+};
 
-static void processTextDraw(FastTag& info, std::string& out, const text_draw_info& drawInfo) {
+static void processTextDraw(FastTag& info, std::string& out, const text_draw_info& drawInfo,
+                            const std::vector<TextClipBounds>& active_text_clips) {
     std::string textColor = "rgb(" + std::to_string((int)drawInfo.color.red) + "," +
                             std::to_string((int)drawInfo.color.green) + "," +
                             std::to_string((int)drawInfo.color.blue) + ")";
     float opacity = ((float)drawInfo.color.alpha / 255.0f) * drawInfo.opacity;
+
+    if (drawInfo.color.alpha == 0 && !active_text_clips.empty()) {
+        float x = 0;
+        float y = 0;
+        bool foundPos = false;
+        for (const auto& attr : info.attrs) {
+            if (attr.name == "x") {
+                x = std::stof(std::string(attr.value));
+                foundPos = true;
+            }
+            if (attr.name == "y") {
+                y = std::stof(std::string(attr.value));
+                foundPos = true;
+            }
+            if (attr.name == "transform") {
+                std::string t(attr.value);
+                auto tr = t.find("translate(");
+                if (tr != std::string::npos) {
+                    auto trEnds = t.find(")", tr);
+                    if (trEnds != std::string::npos) {
+                        std::string args = t.substr(tr + 10, trEnds - tr - 10);
+                        size_t space = args.find_first_of(" ,");
+                        if (space != std::string::npos) {
+                            x = std::stof(args.substr(0, space));
+                            size_t nextC = args.find_first_not_of(" ,", space);
+                            if (nextC != std::string::npos) {
+                                y = std::stof(args.substr(nextC));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        for (auto it = active_text_clips.rbegin(); it != active_text_clips.rend(); ++it) {
+            // Apply a slight margin to bounds to handle leading/baseline overlap
+            if (x >= (it->box.left() - 5.0f) && x <= (it->box.right() + 5.0f) &&
+                y >= (it->box.top() - 5.0f) && y <= (it->box.bottom() + 40.0f)) {
+                textColor = "url(#" + it->id + ")";
+                opacity = 1.0f;  // Restore opacity for text clipping
+                break;
+            }
+        }
+    }
 
     out.append("<");
     out.append(info.name);
@@ -373,6 +421,29 @@ static std::string generateDefs(const container_skia& render_container,
         defs << "<feMergeNode in=\"SourceGraphic\"/>"
              << "</feMerge>"
              << "</filter>";
+    }
+
+    {
+        const auto& linears = render_container.get_used_linear_gradients();
+        for (size_t i = 0; i < linears.size(); ++i) {
+            const auto& gradInfo = linears[i];
+            if (gradInfo.layer.is_text_clip) {
+                std::string gradId = "textclip-grad-" + std::to_string(i + 1);
+                defs << "<linearGradient id=\"" << gradId << "\" gradientUnits=\"userSpaceOnUse\""
+                     << " x1=\"" << gradInfo.gradient.start.x << "\" y1=\""
+                     << gradInfo.gradient.start.y << "\" x2=\"" << gradInfo.gradient.end.x
+                     << "\" y2=\"" << gradInfo.gradient.end.y << "\">";
+                for (size_t ci = 0; ci < gradInfo.gradient.color_points.size(); ++ci) {
+                    const auto& color = gradInfo.gradient.color_points[ci];
+                    std::string c = "rgb(" + std::to_string(color.color.red) + "," +
+                                    std::to_string(color.color.green) + "," +
+                                    std::to_string(color.color.blue) + ")";
+                    defs << "<stop offset=\"" << color.offset << "\" stop-color=\"" << c
+                         << "\" stop-opacity=\"" << (float)color.color.alpha / 255.0f << "\"/>";
+                }
+                defs << "</linearGradient>";
+            }
+        }
     }
 
     const auto& images = render_container.get_used_image_draws();
@@ -875,6 +946,7 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
 
     SvgScanner scanner(svg);
     bool defsInjected = false;
+    std::vector<TextClipBounds> active_text_clips;
 
     while (!scanner.isAtEnd()) {
         std::string_view text = scanner.scanTo('<');
@@ -1038,7 +1110,8 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                         break;
                     case satoru::MagicTag::TextDraw:
                         if (fullIndex > 0 && fullIndex <= (int)textDraws.size()) {
-                            processTextDraw(tag, result, textDraws[fullIndex - 1]);
+                            processTextDraw(tag, result, textDraws[fullIndex - 1],
+                                            active_text_clips);
                             replaced = true;
                         }
                         break;
@@ -1208,6 +1281,15 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                             replaced = true;
                         }
                         break;
+                    case satoru::MagicTagExtended::TextClipLinearGradient: {
+                        if (fullIndex > 0 && fullIndex <= (int)linears.size()) {
+                            const auto& gradInfo = linears[fullIndex - 1];
+                            std::string gradId = "textclip-grad-" + std::to_string(fullIndex);
+                            active_text_clips.push_back({gradInfo.layer.border_box, gradId});
+                        }
+                        replaced = true;
+                        break;
+                    }
                     case satoru::MagicTagExtended::ConicGradient:
                     case satoru::MagicTagExtended::RadialGradient:
                     case satoru::MagicTagExtended::LinearGradient: {

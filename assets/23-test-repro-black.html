@@ -1,24 +1,136 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 16px;
+    }
+
     .clipped {
       font-size: 48px;
       font-weight: bold;
       background: linear-gradient(to right, red, blue);
       -webkit-background-clip: text;
       background-clip: text;
-      color: transparent; /* Text should show the gradient */
+      color: transparent;
+      /* Text should show the gradient */
     }
+
     .normal {
       font-size: 24px;
-      color: black; /* Text should be black */
+      color: black;
+      /* Text should be black */
       background: #eee;
+    }
+
+    .section {
+      margin-top: 24px;
+      padding: 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+
+    .section h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .gradient-warm {
+      font-size: 36px;
+      font-weight: bold;
+      background: linear-gradient(135deg, #ff6b6b, #ffa500, #ffd700);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .gradient-cool {
+      font-size: 32px;
+      font-weight: bold;
+      background: linear-gradient(to right, #00b4d8, #0077b6, #6a0dad);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .gradient-multi {
+      font-size: 28px;
+      font-weight: bold;
+      background: linear-gradient(to right, #ff0000, #ff7700, #ffff00, #00ff00, #0000ff, #8b00ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .plain-text {
+      font-size: 18px;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .status-note {
+      margin-top: 24px;
+      padding: 12px 16px;
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #856404;
+      line-height: 1.8;
+    }
+
+    .status-note strong {
+      color: #664d03;
+    }
+
+    .status-note .supported {
+      color: #0f5132;
+    }
+
+    .status-note .unsupported {
+      color: #842029;
     }
   </style>
 </head>
+
 <body>
+  <div class="status-note">
+    <strong>background-clip: text Support Status</strong><br>
+    <span class="supported">✅ PNG: linear-gradient supported</span><br>
+    <span class="supported">✅ SVG: linear-gradient supported</span><br>
+    <span class="unsupported">❌ SVG Unsupported: radial-gradient, conic-gradient, complex transforms</span>
+  </div>
+
   <div class="clipped">This text should be a gradient.</div>
   <div class="normal">This text should be normal black on gray background.</div>
+
+  <div class="section">
+    <h3>Warm Gradient Text</h3>
+    <div class="gradient-warm">Sunset colors across text</div>
+  </div>
+
+  <div class="section">
+    <h3>Cool Gradient Text</h3>
+    <div class="gradient-cool">Ocean blue to purple gradient</div>
+  </div>
+
+  <div class="section">
+    <h3>Rainbow Gradient Text</h3>
+    <div class="gradient-multi">ROYGBIV spectrum text clipping</div>
+  </div>
+
+  <div class="section">
+    <h3>Normal Text (No Clip)</h3>
+    <div class="plain-text">
+      This paragraph contains normal text rendered without any background-clip effects.
+      It serves as a baseline comparison to verify that standard text rendering
+      remains unaffected by the text masking implementation.
+    </div>
+  </div>
 </body>
+
 </html>

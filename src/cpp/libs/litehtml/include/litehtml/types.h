@@ -1,4 +1,4 @@
-﻿#ifndef LH_TYPES_H
+#ifndef LH_TYPES_H
 #define LH_TYPES_H
 
 #include <cmath>
@@ -871,13 +871,14 @@ namespace litehtml
         };
 
 // https://drafts.csswg.org/css-box-4/#typedef-visual-box
-#define  background_box_strings "border-box;padding-box;content-box"
+#define  background_box_strings "border-box;padding-box;content-box;text"
 
         enum background_box
         {
                 background_box_border,
                 background_box_padding,
-                background_box_content
+                background_box_content,
+                background_box_text
         };
 
 #define  background_position_strings                            "left;right;top;bottom;center"

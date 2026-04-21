@@ -1,4 +1,4 @@
-﻿#ifndef CONTAINER_SKIA_H
+#ifndef CONTAINER_SKIA_H
 #ifndef LH_TYPES_H
 #include "libs/litehtml/include/litehtml/types.h"
 #endif
@@ -61,6 +61,13 @@ class container_skia : public litehtml::document_container {
     std::vector<std::pair<litehtml::css_token_vector, litehtml::position>> m_mask_stack;
     std::vector<SkPath> m_usedGlyphs;
     std::vector<glyph_draw_info> m_usedGlyphDraws;
+
+    // Pending text-clip gradients for PNG background-clip: text support
+    struct pending_text_clip {
+        litehtml::background_layer layer;
+        litehtml::background_layer::linear_gradient gradient;
+    };
+    std::vector<pending_text_clip> m_pending_text_clips;
 
     int m_filter_stack_depth = 0;
     int m_transform_stack_depth = 0;
@@ -125,6 +132,7 @@ class container_skia : public litehtml::document_container {
         m_transform_stack_depth = 0;
         m_clip_path_stack_depth = 0;
         m_mask_stack_depth = 0;
+        m_pending_text_clips.clear();
     }
 
     SkCanvas *get_canvas() const { return m_canvas; }

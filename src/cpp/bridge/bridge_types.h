@@ -21,6 +21,7 @@ struct RenderOptions {
     int cropY = 0;
     int cropWidth = 0;
     int cropHeight = 0;
+    uint32_t backgroundColor = 0x00000000;
 };
 
 void satoru_log(LogLevel level, const char *message);

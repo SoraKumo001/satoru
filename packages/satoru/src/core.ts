@@ -98,6 +98,8 @@ export interface RenderOptions {
   outputHeight?: number;
   /** Resizing strategy to fit the canvas into the output size (default: "contain") */
   fit?: "contain" | "cover" | "fill";
+  /** Background color of the output canvas. (e.g., "#ffffff", "rgba(0,0,0,0.5)") */
+  backgroundColor?: string;
   /** Output format */
   format?: "svg" | "png" | "webp" | "pdf";
   textToPaths?: boolean;
@@ -445,6 +447,36 @@ export abstract class SatoruBase {
     }
   }
 
+  protected parseColor(color?: string): number {
+    if (!color) return 0x00000000;
+    if (color.startsWith("#")) {
+      let hex = color.slice(1);
+      if (hex.length === 3) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+      }
+      if (hex.length === 6) {
+        return (0xff000000 | parseInt(hex, 16)) >>> 0;
+      }
+      if (hex.length === 8) {
+        // RRGGBBAA -> AARRGGBB
+        const r = hex.slice(0, 2);
+        const g = hex.slice(2, 4);
+        const b = hex.slice(4, 6);
+        const a = hex.slice(6, 8);
+        return parseInt(a + r + g + b, 16) >>> 0;
+      }
+    }
+    const m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (m) {
+      const r = parseInt(m[1]);
+      const g = parseInt(m[2]);
+      const b = parseInt(m[3]);
+      const a = m[4] ? Math.round(parseFloat(m[4]) * 255) : 255;
+      return ((a << 24) | (r << 16) | (g << 8) | b) >>> 0;
+    }
+    return 0x00000000;
+  }
+
   protected abstract resolveDefaultResource(
     resource: RequiredResource,
     baseUrl?: string,
@@ -760,6 +792,7 @@ export abstract class SatoruBase {
           cropY: options.crop?.y ?? 0,
           cropWidth: options.crop?.width ?? 0,
           cropHeight: options.crop?.height ?? 0,
+          backgroundColor: this.parseColor(options.backgroundColor),
         }
       );
 

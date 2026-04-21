@@ -77,8 +77,10 @@ sk_sp<SkData> renderHtmlToWebp(const char* html, int width, int height, SatoruCo
     int content_height = (height > 0) ? height : (int)doc->height();
     if (content_height < 1) content_height = 1;
 
-    int src_w = width;
-    int src_h = content_height;
+    int src_x = options.cropX;
+    int src_y = options.cropY;
+    int src_w = options.cropWidth > 0 ? options.cropWidth : width;
+    int src_h = options.cropHeight > 0 ? options.cropHeight : content_height;
 
     int out_width = options.outputWidth > 0 ? options.outputWidth : src_w;
     int out_height = options.outputHeight > 0 ? options.outputHeight : src_h;
@@ -98,7 +100,7 @@ sk_sp<SkData> renderHtmlToWebp(const char* html, int width, int height, SatoruCo
     container.set_height(content_height);
 
     litehtml::position clip(0, 0, src_w, src_h);
-    doc->draw(0, 0, 0, &clip);
+    doc->draw(0, -src_x, -src_y, &clip);
     container.flush();
 
     SkDynamicMemoryWStream stream;

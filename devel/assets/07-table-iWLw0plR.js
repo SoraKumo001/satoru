@@ -1,0 +1,1 @@
+var e=``+new URL(`07-table-DWeoYyon.html`,import.meta.url).href;export{e as default};

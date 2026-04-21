@@ -1,0 +1,1 @@
+var e=``+new URL(`14-line-clamp-fTRUK-AP.html`,import.meta.url).href;export{e as default};

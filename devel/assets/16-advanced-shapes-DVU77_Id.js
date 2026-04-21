@@ -1,0 +1,1 @@
+var e=``+new URL(`16-advanced-shapes-CKE5kj97.html`,import.meta.url).href;export{e as default};

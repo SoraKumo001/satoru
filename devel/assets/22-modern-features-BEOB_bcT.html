@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Modern CSS Features Test (Tailwind v4 Ready)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .grid { display: flex; gap: 10px; flex-wrap: wrap; }
+        .box {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            text-align: center;
+            border-radius: 4px;
+        }
+
+        /* 1. OKLCH Relative Color Syntax */
+        :root {
+            --brand-color: oklch(0.6 0.2 240); /* A vivid blue */
+        }
+        .oklch-base { background-color: var(--brand-color); }
+        .oklch-lighter { background-color: oklch(from var(--brand-color) calc(l + 0.2) c h); }
+        .oklch-desaturated { background-color: oklch(from var(--brand-color) l calc(c * 0.3) h); }
+        .oklch-hue-shift { background-color: oklch(from var(--brand-color) l c calc(h + 60)); }
+        .oklch-alpha { background-color: oklch(from var(--brand-color) l c h / 0.5); color: black; }
+
+        /* 2. RGB Relative Color Syntax */
+        .rgb-base { background-color: rgb(200, 50, 50); }
+        .rgb-custom { background-color: rgb(from rgb(200, 50, 50) b g r); } /* Swap R and B */
+
+        /* 3. Mix Blend Mode */
+        .blend-container {
+            position: relative;
+            height: 120px;
+            background: linear-gradient(to right, #ff0000, #00ff00, #0000ff);
+            margin-top: 10px;
+        }
+        .blend-box {
+            position: absolute;
+            width: 100px;
+            height: 60px;
+            top: 30px;
+            left: 50px;
+            background: white;
+            border: 2px solid black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: black;
+        }
+        .multiply { mix-blend-mode: multiply; left: 50px; }
+        .screen { mix-blend-mode: screen; left: 180px; }
+        .overlay { mix-blend-mode: overlay; left: 310px; }
+        .difference { mix-blend-mode: difference; left: 440px; color: white; border-color: white; }
+
+    </style>
+</head>
+<body>
+    <h1>Modern CSS Features Test</h1>
+
+    <div class="section">
+        <h2>1. OKLCH Relative Color Syntax (Tailwind v4 style)</h2>
+        <p>All boxes derived from a single base blue color.</p>
+        <div class="grid">
+            <div class="box oklch-base">Base Blue</div>
+            <div class="box oklch-lighter">Lighter (+0.2)</div>
+            <div class="box oklch-desaturated">Desaturated (*0.3)</div>
+            <div class="box oklch-hue-shift">Hue Shift (+60)</div>
+            <div class="box oklch-alpha">50% Alpha</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>2. RGB Relative Color Syntax</h2>
+        <div class="grid">
+            <div class="box rgb-base">Base Red</div>
+            <div class="box rgb-custom">R/B Swapped (Blue-ish)</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>3. Mix Blend Mode</h2>
+        <p>White boxes blending with a rainbow gradient background.</p>
+        <div class="blend-container">
+            <div class="blend-box multiply">MULTIPLY</div>
+            <div class="blend-box screen">SCREEN</div>
+            <div class="blend-box overlay">OVERLAY</div>
+            <div class="blend-box difference">DIFF</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>4. Text Wrap (Parse Only)</h2>
+        <div style="width: 200px; border: 1px solid #ccc; padding: 5px; text-wrap: balance;">
+            This long text should ideally be balanced across lines if the balance logic was active.
+        </div>
+    </div>
+</body>
+</html>

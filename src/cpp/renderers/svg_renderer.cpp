@@ -1077,13 +1077,21 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                         break;
                     case satoru::MagicTag::ClipPush:
                         if (fullIndex > 0 && fullIndex <= (int)container.get_used_clips().size()) {
-                            result.append("<g clip-path=\"url(#clip-path-" +
-                                          std::to_string(fullIndex) + ")\">");
+                            const auto& clip = container.get_used_clips()[fullIndex - 1];
+                            if (clip.pos.width > 0 && clip.pos.height > 0) {
+                                result.append("<g clip-path=\"url(#clip-path-" +
+                                              std::to_string(fullIndex) + ")\">");
+                                container.push_svg_clip_active(true);
+                            } else {
+                                container.push_svg_clip_active(false);
+                            }
                             replaced = true;
                         }
                         break;
                     case satoru::MagicTag::ClipPop:
-                        result.append("</g>");
+                        if (container.pop_svg_clip_active()) {
+                            result.append("</g>");
+                        }
                         replaced = true;
                         break;
                     case satoru::MagicTag::ClipPathPush:

@@ -73,6 +73,7 @@ class container_skia : public litehtml::document_container {
     int m_transform_stack_depth = 0;
     int m_clip_path_stack_depth = 0;
     int m_mask_stack_depth = 0;
+    mutable std::vector<bool> m_svg_clip_active_stack;
 
     satoru::TextBatcher *m_textBatcher = nullptr;
 
@@ -169,6 +170,13 @@ class container_skia : public litehtml::document_container {
         return m_usedBorderImages;
     }
     const std::vector<clip_info> &get_used_clips() const { return m_usedClips; }
+    void push_svg_clip_active(bool active) const { m_svg_clip_active_stack.push_back(active); }
+    bool pop_svg_clip_active() const {
+        if (m_svg_clip_active_stack.empty()) return false;
+        bool active = m_svg_clip_active_stack.back();
+        m_svg_clip_active_stack.pop_back();
+        return active;
+    }
     const std::vector<clip_path_info> &get_used_clip_paths() const { return m_usedClipPaths; }
     const std::vector<mask_info> &get_used_masks() const { return m_usedMasks; }
     const std::vector<SkPath> &get_used_glyphs() const { return m_usedGlyphs; }

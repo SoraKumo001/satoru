@@ -1673,15 +1673,26 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
 std::string renderHtmlToSvg(const char* html, int width, int height, SatoruContext& context,
                             const char* master_css, const char* user_css,
                             const RenderOptions& options) {
+    satoru_log_printf(LogLevel::Error, "[Satoru] renderHtmlToSvg start");
     int initial_height = (height > 0) ? height : 3000;
-    container_skia container(width, initial_height, nullptr, context, nullptr, false);
+    auto container =
+        std::make_unique<container_skia>(width, initial_height, nullptr, context, nullptr, false);
 
     std::string css = master_css ? master_css : litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";
 
-    auto doc = litehtml::document::createFromString(html, &container, css.c_str(), user_css);
-    if (!doc) return "";
+    auto doc = litehtml::document::createFromString(html, container.get(), css.c_str(), user_css);
+    if (!doc) {
+        satoru_log_printf(
+            LogLevel::Error,
+            "[Satoru] Failed to create document in renderHtmlToSvg (returned nullptr)");
+        return "";
+    }
+    satoru_log_printf(LogLevel::Error, "[Satoru] Document created (ptr=%p), rendering...",
+                      (void*)doc.get());
     doc->render(width);
+    satoru_log_printf(LogLevel::Error, "[Satoru] Render finished, document height=%f",
+                      (float)doc->height());
 
     int content_height = (height > 0) ? height : (int)doc->height();
     if (content_height < 1) content_height = 1;
@@ -1696,19 +1707,23 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
     auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, (float)content_height), &stream,
                                     svg_options);
 
-    container.set_canvas(canvas.get());
-    container.set_height(content_height);
-    container.set_tagging(true);
-    container.set_text_to_paths(options.svgTextToPaths);
-    container.reset();
+    container->set_canvas(canvas.get());
+    container->set_height(content_height);
+    container->set_tagging(true);
+    container->set_text_to_paths(options.svgTextToPaths);
+    container->reset();
 
     litehtml::position clip(0, 0, width, content_height);
     doc->draw(0, 0, 0, &clip);
-    container.flush();
+    container->flush();
 
     canvas.reset();
     sk_sp<SkData> data = stream.detachAsData();
     std::string_view svg((const char*)data->data(), data->size());
 
-    return finalizeSvg(svg, context, container, options);
+    satoru_log_printf(LogLevel::Error, "[Satoru] finalizeSvg calling...");
+    std::string final_svg = finalizeSvg(svg, context, *container, options);
+    satoru_log_printf(LogLevel::Error, "[Satoru] renderHtmlToSvg finished, final_size=%zu",
+                      final_svg.size());
+    return final_svg;
 }

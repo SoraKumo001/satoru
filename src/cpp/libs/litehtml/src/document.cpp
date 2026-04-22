@@ -54,6 +54,8 @@ document::ptr document::createFromString(
 	const string& master_styles,
 	const string& user_styles )
 {
+	printf("litehtml::document::createFromString start, html_size=%zu, master_size=%zu, user_size=%zu\n", str.size(), master_styles.size(), user_styles.size());
+	fflush(stdout);
 	// Create litehtml::document
 	document::ptr doc = make_shared<document>(container);
 
@@ -82,11 +84,15 @@ document::ptr document::createFromString(
 	if (master_styles != "")
 	{
 		doc->m_master_css.parse_css_stylesheet(master_styles, "", doc, nullptr, nullptr, true, 0);
+		printf("litehtml::document::createFromString: master_css size=%zu\n", doc->m_master_css.get_selectors_count());
+		fflush(stdout);
 		doc->m_master_css.sort_selectors();
 	}
 	if (user_styles != "")
 	{
 		doc->m_user_css.parse_css_stylesheet(user_styles, "", doc, nullptr, nullptr, true, 1);
+		printf("litehtml::document::createFromString: user_css size=%zu\n", doc->m_user_css.get_selectors_count());
+		fflush(stdout);
 		doc->m_user_css.sort_selectors();
 	}
 
@@ -97,13 +103,14 @@ document::ptr document::createFromString(
 
 		doc->m_root->set_pseudo_class(_root_, true);
 
-		// apply master CSS
+		printf("litehtml::document::createFromString: applying master stylesheet...\n");
+		fflush(stdout);
 		doc->m_root->apply_stylesheet(doc->m_master_css);
 
-		// parse elements attributes
+		printf("litehtml::document::createFromString: parsing attributes...\n");
+		fflush(stdout);
 		doc->m_root->parse_attributes();
-
-		// parse style sheets linked in document
+		fflush(stdout);
 		for (const auto& css : doc->m_css)
 		{
 			media_query_list_list::ptr media;
@@ -115,40 +122,40 @@ document::ptr document::createFromString(
 			}
 			doc->m_styles.parse_css_stylesheet(css.text, css.baseurl, doc, media, nullptr);
 		}
-		// Sort css selectors using CSS rules.
+		printf("litehtml::document::createFromString: m_styles size=%zu\n", doc->m_styles.get_selectors_count());
+		fflush(stdout);
+		printf("litehtml::document::createFromString: sorting selectors...\n");
+		fflush(stdout);
 		doc->m_styles.sort_selectors();
+		printf("litehtml::document::createFromString: selectors sorted\n");
+		fflush(stdout);
 
-		// Apply media features.
+
 		doc->update_media_lists(doc->m_media);
 
-		// Apply parsed styles.
 		doc->m_root->apply_stylesheet(doc->m_styles);
 
-		// Apply user styles if any
 		doc->m_root->apply_stylesheet(doc->m_user_css);
 
-		// Initialize element::m_css
 		doc->m_root->compute_styles();
 
-		// Apply word-break splitting
 		doc->m_root->apply_word_break();
-
-		// Create rendering tree
 		doc->m_root_render = doc->m_root->create_render_item(nullptr);
 
-		// Now the m_tabular_elements is filled with tabular elements.
-		// We have to check the tabular elements for missing table elements
-		// and create the anonymous boxes in visual table layout
+		printf("litehtml::document::createFromString: fixing tables layout...\n");
+		fflush(stdout);
 		doc->fix_tables_layout();
 
-		// Finally initialize elements
-		// init() returns pointer to the render_init element because it can change its type
+		printf("litehtml::document::createFromString: initializing rendering tree...\n");
+		fflush(stdout);
 		if(doc->m_root_render)
 		{
 			doc->m_root_render = doc->m_root_render->init();
 		}
 	}
 
+	printf("litehtml::document::createFromString finished\n");
+	fflush(stdout);
 	return doc;
 }
 

@@ -397,27 +397,37 @@ bool html_tag::get_custom_property(string_id name, css_token_vector& result) con
         return false;
 }
 
+int g_cs_depth = 0;
 void litehtml::html_tag::compute_styles(bool recursive)
 {
-        const char* style = get_attr("style");
-        document::ptr doc = get_document();
+    g_cs_depth++;
+      fflush(stdout);
 
-        if (style)
+    const char* style = get_attr("style");
+    document::ptr doc = get_document();
+
+    if (style)
+    {
+              fflush(stdout);
+        m_style.add(style, "", doc->container(), css::unlayered_id, selector_specificity(1, 0, 0, 0));
+    }
+
+      fflush(stdout);
+    m_style.subst_vars(this);
+
+      fflush(stdout);
+    m_css.compute(this, doc);
+
+    if (recursive)
+    {
+              fflush(stdout);
+        for (const auto& el : m_children)
         {
-                m_style.add(style, "", doc->container(), css::unlayered_id, selector_specificity(1, 0, 0, 0));
+            el->compute_styles();
         }
-
-        m_style.subst_vars(this);
-
-        m_css.compute(this, doc);
-
-        if (recursive)
-        {
-                for (const auto& el : m_children)
-                {
-                        el->compute_styles();
-                }
-        }
+    }
+      fflush(stdout);
+    g_cs_depth--;
 }
 
 void litehtml::html_tag::apply_word_break()

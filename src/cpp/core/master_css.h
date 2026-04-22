@@ -49,6 +49,7 @@ const char* satoru_master_css =
     "button, input, select, textarea { box-sizing: border-box; }\n"
     "svg { display: inline-block; vertical-align: middle; overflow: hidden; }\n"
     "*[dir=\"rtl\"] { direction: rtl; }\n"
-    "*[dir=\"ltr\"] { direction: ltr; }\n";
+    "*[dir=\"ltr\"] { direction: ltr; }\n"
+    "head, title, meta, link, style, script, noscript { display: none; }\n";
 
 #endif  // SATORU_MASTER_CSS_H

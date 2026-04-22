@@ -26,7 +26,7 @@ export class Satoru extends SatoruBase {
         return resolveGoogleFonts(resource, userAgent);
       }
 
-      const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(resource.url);
+      const isAbsolute = /^[a-z][a-z0-9+.-]*:\/\//i.test(resource.url) || resource.url.startsWith("data:");
 
       let baseDir = baseUrl
         ? baseUrl.startsWith("file://")
@@ -43,7 +43,7 @@ export class Satoru extends SatoruBase {
         !/^[a-z][a-z0-9+.-]*:\/\//i.test(baseDir) &&
         !baseDir.startsWith("data:")
       ) {
-        const filePath = path.join(baseDir, resource.url);
+        const filePath = path.isAbsolute(resource.url) ? resource.url : path.join(baseDir, resource.url);
         if (fs.existsSync(filePath)) {
           return new Uint8Array(fs.readFileSync(filePath));
         }
@@ -52,8 +52,15 @@ export class Satoru extends SatoruBase {
       let finalUrl: string | null = null;
       if (isAbsolute) {
         finalUrl = resource.url;
-      } else if (baseUrl && /^[a-z][a-z0-9+.-]*:/i.test(baseUrl)) {
-        finalUrl = new URL(resource.url, baseUrl).href;
+      } else if (baseUrl) {
+        try {
+          const base = /^[a-z][a-z0-9+.-]*:\/\//i.test(baseUrl) 
+            ? baseUrl 
+            : new URL(`file:///${baseUrl.replace(/\\/g, "/")}`).href;
+          finalUrl = new URL(resource.url, base).href;
+        } catch (e) {
+          // ignore
+        }
       }
 
       if (!finalUrl) return null;

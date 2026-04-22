@@ -10,6 +10,8 @@
 #define offset(member) ((uint_ptr) & this->member - (uint_ptr)this)
 // #define offset(func)  [](const css_properties& css) { return css.func; }
 
+// No external depth tracking needed now
+
 void litehtml::css_properties::compute(const element *el, const document::ptr &doc)
 {
   m_color = el->get_property<web_color>(_color_, true, web_color::black, offset(m_color));
@@ -55,6 +57,7 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   m_text_shadow = el->get_property<shadow_vector>(_text_shadow_, true, shadow_vector(), offset(m_text_shadow));
   m_opacity = el->get_property<float>(_opacity_, false, 1.0f, offset(m_opacity));
   m_aspect_ratio = el->get_property<aspect_ratio>(_aspect_ratio_, false, aspect_ratio(), offset(m_aspect_ratio));
+  
   m_transform = el->get_property<css_token_vector>(_transform_, false, css_token_vector(), offset(m_transform));
   m_rotate = el->get_property<css_token_vector>(_rotate_, false, css_token_vector(), offset(m_rotate));
   m_scale = el->get_property<css_token_vector>(_scale_, false, css_token_vector(), offset(m_scale));
@@ -73,7 +76,7 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
     m_mask = el->get_property<css_token_vector>(__webkit_mask_, false, css_token_vector(), offset(m_mask));
   }
   m_clip = el->get_property<css_token_vector>(_clip_, false, css_token_vector(), offset(m_clip));
-
+ 
   // https://www.w3.org/TR/CSS22/visuren.html#dis-pos-flo
   if (m_display == display_none)
   {
@@ -143,7 +146,7 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
     }
     else if (el->is_root())
     {
-      // 4. Otherwise, if the element is the root element, 'display' is set according to the table below,
+          // 4. Otherwise, if the element is the root element, 'display' is set according to the table below,
       //    except that it is undefined in CSS 2.2 whether a specified value of 'list-item' becomes a
       //    computed value of 'block' or 'list-item'.
       if (m_display == display_inline_table)
@@ -171,7 +174,7 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
     }
     else if (el->is_replaced() && m_display == display_inline)
     {
-      m_display = display_inline_block;
+          m_display = display_inline_block;
     }
   }
   // 5. Otherwise, the remaining 'display' property values apply as specified.
@@ -258,6 +261,7 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   doc->cvt_units(m_css_padding.top, m_font_metrics, font_size);
   doc->cvt_units(m_css_padding.bottom, m_font_metrics, font_size);
 
+
   string_id _border_is_c = (m_direction == direction_ltr) ? _border_inline_start_color_ : _border_inline_end_color_;
   string_id _border_ie_c = (m_direction == direction_ltr) ? _border_inline_end_color_ : _border_inline_start_color_;
   string_id _border_is_s = (m_direction == direction_ltr) ? _border_inline_start_style_ : _border_inline_end_style_;
@@ -265,10 +269,11 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
   string_id _border_is_w = (m_direction == direction_ltr) ? _border_inline_start_width_ : _border_inline_end_width_;
   string_id _border_ie_w = (m_direction == direction_ltr) ? _border_inline_end_width_ : _border_inline_start_width_;
 
+
   if (m_writing_mode == writing_mode_vertical_rl || m_writing_mode == writing_mode_vertical_lr)
   {
-    m_css_borders.top.color = get_logical_property<web_color>(el, _border_is_c, _border_top_color_, _border_inline_color_, m_color, false, offset(m_css_borders.top.color));
-    m_css_borders.bottom.color = get_logical_property<web_color>(el, _border_ie_c, _border_bottom_color_, _border_inline_color_, m_color, false, offset(m_css_borders.bottom.color));
+      m_css_borders.top.color = get_logical_property<web_color>(el, _border_is_c, _border_top_color_, _border_inline_color_, m_color, false, offset(m_css_borders.top.color));
+      m_css_borders.bottom.color = get_logical_property<web_color>(el, _border_ie_c, _border_bottom_color_, _border_inline_color_, m_color, false, offset(m_css_borders.bottom.color));
     m_css_borders.top.style = (border_style)get_logical_property<int>(el, _border_is_s, _border_top_style_, _border_inline_style_, border_style_none, false, offset(m_css_borders.top.style));
     m_css_borders.bottom.style = (border_style)get_logical_property<int>(el, _border_ie_s, _border_bottom_style_, _border_inline_style_, border_style_none, false, offset(m_css_borders.bottom.style));
     m_css_borders.top.width = get_logical_property<css_length>(el, _border_is_w, _border_top_width_, _border_inline_width_, border_width_medium_value, false, offset(m_css_borders.top.width));
@@ -480,6 +485,7 @@ void litehtml::css_properties::compute(const element *el, const document::ptr &d
       m_grid_template_columns.push_back(css_length(1, css_units_fr));
     }
   }
+
 }
 
 // used for all color properties except `color` (color:currentcolor is converted to color:inherit during parsing)
@@ -945,6 +951,13 @@ T litehtml::css_properties::get_logical_property(const element *el, string_id lo
       return *(const T*) ((litehtml::byte*)&p->css() + member_offset);
     else
       return default_value;
+  }
+
+  // Guard: if the value is an unresolved css_token_vector (e.g. from var()),
+  // we cannot extract the expected type. Return default_value instead of crashing.
+  if (best->is<css_token_vector>())
+  {
+    return default_value;
   }
 
   return best->get<T>();

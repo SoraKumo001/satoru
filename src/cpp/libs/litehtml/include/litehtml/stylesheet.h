@@ -79,6 +79,7 @@ public:
 	void	parse_css_stylesheet(const Input& input, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media = nullptr, container_query_list_list::ptr container = nullptr, bool top_level = true, int layer = unlayered_id, string layer_prefix = "");
 
 	void	sort_selectors();
+	size_t	get_selectors_count() const { return m_selectors.size(); }
 
 private:
 	bool	parse_style_rule(raw_rule::ptr rule, string baseurl, shared_ptr<document> doc, media_query_list_list::ptr media, container_query_list_list::ptr container, int layer);

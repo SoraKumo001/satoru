@@ -2153,8 +2153,10 @@ void container_skia::on_unknown_property(const litehtml::string& name,
         name == "text-size-adjust") {
         return;
     }
+    /*
     SATORU_LOG_WARN("Unsupported CSS property: %s: %s", name.c_str(),
                     litehtml::get_repr(value).c_str());
+    */
 }
 
 SkPath container_skia::parse_clip_path(const litehtml::css_token_vector& tokens,

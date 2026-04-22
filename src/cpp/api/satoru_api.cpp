@@ -2,9 +2,11 @@
 
 #include <emscripten.h>
 
+#include <cstdarg>
 #include <cstring>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 #include "core/container_skia.h"
 #include "core/master_css.h"
@@ -21,7 +23,11 @@ static LogLevel g_log_level = LogLevel::None;
 
 EM_JS(void, satoru_log_js, (int level, const char* message), {
     if (Module.onLog) {
-        Module.onLog(level, UTF8ToString(message));
+        try {
+            Module.onLog(level, UTF8ToString(message));
+        } catch (e) {
+            // Silently ignore log errors to prevent Wasm crash
+        }
     }
 });
 
@@ -35,10 +41,21 @@ void satoru_log_printf(LogLevel level, const char* format, ...) {
     if (level <= g_log_level) {
         va_list args;
         va_start(args, format);
-        char buffer[1024];
-        vsnprintf(buffer, sizeof(buffer), format, args);
+
+        va_list args_copy;
+        va_copy(args_copy, args);
+        int size = vsnprintf(nullptr, 0, format, args_copy);
+        va_end(args_copy);
+
+        if (size >= 0) {
+            std::vector<char> buffer(size + 1);
+            vsnprintf(buffer.data(), buffer.size(), format, args);
+            // Ensure any invalid UTF-8 at the end (from truncation elsewhere) is handled
+            // although here we are not truncating.
+            satoru_log_js((int)level, buffer.data());
+        }
+
         va_end(args);
-        satoru_log_js((int)level, buffer);
     }
 }
 
@@ -46,11 +63,14 @@ void satoru_log_printf(LogLevel level, const char* format, ...) {
 namespace {
 std::string json_escape(const std::string& s) {
     std::ostringstream o;
-    for (auto c : s) {
-        if (c == '"' || c == '\\' || ('\x00' <= c && c <= '\x1f')) {
+    for (unsigned char c : s) {
+        if (c == '"' || c == '\\' || (c <= 0x1f)) {
             o << "\\u" << std::hex << std::setw(4) << std::setfill('0') << (int)c;
+        } else if (c >= 0x80) {
+            // Keep UTF-8 bytes as-is, but ensure they are not sign-extended
+            o << (char)c;
         } else {
-            o << c;
+            o << (char)c;
         }
     }
     return o.str();
@@ -163,33 +183,49 @@ static void scan_image_sizes(litehtml::element::ptr el, SatoruContext& context) 
 }
 
 void SatoruInstance::collect_resources(const std::string& html, int width, int height) {
-    if (!doc || html != last_parsed_html) {
-        last_parsed_html = html;
-        last_width = -1;  // Force re-layout
-        int initial_height = (height > 0) ? height : 3000;
-        render_container = std::make_unique<container_skia>(width, initial_height, nullptr, context,
-                                                            &resourceManager, false);
+    satoru_log_printf(LogLevel::Error, "[Satoru] collect_resources start: html_size=%zu",
+                      html.size());
+    try {
+        if (!doc || html != last_parsed_html) {
+            last_parsed_html = html;
+            last_width = -1;  // Force re-layout
+            int initial_height = (height > 0) ? height : 3000;
+            render_container = std::make_unique<container_skia>(width, initial_height, nullptr,
+                                                                context, &resourceManager, false);
 
-        context.fontManager.scanFontFaces(html.c_str());
+            context.fontManager.scanFontFaces(html.c_str());
 
-        doc = litehtml::document::createFromString(html.c_str(), render_container.get(),
-                                                   get_full_master_css().c_str(),
-                                                   context.getExtraCss().c_str());
-        if (render_container) {
-            render_container->set_document(doc.get());
-        }
-    }
-
-    if (doc) {
-        if (width != last_width || height != last_height) {
-            doc->render(width);
-            last_width = width;
-            last_height = height;
+            satoru_log_printf(LogLevel::Error, "[Satoru] Creating document...");
+            doc = litehtml::document::createFromString(html.c_str(), render_container.get(),
+                                                       get_full_master_css().c_str(),
+                                                       context.getExtraCss().c_str());
+            satoru_log_printf(LogLevel::Error, "[Satoru] Document created: %p", doc.get());
             if (render_container) {
-                render_container->set_height(doc->height());
+                render_container->set_document(doc.get());
             }
         }
-        scan_image_sizes(doc->root(), context);
+
+        if (doc) {
+            if (width != last_width || height != last_height) {
+                satoru_log_printf(LogLevel::Error, "[Satoru] Document render start: width=%d",
+                                  width);
+                doc->render(width);
+                satoru_log_printf(LogLevel::Error, "[Satoru] Document render finished: height=%f",
+                                  (float)doc->height());
+                last_width = width;
+                last_height = height;
+                if (render_container) {
+                    render_container->set_height(doc->height());
+                }
+            }
+            scan_image_sizes(doc->root(), context);
+        }
+    } catch (const std::exception& e) {
+        satoru_log_printf(LogLevel::Error, "Exception in collect_resources: %s", e.what());
+        throw;
+    } catch (...) {
+        satoru_log_printf(LogLevel::Error, "Unknown exception in collect_resources");
+        throw;
     }
 
     const auto& usedCodepoints = render_container->get_used_codepoints();

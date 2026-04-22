@@ -664,13 +664,13 @@ export abstract class SatoruBase {
             } catch (e) {
               // fall through
             }
-            let typeInt = 1;
+            let typeInt = 1; // Font
             if (r.type === "image") typeInt = 2;
             if (r.type === "css") typeInt = 3;
             mod.add_resource(instancePtr, r.url, typeInt, uint8);
           })();
         }
-        let typeInt = 1;
+        let typeInt = 1; // Font
         if (r.type === "image") typeInt = 2;
         if (r.type === "css") typeInt = 3;
         mod.add_resource(instancePtr, r.url, typeInt, uint8);
@@ -719,7 +719,7 @@ export abstract class SatoruBase {
                   mod.add_resource(
                     instancePtr,
                     r.url,
-                    1, // Font type
+                    3, // Css type
                     fontResult.css,
                   );
                   // Then load all prefetched font binaries directly

@@ -15,6 +15,7 @@
 void litehtml::css_properties::compute(const element *el, const document::ptr &doc)
 {
   m_color = el->get_property<web_color>(_color_, true, web_color::black, offset(m_color));
+  m_text_fill_color = el->get_property<web_color>(__webkit_text_fill_color_, true, web_color(0, 0, 0, 1), offset(m_text_fill_color));
 
   m_el_position = (element_position)el->get_property<int>(_position_, false, element_position_static, offset(m_el_position));
   m_direction = (direction)el->get_property<int>(_direction_, true, direction_ltr, offset(m_direction));
@@ -776,6 +777,9 @@ void litehtml::css_properties::compute_background(const element *el, const docum
   m_bg.m_attachment = el->get_property<int_vector>(_background_attachment_, false, {background_attachment_scroll}, offset(m_bg.m_attachment));
   m_bg.m_repeat = el->get_property<int_vector>(_background_repeat_, false, {background_repeat_repeat}, offset(m_bg.m_repeat));
   m_bg.m_clip = el->get_property<int_vector>(_background_clip_, false, {background_box_border}, offset(m_bg.m_clip));
+  if (!m_bg.m_clip.empty()) {
+      printf("DEBUG: m_bg.m_clip[0]=%d for element\n", m_bg.m_clip[0]);
+  }
   m_bg.m_origin = el->get_property<int_vector>(_background_origin_, false, {background_box_padding}, offset(m_bg.m_origin));
 
   m_bg.m_image = el->get_property<vector<image>>(_background_image_, false, {{}}, offset(m_bg.m_image));

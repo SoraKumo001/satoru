@@ -235,7 +235,7 @@ litehtml::render_item::split_inlines() {
             }
             break;
         }
-        if (!child->children().empty()) {
+        if (!child->children().empty() && !child->src_el()->is_inline_box()) {
             auto child_split = child->split_inlines();
             if (std::get<0>(child_split)) {
                 std::get<0>(ret) = clone();

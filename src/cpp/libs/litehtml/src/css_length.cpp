@@ -115,7 +115,7 @@ bool css_length::from_token(const css_token& token, int options, const string& k
 			set_calc(val.px, val.percent, val.rem);
 			return true;
 		}
-		else if (name == "min" || name == "max" || name == "clamp")
+		else if (name == "min" || name == "max" || name == "clamp" || name == "minmax")
 		{
 			std::vector<css_length> operands;
 			css_token_vector current_operand;
@@ -126,8 +126,6 @@ bool css_length::from_token(const css_token& token, int options, const string& k
 					if (!current_operand.empty())
 					{
 						css_length op;
-						// Use normalize to componentize and remove whitespace if needed
-						// But simpler here: just check if it's a single value or calc
 						if (current_operand.size() == 1)
 						{
 							if (op.from_token(current_operand[0], options, keywords))
@@ -135,9 +133,6 @@ bool css_length::from_token(const css_token& token, int options, const string& k
 						}
 						else
 						{
-							// Support calc/nested math inside min/max
-							// For simplicity, we could try to parse it as calc if it's multiple tokens
-							// or wrap it in a pseudo-calc token
 							css_token pseudo(CV_FUNCTION, "calc");
 							pseudo.value = current_operand;
 							if (op.from_token(pseudo, options, keywords))
@@ -173,6 +168,7 @@ bool css_length::from_token(const css_token& token, int options, const string& k
 				if (name == "min") set_math(op_min, std::move(operands));
 				else if (name == "max") set_math(op_max, std::move(operands));
 				else if (name == "clamp") set_math(op_clamp, std::move(operands));
+				else if (name == "minmax") set_math(op_minmax, std::move(operands));
 				return true;
 			}
 		}

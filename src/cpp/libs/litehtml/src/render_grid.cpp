@@ -165,86 +165,117 @@ void litehtml::render_item_grid::calculate_grid_layout(const containing_block_co
 {
     m_grid_layout.clear();
 
-    const auto& columns_template = css().get_grid_template_columns();
-    const auto& rows_template = css().get_grid_template_rows();
+    const auto& columns_template_raw = css().get_grid_template_columns();
+    const auto& rows_template_raw = css().get_grid_template_rows();
+
+    m_grid_layout.column_gap = css().get_column_gap().calc_percent(self_size.render_width);
+    m_grid_layout.row_gap = css().get_row_gap().calc_percent(self_size.render_height);
+
+    // Expand column template
+    length_vector columns_template;
+    for (const auto& len : columns_template_raw)
+    {
+        if (len.is_calc() && (len.get_op() == css_length::op_repeat_auto_fit || len.get_op() == css_length::op_repeat_auto_fill))
+        {
+            pixel_t total_min = 0;
+            for (const auto& op : len.get_operands())
+            {
+                if (op.is_calc() && op.get_op() == css_length::op_minmax)
+                    total_min += op.get_operands()[0].calc_percent(self_size.render_width);
+                else
+                    total_min += op.calc_percent(self_size.render_width);
+            }
+            int repeats = 1;
+            if (total_min + m_grid_layout.column_gap > 0 && self_size.render_width > 0)
+            {
+                repeats = (self_size.render_width + m_grid_layout.column_gap) / (total_min + m_grid_layout.column_gap);
+                if (repeats < 1) repeats = 1;
+            }
+            for (int i = 0; i < repeats; i++)
+            {
+                for (const auto& op : len.get_operands()) columns_template.push_back(op);
+            }
+        }
+        else
+        {
+            columns_template.push_back(len);
+        }
+    }
+
+    // Expand row template
+    length_vector rows_template;
+    for (const auto& len : rows_template_raw)
+    {
+        if (len.is_calc() && (len.get_op() == css_length::op_repeat_auto_fit || len.get_op() == css_length::op_repeat_auto_fill))
+        {
+            // For now, rows don't auto-expand based on height as easily as columns, 
+            // but we can at least support fixed repeats or just one repeat.
+            for (const auto& op : len.get_operands()) rows_template.push_back(op);
+        }
+        else
+        {
+            rows_template.push_back(len);
+        }
+    }
 
     int num_columns = (int)columns_template.size();
     if (num_columns == 0) num_columns = 1;
 
     m_grid_layout.column_widths.assign(num_columns, 0);
-    std::vector<pixel_t> column_min_widths(num_columns, 0);
     float total_fr = 0;
     pixel_t fixed_width = 0;
 
-    m_grid_layout.column_gap = css().get_column_gap().calc_percent(self_size.render_width);
-    m_grid_layout.row_gap = css().get_row_gap().calc_percent(self_size.render_height);
-
-    // First pass: Calculate min-widths for auto columns and fixed/percent sizes
+    // First pass: Calculate fixed widths and identify fr units
     for (int i = 0; i < num_columns; i++)
     {
-        if (i < (int)columns_template.size())
+        const auto& len = columns_template[i];
+        if (len.units() == css_units_fr)
         {
-            const auto& len = columns_template[i];
-            if (len.units() == css_units_fr)
+            total_fr += len.val();
+        }
+        else if (len.is_calc() && len.get_op() == css_length::op_minmax)
+        {
+            // minmax(min, max)
+            const auto& min_len = len.get_operands()[0];
+            const auto& max_len = len.get_operands()[1];
+            
+            m_grid_layout.column_widths[i] = min_len.calc_percent(self_size.render_width);
+            fixed_width += m_grid_layout.column_widths[i];
+
+            if (max_len.units() == css_units_fr)
             {
-                total_fr += len.val();
+                total_fr += max_len.val();
             }
-            else if (!len.is_predefined())
-            {
-                m_grid_layout.column_widths[i] = len.calc_percent(self_size.render_width);
-                fixed_width += m_grid_layout.column_widths[i];
-            }
+        }
+        else if (!len.is_predefined())
+        {
+            m_grid_layout.column_widths[i] = len.calc_percent(self_size.render_width);
+            fixed_width += m_grid_layout.column_widths[i];
         }
     }
 
-    // Measure auto-columns based on items
-    // (Simplification: we need to know which item goes where before final sizing)
-    // This part should be integrated after the placement logic but before final sizing.
-    
     fixed_width += m_grid_layout.column_gap * (num_columns - 1);
 
     // Distribute remaining space to fr columns
     if (total_fr > 0)
     {
-        // First, ensure auto columns have at least some minimal width based on items
-        for (auto& item : m_grid_layout.items)
-        {
-            if (item.pos.col_span() == 1)
-            {
-                int col = item.pos.col_start;
-                if (columns_template[col].is_predefined())
-                {
-                    containing_block_context cb = self_size;
-                    cb.render_width = self_size.render_width; // Allow it to take what it needs
-                    cb.width = cb.render_width;
-                    cb.size_mode |= containing_block_context::size_mode_measure;
-                    cb.size_mode |= containing_block_context::size_mode_content;
-
-                    pixel_t min_w = item.el->measure(cb, fmt_ctx);
-                    m_grid_layout.column_widths[col] = std::max(m_grid_layout.column_widths[col], min_w);
-                }
-            }
-        }
-
-        // Recalculate fixed_width including determined auto widths
-        fixed_width = 0;
-        for (int i = 0; i < num_columns; i++)
-        {
-            if (i >= (int)columns_template.size() || columns_template[i].units() != css_units_fr)
-            {
-                fixed_width += m_grid_layout.column_widths[i];
-            }
-        }
-        fixed_width += m_grid_layout.column_gap * (num_columns - 1);
-
         pixel_t remaining_width = self_size.render_width - fixed_width;
         if (remaining_width < 0) remaining_width = 0;
-        for (int i = 0; i < (int)columns_template.size(); i++)
+
+        for (int i = 0; i < num_columns; i++)
         {
             const auto& len = columns_template[i];
             if (len.units() == css_units_fr)
             {
-                m_grid_layout.column_widths[i] = remaining_width * (len.val() / total_fr);
+                m_grid_layout.column_widths[i] = (pixel_t)(remaining_width * (len.val() / total_fr));
+            }
+            else if (len.is_calc() && len.get_op() == css_length::op_minmax)
+            {
+                const auto& max_len = len.get_operands()[1];
+                if (max_len.units() == css_units_fr)
+                {
+                    m_grid_layout.column_widths[i] += (pixel_t)(remaining_width * (max_len.val() / total_fr));
+                }
             }
         }
     }

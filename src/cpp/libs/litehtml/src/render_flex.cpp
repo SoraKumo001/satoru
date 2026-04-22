@@ -520,7 +520,7 @@ std::shared_ptr<litehtml::render_item> litehtml::render_item_flex::init()
 
     for (const auto& el : m_children)
     {
-        if(el->src_el()->is_inline() || el->src_el()->is_break() || el->src_el()->css().get_display() == display_inline_text || el->src_el()->css().get_display() == display_inline)
+        if((el->src_el()->is_inline() && !el->src_el()->is_inline_box()) || el->src_el()->is_break() || el->src_el()->css().get_display() == display_inline_text || el->src_el()->css().get_display() == display_inline)
         {
             if(!inlines.empty())
             {

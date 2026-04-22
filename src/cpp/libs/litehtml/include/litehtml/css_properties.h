@@ -85,6 +85,7 @@ namespace litehtml
     font_metrics m_font_metrics;
     text_transform m_text_transform;
     web_color m_color;
+    web_color m_text_fill_color; // -webkit-text-fill-color, sentinel: alpha=1 means not set
     string m_cursor;
     string m_content;
     border_collapse m_border_collapse;
@@ -393,6 +394,10 @@ namespace litehtml
 
     web_color get_color() const;
     void set_color(web_color color);
+
+    bool has_text_fill_color() const;
+    web_color get_text_fill_color() const;
+    void set_text_fill_color(web_color color);
 
     const string &get_cursor() const;
     void set_cursor(const string &cursor);
@@ -961,6 +966,9 @@ namespace litehtml
 
   inline web_color css_properties::get_color() const { return m_color; }
   inline void css_properties::set_color(web_color color) { m_color = color; }
+  inline bool css_properties::has_text_fill_color() const { return m_text_fill_color.alpha != 1 || m_text_fill_color.red != 0 || m_text_fill_color.green != 0 || m_text_fill_color.blue != 0; }
+  inline web_color css_properties::get_text_fill_color() const { return m_text_fill_color; }
+  inline void css_properties::set_text_fill_color(web_color color) { m_text_fill_color = color; }
 
   inline const string &css_properties::get_cursor() const { return m_cursor; }
   inline void css_properties::set_cursor(const string &cursor) { m_cursor = cursor; }

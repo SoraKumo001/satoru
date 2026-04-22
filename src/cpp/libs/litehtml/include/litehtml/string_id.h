@@ -1,4 +1,4 @@
-﻿#ifndef LH_STRING_ID_H
+#ifndef LH_STRING_ID_H
 #define LH_STRING_ID_H
 
 #include <string>
@@ -412,6 +412,8 @@ namespace litehtml
       _pointer_events_,
       _user_select_,
       __webkit_user_select_,
+      __webkit_background_clip_,
+      __webkit_text_fill_color_,
       _scroll_behavior_,
       _transform_style_,
       _perspective_,

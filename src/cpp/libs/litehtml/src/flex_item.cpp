@@ -314,7 +314,8 @@ void litehtml::flex_item_row_direction::layout_item(litehtml::flex_line &ln,
     child_cb.inline_size() = main_size - el->content_offset_inline(m_container_wm) + el->box_sizing_inline(m_container_wm);
     child_cb.render_inline_size() = child_cb.inline_size();
 
-	bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
+	bool stretch = ((align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal) &&
+                   !auto_margin_cross_start && !auto_margin_cross_end;
 	const css_length& cross_prop = m_container_wm.get_block_size(el->css());
 
 	if (stretch && cross_prop.is_predefined())
@@ -569,7 +570,8 @@ void litehtml::flex_item_column_direction::layout_item(litehtml::flex_line &ln,
     child_cb.block_size() = main_size - el->content_offset_block(m_container_wm) + el->box_sizing_block(m_container_wm);
     child_cb.render_block_size() = child_cb.block_size();
 
-	bool stretch = (align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal;
+	bool stretch = ((align & 0xFF) == flex_align_items_stretch || (align & 0xFF) == flex_align_items_normal) &&
+                   !auto_margin_cross_start && !auto_margin_cross_end;
 	const css_length& cross_prop = m_container_wm.get_inline_size(el->css());
 
 	if (stretch && cross_prop.is_predefined())

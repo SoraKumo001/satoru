@@ -443,7 +443,13 @@ namespace litehtml
     case _border_inline_end_color_:
     case _border_block_start_color_:
     case _border_block_end_color_:
-      if (parse_color(val, *clr, container))
+    case __webkit_text_fill_color_:
+      if (ident == "transparent")
+      {
+        web_color transparent_color(0, 0, 0, 0);
+        add_parsed_property(name, property_value(transparent_color, important, false, m_layer, m_specificity));
+      }
+      else if (parse_color(val, *clr, container))
         add_parsed_property(name, property_value(*clr, important, false, m_layer, m_specificity));
       break;
 
@@ -468,6 +474,10 @@ namespace litehtml
     case _background_origin_:
     case _background_clip_:
       parse_keyword_comma_list(name, value, important);
+      break;
+
+    case __webkit_background_clip_:
+      parse_keyword_comma_list(_background_clip_, value, important);
       break;
 
     case _border_:
@@ -1964,18 +1974,51 @@ namespace litehtml
       if (tok.type == CV_FUNCTION && lowcase(tok.name) == "repeat")
       {
         int count = 0;
+        bool auto_fit = false;
+        bool auto_fill = false;
         css_token_vector sub_tokens;
         bool comma_found = false;
         for (const auto& t : tok.value)
         {
-          if (!comma_found && t.type == NUMBER)
-            count = (int)t.n.number;
-          else if (t.type == ',')
+          if (t.type == ',')
+          {
             comma_found = true;
-          else if (comma_found && t.type != WHITESPACE)
+          }
+          else if (!comma_found)
+          {
+            if (t.type == NUMBER)
+              count = (int)t.n.number;
+            else if (t.type == IDENT)
+            {
+              if (lowcase(t.name) == "auto-fit") auto_fit = true;
+              else if (lowcase(t.name) == "auto-fill") auto_fill = true;
+            }
+          }
+          else if (t.type != WHITESPACE)
+          {
             sub_tokens.push_back(t);
+          }
         }
-        if (count > 0)
+
+        if (auto_fit || auto_fill)
+        {
+          std::vector<css_length> sub_tracks;
+          for (const auto& st : sub_tokens)
+          {
+            css_length sl;
+            if (sl.from_token(st, f_length_percentage | f_positive))
+              sub_tracks.push_back(sl);
+            else if (st.type == IDENT && st.ident() == "auto")
+              sub_tracks.push_back(css_length::predef_value(0));
+          }
+          if (!sub_tracks.empty())
+          {
+            css_length rep;
+            rep.set_math(auto_fit ? css_length::op_repeat_auto_fit : css_length::op_repeat_auto_fill, std::move(sub_tracks));
+            tracks.push_back(rep);
+          }
+        }
+        else if (count > 0)
         {
           for (int i = 0; i < count; i++)
           {
@@ -2263,6 +2306,7 @@ namespace litehtml
   void style::subst_vars(const html_tag *el)
   {
     auto properties = m_properties;
+    bool had_var_shorthand = false;
     for (auto &prop : properties)
     {
       if (prop.second.m_has_var)
@@ -2270,6 +2314,22 @@ namespace litehtml
         auto &value = prop.second.get<css_token_vector>();
         subst_vars_(prop.first, value, el);
         add_property(prop.first, value, "", prop.second.m_priority.important, el->get_document()->container(), prop.second.m_priority.layer_rank, prop.second.m_priority.specificity);
+        // Check if this was a shorthand that expands to sub-properties
+        if (!at(shorthands, prop.first).empty())
+          had_var_shorthand = true;
+      }
+    }
+    // If a shorthand with var() was re-parsed, it may have overwritten
+    // individual (non-var) sub-properties that appeared after it in the source.
+    // Re-apply those non-var properties to restore the correct cascade order.
+    if (had_var_shorthand)
+    {
+      for (auto &prop : properties)
+      {
+        if (!prop.second.m_has_var && !prop.second.is<invalid>())
+        {
+          add_parsed_property(prop.first, prop.second);
+        }
       }
     }
   }

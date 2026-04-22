@@ -32,13 +32,18 @@ namespace litehtml
 		float		m_rem;
 		bool		m_is_calc;
 
+	public:
 		enum math_op
 		{
 			op_none,
 			op_min,
 			op_max,
-			op_clamp
+			op_clamp,
+			op_minmax,
+			op_repeat_auto_fit,
+			op_repeat_auto_fill
 		};
+	private:
 		math_op m_op = op_none;
 		std::vector<css_length> m_operands;
 
@@ -61,6 +66,8 @@ namespace litehtml
 		void        set_calc(float px, float percent, float rem) { m_px = px; m_percent = percent; m_rem = rem; m_is_calc = true; m_is_predefined = false; m_op = op_none; m_operands.clear(); }
 		void        set_math(math_op op, std::vector<css_length>&& operands) { m_px = 0; m_percent = 0; m_rem = 0; m_op = op; m_operands = std::move(operands); m_is_calc = true; m_is_predefined = false; }
 		bool        is_calc() const { return m_is_calc; }
+		math_op     get_op() const { return m_op; }
+		const std::vector<css_length>& get_operands() const { return m_operands; }
 		float       calc_px() const { return m_px; }
 		float       calc_percent() const { return m_percent; }
 		float       calc_rem() const { return m_rem; }

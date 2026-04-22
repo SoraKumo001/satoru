@@ -115,6 +115,8 @@ export interface RenderOptions {
   fontMap?: Record<string, string>;
   logLevel?: LogLevel;
   onLog?: (level: LogLevel, message: string) => void;
+  /** Media type for CSS @media queries (default: "screen") */
+  mediaType?: "screen" | "print";
 }
 
 export const DEFAULT_FONT_MAP: Record<string, string> = {
@@ -398,6 +400,7 @@ export abstract class SatoruBase {
       backgroundColor?: string;
       format?: "svg" | "png" | "webp" | "pdf";
       textToPaths?: boolean;
+      mediaType?: "screen" | "print";
     },
   ): Promise<string | Uint8Array> {
     const mod = await this.getModule();
@@ -425,6 +428,7 @@ export abstract class SatoruBase {
         fitPositionX: options.fitPosition?.x ?? 0.5,
         fitPositionY: options.fitPosition?.y ?? 0.5,
         backgroundColor: this.parseColor(options.backgroundColor),
+        mediaType: options.mediaType === "print" ? 1 : 0,
       }
     );
 
@@ -802,6 +806,7 @@ export abstract class SatoruBase {
           fitPositionX: options.fitPosition?.x ?? 0.5,
           fitPositionY: options.fitPosition?.y ?? 0.5,
           backgroundColor: this.parseColor(options.backgroundColor),
+          mediaType: options.mediaType === "print" ? 1 : 0,
         }
       );
 

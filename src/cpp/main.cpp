@@ -78,6 +78,9 @@ val render_val(SatoruInstance* inst, val htmls, int width, int height, int forma
     if (options_val.hasOwnProperty("fitPositionY")) {
         options.fitPositionY = options_val["fitPositionY"].as<float>();
     }
+    if (options_val.hasOwnProperty("mediaType")) {
+        options.mediaType = options_val["mediaType"].as<int>();
+    }
 
     int size = 0;
     const uint8_t* data =
@@ -173,6 +176,9 @@ val render_from_state_val(SatoruInstance* inst, int width, int height, int forma
     }
     if (options_val.hasOwnProperty("fitPositionY")) {
         options.fitPositionY = options_val["fitPositionY"].as<float>();
+    }
+    if (options_val.hasOwnProperty("mediaType")) {
+        options.mediaType = options_val["mediaType"].as<int>();
     }
     int size = 0;
     const uint8_t* data =

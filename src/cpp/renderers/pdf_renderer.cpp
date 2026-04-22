@@ -69,6 +69,14 @@ sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height,
         inst->render_container->set_height(content_height);
         inst->render_container->set_tagging(false);
 
+        litehtml::media_type media_type =
+            (options.mediaType == 1) ? litehtml::media_type_print : litehtml::media_type_screen;
+        if (inst->render_container->get_media_type() != media_type) {
+            inst->render_container->set_media_type(media_type);
+            inst->doc->media_changed();
+            inst->doc->render(width);
+        }
+
         litehtml::position clip(0, 0, src_w, src_h);
         inst->doc->draw(0, -src_x, -src_y, &clip);
         inst->render_container->flush();
@@ -99,8 +107,10 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width,
 
     for (const auto& html : htmls) {
         // Measure pass
+        litehtml::media_type media_type =
+            (options.mediaType == 1) ? litehtml::media_type_print : litehtml::media_type_screen;
         container_skia measure_container(width, height > 0 ? height : 3000, nullptr, context,
-                                         nullptr, false);
+                                         nullptr, false, media_type);
         auto measure_doc = litehtml::document::createFromString(html.c_str(), &measure_container,
                                                                 css.c_str(), user_css);
         if (!measure_doc) continue;
@@ -138,7 +148,8 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width,
         }
 
         // Render pass
-        container_skia render_container(width, content_height, canvas, context, nullptr, false);
+        container_skia render_container(width, content_height, canvas, context, nullptr, false,
+                                        media_type);
         auto render_doc = litehtml::document::createFromString(html.c_str(), &render_container,
                                                                css.c_str(), user_css);
         render_doc->render(width);

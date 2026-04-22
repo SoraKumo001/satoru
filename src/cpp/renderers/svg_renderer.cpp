@@ -1657,6 +1657,14 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
     inst->render_container->set_canvas(canvas.get());
     inst->render_container->set_height(content_height);
     inst->render_container->set_tagging(true);
+
+    litehtml::media_type media_type =
+        (options.mediaType == 1) ? litehtml::media_type_print : litehtml::media_type_screen;
+    if (inst->render_container->get_media_type() != media_type) {
+        inst->render_container->set_media_type(media_type);
+        inst->doc->media_changed();
+        inst->doc->render(width);
+    }
     inst->render_container->set_text_to_paths(options.svgTextToPaths);
 
     litehtml::position clip(0, 0, src_w, src_h);
@@ -1675,8 +1683,10 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
                             const RenderOptions& options) {
     satoru_log_printf(LogLevel::Error, "[Satoru] renderHtmlToSvg start");
     int initial_height = (height > 0) ? height : 3000;
-    auto container =
-        std::make_unique<container_skia>(width, initial_height, nullptr, context, nullptr, false);
+    litehtml::media_type media_type =
+        (options.mediaType == 1) ? litehtml::media_type_print : litehtml::media_type_screen;
+    auto container = std::make_unique<container_skia>(width, initial_height, nullptr, context,
+                                                      nullptr, false, media_type);
 
     std::string css = master_css ? master_css : litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";
@@ -1710,6 +1720,11 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
     container->set_canvas(canvas.get());
     container->set_height(content_height);
     container->set_tagging(true);
+    if (container->get_media_type() != media_type) {
+        container->set_media_type(media_type);
+        doc->media_changed();
+        doc->render(width);
+    }
     container->set_text_to_paths(options.svgTextToPaths);
     container->reset();
 

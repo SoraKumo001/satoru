@@ -350,13 +350,14 @@ SkRRect get_background_rrect(const litehtml::background_layer& layer) {
 }  // namespace
 
 container_skia::container_skia(int w, int h, SkCanvas* canvas, SatoruContext& context,
-                               ResourceManager* rm, bool tagging)
+                               ResourceManager* rm, bool tagging, litehtml::media_type media_type)
     : m_canvas(canvas),
       m_width(w),
       m_height(h),
       m_context(context),
       m_resourceManager(rm),
       m_tagging(tagging),
+      m_media_type(media_type),
       m_last_bidi_level(-1),
       m_last_base_level(-1) {
     m_asciiUsed.resize(128, false);
@@ -1645,7 +1646,7 @@ void container_skia::del_clip() {
     m_clips.pop_back();
 }
 void container_skia::get_media_features(litehtml::media_features& features) const {
-    features.type = litehtml::media_type_screen;
+    features.type = m_media_type;
     features.width = m_width;
     features.height = m_height;
     features.device_width = m_width;

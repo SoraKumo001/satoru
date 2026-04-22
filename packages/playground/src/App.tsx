@@ -8,6 +8,7 @@ type Params = {
   format: "svg" | "png" | "webp" | "pdf";
   textToPaths: boolean;
   value?: string | null;
+  mediaType: "screen" | "print";
 };
 
 const App: React.FC = () => {
@@ -35,6 +36,7 @@ const App: React.FC = () => {
         f && ["svg", "png", "webp", "pdf"].includes(f) ? (f as any) : "svg",
       textToPaths: t !== null ? t === "true" : true,
       value: v,
+      mediaType: params.get("mediaType") === "print" ? "print" : "screen",
     };
   });
 
@@ -83,6 +85,7 @@ const App: React.FC = () => {
         format:
           f && ["svg", "png", "webp", "pdf"].includes(f) ? (f as any) : "svg",
         textToPaths: t !== null ? t === "true" : true,
+        mediaType: p.get("mediaType") === "print" ? "print" : "screen",
       });
 
       if (a) {
@@ -116,14 +119,15 @@ const App: React.FC = () => {
     const t = p.get("textToPaths");
     const a = p.get("asset");
     history.replaceState({}, "", url.toString());
-    setParams((p) => ({
+    setParams((prev) => ({
       width: w ? parseInt(w) : 588,
       height: h ? parseInt(h) : undefined,
       format:
         f && ["svg", "png", "webp", "pdf"].includes(f) ? (f as any) : "svg",
       textToPaths: t !== null ? t === "true" : true,
       asset: a ?? undefined,
-      value: params.value !== undefined ? (params.value as string) : p.value,
+      value: params.value !== undefined ? (params.value as string) : prev.value,
+      mediaType: p.get("mediaType") === "print" ? "print" : "screen",
     }));
   };
 
@@ -246,7 +250,7 @@ const App: React.FC = () => {
       }
 
       console.log(`[Satoru] Rendering via Worker (ID: ${requestId})`);
-      const { width, height, format, textToPaths } = params;
+      const { width, height, format, textToPaths, mediaType } = params;
       const result = await render({
         value: currentHtml,
         width,
@@ -254,6 +258,7 @@ const App: React.FC = () => {
         format,
         textToPaths,
         fontMap,
+        mediaType,
         // logLevel: LogLevel.Info,
         onLog: (level, message) => {
           if (requestId !== latestRenderId.current) return;
@@ -489,6 +494,17 @@ const App: React.FC = () => {
                 Convert text to paths
               </label>
             )}
+            <label>
+              Media Type:{" "}
+              <select
+                value={params.mediaType}
+                onChange={(e) => updateParams({ mediaType: e.target.value })}
+                style={{ padding: "2px 5px", borderRadius: "4px" }}
+              >
+                <option value="screen">Screen</option>
+                <option value="print">Print</option>
+              </select>
+            </label>
           </div>
         </fieldset>
 

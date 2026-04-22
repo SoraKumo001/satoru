@@ -362,6 +362,7 @@ npx satoru-render input.html -f webp --verbose
 | `css`             | `string`                                   | Extra CSS to inject into the document.                  |
 | `baseUrl`         | `string`                                   | Base URL for relative path resolution.                  |
 | `logLevel`        | `LogLevel`                                 | Verbosity: `None`, `Error`, `Warning`, `Info`, `Debug`. |
+| `mediaType`       | `"screen" \| "print"`                      | CSS media type for `@media` queries. Default: `"screen"`. |
 
 ---
 

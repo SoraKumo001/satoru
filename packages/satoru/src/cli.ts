@@ -27,6 +27,8 @@ async function main() {
       options.jsdom = false;
     } else if (arg === "--verbose") {
       options.verbose = true;
+    } else if (arg === "--media") {
+      options.mediaType = args[++i];
     } else if (arg === "--help") {
       printHelp();
       return;
@@ -68,6 +70,7 @@ async function main() {
     height: options.height,
     format: options.format,
     logLevel: options.verbose ? LogLevel.Debug : LogLevel.None,
+    mediaType: options.mediaType,
     css: "body { background-color: white; }",
   };
 
@@ -150,6 +153,7 @@ Options:
   -h, --height <number>  Viewport height (default: 0, auto-calculate)
   -f, --format <format>  Output format: svg, png, webp, pdf
   --no-jsdom             Disable JSDOM hydration (enabled by default)
+  --media <type>         Media type: screen, print (default: screen)
   --verbose              Enable detailed logging
   --help                 Show this help message
 `);

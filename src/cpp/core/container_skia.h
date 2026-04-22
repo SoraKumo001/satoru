@@ -74,6 +74,7 @@ class container_skia : public litehtml::document_container {
     int m_clip_path_stack_depth = 0;
     int m_mask_stack_depth = 0;
     mutable std::vector<bool> m_svg_clip_active_stack;
+    litehtml::media_type m_media_type;
 
     satoru::TextBatcher *m_textBatcher = nullptr;
 
@@ -90,7 +91,8 @@ class container_skia : public litehtml::document_container {
 
    public:
     container_skia(int w, int h, SkCanvas *canvas, SatoruContext &context, ResourceManager *rm,
-                   bool tagging = false);
+                   bool tagging = false,
+                   litehtml::media_type media_type = litehtml::media_type_screen);
     virtual ~container_skia();
 
     void set_canvas(SkCanvas *canvas) {
@@ -104,6 +106,8 @@ class container_skia : public litehtml::document_container {
     void set_height(int h) { m_height = h; }
     void set_document(const litehtml::document *doc) { m_doc = doc; }
     void set_tagging(bool t) { m_tagging = t; }
+    void set_media_type(litehtml::media_type type) { m_media_type = type; }
+    litehtml::media_type get_media_type() const { return m_media_type; }
     void set_text_to_paths(bool to_paths) { m_textToPaths = to_paths; }
     void flush() {
         if (m_textBatcher && m_textBatcher->isActive()) {

@@ -91,6 +91,7 @@ graph TD
 
 - **Modern Color**: `oklch()`, `color-mix()`, and relative color syntax.
 - **Layout**: `aspect-ratio`, Flexbox, Grid Layout (Basic), and **Container Queries**.
+- **Media Queries**: Supports `@media screen` and `@media print` via the `mediaType` option.
 - **Effects**: Box-shadow (Outer/Inset), Text-shadow, Gradients (Linear/Radial/Conic), and CSS Filters (Blur, Drop-shadow).
 - **Transforms**: Full support for `translate`, `rotate`, `scale`, `skew`, and `matrix` with correct stacking context.
 
@@ -272,6 +273,9 @@ npx satoru input.html -o output.png -w 1024
 
 # Convert URL to PDF (JSDOM hydration enabled by default)
 npx satoru https://example.com -o example.pdf -f pdf
+
+# Convert with print media styles
+npx satoru input.html -o print.pdf --media print
 
 # Convert without JSDOM hydration
 npx satoru https://example.com --no-jsdom -o example.pdf

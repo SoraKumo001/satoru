@@ -24,6 +24,7 @@ struct RenderOptions {
     uint32_t backgroundColor = 0x00000000;
     float fitPositionX = 0.5f;
     float fitPositionY = 0.5f;
+    int mediaType = 0;  // 0=screen, 1=print
 };
 
 void satoru_log(LogLevel level, const char *message);

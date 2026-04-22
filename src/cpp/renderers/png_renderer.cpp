@@ -49,6 +49,14 @@ sk_sp<SkData> renderDocumentToPng(SatoruInstance* inst, int width, int height,
     inst->render_container->set_height(content_height);
     inst->render_container->set_tagging(false);
 
+    litehtml::media_type media_type =
+        (options.mediaType == 1) ? litehtml::media_type_print : litehtml::media_type_screen;
+    if (inst->render_container->get_media_type() != media_type) {
+        inst->render_container->set_media_type(media_type);
+        inst->doc->media_changed();
+        inst->doc->render(width);
+    }
+
     litehtml::position clip(0, 0, src_w, src_h);
     inst->doc->draw(0, -src_x, -src_y, &clip);
     inst->render_container->flush();
@@ -64,7 +72,9 @@ sk_sp<SkData> renderHtmlToPng(const char* html, int width, int height, SatoruCon
                               const char* master_css, const char* user_css,
                               const RenderOptions& options) {
     int initial_height = (height > 0) ? height : 3000;
-    container_skia container(width, initial_height, nullptr, context, nullptr, false);
+    litehtml::media_type media_type =
+        (options.mediaType == 1) ? litehtml::media_type_print : litehtml::media_type_screen;
+    container_skia container(width, initial_height, nullptr, context, nullptr, false, media_type);
 
     std::string css = master_css ? master_css : litehtml::master_css;
     css += "\nbr { display: -litehtml-br !important; }\n";

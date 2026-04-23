@@ -378,6 +378,19 @@ int SatoruFontManager::getMatchedWeight(sk_sp<SkTypeface> typeface, const std::s
     return typeface->fontStyle().weight();
 }
 
+int SatoruFontManager::getMatchedSlant(sk_sp<SkTypeface> typeface, const std::string &family) {
+    std::string cleanFamily = cleanName(family.c_str());
+    auto it = m_typefaceCache.find(cleanFamily);
+    if (it != m_typefaceCache.end()) {
+        for (const auto &c : it->second) {
+            if (c.typeface->uniqueID() == typeface->uniqueID()) {
+                return c.intended_style.slant();
+            }
+        }
+    }
+    return typeface->fontStyle().slant();
+}
+
 SkFont *SatoruFontManager::createSkFont(sk_sp<SkTypeface> typeface, float size, int weight) {
     if (!typeface) return nullptr;
 
@@ -481,7 +494,14 @@ void SatoruFontManager::parseUnicodeRange(
         uint32_t start = 0, end = 0;
 
         try {
-            if (dashPos != std::string::npos) {
+            if (segment.find('?') != std::string::npos) {
+                std::string minStr = segment;
+                std::string maxStr = segment;
+                std::replace(minStr.begin(), minStr.end(), '?', '0');
+                std::replace(maxStr.begin(), maxStr.end(), '?', 'F');
+                start = std::stoul(minStr, nullptr, 16);
+                end = std::stoul(maxStr, nullptr, 16);
+            } else if (dashPos != std::string::npos) {
                 std::string startStr = segment.substr(0, dashPos);
                 std::string endStr = segment.substr(dashPos + 1);
                 start = std::stoul(startStr, nullptr, 16);
@@ -556,6 +576,10 @@ SkFont SatoruFontManager::selectFont(char32_t u, font_info *fi, SkFont *lastSele
 
     SkFont font = *selected_font;
     if (fi->fake_bold) font.setEmbolden(true);
+
+    if (fi->fake_italic) {
+        font.setSkewX(-0.25f);
+    }
 
     if (unicode.isEmoji(u)) {
         font.setEmbeddedBitmaps(true);

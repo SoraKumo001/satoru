@@ -35,6 +35,7 @@ class SatoruFontManager {
     std::vector<sk_sp<SkTypeface>> matchFonts(const std::string& family, int weight,
                                               SkFontStyle::Slant slant);
     int getMatchedWeight(sk_sp<SkTypeface> typeface, const std::string& family);
+    int getMatchedSlant(sk_sp<SkTypeface> typeface, const std::string& family);
 
     // SkFont インスタンスの生成 (Variable Font 軸適用含む)
     SkFont* createSkFont(sk_sp<SkTypeface> typeface, float size, int weight);

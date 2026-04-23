@@ -269,7 +269,8 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
                 // If the loaded font has a significantly different weight, we might still want to
                 // request a specific weight from the font map.
                 int loadedWeight = loaded[0]->fontStyle().weight();
-                if (std::abs(loadedWeight - req.weight) > 100) {
+                int loadedSlant = loaded[0]->fontStyle().slant();
+                if (std::abs(loadedWeight - req.weight) > 100 || loadedSlant != req.slant) {
                     needRequest = true;
                 }
             }

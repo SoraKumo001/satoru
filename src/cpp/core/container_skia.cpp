@@ -449,12 +449,23 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
         }
     }
 
+    fi->fake_italic = false;
+    if (slant == SkFontStyle::kItalic_Slant) {
+        fi->fake_italic = true;
+    }
+
     if (!fi->fonts.empty()) {
         auto typeface = fi->fonts[0]->getTypeface();
         // Use getMatchedWeight to get the INTENDED weight (handles subset fonts with broken
         // metadata)
         int actual_weight =
             m_context.fontManager.getMatchedWeight(sk_ref_sp(typeface), desc.family);
+
+        int actual_slant = m_context.fontManager.getMatchedSlant(sk_ref_sp(typeface), desc.family);
+
+        if (actual_slant == SkFontStyle::kItalic_Slant) {
+            fi->fake_italic = false;
+        }
 
         // If the matched weight is sufficient, disable fake_bold
         if (actual_weight >= desc.weight) {

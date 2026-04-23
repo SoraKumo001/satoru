@@ -36,6 +36,7 @@ struct font_info {
     int fm_height;
     float fm_ascent_raw;
     bool fake_bold;
+    bool fake_italic;
     bool is_rtl;
     std::set<char32_t> used_codepoints;
 };

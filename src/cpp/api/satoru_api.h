@@ -23,6 +23,7 @@ class SatoruInstance {
     std::unique_ptr<container_skia> render_container;
     std::shared_ptr<litehtml::document> doc;
     std::string last_parsed_html;
+    size_t last_extra_css_size = 0;
     int last_width = -1;
     int last_height = -1;
     std::string cached_full_master_css;

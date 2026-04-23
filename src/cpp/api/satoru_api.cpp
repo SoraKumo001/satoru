@@ -186,8 +186,11 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
     satoru_log_printf(LogLevel::Debug, "[Satoru] collect_resources start: html_size=%zu",
                       html.size());
     try {
-        if (!doc || html != last_parsed_html) {
+        if (!doc || html != last_parsed_html ||
+            context.getExtraCss().size() != last_extra_css_size) {
+            doc.reset();  // Destroy doc first so it doesn't use the old container!
             last_parsed_html = html;
+            last_extra_css_size = context.getExtraCss().size();
             last_width = -1;  // Force re-layout
             int initial_height = (height > 0) ? height : 3000;
             render_container = std::make_unique<container_skia>(width, initial_height, nullptr,

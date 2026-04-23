@@ -189,9 +189,40 @@ void SatoruFontManager::scanFontFaces(const std::string &css) {
         }
 
         if (!family.empty()) {
-            if (auto m = ctre::search<R"((?i)url\s*\(\s*['"]?([^'\"\)]+)['"]?\s*\))">(body_str)) {
+            std::string best_url;
+            int best_score = -1;
+
+            for (auto m :
+                 ctre::search_all<R"((?i)url\s*\(\s*['"]?([^'\"\)]+)['"]?\s*\))">(body_str)) {
+                std::string url = trim(m.get<1>().to_string());
+                std::string lowerUrl = url;
+                std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::tolower);
+
+                int score = 0;
+                if (lowerUrl.find("woff2") != std::string::npos)
+                    score = 5;
+                else if (lowerUrl.find("woff") != std::string::npos)
+                    score = 4;
+                else if (lowerUrl.find("ttf") != std::string::npos ||
+                         lowerUrl.find("truetype") != std::string::npos)
+                    score = 3;
+                else if (lowerUrl.find("otf") != std::string::npos ||
+                         lowerUrl.find("opentype") != std::string::npos)
+                    score = 2;
+                else if (lowerUrl.find("ttc") != std::string::npos)
+                    score = 1;
+                else if (lowerUrl.find(".eot") != std::string::npos)
+                    score = -1;
+
+                if (score > best_score) {
+                    best_score = score;
+                    best_url = url;
+                }
+            }
+
+            if (!best_url.empty() && best_score >= 0) {
                 font_face_source src;
-                src.url = trim(m.get<1>().to_string());
+                src.url = best_url;
 
                 if (auto m2 = ctre::search<R"((?i)unicode-range:\s*([^;\}]+);?)">(body_str)) {
                     src.unicode_range = trim(m2.get<1>().to_string());

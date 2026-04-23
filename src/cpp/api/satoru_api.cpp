@@ -183,7 +183,7 @@ static void scan_image_sizes(litehtml::element::ptr el, SatoruContext& context) 
 }
 
 void SatoruInstance::collect_resources(const std::string& html, int width, int height) {
-    satoru_log_printf(LogLevel::Error, "[Satoru] collect_resources start: html_size=%zu",
+    satoru_log_printf(LogLevel::Debug, "[Satoru] collect_resources start: html_size=%zu",
                       html.size());
     try {
         if (!doc || html != last_parsed_html) {
@@ -195,11 +195,11 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
 
             context.fontManager.scanFontFaces(html.c_str());
 
-            satoru_log_printf(LogLevel::Error, "[Satoru] Creating document...");
+            satoru_log_printf(LogLevel::Debug, "[Satoru] Creating document...");
             doc = litehtml::document::createFromString(html.c_str(), render_container.get(),
                                                        get_full_master_css().c_str(),
                                                        context.getExtraCss().c_str());
-            satoru_log_printf(LogLevel::Error, "[Satoru] Document created: %p", doc.get());
+            satoru_log_printf(LogLevel::Debug, "[Satoru] Document created: %p", doc.get());
             if (render_container) {
                 render_container->set_document(doc.get());
             }
@@ -207,10 +207,10 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
 
         if (doc) {
             if (width != last_width || height != last_height) {
-                satoru_log_printf(LogLevel::Error, "[Satoru] Document render start: width=%d",
+                satoru_log_printf(LogLevel::Debug, "[Satoru] Document render start: width=%d",
                                   width);
                 doc->render(width);
-                satoru_log_printf(LogLevel::Error, "[Satoru] Document render finished: height=%f",
+                satoru_log_printf(LogLevel::Debug, "[Satoru] Document render finished: height=%f",
                                   (float)doc->height());
                 last_width = width;
                 last_height = height;

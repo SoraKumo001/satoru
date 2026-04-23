@@ -745,7 +745,7 @@ export abstract class SatoruBase {
                   data instanceof Uint8Array ||
                   ArrayBuffer.isView(data)
                 ) {
-                  const uint8 =
+                  let finalUint8 =
                     data instanceof Uint8Array
                       ? data
                       : new Uint8Array(
@@ -753,7 +753,36 @@ export abstract class SatoruBase {
                           (data as ArrayBufferView).byteOffset,
                           (data as ArrayBufferView).byteLength,
                         );
-                  await loadResourceData(r, uint8);
+
+                  if (r.type === "css") {
+                    const cssText = new TextDecoder().decode(finalUint8);
+                    const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(r.url) || r.url.startsWith("data:");
+                    let cssBaseUrl = r.url;
+                    if (!isAbsolute && baseUrl) {
+                      try {
+                        const base = /^[a-z][a-z0-9+.-]*:\/\//i.test(baseUrl) 
+                          ? baseUrl 
+                          : new URL(`file:///${baseUrl.replace(/\\/g, "/")}`).href;
+                        cssBaseUrl = new URL(r.url, base).href;
+                      } catch (e) {}
+                    }
+                    if (cssBaseUrl) {
+                      const rewrittenCss = cssText.replace(/url\(['"]?([^'")]+)['"]?\)/g, (match, urlParam) => {
+                        if (urlParam.startsWith("data:") || /^[a-z][a-z0-9+.-]*:/i.test(urlParam)) {
+                          return match;
+                        }
+                        try {
+                          const newUrl = new URL(urlParam, cssBaseUrl).href;
+                          return `url("${newUrl}")`;
+                        } catch (e) {
+                          return match;
+                        }
+                      });
+                      finalUint8 = new TextEncoder().encode(rewrittenCss);
+                    }
+                  }
+
+                  await loadResourceData(r, finalUint8);
                 }
               } catch (e) {
                 console.warn(`Failed to resolve resource: ${r.url}`, e);

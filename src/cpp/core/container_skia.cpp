@@ -823,7 +823,6 @@ void container_skia::draw_linear_gradient(
         if (layer.origin_box.width <= 0 || layer.origin_box.height <= 0) return;
 
         // Store text-clip gradients for compositing in draw_text
-        printf("DEBUG: layer.is_text_clip=%d\n", layer.is_text_clip);
         if (layer.is_text_clip) {
             pending_text_clip tc;
             tc.layer = layer;

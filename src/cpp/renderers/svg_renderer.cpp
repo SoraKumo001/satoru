@@ -1681,7 +1681,7 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
 std::string renderHtmlToSvg(const char* html, int width, int height, SatoruContext& context,
                             const char* master_css, const char* user_css,
                             const RenderOptions& options) {
-    satoru_log_printf(LogLevel::Error, "[Satoru] renderHtmlToSvg start");
+    satoru_log_printf(LogLevel::Debug, "[Satoru] renderHtmlToSvg start");
     int initial_height = (height > 0) ? height : 3000;
     litehtml::media_type media_type =
         (options.mediaType == 1) ? litehtml::media_type_print : litehtml::media_type_screen;
@@ -1698,10 +1698,10 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
             "[Satoru] Failed to create document in renderHtmlToSvg (returned nullptr)");
         return "";
     }
-    satoru_log_printf(LogLevel::Error, "[Satoru] Document created (ptr=%p), rendering...",
+    satoru_log_printf(LogLevel::Debug, "[Satoru] Document created (ptr=%p), rendering...",
                       (void*)doc.get());
     doc->render(width);
-    satoru_log_printf(LogLevel::Error, "[Satoru] Render finished, document height=%f",
+    satoru_log_printf(LogLevel::Debug, "[Satoru] Render finished, document height=%f",
                       (float)doc->height());
 
     int content_height = (height > 0) ? height : (int)doc->height();
@@ -1736,9 +1736,9 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
     sk_sp<SkData> data = stream.detachAsData();
     std::string_view svg((const char*)data->data(), data->size());
 
-    satoru_log_printf(LogLevel::Error, "[Satoru] finalizeSvg calling...");
+    satoru_log_printf(LogLevel::Debug, "[Satoru] finalizeSvg calling...");
     std::string final_svg = finalizeSvg(svg, context, *container, options);
-    satoru_log_printf(LogLevel::Error, "[Satoru] renderHtmlToSvg finished, final_size=%zu",
+    satoru_log_printf(LogLevel::Debug, "[Satoru] renderHtmlToSvg finished, final_size=%zu",
                       final_svg.size());
     return final_svg;
 }

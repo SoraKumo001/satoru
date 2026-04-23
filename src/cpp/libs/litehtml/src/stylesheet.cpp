@@ -233,8 +233,6 @@ bool css::parse_style_rule(raw_rule::ptr rule, string baseurl, document::ptr doc
 
 void css::sort_selectors()
 {
-	printf("[Satoru Log] css::sort_selectors: size=%zu\n", m_selectors.size());
-	fflush(stdout);
 	std::sort(m_selectors.begin(), m_selectors.end(),
 		 [](const css_selector::ptr& v1, const css_selector::ptr& v2)
 		 {

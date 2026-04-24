@@ -564,6 +564,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
 
                 SkRect bounds = SkRect::MakeXYWH((float)clip.x, (float)clip.y, (float)clip.width,
                                                  (float)clip.height);
+                float outset_amount = std::max(50.0f, (float)fi->desc.size * 0.5f);
+                bounds.outset(outset_amount, outset_amount);
                 m_canvas->saveLayer(bounds, nullptr);
 
                 // Draw text as opaque white mask
@@ -617,6 +619,20 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
                                    mode, m_tagging, get_current_opacity(), m_usedTextShadows,
                                    m_usedTextDraws, m_usedGlyphs, m_usedGlyphDraws,
                                    m_resourceManager ? &m_usedCodepoints : nullptr, m_textBatcher);
+    std::string s(text);
+    if (!s.empty() && s.find_first_not_of(" \n\r\t") != std::string::npos) {
+        SATORU_LOG_DEBUG("Text drawn: '%s'. num clips: %d. actual_pos: x=%f, y=%f, w=%f, h=%f",
+                         text, (int)m_clips.size(), actual_pos.x, actual_pos.y, actual_pos.width,
+                         actual_pos.height);
+        if (!m_clips.empty()) {
+            SkRect cb = m_canvas->getLocalClipBounds();
+            SATORU_LOG_DEBUG(
+                "Active clip bounds (m_clips): x=%f, y=%f, r=%f, b=%f. m_canvas clip: x=%f, y=%f, "
+                "r=%f, b=%f",
+                m_clips.back().first.x, m_clips.back().first.y, m_clips.back().first.right(),
+                m_clips.back().first.bottom(), cb.left(), cb.top(), cb.right(), cb.bottom());
+        }
+    }
     if (fi && m_resourceManager) {
         satoru::TextRenderer::drawText(&m_context, nullptr, text, fi, color, actual_pos, overflow,
                                        dir, mode, m_tagging, get_current_opacity(),

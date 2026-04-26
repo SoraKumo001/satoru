@@ -368,7 +368,41 @@ bool html_tag::get_custom_property(string_id name, css_token_vector& result) con
         if (value.is<css_token_vector>())
         {
                 result = value.get<css_token_vector>();
-                return true;
+                if (result.size() == 1 && result[0].type == IDENT)
+                {
+                        string id = lowcase(result[0].ident());
+                        if (id == "initial")
+                        {
+                                const custom_property_definition* def = get_document()->get_custom_property_def(name);
+                                if (def && !def->initial_value.empty())
+                                {
+                                        result = def->initial_value;
+                                        return true;
+                                }
+                                return false;
+                        }
+                        if (id == "unset")
+                        {
+                                const custom_property_definition* def = get_document()->get_custom_property_def(name);
+                                if (def && !def->inherits)
+                                {
+                                        if (!def->initial_value.empty())
+                                        {
+                                                result = def->initial_value;
+                                                return true;
+                                        }
+                                        return false;
+                                }
+                        }
+                        else
+                        {
+                                return true;
+                        }
+                }
+                else
+                {
+                        return true;
+                }
         }
 
         const custom_property_definition* def = get_document()->get_custom_property_def(name);

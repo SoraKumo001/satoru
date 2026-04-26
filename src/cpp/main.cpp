@@ -102,6 +102,12 @@ void load_font_val(SatoruInstance* inst, std::string name, val data) {
     api_load_font(inst, name, vec);
 }
 
+void load_fallback_font_val(SatoruInstance* inst, val data) {
+    if (!inst) return;
+    auto vec = val_to_vector(data);
+    api_load_fallback_font(inst, vec);
+}
+
 void scan_css_val(SatoruInstance* inst, std::string css) {
     if (!inst) return;
     api_scan_css(inst, css);
@@ -231,6 +237,7 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("add_resource", &add_resource_val, allow_raw_pointers());
     function("scan_css", &scan_css_val, allow_raw_pointers());
     function("load_font", &load_font_val, allow_raw_pointers());
+    function("load_fallback_font", &load_fallback_font_val, allow_raw_pointers());
     function("load_image", &load_image_val, allow_raw_pointers());
     function("load_image_pixels", &load_image_pixels_val, allow_raw_pointers());
     function("set_font_map", &set_font_map_val, allow_raw_pointers());

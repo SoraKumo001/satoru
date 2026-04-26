@@ -35,6 +35,8 @@ namespace litehtml
 			pixel_t total_grid_height = 0;
 			pixel_t column_gap = 0;
 			pixel_t row_gap = 0;
+			pixel_t justify_gap = 0;
+			pixel_t align_gap = 0;
 
 			void clear()
 			{
@@ -45,6 +47,8 @@ namespace litehtml
 				items.clear();
 				total_grid_width = 0;
 				total_grid_height = 0;
+				justify_gap = 0;
+				align_gap = 0;
 			}
 		};
 

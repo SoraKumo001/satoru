@@ -149,11 +149,13 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
         std::string style = "normal";
         if (ctre::search<"(?i)italic|oblique">(url)) style = "italic";
 
-        std::string fontFace = "@font-face { font-family: '" + primaryName +
-                               "'; font-weight: " + weight + "; font-style: " + style +
-                               "; src: url('" + url + "'); }";
-        m_context.addCss(fontFace);
-        m_context.fontManager.scanFontFaces(fontFace);
+        if (url.substr(0, 5) != "data:") {
+            std::string fontFace = "@font-face { font-family: '" + primaryName +
+                                   "'; font-weight: " + weight + "; font-style: " + style +
+                                   "; src: url('" + url + "'); }";
+            m_context.addCss(fontFace);
+            m_context.fontManager.scanFontFaces(fontFace);
+        }
 
     } else if (type == ResourceType::Image) {
         m_context.loadImageFromData(url.c_str(), data, size, url.c_str());

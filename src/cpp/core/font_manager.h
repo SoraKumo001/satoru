@@ -4,6 +4,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -76,7 +77,7 @@ class SatoruFontManager {
     sk_sp<SkTypeface> m_defaultTypeface;
     std::vector<sk_sp<SkTypeface>> m_fallbackTypefaces;
 
-    std::string cleanName(const char* name) const;
+    std::string cleanName(std::string_view name) const;
     void parseUnicodeRange(const std::string& rangeStr,
                            std::vector<std::pair<uint32_t, uint32_t>>& outRanges) const;
     bool checkUnicodeRange(char32_t codepoint,

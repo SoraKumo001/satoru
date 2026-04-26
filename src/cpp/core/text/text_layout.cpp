@@ -493,7 +493,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
         }
     }
 
-    ShapedResult result = {0.0, nullptr};
+    ShapedResult result = {0.0, nullptr, false};
     SkShaper* shaper = ctx->getShaper();
     if (!shaper) return result;
 
@@ -519,6 +519,13 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
                   &handler);
 
     result.blob = blobHandler.makeBlob();
+    result.is_emoji = false;
+    for (const auto& ca : analysis.chars) {
+        if (ca.is_emoji) {
+            result.is_emoji = true;
+            break;
+        }
+    }
 
     ctx->cacheManager.shapingCache.put(key, result);
     return result;

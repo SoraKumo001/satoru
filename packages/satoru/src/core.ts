@@ -78,7 +78,9 @@ export interface ResolvedFontResult {
 
 export type ResourceResolver = (
   resource: RequiredResource,
-  defaultResolver: (resource: RequiredResource) => Promise<Uint8Array | ResolvedFontResult | null>,
+  defaultResolver: (
+    resource: RequiredResource,
+  ) => Promise<Uint8Array | ResolvedFontResult | null>,
 ) => Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null>;
 
 export interface RenderOptions {
@@ -118,17 +120,19 @@ export interface RenderOptions {
   /** Media type for CSS @media queries (default: "screen") */
   mediaType?: "screen" | "print";
 }
-
+const emojiUrl =
+  "https://cdn.jsdelivr.net/npm/@fontsource/noto-color-emoji/files/noto-color-emoji-emoji-400-normal.woff2";
 export const DEFAULT_FONT_MAP: Record<string, string> = {
   "sans-serif": "https://fonts.googleapis.com/css2?family=Noto+Sans+JP",
   serif: "https://fonts.googleapis.com/css2?family=Noto+Serif+JP",
   monospace: "https://fonts.googleapis.com/css2?family=M+PLUS+1+Code",
   cursive: "https://fonts.googleapis.com/css2?family=Yuji+Syuku",
   fantasy: "https://fonts.googleapis.com/css2?family=Reggae+One",
-  emoji:
-    "https://cdn.jsdelivr.net/npm/@fontsource/noto-color-emoji/files/noto-color-emoji-emoji-400-normal.woff2",
-  "Noto Color Emoji":
-    "https://cdn.jsdelivr.net/npm/@fontsource/noto-color-emoji/files/noto-color-emoji-emoji-400-normal.woff2",
+  "Noto Color Emoji": emojiUrl,
+  emoji: emojiUrl,
+  "Noto Emoji": emojiUrl,
+  notocoloremoji: emojiUrl,
+  notoemoji: emojiUrl,
 };
 
 /**
@@ -429,7 +433,7 @@ export abstract class SatoruBase {
         fitPositionY: options.fitPosition?.y ?? 0.5,
         backgroundColor: this.parseColor(options.backgroundColor),
         mediaType: options.mediaType === "print" ? 1 : 0,
-      }
+      },
     );
 
     if (!result) {
@@ -446,6 +450,16 @@ export abstract class SatoruBase {
   async destroyInstance(inst: any): Promise<void> {
     const mod = await this.getModule();
     mod.destroy_instance(inst);
+  }
+
+  async loadFont(name: string, data: Uint8Array): Promise<void> {
+    const mod = await this.getModule();
+    const inst = mod.create_instance();
+    try {
+      mod.load_font(inst, name, data);
+    } finally {
+      mod.destroy_instance(inst);
+    }
   }
 
   async loadFallbackFont(data: Uint8Array): Promise<void> {
@@ -520,7 +534,7 @@ export abstract class SatoruBase {
         });
         pagePdfs.push(pagePdf);
       }
-      
+
       const mod = await this.getModule();
       const instancePtr = mod.create_instance();
       try {
@@ -533,15 +547,7 @@ export abstract class SatoruBase {
     }
 
     let mod = await this.getModule();
-    const {
-      width,
-      height = 0,
-      fonts,
-      images,
-      css,
-      logLevel,
-      onLog,
-    } = options;
+    const { width, height = 0, fonts, images, css, logLevel, onLog } = options;
 
     if (!options.userAgent) {
       options.userAgent =
@@ -569,9 +575,55 @@ export abstract class SatoruBase {
     this.currentFontMap = options.fontMap ?? DEFAULT_FONT_MAP;
 
     const instancePtr = mod.create_instance();
+
     mod.set_font_map(instancePtr, this.currentFontMap);
 
     try {
+      const defaultResolver = (r: RequiredResource) =>
+        this.resolveDefaultResource(r, baseUrl, options.userAgent);
+
+      const resolver: (
+        resource: RequiredResource,
+      ) => Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null> =
+        options.resolveResource
+          ? async (r) => {
+              return await options.resolveResource!(r, defaultResolver);
+            }
+          : defaultResolver;
+
+      const cachedResolver = async (
+        r: RequiredResource,
+      ): Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null> => {
+        const cacheKey = `${r.type}:${r.url}:${r.characters ?? ""}`;
+        const cached = this.resourceCache.get(cacheKey);
+        if (cached) return cached;
+        const result = await resolver(r);
+        if (result) {
+          if (result instanceof Uint8Array) {
+            this.resourceCache.set(cacheKey, result);
+          } else if ("css" in (result as any) && "fonts" in (result as any)) {
+            this.resourceCache.set(cacheKey, result as ResolvedFontResult);
+          }
+        }
+        return result;
+      };
+
+      if (this.currentFontMap["notocoloremoji"]) {
+        const emojiUrl = this.currentFontMap["notocoloremoji"];
+        const res = await cachedResolver({
+          type: "font",
+          url: emojiUrl,
+          name: "notocoloremoji",
+        });
+        if (res && res instanceof Uint8Array) {
+          mod.load_font(instancePtr, "notocoloremoji", res);
+        } else if (res && "fonts" in (res as any)) {
+          for (const f of (res as any).fonts) {
+            mod.load_font(instancePtr, "notocoloremoji", f.data);
+          }
+        }
+      }
+
       if (fonts) {
         for (const f of fonts) {
           mod.load_font(instancePtr, f.name, f.data);
@@ -597,42 +649,7 @@ export abstract class SatoruBase {
         mod.scan_css(instancePtr, css);
       }
 
-      const defaultResolver = (r: RequiredResource) =>
-        this.resolveDefaultResource(r, baseUrl, options.userAgent);
-
-      const resolver: (
-        resource: RequiredResource,
-      ) => Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null> =
-        options.resolveResource
-          ? async (r) => {
-              return await options.resolveResource!(r, defaultResolver);
-            }
-          : defaultResolver;
-
-      const cachedResolver = async (
-        r: RequiredResource,
-      ): Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null> => {
-        const cacheKey = `${r.type}:${r.url}:${r.characters ?? ""}`;
-        const cached = this.resourceCache.get(cacheKey);
-        if (cached) return cached;
-        const result = await resolver(r);
-        if (result) {
-          if (result instanceof Uint8Array) {
-            this.resourceCache.set(cacheKey, result);
-          } else if (
-            "css" in (result as any) &&
-            "fonts" in (result as any)
-          ) {
-            this.resourceCache.set(cacheKey, result as ResolvedFontResult);
-          }
-        }
-        return result;
-      };
-
-      const loadResourceData = (
-        r: RequiredResource,
-        uint8: Uint8Array,
-      ) => {
+      const loadResourceData = (r: RequiredResource, uint8: Uint8Array) => {
         if (
           r.type === "image" &&
           typeof createImageBitmap !== "undefined" &&
@@ -642,10 +659,7 @@ export abstract class SatoruBase {
             try {
               const blob = new Blob([uint8.buffer as ArrayBuffer]);
               const bitmap = await createImageBitmap(blob);
-              const canvas = new OffscreenCanvas(
-                bitmap.width,
-                bitmap.height,
-              );
+              const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
               const ctx = canvas.getContext("2d");
               if (ctx) {
                 ctx.drawImage(bitmap, 0, 0);
@@ -741,10 +755,7 @@ export abstract class SatoruBase {
                 }
 
                 // Handle regular Uint8Array / ArrayBufferView
-                if (
-                  data instanceof Uint8Array ||
-                  ArrayBuffer.isView(data)
-                ) {
+                if (data instanceof Uint8Array || ArrayBuffer.isView(data)) {
                   let finalUint8 =
                     data instanceof Uint8Array
                       ? data
@@ -756,28 +767,37 @@ export abstract class SatoruBase {
 
                   if (r.type === "css") {
                     const cssText = new TextDecoder().decode(finalUint8);
-                    const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(r.url) || r.url.startsWith("data:");
+                    const isAbsolute =
+                      /^[a-z][a-z0-9+.-]*:/i.test(r.url) ||
+                      r.url.startsWith("data:");
                     let cssBaseUrl = r.url;
                     if (!isAbsolute && baseUrl) {
                       try {
-                        const base = /^[a-z][a-z0-9+.-]*:\/\//i.test(baseUrl) 
-                          ? baseUrl 
-                          : new URL(`file:///${baseUrl.replace(/\\/g, "/")}`).href;
+                        const base = /^[a-z][a-z0-9+.-]*:\/\//i.test(baseUrl)
+                          ? baseUrl
+                          : new URL(`file:///${baseUrl.replace(/\\/g, "/")}`)
+                              .href;
                         cssBaseUrl = new URL(r.url, base).href;
                       } catch (e) {}
                     }
                     if (cssBaseUrl) {
-                      const rewrittenCss = cssText.replace(/url\(['"]?([^'")]+)['"]?\)/g, (match, urlParam) => {
-                        if (urlParam.startsWith("data:") || /^[a-z][a-z0-9+.-]*:/i.test(urlParam)) {
-                          return match;
-                        }
-                        try {
-                          const newUrl = new URL(urlParam, cssBaseUrl).href;
-                          return `url("${newUrl}")`;
-                        } catch (e) {
-                          return match;
-                        }
-                      });
+                      const rewrittenCss = cssText.replace(
+                        /url\(['"]?([^'")]+)['"]?\)/g,
+                        (match, urlParam) => {
+                          if (
+                            urlParam.startsWith("data:") ||
+                            /^[a-z][a-z0-9+.-]*:/i.test(urlParam)
+                          ) {
+                            return match;
+                          }
+                          try {
+                            const newUrl = new URL(urlParam, cssBaseUrl).href;
+                            return `url("${newUrl}")`;
+                          } catch (e) {
+                            return match;
+                          }
+                        },
+                      );
                       finalUint8 = new TextEncoder().encode(rewrittenCss);
                     }
                   }
@@ -836,7 +856,7 @@ export abstract class SatoruBase {
           fitPositionY: options.fitPosition?.y ?? 0.5,
           backgroundColor: this.parseColor(options.backgroundColor),
           mediaType: options.mediaType === "print" ? 1 : 0,
-        }
+        },
       );
 
       if (!result) {

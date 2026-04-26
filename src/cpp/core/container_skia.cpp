@@ -634,16 +634,8 @@ void container_skia::draw_text(litehtml::uint_ptr hdc, const char* text, litehtm
                                    m_resourceManager ? &m_usedCodepoints : nullptr, m_textBatcher);
     std::string s(text);
     if (!s.empty() && s.find_first_not_of(" \n\r\t") != std::string::npos) {
-        SATORU_LOG_DEBUG("Text drawn: '%s'. num clips: %d. actual_pos: x=%f, y=%f, w=%f, h=%f",
-                         text, (int)m_clips.size(), actual_pos.x, actual_pos.y, actual_pos.width,
-                         actual_pos.height);
         if (!m_clips.empty()) {
             SkRect cb = m_canvas->getLocalClipBounds();
-            SATORU_LOG_DEBUG(
-                "Active clip bounds (m_clips): x=%f, y=%f, r=%f, b=%f. m_canvas clip: x=%f, y=%f, "
-                "r=%f, b=%f",
-                m_clips.back().first.x, m_clips.back().first.y, m_clips.back().first.right(),
-                m_clips.back().first.bottom(), cb.left(), cb.top(), cb.right(), cb.bottom());
         }
     }
     if (fi && m_resourceManager) {

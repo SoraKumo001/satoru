@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "core/satoru_cache_manager.h"
+#include "utils/logging.h"
 #include "utils/skunicode_satoru.h"
 
 namespace satoru {
@@ -108,11 +109,12 @@ bool UnicodeService::isSpace(char32_t u) const {
 }
 
 bool UnicodeService::isEmoji(char32_t u) const {
+    if (m_unicode) return m_unicode->isEmoji(u);
     return (u >= 0x1F000 && u <= 0x1FADF) || (u >= 0x1F300 && u <= 0x1F9FF) ||
            (u >= 0x2600 && u <= 0x26FF) || (u >= 0x2700 && u <= 0x27BF) ||
            (u >= 0x1F000 && u <= 0x1F02F) || (u >= 0x1F0A0 && u <= 0x1F0FF) ||
            (u >= 0x1F100 && u <= 0x1F64F) || (u >= 0x1F680 && u <= 0x1F6FF) ||
-           (u >= 0x1F900 && u <= 0x1F9FF);
+           (u >= 0x1F900 && u <= 0x1F9FF) || (u == 0xFE0F);
 }
 
 bool UnicodeService::shouldBreakGrapheme(char32_t u1, char32_t u2, int* state) const {

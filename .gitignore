@@ -38,3 +38,5 @@ build
 .clangd
 compile_commands.json
 scratch/
+a.html
+a_files

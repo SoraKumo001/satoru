@@ -29,7 +29,6 @@ bool PdfJpegEncoder(SkWStream* dst, const SkPixmap& src, int quality) {
 
 sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height,
                                   const RenderOptions& options) {
-    satoru_log_printf(LogLevel::Debug, "[Satoru] renderDocumentToPdf start");
     if (!inst->doc || !inst->render_container) {
         satoru_log_printf(LogLevel::Error,
                           "[Satoru] renderDocumentToPdf FAILED: null doc/container");

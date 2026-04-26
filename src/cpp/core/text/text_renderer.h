@@ -26,6 +26,7 @@ class TextBatcher {
         bool is_vertical_upright;
         bool is_vertical_punctuation;
         litehtml::text_combine_upright text_combine_upright;
+        bool is_emoji;
 
         bool operator==(const Style& other) const {
             return fi == other.fi && color == other.color && opacity == other.opacity &&
@@ -33,10 +34,11 @@ class TextBatcher {
                    line_width == other.line_width &&
                    is_vertical_upright == other.is_vertical_upright &&
                    is_vertical_punctuation == other.is_vertical_punctuation &&
-                   text_combine_upright == other.text_combine_upright;
+                   text_combine_upright == other.text_combine_upright && is_emoji == other.is_emoji;
         }
         bool operator!=(const Style& other) const { return !(*this == other); }
     };
+    ;
 
     TextBatcher(SatoruContext* ctx, SkCanvas* canvas)
         : m_ctx(ctx), m_canvas(canvas), m_active(false) {
@@ -48,7 +50,8 @@ class TextBatcher {
                           0.0f,
                           true,
                           false,
-                          litehtml::text_combine_upright_none};
+                          litehtml::text_combine_upright_none,
+                          false};
     }
 
     void addText(const sk_sp<SkTextBlob>& blob, double tx, double ty, const Style& style);

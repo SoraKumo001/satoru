@@ -90,8 +90,17 @@ void TextBatcher::flush() {
 
     SkPaint paint;
     paint.setAntiAlias(true);
-    paint.setColor(SkColorSetARGB(m_currentStyle.color.alpha, m_currentStyle.color.red,
-                                  m_currentStyle.color.green, m_currentStyle.color.blue));
+    if (m_currentStyle.is_emoji) {
+        paint.setColor(0xFFFFFFFF);  // Use white (opaque) for color emojis
+
+        // Ensure the paint is correctly set for color bitmaps
+        // paint.setFilterQuality is deprecated in newer Skia, use SkSamplingOptions
+        paint.setBlendMode(SkBlendMode::kSrcOver);
+    } else {
+        paint.setColor(SkColorSetARGB(m_currentStyle.color.alpha, m_currentStyle.color.red,
+                                      m_currentStyle.color.green, m_currentStyle.color.blue));
+    }
+
     if (m_currentStyle.opacity < 1.0f) {
         paint.setAlphaf(paint.getAlphaf() * m_currentStyle.opacity);
     }
@@ -107,7 +116,7 @@ void TextBatcher::flush() {
     }
     m_active = false;
 
-    // Reset current style to avoid using stale values in the next run
+    // Reset current style
     m_currentStyle = {nullptr,
                       {0, 0, 0, 0},
                       0.0f,
@@ -116,7 +125,8 @@ void TextBatcher::flush() {
                       0.0f,
                       true,
                       false,
-                      litehtml::text_combine_upright_none};
+                      litehtml::text_combine_upright_none,
+                      false};
 }
 
 void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* text, font_info* fi,
@@ -327,6 +337,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             style.is_vertical_upright = is_upright;
             style.is_vertical_punctuation = is_punctuation;
             style.text_combine_upright = fi->desc.text_combine_upright;
+            style.is_emoji = shaped.is_emoji;
 
             if (is_vertical) {
                 batcher->addText(shaped.blob, (double)pos.x,
@@ -355,8 +366,10 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 float font_size = (float)fi->desc.size;
                 float run_baselineY =
                     font_size / 2.0f - (metrics.fAscent + metrics.fDescent) / 2.0f;
+                SkPaint p_emoji = paint;
+                if (shaped.is_emoji) p_emoji.setColor(SK_ColorWHITE);
                 canvas->drawTextBlob(shaped.blob, -(float)shaped.width / 2.0f, run_baselineY,
-                                     paint);
+                                     p_emoji);
             } else if (is_vertical) {
                 TextGeometry geom(mode, pos, fi);
                 SkTextBlobBuilder builder;
@@ -387,10 +400,14 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                     }
                 }
                 sk_sp<SkTextBlob> verticalBlob = builder.make();
-                canvas->drawTextBlob(verticalBlob, 0, 0, paint);
+                SkPaint p_emoji = paint;
+                if (shaped.is_emoji) p_emoji.setColor(SK_ColorWHITE);
+                canvas->drawTextBlob(verticalBlob, 0, 0, p_emoji);
             } else {
+                SkPaint p_emoji = paint;
+                if (shaped.is_emoji) p_emoji.setColor(SK_ColorWHITE);
                 canvas->drawTextBlob(shaped.blob, (float)pos.x + (float)current_l_pos.inline_offset,
-                                     (float)pos.y, paint);
+                                     (float)pos.y, p_emoji);
             }
             canvas->restore();
         }

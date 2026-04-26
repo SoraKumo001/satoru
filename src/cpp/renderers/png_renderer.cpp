@@ -14,7 +14,6 @@
 
 sk_sp<SkData> renderDocumentToPng(SatoruInstance* inst, int width, int height,
                                   const RenderOptions& options) {
-    satoru_log_printf(LogLevel::Debug, "[Satoru] renderDocumentToPng start");
     if (!inst->doc || !inst->render_container) {
         satoru_log_printf(LogLevel::Error,
                           "[Satoru] renderDocumentToPng FAILED: null doc/container");

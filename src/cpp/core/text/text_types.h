@@ -117,6 +117,7 @@ struct MeasureKeyHash {
 struct ShapedResult {
     double width;
     sk_sp<SkTextBlob> blob;
+    bool is_emoji;
 };
 
 struct ShapingKey {

@@ -504,7 +504,8 @@ void litehtml::render_item_grid::calculate_grid_layout(const containing_block_co
         }
 
         containing_block_context cb = self_size;
-        cb.render_width = cell_width - item.el->margin_left() - item.el->margin_right() - item.el->content_offset_width();
+        // content_offset_width() already includes margins, padding and borders
+        cb.render_width = cell_width - item.el->content_offset_width();
         cb.width = cb.render_width;
         cb.height = containing_block_context::cbc_value_type_auto;
         cb.size_mode |= containing_block_context::size_mode_measure;
@@ -519,9 +520,11 @@ void litehtml::render_item_grid::calculate_grid_layout(const containing_block_co
         {
             if (item.pos.row_span() != span) continue;
 
+            // height() returns margin box height (m_pos.height + margins + padding + borders)
             pixel_t total_h = item.el->height();
             pixel_t min_content_h = item.el->src_el()->css().get_font_size() * 1.2f;
-            pixel_t min_h = min_content_h + item.el->content_offset_height() + item.el->margin_top() + item.el->margin_bottom();
+            // content_offset_height() already includes margins, padding, and borders
+            pixel_t min_h = min_content_h + item.el->content_offset_height();
             if (total_h < min_h) total_h = min_h;
 
             pixel_t current_total = 0;
@@ -539,6 +542,7 @@ void litehtml::render_item_grid::calculate_grid_layout(const containing_block_co
                     m_grid_layout.row_heights[i] += diff / span;
                 }
             }
+
         }
     }
 
@@ -598,9 +602,20 @@ void litehtml::render_item_grid::calculate_grid_layout(const containing_block_co
     }
 
     acc_x = extra_x;
-    for (int i = 0; i < num_columns; i++) { m_grid_layout.col_offsets[i] = acc_x; acc_x += m_grid_layout.column_widths[i] + justify_gap; }
+    for (int i = 0; i < num_columns; i++)
+    {
+        m_grid_layout.col_offsets[i] = acc_x;
+        acc_x += m_grid_layout.column_widths[i] + justify_gap;
+    }
     acc_y = extra_y;
-    for (int i = 0; i < num_rows; i++) { m_grid_layout.row_offsets[i] = acc_y; acc_y += m_grid_layout.row_heights[i] + align_gap; }
+    for (int i = 0; i < num_rows; i++)
+    {
+        m_grid_layout.row_offsets[i] = acc_y;
+        acc_y += m_grid_layout.row_heights[i] + align_gap;
+    }
+
+    m_grid_layout.justify_gap = justify_gap;
+    m_grid_layout.align_gap = align_gap;
 }
 
 void litehtml::render_item_grid::place_grid_items(pixel_t x, pixel_t y, const containing_block_context& self_size, formatting_context* fmt_ctx)
@@ -617,19 +632,23 @@ void litehtml::render_item_grid::place_grid_items(pixel_t x, pixel_t y, const co
         for (int i = item.pos.col_start; i < item.pos.col_end && i < num_columns; i++)
         {
             cell_width += m_grid_layout.column_widths[i];
-            if (i > item.pos.col_start) cell_width += m_grid_layout.column_gap;
+            if (i > item.pos.col_start) cell_width += m_grid_layout.justify_gap;
         }
         pixel_t cell_height = 0;
         for (int i = item.pos.row_start; i < item.pos.row_end && i < num_rows; i++)
         {
             cell_height += m_grid_layout.row_heights[i];
-            if (i > item.pos.row_start) cell_height += m_grid_layout.row_gap;
+            if (i > item.pos.row_start) cell_height += m_grid_layout.align_gap;
         }
 
         containing_block_context cb = self_size;
-        cb.render_width = cell_width - item.el->margin_left() - item.el->margin_right() - item.el->content_offset_width();
+        // cell dimensions are margin-box (from height() which returns margin-box).
+        // With size_mode_exact_*, CBC applies box_sizing adjustment (padding+border
+        // for border-box, 0 for content-box). We want final m_pos = cell - content_offset.
+        // So: cb = cell - content_offset + box_sizing → CBC gives cell - content_offset.
+        cb.render_width = cell_width - item.el->content_offset_width() + item.el->box_sizing_width();
         cb.width = cb.render_width;
-        cb.render_height = cell_height - item.el->margin_top() - item.el->margin_bottom() - item.el->content_offset_height();
+        cb.render_height = cell_height - item.el->content_offset_height() + item.el->box_sizing_height();
         cb.height = cb.render_height;
         cb.size_mode |= containing_block_context::size_mode_exact_height;
         cb.size_mode |= containing_block_context::size_mode_exact_width;

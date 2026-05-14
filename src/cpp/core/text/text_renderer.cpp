@@ -278,11 +278,9 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             ca.offset -= run_offset;
             run_analysis.chars.push_back(ca);
         }
-        run_analysis.substituted_text = analysis.substituted_text.substr(run_offset, run_len);
-
-        ShapedResult shaped = TextLayout::shapeAnalyzedText(
-            ctx, run_analysis.substituted_text.c_str(), run_analysis.substituted_text.size(), fi,
-            mode, run_analysis);
+        const char* run_text = analysis.substituted_text.c_str() + run_offset;
+        ShapedResult shaped = TextLayout::shapePreparedText(ctx, run_text, run_len, run_text,
+                                                            run_len, fi, mode, run_analysis);
         if (!shaped.blob) {
             start = end;
             continue;

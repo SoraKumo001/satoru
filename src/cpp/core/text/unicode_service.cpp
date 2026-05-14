@@ -16,6 +16,12 @@ UnicodeService::UnicodeService() { m_unicode = satoru::MakeUnicode(); }
 char32_t UnicodeService::decodeUtf8(const char** ptr) const {
     if (!ptr || !*ptr || !**ptr) return 0;
 
+    const unsigned char first = static_cast<unsigned char>(**ptr);
+    if (first < 0x80) {
+        (*ptr)++;
+        return first;
+    }
+
     utf8proc_int32_t cp;
     utf8proc_ssize_t result = utf8proc_iterate((const utf8proc_uint8_t*)*ptr, -1, &cp);
 
@@ -53,6 +59,23 @@ int UnicodeService::getBidiLevel(const char* text, int baseLevel, int* lastLevel
     const char* p = text;
     bool all_neutral = true;
     while (*p) {
+        const unsigned char first = static_cast<unsigned char>(*p);
+        if (first < 0x80) {
+            p++;
+
+            bool is_ascii_neutral = first <= 0x2F || (first >= 0x3A && first <= 0x40) ||
+                                    (first >= 0x5B && first <= 0x60) ||
+                                    (first >= 0x7B && first <= 0x7F);
+            if (is_ascii_neutral) {
+                continue;
+            }
+
+            all_neutral = false;
+            int level = (baseLevel == 1) ? 2 : 0;
+            if (lastLevel) *lastLevel = level;
+            return level;
+        }
+
         char32_t u = decodeUtf8(&p);
         auto cat = utf8proc_category(u);
 
@@ -97,6 +120,7 @@ int UnicodeService::getBidiLevel(const char* text, int baseLevel, int* lastLevel
 }
 
 bool UnicodeService::isMark(char32_t u) const {
+    if (u < 0x0300) return false;
     auto category = utf8proc_category(u);
     return (category == UTF8PROC_CATEGORY_MN || category == UTF8PROC_CATEGORY_MC ||
             category == UTF8PROC_CATEGORY_ME);
@@ -109,6 +133,7 @@ bool UnicodeService::isSpace(char32_t u) const {
 }
 
 bool UnicodeService::isEmoji(char32_t u) const {
+    if (u < 0x2600) return false;
     if (m_unicode) return m_unicode->isEmoji(u);
     return (u >= 0x1F000 && u <= 0x1FADF) || (u >= 0x1F300 && u <= 0x1F9FF) ||
            (u >= 0x2600 && u <= 0x26FF) || (u >= 0x2700 && u <= 0x27BF) ||
@@ -200,6 +225,7 @@ char32_t UnicodeService::getVerticalSubstitution(char32_t u) const {
 
 bool UnicodeService::isVerticalUpright(char32_t u) const {
     if (u == 0x2014 || u == 0x2015) return false;  // Dashes must be rotated if not substituted
+    if (u < 0x2600) return false;
     if (u >= 0x2E80 && u <= 0x2EFF) return true;
     if (u >= 0x2F00 && u <= 0x2FDF) return true;
     if (u >= 0x2FF0 && u <= 0x2FFF) return true;

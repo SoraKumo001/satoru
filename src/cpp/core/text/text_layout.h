@@ -38,6 +38,11 @@ class TextLayout {
                                           font_info* fi, litehtml::writing_mode mode,
                                           const TextAnalysis& analysis);
 
+    static ShapedResult shapePreparedText(SatoruContext* ctx, const char* cacheText,
+                                          size_t cacheLen, const char* shapeText, size_t shapeLen,
+                                          font_info* fi, litehtml::writing_mode mode,
+                                          const TextAnalysis& analysis);
+
     static void splitText(SatoruContext* ctx, const char* text,
                           const std::function<void(const char*)>& onWord,
                           const std::function<void(const char*)>& onSpace);

@@ -482,10 +482,19 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
 ShapedResult TextLayout::shapeAnalyzedText(SatoruContext* ctx, const char* text, size_t len,
                                            font_info* fi, litehtml::writing_mode mode,
                                            const TextAnalysis& analysis) {
-    if (!text || !len || !fi || fi->fonts.empty() || !ctx) return {0.0, nullptr};
+    return shapePreparedText(ctx, text, len, analysis.substituted_text.c_str(),
+                             analysis.substituted_text.size(), fi, mode, analysis);
+}
+
+ShapedResult TextLayout::shapePreparedText(SatoruContext* ctx, const char* cacheText,
+                                           size_t cacheLen, const char* shapeText, size_t shapeLen,
+                                           font_info* fi, litehtml::writing_mode mode,
+                                           const TextAnalysis& analysis) {
+    if (!cacheText || !cacheLen || !shapeText || !shapeLen || !fi || fi->fonts.empty() || !ctx)
+        return {0.0, nullptr};
 
     ShapingKey key;
-    key.text.assign(text, len);
+    key.text.assign(cacheText, cacheLen);
     key.font_family = fi->desc.family;
     key.font_size = (float)fi->desc.size;
     key.font_weight = fi->desc.weight;
@@ -500,9 +509,6 @@ ShapedResult TextLayout::shapeAnalyzedText(SatoruContext* ctx, const char* text,
     if (ShapedResult* cached = ctx->cacheManager.shapingCache.get(key)) {
         return *cached;
     }
-
-    const char* shape_text = analysis.substituted_text.c_str();
-    size_t shape_len = analysis.substituted_text.size();
 
     std::vector<CharFont> charFonts;
     charFonts.reserve(analysis.chars.size());
@@ -522,25 +528,25 @@ ShapedResult TextLayout::shapeAnalyzedText(SatoruContext* ctx, const char* text,
     SkShaper* shaper = ctx->getShaper();
     if (!shaper) return result;
 
-    SkTextBlobBuilderRunHandler blobHandler(shape_text, {0, 0});
+    SkTextBlobBuilderRunHandler blobHandler(shapeText, {0, 0});
     WidthProxyRunHandler handler(&blobHandler, result, mode, (float)fi->desc.letter_spacing,
                                  (float)fi->desc.word_spacing, analysis);
 
     SatoruFontRunIterator fontRuns(charFonts);
     uint8_t itemLevel = analysis.bidi_level;
     std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
-        SkShaper::MakeBiDiRunIterator(shape_text, shape_len, itemLevel);
-    if (!bidi) bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, shape_len);
+        SkShaper::MakeBiDiRunIterator(shapeText, shapeLen, itemLevel);
+    if (!bidi) bidi = std::make_unique<SkShaper::TrivialBiDiRunIterator>(itemLevel, shapeLen);
     std::unique_ptr<SkShaper::ScriptRunIterator> script =
-        SkShaper::MakeSkUnicodeHbScriptRunIterator(shape_text, shape_len);
+        SkShaper::MakeSkUnicodeHbScriptRunIterator(shapeText, shapeLen);
     if (!script)
         script = std::make_unique<SkShaper::TrivialScriptRunIterator>(
-            SkSetFourByteTag('Z', 'y', 'y', 'y'), shape_len);
+            SkSetFourByteTag('Z', 'y', 'y', 'y'), shapeLen);
     std::unique_ptr<SkShaper::LanguageRunIterator> lang =
-        SkShaper::MakeStdLanguageRunIterator(shape_text, shape_len);
-    if (!lang) lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", shape_len);
+        SkShaper::MakeStdLanguageRunIterator(shapeText, shapeLen);
+    if (!lang) lang = std::make_unique<SkShaper::TrivialLanguageRunIterator>("en", shapeLen);
 
-    shaper->shape(shape_text, shape_len, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000,
+    shaper->shape(shapeText, shapeLen, fontRuns, *bidi, *script, *lang, nullptr, 0, 1000000,
                   &handler);
 
     result.blob = blobHandler.makeBlob();

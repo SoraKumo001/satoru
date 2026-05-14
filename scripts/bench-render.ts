@@ -16,6 +16,7 @@ interface CaseDef {
 const root = process.cwd();
 const warmups = Number(process.env.SATORU_BENCH_WARMUPS ?? 1);
 const iterations = Number(process.env.SATORU_BENCH_ITERATIONS ?? 5);
+const profileEnabled = process.env.SATORU_BENCH_PROFILE === "1";
 
 const cases: CaseDef[] = [
   {
@@ -69,6 +70,18 @@ function fmtMs(value: number) {
   return `${value.toFixed(1)}ms`;
 }
 
+function fmtProfile(key: string, value: number) {
+  if (key.endsWith("Count")) return `${key}=${value.toFixed(1)}`;
+  return `${key}=${fmtMs(value)}`;
+}
+
+function addProfile(target: Record<string, number>, source?: Record<string, number>) {
+  if (!source) return;
+  for (const [key, value] of Object.entries(source)) {
+    target[key] = (target[key] ?? 0) + value;
+  }
+}
+
 async function timeRender(
   engine: Satoru,
   html: string,
@@ -77,6 +90,7 @@ async function timeRender(
   height: number | undefined,
   format: Format,
 ) {
+  let profile: Record<string, number> | undefined;
   const started = performance.now();
   const result = await engine.render({
     value: html,
@@ -85,10 +99,14 @@ async function timeRender(
     format,
     baseUrl,
     textToPaths: format === "svg",
+    profile: profileEnabled,
+    onProfile: (p: Record<string, number>) => {
+      profile = p;
+    },
   } as any);
   const elapsed = performance.now() - started;
   const bytes = typeof result === "string" ? Buffer.byteLength(result) : result.byteLength;
-  return { elapsed, bytes };
+  return { elapsed, bytes, profile };
 }
 
 async function main() {
@@ -100,6 +118,7 @@ async function main() {
     `Render benchmark: ${iterations} iterations, ${warmups} warmup${warmups === 1 ? "" : "s"}`,
   );
   rows.push("case\tformat\tmin\tmean\tp95\tbytes");
+  const profileRows: string[] = [];
 
   for (const c of cases) {
     if (selected.size > 0 && !selected.has(c.name)) continue;
@@ -114,21 +133,35 @@ async function main() {
       }
 
       const samples: number[] = [];
+      const profileTotals: Record<string, number> = {};
       let bytes = 0;
       for (let i = 0; i < iterations; i++) {
         const result = await timeRender(engine, html, baseUrl, c.width, c.height, format);
         samples.push(result.elapsed);
         bytes = result.bytes;
+        addProfile(profileTotals, result.profile);
       }
 
       const s = stats(samples);
       rows.push(
         `${c.name}\t${format}\t${fmtMs(s.min)}\t${fmtMs(s.mean)}\t${fmtMs(s.p95)}\t${bytes}`,
       );
+
+      if (profileEnabled) {
+        const parts = Object.entries(profileTotals)
+          .sort((a, b) => b[1] - a[1])
+          .map(([key, value]) => fmtProfile(key, value / iterations));
+        profileRows.push(`${c.name}\t${format}\t${parts.join("\t")}`);
+      }
     }
   }
 
   console.log(rows.join("\n"));
+  if (profileRows.length > 0) {
+    console.log("\nProfile means:");
+    console.log("case\tformat\tsections");
+    console.log(profileRows.join("\n"));
+  }
 }
 
 main().catch((error) => {

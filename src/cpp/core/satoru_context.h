@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "core/satoru_cache_manager.h"
@@ -24,6 +25,7 @@ class SatoruContext {
     sk_sp<SkData> m_lastPdf;
     sk_sp<SkData> m_lastSvg;
     std::string m_extraCss;
+    std::unordered_set<std::string> m_extraCssBlocks;
     std::map<std::string, std::string> m_fontMap;
 
     std::unique_ptr<satoru::UnicodeService> m_unicodeService;
@@ -41,9 +43,16 @@ class SatoruContext {
     satoru::UnicodeService &getUnicodeService();
     SkShaper *getShaper();
 
-    void addCss(const std::string &css) { m_extraCss += css + "\n"; }
+    void addCss(const std::string &css) {
+        if (css.empty()) return;
+        if (!m_extraCssBlocks.insert(css).second) return;
+        m_extraCss += css + "\n";
+    }
     const std::string &getExtraCss() const { return m_extraCss; }
-    void clearCss() { m_extraCss.clear(); }
+    void clearCss() {
+        m_extraCss.clear();
+        m_extraCssBlocks.clear();
+    }
 
     void load_font(const char *name, const uint8_t *data, int size, const char *url = nullptr) {
         fontManager.loadFont(name, data, size, url);

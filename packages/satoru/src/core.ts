@@ -119,6 +119,10 @@ export interface RenderOptions {
   onLog?: (level: LogLevel, message: string) => void;
   /** Media type for CSS @media queries (default: "screen") */
   mediaType?: "screen" | "print";
+  /** Collect coarse render timings for diagnostics */
+  profile?: boolean;
+  /** Receives coarse render timings when profile is enabled */
+  onProfile?: (profile: Record<string, number>) => void;
 }
 const emojiUrl =
   "https://cdn.jsdelivr.net/npm/@fontsource/noto-color-emoji/files/noto-color-emoji-emoji-400-normal.woff2";
@@ -520,6 +524,16 @@ export abstract class SatoruBase {
   async render(options: RenderOptions): Promise<string | Uint8Array>;
   async render(options: RenderOptions): Promise<string | Uint8Array> {
     let { format = "svg", value, url, baseUrl } = options;
+    const profileEnabled = options.profile === true;
+    const profile: Record<string, number> = {};
+    const now = () =>
+      typeof performance !== "undefined" && performance.now
+        ? performance.now()
+        : Date.now();
+    const addProfile = (name: string, elapsed: number) => {
+      if (!profileEnabled) return;
+      profile[name] = (profile[name] ?? 0) + elapsed;
+    };
 
     if (format === "pdf" && Array.isArray(value) && value.length > 1) {
       const pagePdfs: Uint8Array[] = [];
@@ -596,8 +610,13 @@ export abstract class SatoruBase {
       ): Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null> => {
         const cacheKey = `${r.type}:${r.url}:${r.characters ?? ""}`;
         const cached = this.resourceCache.get(cacheKey);
-        if (cached) return cached;
+        if (cached) {
+          addProfile("resourceCacheHitsCount", 1);
+          return cached;
+        }
+        const resolveStart = now();
         const result = await resolver(r);
+        addProfile("resolveResources", now() - resolveStart);
         if (result) {
           if (result instanceof Uint8Array) {
             this.resourceCache.set(cacheKey, result);
@@ -702,18 +721,26 @@ export abstract class SatoruBase {
       for (const rawHtml of inputHtmls) {
         let processedHtml = rawHtml;
         for (let i = 0; i < 10; i++) {
+          addProfile("collectResourcesCount", 1);
+          const collectStart = now();
           mod.collect_resources(instancePtr, processedHtml, width, height);
+          addProfile("collectResources", now() - collectStart);
 
+          const pendingStart = now();
           const json = mod.get_pending_resources(instancePtr);
+          addProfile("getPendingResources", now() - pendingStart);
           if (!json) break;
 
+          const parseStart = now();
           const resources = JSON.parse(json) as RequiredResource[];
           const pending = resources.filter((r) => {
             const key = `${r.type}:${r.url}:${r.characters ?? ""}`;
             return !resolvedResources.has(key);
           });
+          addProfile("parsePendingResources", now() - parseStart);
           if (pending.length === 0) break;
 
+          const loadStart = now();
           await Promise.all(
             pending.map(async (r) => {
               try {
@@ -809,8 +836,10 @@ export abstract class SatoruBase {
               }
             }),
           );
+          addProfile("loadPendingResources", now() - loadStart);
         }
 
+        const stripStart = now();
         const resolvedUrls = new Set<string>();
         resolvedResources.forEach((key) => {
           const parts = key.split(":");
@@ -828,6 +857,7 @@ export abstract class SatoruBase {
           processedHtml = processedHtml.replace(linkRegex, "");
         });
         processedHtmls.push(processedHtml);
+        addProfile("stripResolvedLinks", now() - stripStart);
       }
 
       const formatMap = {
@@ -837,6 +867,7 @@ export abstract class SatoruBase {
         pdf: 3,
       };
 
+      const renderStart = now();
       const result = mod.render(
         instancePtr,
         processedHtmls,
@@ -858,17 +889,27 @@ export abstract class SatoruBase {
           mediaType: options.mediaType === "print" ? 1 : 0,
         },
       );
+      addProfile("wasmRender", now() - renderStart);
 
       if (!result) {
+        options.onProfile?.(profile);
         if (format === "svg") return "";
         return new Uint8Array();
       }
 
       if (format === "svg") {
-        return new TextDecoder().decode(result);
+        const decodeStart = now();
+        const svg = new TextDecoder().decode(result);
+        addProfile("decodeResult", now() - decodeStart);
+        options.onProfile?.(profile);
+        return svg;
       }
 
-      return new Uint8Array(result);
+      const copyStart = now();
+      const bytes = new Uint8Array(result);
+      addProfile("copyResult", now() - copyStart);
+      options.onProfile?.(profile);
+      return bytes;
     } finally {
       mod.destroy_instance(instancePtr);
       mod.logLevel = prevLogLevel;

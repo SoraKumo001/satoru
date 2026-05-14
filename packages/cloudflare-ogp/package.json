@@ -10,14 +10,14 @@
     "build": "tsc"
   },
   "dependencies": {
-    "preact": "^10.29.0",
+    "preact": "^10.29.1",
     "satoru-render": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260317.1",
+    "@cloudflare/workers-types": "^4.20260511.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "typescript": "^5.9.3",
-    "wrangler": "^4.76.0"
+    "typescript": "^6.0.3",
+    "wrangler": "^4.90.1"
   }
 }

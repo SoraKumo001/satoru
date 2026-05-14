@@ -123,12 +123,12 @@
     "cloudflare-workers"
   ],
   "devDependencies": {
-    "@types/jsdom": "28.0.1",
+    "@types/jsdom": "28.0.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "rolldown": "1.0.0-rc.11",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.0"
+    "rolldown": "1.0.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6"
   },
   "dependencies": {
     "worker-lib": "2.2.0"

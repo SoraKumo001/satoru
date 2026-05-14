@@ -15,17 +15,17 @@
     "format": "tsx ./scripts/format.ts"
   },
   "devDependencies": {
-    "@types/node": "25.5.0",
+    "@types/node": "25.7.0",
     "clang-format": "1.8.0",
     "next-exec": "1.0.1",
     "satoru-render": "workspace:*",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "repository": "https://github.com/SoraKumo001/satoru",
   "author": "SoraKumo <info@croud.jp>",
   "license": "MIT",
   "dependencies": {
-    "jsdom": "29.0.1"
+    "jsdom": "29.1.1"
   }
 }

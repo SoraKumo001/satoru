@@ -272,16 +272,17 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
 
         TextAnalysis run_analysis;
         run_analysis.bidi_level = analysis.bidi_level;
+        run_analysis.chars.reserve(end - start);
         for (size_t i = start; i < end; ++i) {
             TextCharAnalysis ca = analysis.chars[i];
             ca.offset -= run_offset;
             run_analysis.chars.push_back(ca);
         }
-        std::string run_text = analysis.substituted_text.substr(run_offset, run_len);
-        run_analysis.substituted_text = run_text;
+        run_analysis.substituted_text = analysis.substituted_text.substr(run_offset, run_len);
 
-        ShapedResult shaped = TextLayout::shapeAnalyzedText(ctx, run_text.c_str(), run_text.size(),
-                                                            fi, mode, run_analysis);
+        ShapedResult shaped = TextLayout::shapeAnalyzedText(
+            ctx, run_analysis.substituted_text.c_str(), run_analysis.substituted_text.size(), fi,
+            mode, run_analysis);
         if (!shaped.blob) {
             start = end;
             continue;

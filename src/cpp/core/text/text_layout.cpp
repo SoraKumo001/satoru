@@ -360,6 +360,9 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
     TextAnalysis analysis;
     if (!text || !len || !ctx) return analysis;
 
+    analysis.chars.reserve(len);
+    analysis.substituted_text.reserve(len);
+
     UnicodeService& unicode = ctx->getUnicodeService();
     if (computeLineBreaks) {
         analysis.line_breaks.resize(len);
@@ -388,16 +391,10 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
         if (mode != litehtml::writing_mode_horizontal_tb) {
             char32_t substituted = unicode.getVerticalSubstitution(ca.codepoint);
             if (substituted != ca.codepoint) {
-                // Check if the current font or ANY fallback font supports the substituted codepoint
-                bool supported = false;
-                for (auto f : fi->fonts) {
-                    if (f->getTypeface()->unicharToGlyph(substituted) != 0) {
-                        supported = true;
-                        ca.font = *f;  // Switch to the font that supports it
-                        break;
-                    }
-                }
-                if (supported) {
+                SkFont substituted_font = ctx->fontManager.selectFont(
+                    substituted, fi, has_last_font ? &last_font : nullptr, unicode);
+                if (substituted_font.getTypeface()->unicharToGlyph(substituted) != 0) {
+                    ca.font = substituted_font;
                     ca.codepoint = substituted;
                 } else {
                     ca.is_substitution_failed = true;
@@ -508,6 +505,7 @@ ShapedResult TextLayout::shapeAnalyzedText(SatoruContext* ctx, const char* text,
     size_t shape_len = analysis.substituted_text.size();
 
     std::vector<CharFont> charFonts;
+    charFonts.reserve(analysis.chars.size());
     for (const auto& ca : analysis.chars) {
         if (!charFonts.empty() && charFonts.back().font == ca.font &&
             charFonts.back().is_vertical_upright == ca.is_vertical_upright &&

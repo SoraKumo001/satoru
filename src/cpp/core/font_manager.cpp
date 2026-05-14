@@ -614,9 +614,13 @@ std::string SatoruFontManager::generateFontFaceCSS() const {
 
 SkFont SatoruFontManager::selectFont(char32_t u, font_info* fi, SkFont* lastSelectedFont,
                                      const satoru::UnicodeService& unicode) {
+    return selectFont(u, fi, lastSelectedFont, unicode, unicode.isEmoji(u), unicode.isMark(u));
+}
+
+SkFont SatoruFontManager::selectFont(char32_t u, font_info* fi, SkFont* lastSelectedFont,
+                                     const satoru::UnicodeService& unicode, bool is_emoji,
+                                     bool is_mark) {
     SkFont* selected_font = nullptr;
-    bool is_emoji = unicode.isEmoji(u);
-    bool is_mark = unicode.isMark(u);
 
     if (!is_mark) {
         auto cached = fi->selected_font_cache.find(u);

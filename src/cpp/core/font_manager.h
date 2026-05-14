@@ -52,6 +52,8 @@ class SatoruFontManager {
     // 特定の文字(u)に最適な SkFont を fi->fonts から選択する
     SkFont selectFont(char32_t u, font_info* fi, SkFont* lastSelectedFont,
                       const satoru::UnicodeService& unicode);
+    SkFont selectFont(char32_t u, font_info* fi, SkFont* lastSelectedFont,
+                      const satoru::UnicodeService& unicode, bool isEmoji, bool isMark);
 
     sk_sp<SkFontMgr> getFontMgr() const { return m_fontMgr; }
 

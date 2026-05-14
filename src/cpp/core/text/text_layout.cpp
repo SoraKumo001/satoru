@@ -384,18 +384,26 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
         ca.codepoint = unicode.decodeUtf8(&p);
         size_t original_len = p - prev_p;
 
-        ca.font = ctx->fontManager.selectFont(ca.codepoint, fi,
-                                              has_last_font ? &last_font : nullptr, unicode);
+        ca.is_emoji = unicode.isEmoji(ca.codepoint);
+        ca.is_mark = unicode.isMark(ca.codepoint);
+        ca.font =
+            ctx->fontManager.selectFont(ca.codepoint, fi, has_last_font ? &last_font : nullptr,
+                                        unicode, ca.is_emoji, ca.is_mark);
 
         ca.is_substitution_failed = false;
         if (mode != litehtml::writing_mode_horizontal_tb) {
             char32_t substituted = unicode.getVerticalSubstitution(ca.codepoint);
             if (substituted != ca.codepoint) {
+                bool substituted_is_emoji = unicode.isEmoji(substituted);
+                bool substituted_is_mark = unicode.isMark(substituted);
                 SkFont substituted_font = ctx->fontManager.selectFont(
-                    substituted, fi, has_last_font ? &last_font : nullptr, unicode);
+                    substituted, fi, has_last_font ? &last_font : nullptr, unicode,
+                    substituted_is_emoji, substituted_is_mark);
                 if (substituted_font.getTypeface()->unicharToGlyph(substituted) != 0) {
                     ca.font = substituted_font;
                     ca.codepoint = substituted;
+                    ca.is_emoji = substituted_is_emoji;
+                    ca.is_mark = substituted_is_mark;
                 } else {
                     ca.is_substitution_failed = true;
                 }
@@ -408,9 +416,6 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
         unicode.encodeUtf8(ca.codepoint, analysis.substituted_text);
         ca.len = analysis.substituted_text.size() - current_sub_offset;
         ca.offset = current_sub_offset;
-
-        ca.is_emoji = unicode.isEmoji(ca.codepoint);
-        ca.is_mark = unicode.isMark(ca.codepoint);
 
         if (mode == litehtml::writing_mode_horizontal_tb) {
             ca.is_vertical_upright = true;

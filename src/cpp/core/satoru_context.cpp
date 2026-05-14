@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <mutex>
 #include <sstream>
 
 #include "include/codec/SkAvifDecoder.h"
@@ -21,13 +22,16 @@
 #include "utils/skunicode_satoru.h"
 
 void SatoruContext::init() {
-    SkCodecs::Register(SkPngDecoder::Decoder());
-    SkCodecs::Register(SkJpegDecoder::Decoder());
-    SkCodecs::Register(SkWebpDecoder::Decoder());
-    SkCodecs::Register(SkAvifDecoder::Decoder());
-    SkCodecs::Register(SkBmpDecoder::Decoder());
-    SkCodecs::Register(SkIcoDecoder::Decoder());
-    SkCodecs::Register(SkGifDecoder::Decoder());
+    static std::once_flag register_codecs_once;
+    std::call_once(register_codecs_once, []() {
+        SkCodecs::Register(SkPngDecoder::Decoder());
+        SkCodecs::Register(SkJpegDecoder::Decoder());
+        SkCodecs::Register(SkWebpDecoder::Decoder());
+        SkCodecs::Register(SkAvifDecoder::Decoder());
+        SkCodecs::Register(SkBmpDecoder::Decoder());
+        SkCodecs::Register(SkIcoDecoder::Decoder());
+        SkCodecs::Register(SkGifDecoder::Decoder());
+    });
 }
 
 satoru::UnicodeService &SatoruContext::getUnicodeService() {

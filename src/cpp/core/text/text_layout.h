@@ -18,7 +18,7 @@ class TextLayout {
     static TextAnalysis analyzeText(
         SatoruContext* ctx, const char* text, size_t len, font_info* fi,
         litehtml::writing_mode mode = litehtml::writing_mode_horizontal_tb,
-        std::set<char32_t>* usedCodepoints = nullptr);
+        std::set<char32_t>* usedCodepoints = nullptr, bool computeLineBreaks = true);
 
     static MeasureResult measureText(
         SatoruContext* ctx, const char* text, font_info* fi,
@@ -33,6 +33,10 @@ class TextLayout {
         SatoruContext* ctx, const char* text, size_t len, font_info* fi,
         litehtml::writing_mode mode = litehtml::writing_mode_horizontal_tb,
         std::set<char32_t>* usedCodepoints = nullptr);
+
+    static ShapedResult shapeAnalyzedText(SatoruContext* ctx, const char* text, size_t len,
+                                          font_info* fi, litehtml::writing_mode mode,
+                                          const TextAnalysis& analysis);
 
     static void splitText(SatoruContext* ctx, const char* text,
                           const std::function<void(const char*)>& onWord,

@@ -236,7 +236,8 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                                       int styleTag, int styleIndex) {
     if (strLen == 0) return 0.0;
 
-    TextAnalysis analysis = TextLayout::analyzeText(ctx, str, strLen, fi, mode, usedCodepoints);
+    TextAnalysis analysis =
+        TextLayout::analyzeText(ctx, str, strLen, fi, mode, usedCodepoints, false);
     double total_advance = 0;
 
     // 論理的なインラインオフセットで行頭からの位置を追跡
@@ -269,8 +270,18 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
         bool is_upright = analysis.chars[start].is_vertical_upright;
         bool is_punctuation = analysis.chars[start].is_vertical_punctuation;
 
-        ShapedResult shaped =
-            TextLayout::shapeText(ctx, str + run_offset, run_len, fi, mode, nullptr);
+        TextAnalysis run_analysis;
+        run_analysis.bidi_level = analysis.bidi_level;
+        for (size_t i = start; i < end; ++i) {
+            TextCharAnalysis ca = analysis.chars[i];
+            ca.offset -= run_offset;
+            run_analysis.chars.push_back(ca);
+        }
+        std::string run_text = analysis.substituted_text.substr(run_offset, run_len);
+        run_analysis.substituted_text = run_text;
+
+        ShapedResult shaped = TextLayout::shapeAnalyzedText(ctx, run_text.c_str(), run_text.size(),
+                                                            fi, mode, run_analysis);
         if (!shaped.blob) {
             start = end;
             continue;

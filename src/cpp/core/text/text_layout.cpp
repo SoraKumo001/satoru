@@ -356,13 +356,15 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
 
 TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_t len,
                                      font_info* fi, litehtml::writing_mode mode,
-                                     std::set<char32_t>* usedCodepoints) {
+                                     std::set<char32_t>* usedCodepoints, bool computeLineBreaks) {
     TextAnalysis analysis;
     if (!text || !len || !ctx) return analysis;
 
     UnicodeService& unicode = ctx->getUnicodeService();
-    analysis.line_breaks.resize(len);
-    unicode.getLineBreaks(text, len, nullptr, analysis.line_breaks, &ctx->cacheManager);
+    if (computeLineBreaks) {
+        analysis.line_breaks.resize(len);
+        unicode.getLineBreaks(text, len, nullptr, analysis.line_breaks, &ctx->cacheManager);
+    }
 
     int baseLevel = fi->is_rtl ? 1 : 0;
     analysis.bidi_level = (uint8_t)unicode.getBidiLevel(text, baseLevel, nullptr);
@@ -476,7 +478,32 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
         return *cached;
     }
 
-    TextAnalysis analysis = analyzeText(ctx, text, len, fi, mode, usedCodepoints);
+    TextAnalysis analysis = analyzeText(ctx, text, len, fi, mode, usedCodepoints, false);
+    return shapeAnalyzedText(ctx, text, len, fi, mode, analysis);
+}
+
+ShapedResult TextLayout::shapeAnalyzedText(SatoruContext* ctx, const char* text, size_t len,
+                                           font_info* fi, litehtml::writing_mode mode,
+                                           const TextAnalysis& analysis) {
+    if (!text || !len || !fi || fi->fonts.empty() || !ctx) return {0.0, nullptr};
+
+    ShapingKey key;
+    key.text.assign(text, len);
+    key.font_family = fi->desc.family;
+    key.font_size = (float)fi->desc.size;
+    key.font_weight = fi->desc.weight;
+    key.italic = (fi->desc.style == litehtml::font_style_italic);
+    key.is_rtl = fi->is_rtl;
+    key.mode = mode;
+    key.orientation = fi->desc.orientation;
+    key.textCombineUpright = fi->desc.text_combine_upright;
+    key.letterSpacing = (float)fi->desc.letter_spacing;
+    key.wordSpacing = (float)fi->desc.word_spacing;
+
+    if (ShapedResult* cached = ctx->cacheManager.shapingCache.get(key)) {
+        return *cached;
+    }
+
     const char* shape_text = analysis.substituted_text.c_str();
     size_t shape_len = analysis.substituted_text.size();
 

@@ -616,6 +616,14 @@ SkFont SatoruFontManager::selectFont(char32_t u, font_info* fi, SkFont* lastSele
                                      const satoru::UnicodeService& unicode) {
     SkFont* selected_font = nullptr;
     bool is_emoji = unicode.isEmoji(u);
+    bool is_mark = unicode.isMark(u);
+
+    if (!is_mark) {
+        auto cached = fi->selected_font_cache.find(u);
+        if (cached != fi->selected_font_cache.end()) {
+            return cached->second;
+        }
+    }
 
     if (is_emoji) {
         // Pass 0: Exact match for notocoloremoji
@@ -686,7 +694,7 @@ emoji_found:
     // 2. Check if the previous font is usable (MRU optimization)
     if (!selected_font && lastSelectedFont) {
         SkGlyphID glyph = lastSelectedFont->getTypeface()->unicharToGlyph(u);
-        if (glyph != 0 || unicode.isMark(u)) {
+        if (glyph != 0 || is_mark) {
             selected_font = lastSelectedFont;
         }
     }
@@ -711,6 +719,10 @@ emoji_found:
         font.setEmbeddedBitmaps(true);
         font.setHinting(SkFontHinting::kNone);
         font.setEdging(SkFont::Edging::kAntiAlias);
+    }
+
+    if (!is_mark) {
+        fi->selected_font_cache.emplace(u, font);
     }
 
     return font;

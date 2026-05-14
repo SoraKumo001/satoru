@@ -4,8 +4,10 @@
 #include <set>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
+#include "include/core/SkFont.h"
 #include "include/core/SkFontStyle.h"
 #include "libs/litehtml/include/litehtml.h"
 
@@ -39,6 +41,7 @@ struct font_info {
     bool fake_italic;
     bool is_rtl;
     std::set<char32_t> used_codepoints;
+    std::unordered_map<char32_t, SkFont> selected_font_cache;
 };
 
 struct font_request {

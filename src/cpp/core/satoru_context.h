@@ -35,6 +35,7 @@ class SatoruContext {
     SatoruFontManager fontManager;
     std::map<std::string, image_info> imageCache;
     satoru::SatoruCacheManager cacheManager;
+    bool needsRelayout = false;
 
     SatoruContext() {}
 

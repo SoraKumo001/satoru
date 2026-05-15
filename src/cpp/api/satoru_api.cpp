@@ -208,10 +208,11 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
         }
 
         if (doc) {
-            if (width != last_width || height != last_height) {
+            if (width != last_width || height != last_height || context.needsRelayout) {
                 doc->render(width);
                 last_width = width;
                 last_height = height;
+                context.needsRelayout = false;
                 if (render_container) {
                     render_container->set_height(doc->height());
                 }

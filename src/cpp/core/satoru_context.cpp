@@ -68,6 +68,7 @@ void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, siz
         info.height = height;
         info.skImage = image;
         imageCache[name] = info;
+        needsRelayout = true;
     }
 }
 
@@ -84,6 +85,7 @@ void SatoruContext::loadImageFromPixels(const char *name, int width, int height,
         info.height = height;
         info.skImage = image;
         imageCache[name] = info;
+        needsRelayout = true;
     }
 }
 

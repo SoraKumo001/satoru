@@ -27,6 +27,7 @@ class SatoruInstance {
     int last_width = -1;
     int last_height = -1;
     int last_media_type = -1;
+    bool needs_relayout = false;
     std::string cached_full_master_css;
 
     SatoruInstance();

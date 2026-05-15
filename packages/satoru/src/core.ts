@@ -670,44 +670,6 @@ export abstract class SatoruBase {
       }
 
       const loadResourceData = (r: RequiredResource, uint8: Uint8Array) => {
-        if (
-          r.type === "image" &&
-          typeof createImageBitmap !== "undefined" &&
-          typeof OffscreenCanvas !== "undefined"
-        ) {
-          return (async () => {
-            try {
-              const blob = new Blob([uint8.buffer as ArrayBuffer]);
-              const bitmap = await createImageBitmap(blob);
-              const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-              const ctx = canvas.getContext("2d");
-              if (ctx) {
-                ctx.drawImage(bitmap, 0, 0);
-                const imageData = ctx.getImageData(
-                  0,
-                  0,
-                  bitmap.width,
-                  bitmap.height,
-                );
-                mod.load_image_pixels(
-                  instancePtr,
-                  r.url,
-                  bitmap.width,
-                  bitmap.height,
-                  new Uint8Array(imageData.data.buffer),
-                  r.url,
-                );
-                return;
-              }
-            } catch (e) {
-              // fall through
-            }
-            let typeInt = 1; // Font
-            if (r.type === "image") typeInt = 2;
-            if (r.type === "css") typeInt = 3;
-            mod.add_resource(instancePtr, r.url, typeInt, uint8);
-          })();
-        }
         let typeInt = 1; // Font
         if (r.type === "image") typeInt = 2;
         if (r.type === "css") typeInt = 3;

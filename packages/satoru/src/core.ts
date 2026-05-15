@@ -8,6 +8,7 @@ export interface SatoruModule {
     html: string,
     width: number,
     height: number,
+    mediaType: number,
   ) => void;
   get_pending_resources: (inst: any) => string;
   add_resource: (
@@ -723,7 +724,7 @@ export abstract class SatoruBase {
         for (let i = 0; i < 10; i++) {
           addProfile("collectResourcesCount", 1);
           const collectStart = now();
-          mod.collect_resources(instancePtr, processedHtml, width, height);
+          mod.collect_resources(instancePtr, processedHtml, width, height, options.mediaType === "print" ? 1 : 0);
           addProfile("collectResources", now() - collectStart);
 
           const pendingStart = now();
@@ -868,27 +869,48 @@ export abstract class SatoruBase {
       };
 
       const renderStart = now();
-      const result = mod.render(
-        instancePtr,
-        processedHtmls,
-        width,
-        height,
-        formatMap[format as keyof typeof formatMap] ?? 0,
-        {
-          svgTextToPaths: options.textToPaths ?? true,
-          outputWidth: options.outputWidth ?? 0,
-          outputHeight: options.outputHeight ?? 0,
-          fitType: options.fit === "cover" ? 1 : options.fit === "fill" ? 2 : 0,
-          cropX: options.crop?.x ?? 0,
-          cropY: options.crop?.y ?? 0,
-          cropWidth: options.crop?.width ?? 0,
-          cropHeight: options.crop?.height ?? 0,
-          fitPositionX: options.fitPosition?.x ?? 0.5,
-          fitPositionY: options.fitPosition?.y ?? 0.5,
-          backgroundColor: this.parseColor(options.backgroundColor),
-          mediaType: options.mediaType === "print" ? 1 : 0,
-        },
-      );
+      const result = (processedHtmls.length === 1)
+        ? mod.render_from_state(
+            instancePtr,
+            width,
+            height,
+            formatMap[format as keyof typeof formatMap] ?? 0,
+            {
+              svgTextToPaths: options.textToPaths ?? true,
+              outputWidth: options.outputWidth ?? 0,
+              outputHeight: options.outputHeight ?? 0,
+              fitType: options.fit === "cover" ? 1 : options.fit === "fill" ? 2 : 0,
+              cropX: options.crop?.x ?? 0,
+              cropY: options.crop?.y ?? 0,
+              cropWidth: options.crop?.width ?? 0,
+              cropHeight: options.crop?.height ?? 0,
+              fitPositionX: options.fitPosition?.x ?? 0.5,
+              fitPositionY: options.fitPosition?.y ?? 0.5,
+              backgroundColor: this.parseColor(options.backgroundColor),
+              mediaType: options.mediaType === "print" ? 1 : 0,
+            },
+          )
+        : mod.render(
+            instancePtr,
+            processedHtmls,
+            width,
+            height,
+            formatMap[format as keyof typeof formatMap] ?? 0,
+            {
+              svgTextToPaths: options.textToPaths ?? true,
+              outputWidth: options.outputWidth ?? 0,
+              outputHeight: options.outputHeight ?? 0,
+              fitType: options.fit === "cover" ? 1 : options.fit === "fill" ? 2 : 0,
+              cropX: options.crop?.x ?? 0,
+              cropY: options.crop?.y ?? 0,
+              cropWidth: options.crop?.width ?? 0,
+              cropHeight: options.crop?.height ?? 0,
+              fitPositionX: options.fitPosition?.x ?? 0.5,
+              fitPositionY: options.fitPosition?.y ?? 0.5,
+              backgroundColor: this.parseColor(options.backgroundColor),
+              mediaType: options.mediaType === "print" ? 1 : 0,
+            },
+          );
       addProfile("wasmRender", now() - renderStart);
 
       if (!result) {

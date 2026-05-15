@@ -39,13 +39,7 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
         if (is_vertical && info.utf8Range.fSize > 0) {
             // Find the character analysis for this run. Since runs are split by upright status,
             // we can just check the first character of the run.
-            for (const auto& ca : fAnalysis.chars) {
-                if (ca.offset >= info.utf8Range.fBegin &&
-                    ca.offset < info.utf8Range.fBegin + info.utf8Range.fSize) {
-                    is_upright = ca.is_vertical_upright;
-                    break;
-                }
-            }
+            is_upright = getIsUpright(info.utf8Range.fBegin);
         }
 
         if (is_upright) {
@@ -73,13 +67,7 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
                             fMode == litehtml::writing_mode_vertical_lr);
         bool is_upright = false;
         if (is_vertical && info.utf8Range.fSize > 0) {
-            for (const auto& ca : fAnalysis.chars) {
-                if (ca.offset >= info.utf8Range.fBegin &&
-                    ca.offset < info.utf8Range.fBegin + info.utf8Range.fSize) {
-                    is_upright = ca.is_vertical_upright;
-                    break;
-                }
-            }
+            is_upright = getIsUpright(info.utf8Range.fBegin);
         }
 
         if (is_upright && fCurrentBuffer.positions) {
@@ -100,6 +88,17 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
         if (fInner) fInner->commitLine();
     }
 
+
+    bool getIsUpright(size_t offset) const {
+        auto it = std::lower_bound(fAnalysis.chars.begin(), fAnalysis.chars.end(), offset,
+                                   [](const TextCharAnalysis& ca, size_t off) {
+                                       return ca.offset < off;
+                                   });
+        if (it != fAnalysis.chars.end() && it->offset == offset) {
+            return it->is_vertical_upright;
+        }
+        return false;
+    }
    private:
     SkShaper::RunHandler* fInner;
     ShapedResult& fResult;
@@ -131,13 +130,7 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
                             fMode == litehtml::writing_mode_vertical_lr);
         bool is_upright = false;
         if (is_vertical && info.utf8Range.fSize > 0) {
-            for (const auto& ca : fAnalysis.chars) {
-                if (ca.offset >= info.utf8Range.fBegin &&
-                    ca.offset < info.utf8Range.fBegin + info.utf8Range.fSize) {
-                    is_upright = ca.is_vertical_upright;
-                    break;
-                }
-            }
+            is_upright = getIsUpright(info.utf8Range.fBegin);
         }
 
         if (is_upright) {
@@ -161,12 +154,7 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
         for (size_t i = 0; i < info.glyphCount; ++i) {
             bool is_upright = false;
             if (is_vertical) {
-                for (const auto& ca : fAnalysis.chars) {
-                    if (ca.offset == fCurrentRunOffsets[i]) {
-                        is_upright = ca.is_vertical_upright;
-                        break;
-                    }
-                }
+                is_upright = getIsUpright(fCurrentRunOffsets[i]);
             }
 
             float advance;
@@ -206,6 +194,17 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
         return fCumulativeWidths[idx];
     }
 
+
+    bool getIsUpright(size_t offset) const {
+        auto it = std::lower_bound(fAnalysis.chars.begin(), fAnalysis.chars.end(), offset,
+                                   [](const TextCharAnalysis& ca, size_t off) {
+                                       return ca.offset < off;
+                                   });
+        if (it != fAnalysis.chars.end() && it->offset == offset) {
+            return it->is_vertical_upright;
+        }
+        return false;
+    }
    private:
     double fWidth;
     litehtml::writing_mode fMode;

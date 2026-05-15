@@ -182,17 +182,20 @@ static void scan_image_sizes(litehtml::element::ptr el, SatoruContext& context) 
     }
 }
 
-void SatoruInstance::collect_resources(const std::string& html, int width, int height) {
+void SatoruInstance::collect_resources(const std::string& html, int width, int height, int mediaType) {
     try {
+        litehtml::media_type mt = (mediaType == 1) ? litehtml::media_type_print : litehtml::media_type_screen;
         if (!doc || html != last_parsed_html ||
-            context.getExtraCss().size() != last_extra_css_size) {
+            context.getExtraCss().size() != last_extra_css_size ||
+            mt != (litehtml::media_type)last_media_type) {
             doc.reset();  // Destroy doc first so it doesn't use the old container!
             last_parsed_html = html;
             last_extra_css_size = context.getExtraCss().size();
             last_width = -1;  // Force re-layout
+            last_media_type = (int)mt;
             int initial_height = (height > 0) ? height : 3000;
             render_container = std::make_unique<container_skia>(width, initial_height, nullptr,
-                                                                context, &resourceManager, false);
+                                                                context, &resourceManager, false, mt);
 
             context.fontManager.scanFontFaces(html.c_str());
 
@@ -441,8 +444,8 @@ int api_get_last_webp_size(SatoruInstance* inst) { return (int)inst->context.get
 int api_get_last_pdf_size(SatoruInstance* inst) { return (int)inst->context.get_last_pdf_size(); }
 int api_get_last_svg_size(SatoruInstance* inst) { return (int)inst->context.get_last_svg_size(); }
 
-void api_collect_resources(SatoruInstance* inst, const std::string& html, int width, int height) {
-    inst->collect_resources(html, width, height);
+void api_collect_resources(SatoruInstance* inst, const std::string& html, int width, int height, int mediaType) {
+    inst->collect_resources(html, width, height, mediaType);
 }
 
 void api_add_resource(SatoruInstance* inst, const std::string& url, int type,

@@ -126,9 +126,9 @@ void load_image_pixels_val(SatoruInstance* inst, std::string name, int width, in
     inst->load_image_pixels(name, width, height, vec, data_url);
 }
 
-void collect_resources_val(SatoruInstance* inst, std::string html, int width, int height) {
+void collect_resources_val(SatoruInstance* inst, std::string html, int width, int height, int mediaType) {
     if (!inst) return;
-    api_collect_resources(inst, html, width, height);
+    api_collect_resources(inst, html, width, height, mediaType);
 }
 
 std::string get_pending_resources_val(SatoruInstance* inst) {

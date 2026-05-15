@@ -26,6 +26,7 @@ class SatoruInstance {
     size_t last_extra_css_size = 0;
     int last_width = -1;
     int last_height = -1;
+    int last_media_type = -1;
     std::string cached_full_master_css;
 
     SatoruInstance();
@@ -34,7 +35,7 @@ class SatoruInstance {
     // Core Logic
     void init_document(const char *html, int width, int height);
     void layout_document(int width);
-    void collect_resources(const std::string &html, int width, int height);
+    void collect_resources(const std::string &html, int width, int height, int mediaType = 0);
     std::string get_full_master_css() const;
 
     // Resource Management
@@ -76,7 +77,8 @@ int api_get_last_png_size(SatoruInstance *inst);
 int api_get_last_webp_size(SatoruInstance *inst);
 int api_get_last_pdf_size(SatoruInstance *inst);
 int api_get_last_svg_size(SatoruInstance *inst);
-void api_collect_resources(SatoruInstance *inst, const std::string &html, int width, int height);
+void api_collect_resources(SatoruInstance *inst, const std::string &html, int width, int height,
+                           int mediaType = 0);
 void api_add_resource(SatoruInstance *inst, const std::string &url, int type,
                       const std::vector<uint8_t> &data);
 void api_scan_css(SatoruInstance *inst, const std::string &css);

@@ -14,7 +14,7 @@ namespace satoru {
  */
 class SatoruCacheManager {
    public:
-    SatoruCacheManager() : shapingCache(1000), measureCache(2000), lineBreakCache(1000) {}
+    SatoruCacheManager() : shapingCache(2000), measureCache(4000), lineBreakCache(2000) {}
 
     /**
      * 全てのキャッシュをクリアする

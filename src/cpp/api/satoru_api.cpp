@@ -62,18 +62,20 @@ void satoru_log_printf(LogLevel level, const char* format, ...) {
 // --- Helpers ---
 namespace {
 std::string json_escape(const std::string& s) {
-    std::ostringstream o;
+    std::string result;
+    result.reserve(s.size() + 16);
     for (unsigned char c : s) {
-        if (c == '"' || c == '\\' || (c <= 0x1f)) {
-            o << "\\u" << std::hex << std::setw(4) << std::setfill('0') << (int)c;
-        } else if (c >= 0x80) {
-            // Keep UTF-8 bytes as-is, but ensure they are not sign-extended
-            o << (char)c;
+        if (c == '"') result += "\\\"";
+        else if (c == '\\') result += "\\\\";
+        else if (c <= 0x1f) {
+            char buf[7];
+            snprintf(buf, sizeof(buf), "\\u%04x", c);
+            result += buf;
         } else {
-            o << (char)c;
+            result += (char)c;
         }
     }
-    return o.str();
+    return result;
 }
 
 typedef sk_sp<SkData> SkDataPtr;
@@ -125,7 +127,7 @@ std::string codepoints_to_utf8(const std::set<char32_t>& cps) {
 
 SatoruInstance::SatoruInstance() : resourceManager(context) {
     context.init();
-    cached_full_master_css = std::string(litehtml::master_css) + "\n" + satoru_master_css;
+    cached_full_master_css = std::string(litehtml::master_css) + "\n" + satoru_master_css + "\nbr { display: -litehtml-br !important; }\n";
 }
 
 SatoruInstance::~SatoruInstance() {}
@@ -182,12 +184,16 @@ static void scan_image_sizes(litehtml::element::ptr el, SatoruContext& context) 
     }
 }
 
-void SatoruInstance::collect_resources(const std::string& html, int width, int height, int mediaType) {
+void SatoruInstance::collect_resources(const std::string& html, int width, int height,
+                                       int mediaType) {
     try {
-        litehtml::media_type mt = (mediaType == 1) ? litehtml::media_type_print : litehtml::media_type_screen;
+        litehtml::media_type mt =
+            (mediaType == 1) ? litehtml::media_type_print : litehtml::media_type_screen;
         if (!doc || html != last_parsed_html ||
             context.getExtraCss().size() != last_extra_css_size ||
             mt != (litehtml::media_type)last_media_type) {
+            bool is_first_pass = (doc == nullptr);
+
             doc.reset();  // Destroy doc first so it doesn't use the old container!
             last_parsed_html = html;
             last_extra_css_size = context.getExtraCss().size();
@@ -204,6 +210,11 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
                                                        context.getExtraCss().c_str());
             if (render_container) {
                 render_container->set_document(doc.get());
+            }
+
+            if (is_first_pass) {
+                // For the first pass, scan images WITHOUT full render to start loading them early
+                scan_image_sizes(doc->root(), context);
             }
         }
 
@@ -445,7 +456,8 @@ int api_get_last_webp_size(SatoruInstance* inst) { return (int)inst->context.get
 int api_get_last_pdf_size(SatoruInstance* inst) { return (int)inst->context.get_last_pdf_size(); }
 int api_get_last_svg_size(SatoruInstance* inst) { return (int)inst->context.get_last_svg_size(); }
 
-void api_collect_resources(SatoruInstance* inst, const std::string& html, int width, int height, int mediaType) {
+void api_collect_resources(SatoruInstance* inst, const std::string& html, int width, int height,
+                           int mediaType) {
     inst->collect_resources(html, width, height, mediaType);
 }
 

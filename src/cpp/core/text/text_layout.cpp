@@ -90,15 +90,20 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
 
 
     bool getIsUpright(size_t offset) const {
+        if (fLastIsUprightIdx < fAnalysis.chars.size() && fAnalysis.chars[fLastIsUprightIdx].offset == offset) {
+            return fAnalysis.chars[fLastIsUprightIdx].is_vertical_upright;
+        }
         auto it = std::lower_bound(fAnalysis.chars.begin(), fAnalysis.chars.end(), offset,
                                    [](const TextCharAnalysis& ca, size_t off) {
                                        return ca.offset < off;
                                    });
         if (it != fAnalysis.chars.end() && it->offset == offset) {
+            fLastIsUprightIdx = std::distance(fAnalysis.chars.begin(), it);
             return it->is_vertical_upright;
         }
         return false;
     }
+    mutable size_t fLastIsUprightIdx = 0;
    private:
     SkShaper::RunHandler* fInner;
     ShapedResult& fResult;
@@ -196,15 +201,20 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
 
 
     bool getIsUpright(size_t offset) const {
+        if (fLastIsUprightIdx < fAnalysis.chars.size() && fAnalysis.chars[fLastIsUprightIdx].offset == offset) {
+            return fAnalysis.chars[fLastIsUprightIdx].is_vertical_upright;
+        }
         auto it = std::lower_bound(fAnalysis.chars.begin(), fAnalysis.chars.end(), offset,
                                    [](const TextCharAnalysis& ca, size_t off) {
                                        return ca.offset < off;
                                    });
         if (it != fAnalysis.chars.end() && it->offset == offset) {
+            fLastIsUprightIdx = std::distance(fAnalysis.chars.begin(), it);
             return it->is_vertical_upright;
         }
         return false;
     }
+    mutable size_t fLastIsUprightIdx = 0;
    private:
     double fWidth;
     litehtml::writing_mode fMode;
@@ -377,14 +387,45 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
     bool has_last_font = false;
 
     while (p < end) {
+        // Safe fast path for ASCII (non-space, non-control) in horizontal mode
+        const unsigned char c = static_cast<unsigned char>(*p);
+        if (c > 0x20 && c < 0x7F && mode == litehtml::writing_mode_horizontal_tb) {
+            TextCharAnalysis ca;
+            ca.codepoint = (char32_t)c;
+            ca.is_emoji = false;
+            ca.is_mark = false;
+            ca.is_substitution_failed = false;
+            ca.is_vertical_upright = true;
+            ca.is_vertical_punctuation = false;
+            ca.font = ctx->fontManager.selectFont(ca.codepoint, fi, has_last_font ? &last_font : nullptr,
+                                               unicode, false, false);
+            if (usedCodepoints) usedCodepoints->insert(ca.codepoint);
+
+            size_t current_sub_offset = analysis.substituted_text.size();
+            analysis.substituted_text.push_back((char)c);
+            ca.len = 1;
+            ca.offset = current_sub_offset;
+
+            last_font = ca.font;
+            has_last_font = true;
+            analysis.chars.push_back(ca);
+            p++;
+            continue;
+        }
+
         TextCharAnalysis ca;
         ca.offset = p - text;
         const char* prev_p = p;
         ca.codepoint = unicode.decodeUtf8(&p);
-        size_t original_len = p - prev_p;
 
-        ca.is_emoji = unicode.isEmoji(ca.codepoint);
-        ca.is_mark = unicode.isMark(ca.codepoint);
+        // Fast CJK check (U+4E00 - U+9FFF)
+        if (ca.codepoint >= 0x4E00 && ca.codepoint <= 0x9FFF) {
+            ca.is_emoji = false;
+            ca.is_mark = false;
+        } else {
+            ca.is_emoji = unicode.isEmoji(ca.codepoint);
+            ca.is_mark = unicode.isMark(ca.codepoint);
+        }
         ca.font =
             ctx->fontManager.selectFont(ca.codepoint, fi, has_last_font ? &last_font : nullptr,
                                         unicode, ca.is_emoji, ca.is_mark);

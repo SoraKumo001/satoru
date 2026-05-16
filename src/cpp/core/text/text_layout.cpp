@@ -37,8 +37,6 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
                             fMode == litehtml::writing_mode_vertical_lr);
         bool is_upright = false;
         if (is_vertical && info.utf8Range.fSize > 0) {
-            // Find the character analysis for this run. Since runs are split by upright status,
-            // we can just check the first character of the run.
             is_upright = getIsUpright(info.utf8Range.fBegin);
         }
 
@@ -90,7 +88,8 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
 
 
     bool getIsUpright(size_t offset) const {
-        if (fLastIsUprightIdx < fAnalysis.chars.size() && fAnalysis.chars[fLastIsUprightIdx].offset == offset) {
+        if (fLastIsUprightIdx < fAnalysis.chars.size() &&
+            fAnalysis.chars[fLastIsUprightIdx].offset == offset) {
             return fAnalysis.chars[fLastIsUprightIdx].is_vertical_upright;
         }
         auto it = std::lower_bound(fAnalysis.chars.begin(), fAnalysis.chars.end(), offset,
@@ -104,6 +103,7 @@ class WidthProxyRunHandler : public SkShaper::RunHandler {
         return false;
     }
     mutable size_t fLastIsUprightIdx = 0;
+
    private:
     SkShaper::RunHandler* fInner;
     ShapedResult& fResult;
@@ -201,7 +201,8 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
 
 
     bool getIsUpright(size_t offset) const {
-        if (fLastIsUprightIdx < fAnalysis.chars.size() && fAnalysis.chars[fLastIsUprightIdx].offset == offset) {
+        if (fLastIsUprightIdx < fAnalysis.chars.size() &&
+            fAnalysis.chars[fLastIsUprightIdx].offset == offset) {
             return fAnalysis.chars[fLastIsUprightIdx].is_vertical_upright;
         }
         auto it = std::lower_bound(fAnalysis.chars.begin(), fAnalysis.chars.end(), offset,
@@ -215,6 +216,7 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
         return false;
     }
     mutable size_t fLastIsUprightIdx = 0;
+
    private:
     double fWidth;
     litehtml::writing_mode fMode;
@@ -228,7 +230,7 @@ class OffsetWidthRunHandler : public SkShaper::RunHandler {
     mutable std::vector<double> fCumulativeWidths;
     mutable bool fLookupsPrepared = false;
 };
-;
+
 }  // namespace
 
 MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font_info* fi,
@@ -279,7 +281,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         return result;
     }
 
-    TextAnalysis analysis = analyzeText(ctx, text, total_len, fi, mode, usedCodepoints);
+    TextAnalysis analysis = analyzeText(ctx, text, total_len, fi, mode, usedCodepoints, false);
     const char* shape_text = analysis.substituted_text.c_str();
     size_t shape_len = analysis.substituted_text.size();
 
@@ -301,8 +303,8 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         }
     }
 
-    OffsetWidthRunHandler handler(mode, (float)fi->desc.letter_spacing,
-                                  (float)fi->desc.word_spacing, analysis);
+    OffsetWidthRunHandler handler(mode, (float)fi->desc.letter_spacing, (float)fi->desc.word_spacing,
+                                  analysis);
     SatoruFontRunIterator fontRuns(charFonts);
     uint8_t itemLevel = analysis.bidi_level;
     std::unique_ptr<SkShaper::BiDiRunIterator> bidi =
@@ -335,8 +337,8 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
             const auto& ca = analysis.chars[i];
             bool is_break = true;
             if (i + 1 < analysis.chars.size()) {
-                is_break = unicode.shouldBreakGrapheme(ca.codepoint,
-                                                       analysis.chars[i + 1].codepoint, &state);
+                is_break =
+                    unicode.shouldBreakGrapheme(ca.codepoint, analysis.chars[i + 1].codepoint, &state);
             }
             if (is_break) {
                 size_t offset = ca.offset + ca.len;
@@ -356,6 +358,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     }
 
     result.last_safe_pos = text + result.length;
+
     if (canCache) {
         ctx->cacheManager.measureCache.put(key, result);
     }
@@ -363,9 +366,9 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     return result;
 }
 
-TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_t len,
-                                     font_info* fi, litehtml::writing_mode mode,
-                                     std::set<char32_t>* usedCodepoints, bool computeLineBreaks) {
+TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
+                                     litehtml::writing_mode mode, std::set<char32_t>* usedCodepoints,
+                                     bool computeLineBreaks) {
     TextAnalysis analysis;
     if (!text || !len || !ctx) return analysis;
 
@@ -397,8 +400,9 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
             ca.is_substitution_failed = false;
             ca.is_vertical_upright = true;
             ca.is_vertical_punctuation = false;
-            ca.font = ctx->fontManager.selectFont(ca.codepoint, fi, has_last_font ? &last_font : nullptr,
-                                               unicode, false, false);
+            ca.font = ctx->fontManager.selectFont(ca.codepoint, fi,
+                                                  has_last_font ? &last_font : nullptr, unicode,
+                                                  false, false);
             if (usedCodepoints) usedCodepoints->insert(ca.codepoint);
 
             size_t current_sub_offset = analysis.substituted_text.size();
@@ -418,17 +422,10 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
         const char* prev_p = p;
         ca.codepoint = unicode.decodeUtf8(&p);
 
-        // Fast CJK check (U+4E00 - U+9FFF)
-        if (ca.codepoint >= 0x4E00 && ca.codepoint <= 0x9FFF) {
-            ca.is_emoji = false;
-            ca.is_mark = false;
-        } else {
-            ca.is_emoji = unicode.isEmoji(ca.codepoint);
-            ca.is_mark = unicode.isMark(ca.codepoint);
-        }
-        ca.font =
-            ctx->fontManager.selectFont(ca.codepoint, fi, has_last_font ? &last_font : nullptr,
-                                        unicode, ca.is_emoji, ca.is_mark);
+        ca.is_emoji = unicode.isEmoji(ca.codepoint);
+        ca.is_mark = unicode.isMark(ca.codepoint);
+        ca.font = ctx->fontManager.selectFont(ca.codepoint, fi, has_last_font ? &last_font : nullptr,
+                                              unicode, ca.is_emoji, ca.is_mark);
 
         ca.is_substitution_failed = false;
         if (mode != litehtml::writing_mode_horizontal_tb) {
@@ -491,8 +488,7 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
 }
 
 ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t len, font_info* fi,
-                                   litehtml::writing_mode mode,
-                                   std::set<char32_t>* usedCodepoints) {
+                                   litehtml::writing_mode mode, std::set<char32_t>* usedCodepoints) {
     if (!text || !len || !fi || fi->fonts.empty() || !ctx) return {0.0, nullptr};
 
     ShapingKey key;
@@ -510,12 +506,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
 
     if (ShapedResult* cached = ctx->cacheManager.shapingCache.get(key)) {
         if (usedCodepoints) {
-            UnicodeService& unicode = ctx->getUnicodeService();
-            const char* p = text;
-            const char* p_end = text + len;
-            while (p < p_end) {
-                usedCodepoints->insert(unicode.decodeUtf8(&p));
-            }
+            analyzeText(ctx, text, len, fi, mode, usedCodepoints, false);
         }
         return *cached;
     }

@@ -10,7 +10,7 @@ export interface SatoruModule {
     height: number,
     mediaType: number,
   ) => void;
-  get_pending_resources: (inst: any) => string;
+  get_pending_resources: (inst: any) => Uint8Array | null;
   add_resource: (
     inst: any,
     url: string,
@@ -690,12 +690,39 @@ export abstract class SatoruBase {
           addProfile("collectResources", now() - collectStart);
 
           const pendingStart = now();
-          const json = mod.get_pending_resources(instancePtr);
+          const binary = mod.get_pending_resources(instancePtr);
           addProfile("getPendingResources", now() - pendingStart);
-          if (!json) break;
+          if (!binary) break;
 
           const parseStart = now();
-          const resources = JSON.parse(json) as RequiredResource[];
+          const view = new DataView(binary.buffer, binary.byteOffset, binary.byteLength);
+          let offset = 0;
+          const count = view.getUint32(offset, true);
+          offset += 4;
+          const resources: RequiredResource[] = [];
+          for (let j = 0; j < count; j++) {
+            const typeInt = view.getUint8(offset++);
+            const redraw_on_ready = view.getUint8(offset++) !== 0;
+
+            const urlLen = view.getUint32(offset, true); offset += 4;
+            const url = new TextDecoder().decode(new Uint8Array(binary.buffer, binary.byteOffset + offset, urlLen));
+            offset += urlLen;
+
+            const nameLen = view.getUint32(offset, true); offset += 4;
+            const name = new TextDecoder().decode(new Uint8Array(binary.buffer, binary.byteOffset + offset, nameLen));
+            offset += nameLen;
+
+            const charsLen = view.getUint32(offset, true); offset += 4;
+            const characters = new TextDecoder().decode(new Uint8Array(binary.buffer, binary.byteOffset + offset, charsLen));
+            offset += charsLen;
+
+            let type: "font" | "image" | "css" = "font";
+            if (typeInt === 2) type = "image";
+            else if (typeInt === 3) type = "css";
+
+            resources.push({ type, url, name, characters, redraw_on_ready });
+          }
+
           const pending = resources.filter((r) => {
             const key = `${r.type}:${r.url}:${r.characters ?? ""}`;
             return !resolvedResources.has(key);

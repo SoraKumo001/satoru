@@ -134,7 +134,7 @@ SatoruInstance::~SatoruInstance() {}
 
 std::string SatoruInstance::get_full_master_css() const { return cached_full_master_css; }
 
-void SatoruInstance::init_document(const char* html, int width, int height) {
+void SatoruInstance::init_document(const char* html, int width, int height) {   
     int initial_height = (height > 0) ? height : 3000;
     render_container = std::make_unique<container_skia>(width, initial_height, nullptr, context,
                                                         &resourceManager, false);
@@ -161,7 +161,7 @@ void SatoruInstance::layout_document(int width) {
 static void scan_image_sizes(litehtml::element::ptr el, SatoruContext& context) {
     if (!el) return;
     const char* tag = el->get_tagName();
-    if (tag && (strcmp(tag, "img") == 0 || strcmp(tag, "image") == 0)) {
+    if (tag && (strcmp(tag, "img") == 0 || strcmp(tag, "image") == 0)) {        
         const char* src = el->get_attr("src");
         if (!src) src = el->get_attr("href");
         if (!src) src = el->get_attr("xlink:href");
@@ -170,11 +170,11 @@ static void scan_image_sizes(litehtml::element::ptr el, SatoruContext& context) 
         const char* h_str = el->get_attr("height");
         if (src && w_str && h_str) {
             int w = atoi(w_str);
-            int h = atoi(h_str);
-            if (w > 0 && h > 0) {
+            int h_val = atoi(h_str);
+            if (w > 0 && h_val > 0) {
                 int curr_w, curr_h;
                 if (!context.get_image_size(src, curr_w, curr_h) || (curr_w == 0 && curr_h == 0)) {
-                    context.loadImage(src, nullptr, w, h);
+                    context.loadImage(src, nullptr, w, h_val);
                 }
             }
         }
@@ -238,8 +238,8 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
         throw;
     }
 
-    const auto& usedCodepoints = render_container->get_used_codepoints();
-    auto requestedAttribs = render_container->get_requested_font_attributes();
+    const auto& usedCodepoints = render_container->get_used_codepoints();       
+    auto requestedAttribs = render_container->get_requested_font_attributes();  
     const auto& usedFontCharacters = render_container->get_used_fonts_characters();
 
     // Ensure sans-serif is always requested as a fallback if not already present
@@ -314,9 +314,9 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
     }
 }
 
-void SatoruInstance::add_resource(const std::string& url, ResourceType type,
+void SatoruInstance::add_resource(const std::string& url, ResourceType type,    
                                   const std::vector<uint8_t>& data) {
-    resourceManager.add(url.c_str(), data.data(), (int)data.size(), type);
+    resourceManager.add(url.c_str(), data.data(), (int)data.size(), type);      
 }
 
 void SatoruInstance::scan_css(const std::string& css) {
@@ -334,7 +334,7 @@ void SatoruInstance::load_image(const std::string& name, const std::string& data
 }
 
 void SatoruInstance::load_image_pixels(const std::string& name, int width, int height,
-                                       const std::vector<uint8_t>& pixels,
+                                       const std::vector<uint8_t>& pixels,      
                                        const std::string& data_url) {
     context.loadImageFromPixels(name.c_str(), width, height, pixels.data(), data_url.c_str());
 }
@@ -362,6 +362,41 @@ std::string SatoruInstance::get_pending_resources_json() {
     return ss.str();
 }
 
+const uint8_t* SatoruInstance::get_pending_resources_binary(int& out_size) {    
+    auto requests = resourceManager.getPendingRequests();
+    pending_resources_buffer.clear();
+    if (requests.empty()) {
+        out_size = 0;
+        return nullptr;
+    }
+
+    pending_resources_buffer.reserve(requests.size() * 128);
+
+    auto write_u32 = [&](uint32_t val) {
+        pending_resources_buffer.push_back((uint8_t)(val & 0xFF));
+        pending_resources_buffer.push_back((uint8_t)((val >> 8) & 0xFF));
+        pending_resources_buffer.push_back((uint8_t)((val >> 16) & 0xFF));
+        pending_resources_buffer.push_back((uint8_t)((val >> 24) & 0xFF));
+    };
+
+    auto write_str = [&](const std::string& s) {
+        write_u32((uint32_t)s.size());
+        for (char c : s) pending_resources_buffer.push_back((uint8_t)c);
+    };
+
+    write_u32((uint32_t)requests.size());
+    for (const auto& req : requests) {
+        pending_resources_buffer.push_back((uint8_t)req.type);
+        pending_resources_buffer.push_back(req.redraw_on_ready ? 1 : 0);
+        write_str(req.url);
+        write_str(req.name);
+        write_str(req.characters);
+    }
+
+    out_size = (int)pending_resources_buffer.size();
+    return pending_resources_buffer.data();
+}
+
 // --- API Functions (Wrappers) ---
 
 SatoruInstance* api_create_instance() { return new SatoruInstance(); }
@@ -371,11 +406,11 @@ void api_destroy_instance(SatoruInstance* inst) { delete inst; }
 std::string api_html_to_svg(SatoruInstance* inst, const char* html, int width, int height,
                             const RenderOptions& options) {
     return renderHtmlToSvg(html, width, height, inst->context, inst->get_full_master_css().c_str(),
-                           inst->context.getExtraCss().c_str(), options);
+                           inst->context.getExtraCss().c_str(), options);       
 }
 
 const uint8_t* api_html_to_png(SatoruInstance* inst, const char* html, int width, int height,
-                               const RenderOptions& options, int& out_size) {
+                               const RenderOptions& options, int& out_size) {   
     return render_and_store(
         inst,
         [&]() {
@@ -387,25 +422,25 @@ const uint8_t* api_html_to_png(SatoruInstance* inst, const char* html, int width
 }
 
 const uint8_t* api_html_to_webp(SatoruInstance* inst, const char* html, int width, int height,
-                                const RenderOptions& options, int& out_size) {
+                                const RenderOptions& options, int& out_size) {  
     return render_and_store(
         inst,
         [&]() {
             return renderHtmlToWebp(html, width, height, inst->context,
-                                    inst->get_full_master_css().c_str(),
+                                    inst->get_full_master_css().c_str(),        
                                     inst->context.getExtraCss().c_str(), options);
         },
         &SatoruContext::set_last_webp, out_size);
 }
 
 const uint8_t* api_html_to_pdf(SatoruInstance* inst, const char* html, int width, int height,
-                               const RenderOptions& options, int& out_size) {
+                               const RenderOptions& options, int& out_size) {   
     return render_and_store(
         inst,
         [&]() {
             std::vector<std::string> htmls = {html};
-            return renderHtmlsToPdf(htmls, width, height, inst->context,
-                                    inst->get_full_master_css().c_str(),
+            return renderHtmlsToPdf(htmls, width, height, inst->context,        
+                                    inst->get_full_master_css().c_str(),        
                                     inst->context.getExtraCss().c_str(), options);
         },
         &SatoruContext::set_last_pdf, out_size);
@@ -417,8 +452,8 @@ const uint8_t* api_htmls_to_pdf(SatoruInstance* inst, const std::vector<std::str
     return render_and_store(
         inst,
         [&]() {
-            return renderHtmlsToPdf(htmls, width, height, inst->context,
-                                    inst->get_full_master_css().c_str(),
+            return renderHtmlsToPdf(htmls, width, height, inst->context,        
+                                    inst->get_full_master_css().c_str(),        
                                     inst->context.getExtraCss().c_str(), options);
         },
         &SatoruContext::set_last_pdf, out_size);
@@ -435,7 +470,7 @@ const uint8_t* api_render(SatoruInstance* inst, const std::vector<std::string>& 
     switch (format) {
         case RenderFormat::SVG: {
             std::string svg = api_html_to_svg(inst, htmls[0].c_str(), width, height, options);
-            auto data = SkData::MakeWithCopy(svg.c_str(), svg.length());
+            auto data = SkData::MakeWithCopy(svg.c_str(), svg.length());        
             inst->context.set_last_svg(std::move(data));
             out_size = (int)inst->context.get_last_svg()->size();
             return inst->context.get_last_svg()->bytes();
@@ -461,7 +496,7 @@ void api_collect_resources(SatoruInstance* inst, const std::string& html, int wi
     inst->collect_resources(html, width, height, mediaType);
 }
 
-void api_add_resource(SatoruInstance* inst, const std::string& url, int type,
+void api_add_resource(SatoruInstance* inst, const std::string& url, int type,   
                       const std::vector<uint8_t>& data) {
     inst->add_resource(url, (ResourceType)type, data);
 }
@@ -497,6 +532,10 @@ std::string api_get_pending_resources(SatoruInstance* inst) {
     return inst->get_pending_resources_json();
 }
 
+const uint8_t* api_get_pending_resources_binary(SatoruInstance* inst, int& out_size) {
+    return inst->get_pending_resources_binary(out_size);
+}
+
 void api_init_document(SatoruInstance* inst, const char* html, int width, int height) {
     inst->init_document(html, width, height);
 }
@@ -514,7 +553,7 @@ const uint8_t* api_render_from_state(SatoruInstance* inst, int width, int height
     switch (format) {
         case RenderFormat::SVG: {
             std::string svg = renderDocumentToSvg(inst, width, height, options);
-            auto data = SkData::MakeWithCopy(svg.c_str(), svg.length());
+            auto data = SkData::MakeWithCopy(svg.c_str(), svg.length());        
             inst->context.set_last_svg(std::move(data));
             out_size = (int)inst->context.get_last_svg()->size();
             return inst->context.get_last_svg()->bytes();
@@ -547,7 +586,7 @@ const uint8_t* api_merge_pdfs(SatoruInstance* inst, const std::vector<sk_sp<SkDa
     std::vector<size_t> sizes;
     for (auto& pdf : pdfs) {
         if (pdf) {
-            data_ptrs.push_back(reinterpret_cast<const uint8_t*>(pdf->data()));
+            data_ptrs.push_back(reinterpret_cast<const uint8_t*>(pdf->data())); 
             sizes.push_back(pdf->size());
         }
     }
@@ -558,7 +597,7 @@ const uint8_t* api_merge_pdfs(SatoruInstance* inst, const std::vector<sk_sp<SkDa
         return nullptr;
     }
 
-    auto merged_data = SkData::MakeWithCopy(merged.data(), merged.size());
+    auto merged_data = SkData::MakeWithCopy(merged.data(), merged.size());      
     inst->context.set_last_pdf(merged_data);
     out_size = (int)merged_data->size();
     return reinterpret_cast<const uint8_t*>(merged_data->data());

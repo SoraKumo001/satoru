@@ -17,13 +17,13 @@ namespace satoru {
 
 namespace {
 bool isCjkFastMeasureCodepoint(char32_t u) {
-    return (u >= 0x3040 && u <= 0x30FF) ||    // Hiragana, Katakana
-           (u >= 0x3400 && u <= 0x4DBF) ||    // CJK Extension A
-           (u >= 0x4E00 && u <= 0x9FFF) ||    // CJK Unified Ideographs
-           (u >= 0xAC00 && u <= 0xD7AF) ||    // Hangul Syllables
-           (u >= 0xF900 && u <= 0xFAFF) ||    // CJK Compatibility Ideographs
-           (u >= 0xFF10 && u <= 0xFF5A) ||    // Fullwidth ASCII letters/digits
-           (u >= 0x20000 && u <= 0x2FA1F);    // CJK extensions and compatibility
+    return (u >= 0x3040 && u <= 0x30FF) ||  // Hiragana, Katakana
+           (u >= 0x3400 && u <= 0x4DBF) ||  // CJK Extension A
+           (u >= 0x4E00 && u <= 0x9FFF) ||  // CJK Unified Ideographs
+           (u >= 0xAC00 && u <= 0xD7AF) ||  // Hangul Syllables
+           (u >= 0xF900 && u <= 0xFAFF) ||  // CJK Compatibility Ideographs
+           (u >= 0xFF10 && u <= 0xFF5A) ||  // Fullwidth ASCII letters/digits
+           (u >= 0x20000 && u <= 0x2FA1F);  // CJK extensions and compatibility
 }
 
 bool isCjkSingleCharFastMeasureCodepoint(char32_t u) {

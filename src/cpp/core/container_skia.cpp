@@ -1561,9 +1561,9 @@ int container_skia::get_bidi_level(const char* text, int base_level) {
         }
     } else {
         const unsigned char c1 = static_cast<unsigned char>(text[1]);
-        if ((c0 >= 0xE4 && c0 <= 0xE9) ||          // CJK ideographs
+        if ((c0 >= 0xE4 && c0 <= 0xE9) ||                // CJK ideographs
             (c0 == 0xE3 && c1 >= 0x81 && c1 <= 0x83) ||  // Hiragana/Katakana
-            (c0 >= 0xEA && c0 <= 0xED)) {          // Hangul
+            (c0 >= 0xEA && c0 <= 0xED)) {                // Hangul
             int level = (base_level == 1) ? 2 : 0;
             m_last_bidi_level = level;
             return level;

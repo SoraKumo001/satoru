@@ -155,8 +155,8 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
 
         if (forced || TextLayout::measureText(ctx, text, fi, mode, -1.0, nullptr).width >
                           available_size + margin) {
-            ellipsized_text = TextLayout::ellipsizeText(ctx, text, fi, mode,
-                                                        (double)available_size, usedCodepoints);
+            ellipsized_text = TextLayout::ellipsizeText(ctx, text, fi, mode, (double)available_size,
+                                                        usedCodepoints);
             draw_text = ellipsized_text.c_str();
             draw_text_len = ellipsized_text.size();
         }
@@ -221,10 +221,9 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
         }
     }
 
-    double final_width =
-        drawTextInternal(ctx, canvas, draw_text, draw_text_len, fi, actual_pos, mode, paint,
-                         tagging, usedTextDraws, usedGlyphs, usedGlyphDraws, usedCodepoints,
-                         batcher, (int)styleTag, styleIndex);
+    double final_width = drawTextInternal(
+        ctx, canvas, draw_text, draw_text_len, fi, actual_pos, mode, paint, tagging, usedTextDraws,
+        usedGlyphs, usedGlyphDraws, usedCodepoints, batcher, (int)styleTag, styleIndex);
 
     if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {
         TextDecorationRenderer::drawDecoration(canvas, fi, pos, color, final_width, mode);

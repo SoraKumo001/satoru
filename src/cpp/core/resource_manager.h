@@ -2,9 +2,10 @@
 #define RESOURCE_MANAGER_H
 
 #include <cstdint>
-#include <map>
 #include <set>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class SatoruContext;
@@ -50,8 +51,9 @@ class ResourceManager {
    private:
     SatoruContext& m_context;
     std::set<ResourceRequest> m_requests;
-    std::map<std::string, ResourceType> m_resolvedUrls;
-    std::map<std::string, std::set<std::string>>
+    std::unordered_set<std::string> m_requestedUrls;
+    std::unordered_map<std::string, ResourceType> m_resolvedUrls;
+    std::unordered_map<std::string, std::set<std::string>>
         m_urlToNames;  // Map URL to requested names (e.g. Font Families)
 };
 

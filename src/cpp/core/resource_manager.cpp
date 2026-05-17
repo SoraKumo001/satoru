@@ -11,7 +11,11 @@
 
 extern container_skia* g_discovery_container;
 
-ResourceManager::ResourceManager(SatoruContext& context) : m_context(context) {}
+ResourceManager::ResourceManager(SatoruContext& context) : m_context(context) {
+    m_requestedUrls.reserve(64);
+    m_resolvedUrls.reserve(64);
+    m_urlToNames.reserve(64);
+}
 
 void ResourceManager::request(const std::string& url, const std::string& name, ResourceType type,
                               bool redraw_on_ready, const std::string& characters) {
@@ -43,9 +47,7 @@ void ResourceManager::request(const std::string& url, const std::string& name, R
     }
 
     // Check if this URL is already requested (regardless of name/type)
-    for (const auto& req : m_requests) {
-        if (req.url == url) return;
-    }
+    if (!m_requestedUrls.insert(url).second) return;
 
     m_requests.insert({url, name, characters, type, redraw_on_ready});
 }
@@ -53,6 +55,7 @@ void ResourceManager::request(const std::string& url, const std::string& name, R
 std::vector<ResourceRequest> ResourceManager::getPendingRequests() {
     std::vector<ResourceRequest> result(m_requests.begin(), m_requests.end());
     m_requests.clear();
+    m_requestedUrls.clear();
     return result;
 }
 
@@ -187,6 +190,7 @@ bool ResourceManager::has(const std::string& url) const { return m_resolvedUrls.
 
 void ResourceManager::clear() {
     m_requests.clear();
+    m_requestedUrls.clear();
     m_resolvedUrls.clear();
     m_urlToNames.clear();
 }
@@ -195,6 +199,7 @@ void ResourceManager::clear(ResourceType type) {
     // Clear pending requests of this type
     for (auto it = m_requests.begin(); it != m_requests.end();) {
         if (it->type == type) {
+            m_requestedUrls.erase(it->url);
             it = m_requests.erase(it);
         } else {
             ++it;

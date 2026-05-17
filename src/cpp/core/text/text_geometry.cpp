@@ -1,8 +1,20 @@
 #include "text_geometry.h"
 
-#include "include/core/SkFontMetrics.h"
-
 namespace satoru {
+
+const SkFontMetrics& TextGeometry::metricsFor(const SkFont& font) const {
+    auto typeface = font.getTypeface();
+    uint32_t typeface_id = typeface ? typeface->uniqueID() : 0;
+    float font_size = font.getSize();
+    if (!m_has_cached_metrics || m_cached_typeface_id != typeface_id ||
+        m_cached_font_size != font_size) {
+        font.getMetrics(&m_cached_metrics);
+        m_cached_typeface_id = typeface_id;
+        m_cached_font_size = font_size;
+        m_has_cached_metrics = true;
+    }
+    return m_cached_metrics;
+}
 
 GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_offset,
                                                bool is_upright, bool is_punctuation,
@@ -11,8 +23,7 @@ GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_
     placement.rotation = 0;
 
     if (m_is_vertical) {
-        SkFontMetrics metrics;
-        font.getMetrics(&metrics);
+        const SkFontMetrics& metrics = metricsFor(font);
 
         if (is_upright) {
             float font_size = (float)m_fi->desc.size;

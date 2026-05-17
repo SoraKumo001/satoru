@@ -1,6 +1,7 @@
 #include "text_renderer.h"
 
 #include <algorithm>
+#include <cstring>
 
 #include "bridge/magic_tags.h"
 #include "core/logical_geometry.h"
@@ -143,7 +144,9 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
     fi->is_rtl = (dir == litehtml::direction_rtl);
 
     litehtml::position actual_pos = pos;
-    std::string text_str = text;
+    const char* draw_text = text;
+    size_t draw_text_len = std::strlen(text);
+    std::string ellipsized_text;
     if (overflow == litehtml::text_overflow_ellipsis) {
         double available_size =
             (mode == litehtml::writing_mode_horizontal_tb) ? pos.width : pos.height;
@@ -152,8 +155,10 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
 
         if (forced || TextLayout::measureText(ctx, text, fi, mode, -1.0, nullptr).width >
                           available_size + margin) {
-            text_str = TextLayout::ellipsizeText(ctx, text, fi, mode, (double)available_size,
-                                                 usedCodepoints);
+            ellipsized_text = TextLayout::ellipsizeText(ctx, text, fi, mode,
+                                                        (double)available_size, usedCodepoints);
+            draw_text = ellipsized_text.c_str();
+            draw_text_len = ellipsized_text.size();
         }
     }
 
@@ -210,15 +215,15 @@ void TextRenderer::drawText(SatoruContext* ctx, SkCanvas* canvas, const char* te
                 shadow_paint.setMaskFilter(
                     SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, blur_std_dev));
 
-            drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi, actual_pos, mode,
+            drawTextInternal(ctx, canvas, draw_text, draw_text_len, fi, actual_pos, mode,
                              shadow_paint, false, usedTextDraws, usedGlyphs, usedGlyphDraws,
                              usedCodepoints, batcher);
         }
     }
 
     double final_width =
-        drawTextInternal(ctx, canvas, text_str.c_str(), text_str.size(), fi, actual_pos, mode,
-                         paint, tagging, usedTextDraws, usedGlyphs, usedGlyphDraws, usedCodepoints,
+        drawTextInternal(ctx, canvas, draw_text, draw_text_len, fi, actual_pos, mode, paint,
+                         tagging, usedTextDraws, usedGlyphs, usedGlyphDraws, usedCodepoints,
                          batcher, (int)styleTag, styleIndex);
 
     if (fi->desc.decoration_line != litehtml::text_decoration_line_none) {

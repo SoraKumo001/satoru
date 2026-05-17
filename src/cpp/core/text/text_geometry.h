@@ -4,6 +4,7 @@
 #include "bridge/bridge_types.h"
 #include "core/logical_geometry.h"
 #include "include/core/SkFont.h"
+#include "include/core/SkFontMetrics.h"
 #include "libs/litehtml/include/litehtml.h"
 
 namespace satoru {
@@ -47,11 +48,17 @@ class TextGeometry {
     bool isVertical() const { return m_is_vertical; }
 
    private:
+    const SkFontMetrics& metricsFor(const SkFont& font) const;
+
     litehtml::writing_mode m_mode;
     litehtml::position m_line_pos;
     font_info* m_fi;
     bool m_is_vertical;
     WritingModeContext m_wm_ctx;
+    mutable SkFontMetrics m_cached_metrics;
+    mutable uint32_t m_cached_typeface_id = 0;
+    mutable float m_cached_font_size = -1.0f;
+    mutable bool m_has_cached_metrics = false;
 };
 
 }  // namespace satoru

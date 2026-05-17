@@ -24,6 +24,9 @@ class SatoruInstance {
     std::shared_ptr<litehtml::document> doc;
     std::string last_parsed_html;
     size_t last_extra_css_size = 0;
+    uint64_t last_css_version = 0;
+    uint64_t last_font_version = 0;
+    uint64_t last_image_version = 0;
     int last_width = -1;
     int last_height = -1;
     int last_media_type = -1;
@@ -38,6 +41,14 @@ class SatoruInstance {
     double profile_scan_image_sizes_ms = 0.0;
     double profile_font_requests_ms = 0.0;
     int profile_requested_font_count = 0;
+    int profile_rebuild_count = 0;
+    int profile_rebuild_initial_count = 0;
+    int profile_rebuild_html_count = 0;
+    int profile_rebuild_css_count = 0;
+    int profile_rebuild_media_count = 0;
+    int profile_layout_count = 0;
+    int profile_layout_size_count = 0;
+    int profile_layout_relayout_count = 0;
     bool collect_profile_enabled = false;
 
     SatoruInstance();

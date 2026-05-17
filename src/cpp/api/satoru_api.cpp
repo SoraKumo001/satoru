@@ -197,20 +197,41 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
     profile_scan_image_sizes_ms = 0.0;
     profile_font_requests_ms = 0.0;
     profile_requested_font_count = 0;
+    profile_rebuild_count = 0;
+    profile_rebuild_initial_count = 0;
+    profile_rebuild_html_count = 0;
+    profile_rebuild_css_count = 0;
+    profile_rebuild_media_count = 0;
+    profile_layout_count = 0;
+    profile_layout_size_count = 0;
+    profile_layout_relayout_count = 0;
     context.layoutProfile.enabled = collect_profile_enabled;
     context.layoutProfile.reset();
 
     try {
         litehtml::media_type mt =
             (mediaType == 1) ? litehtml::media_type_print : litehtml::media_type_screen;
-        if (!doc || html != last_parsed_html ||
-            context.getExtraCss().size() != last_extra_css_size ||
-            mt != (litehtml::media_type)last_media_type) {
+        uint64_t cssVersion = context.getCssVersion();
+        bool rebuild_initial = !doc;
+        bool rebuild_html = html != last_parsed_html;
+        bool rebuild_css = cssVersion != last_css_version;
+        bool rebuild_media = mt != (litehtml::media_type)last_media_type;
+        if (rebuild_initial || rebuild_html || rebuild_css || rebuild_media) {
             bool is_first_pass = (doc == nullptr);
+            if (collect_profile_enabled) {
+                profile_rebuild_count++;
+                if (rebuild_initial) profile_rebuild_initial_count++;
+                if (rebuild_html) profile_rebuild_html_count++;
+                if (rebuild_css) profile_rebuild_css_count++;
+                if (rebuild_media) profile_rebuild_media_count++;
+            }
 
             doc.reset();  // Destroy doc first so it doesn't use the old container!
             last_parsed_html = html;
             last_extra_css_size = context.getExtraCss().size();
+            last_css_version = cssVersion;
+            last_font_version = context.getFontVersion();
+            last_image_version = context.getImageVersion();
             last_width = -1;  // Force re-layout
             last_media_type = (int)mt;
             image_sizes_scanned = false;
@@ -258,6 +279,11 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
 
         if (doc) {
             if (width != last_width || height != last_height || context.needsRelayout) {
+                if (collect_profile_enabled) {
+                    profile_layout_count++;
+                    if (width != last_width || height != last_height) profile_layout_size_count++;
+                    if (context.needsRelayout) profile_layout_relayout_count++;
+                }
                 auto render_start = std::chrono::high_resolution_clock::time_point{};
                 if (collect_profile_enabled) render_start = std::chrono::high_resolution_clock::now();
                 doc->render(width);
@@ -383,6 +409,20 @@ std::string SatoruInstance::get_collect_profile_json() const {
        << ",\"cppScanImageSizes\":" << profile_scan_image_sizes_ms
        << ",\"cppFontRequests\":" << profile_font_requests_ms
        << ",\"cppRequestedFontCount\":" << profile_requested_font_count
+       << ",\"cppDocumentRebuildCount\":" << profile_rebuild_count
+       << ",\"cppDocumentRebuildInitialCount\":" << profile_rebuild_initial_count
+       << ",\"cppDocumentRebuildHtmlCount\":" << profile_rebuild_html_count
+       << ",\"cppDocumentRebuildCssCount\":" << profile_rebuild_css_count
+       << ",\"cppDocumentRebuildMediaCount\":" << profile_rebuild_media_count
+       << ",\"cppLayoutCount\":" << profile_layout_count
+       << ",\"cppLayoutSizeCount\":" << profile_layout_size_count
+       << ",\"cppLayoutRelayoutCount\":" << profile_layout_relayout_count
+       << ",\"cppCssVersion\":" << context.getCssVersion()
+       << ",\"cppUserCssVersion\":" << context.getUserCssVersion()
+       << ",\"cppExternalCssVersion\":" << context.getExternalCssVersion()
+       << ",\"cppFontResourceCssVersion\":" << context.getFontResourceCssVersion()
+       << ",\"cppFontAliasCssVersion\":" << context.getFontAliasCssVersion()
+       << ",\"cppGeneratedFontFaceCssVersion\":" << context.getGeneratedFontFaceCssVersion()
        << ",\"cppCreateFont\":" << context.layoutProfile.container_create_font_ms
        << ",\"cppTextWidth\":" << context.layoutProfile.container_text_width_ms
        << ",\"cppSplitText\":" << context.layoutProfile.container_split_text_ms
@@ -413,7 +453,7 @@ void SatoruInstance::add_resource(const std::string& url, ResourceType type,
 }
 
 void SatoruInstance::scan_css(const std::string& css) {
-    context.addCss(css.c_str());
+    context.addCss(css.c_str(), CssChangeKind::UserScan);
     context.fontManager.scanFontFaces(css.c_str());
 }
 
@@ -610,11 +650,12 @@ void api_load_font(SatoruInstance* inst, const std::string& name,
 }
 
 void api_load_fallback_font(SatoruInstance* inst, const std::vector<uint8_t>& data) {
-    inst->context.fontManager.loadFont("__fallback__", data.data(), (int)data.size());
+    inst->context.loadFont("__fallback__", data.data(), (int)data.size());
     auto tfs =
         inst->context.fontManager.matchFonts("__fallback__", 400, SkFontStyle::kUpright_Slant);
     if (!tfs.empty()) {
         inst->context.fontManager.addFallbackTypeface(tfs[0]);
+        inst->context.markFontChanged();
     }
 }
 

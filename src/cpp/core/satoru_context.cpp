@@ -50,11 +50,18 @@ SkShaper *SatoruContext::getShaper() {
 }
 
 void SatoruContext::loadImage(const char *name, const char *data_url, int width, int height) {
+    std::string key = name ? name : "";
+    auto existing = imageCache.find(key);
+    if (existing != imageCache.end() && existing->second.data_url == (data_url ? data_url : "") &&
+        existing->second.width == width && existing->second.height == height) {
+        return;
+    }
     image_info info;
     info.data_url = data_url ? data_url : "";
     info.width = width;
     info.height = height;
-    imageCache[name] = info;
+    imageCache[key] = info;
+    m_imageVersion++;
 }
 
 void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, size_t size,
@@ -68,6 +75,7 @@ void SatoruContext::loadImageFromData(const char *name, const uint8_t *data, siz
         info.height = height;
         info.skImage = image;
         imageCache[name] = info;
+        m_imageVersion++;
         needsRelayout = true;
     }
 }
@@ -85,6 +93,7 @@ void SatoruContext::loadImageFromPixels(const char *name, int width, int height,
         info.height = height;
         info.skImage = image;
         imageCache[name] = info;
+        m_imageVersion++;
         needsRelayout = true;
     }
 }

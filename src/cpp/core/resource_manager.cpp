@@ -76,7 +76,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
             // Simple heuristic: check for @font-face
             std::string content((const char*)data, size);
             if (content.find("@font-face") != std::string::npos) {
-                m_context.addCss(content);
+                m_context.addCss(content, CssChangeKind::FontResourceCss);
                 m_context.fontManager.scanFontFaces(content);
 
                 // Add aliases for requested names (e.g. serif -> Noto Serif JP)
@@ -91,7 +91,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
 
                         std::string alias_css =
                             std::regex_replace(content, re, "font-family: '" + name + "'");
-                        m_context.addCss(alias_css);
+                        m_context.addCss(alias_css, CssChangeKind::FontAliasCss);
                         m_context.fontManager.scanFontFaces(alias_css);
                     }
                 }
@@ -156,7 +156,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
             std::string fontFace = "@font-face { font-family: '" + primaryName +
                                    "'; font-weight: " + weight + "; font-style: " + style +
                                    "; src: url('" + url + "'); }";
-            m_context.addCss(fontFace);
+            m_context.addCss(fontFace, CssChangeKind::GeneratedFontFace);
             m_context.fontManager.scanFontFaces(fontFace);
         }
 
@@ -181,7 +181,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
             return;
         }
         std::string css((const char*)data, size);
-        m_context.addCss(css);
+        m_context.addCss(css, CssChangeKind::ExternalResource);
         m_context.fontManager.scanFontFaces(css);
     }
 }

@@ -1,6 +1,7 @@
 #ifndef SATORU_CONTEXT_H
 #define SATORU_CONTEXT_H
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -19,6 +20,15 @@
 #include "utils/lru_cache.h"
 #include "utils/skia_utils.h"
 
+enum class CssChangeKind {
+    Generic,
+    UserScan,
+    ExternalResource,
+    FontResourceCss,
+    FontAliasCss,
+    GeneratedFontFace,
+};
+
 class SatoruContext {
     sk_sp<SkData> m_lastPng;
     sk_sp<SkData> m_lastWebp;
@@ -27,6 +37,14 @@ class SatoruContext {
     std::string m_extraCss;
     std::unordered_set<std::string> m_extraCssBlocks;
     std::map<std::string, std::string> m_fontMap;
+    uint64_t m_cssVersion = 0;
+    uint64_t m_userCssVersion = 0;
+    uint64_t m_externalCssVersion = 0;
+    uint64_t m_fontResourceCssVersion = 0;
+    uint64_t m_fontAliasCssVersion = 0;
+    uint64_t m_generatedFontFaceCssVersion = 0;
+    uint64_t m_fontVersion = 0;
+    uint64_t m_imageVersion = 0;
 
     std::unique_ptr<satoru::UnicodeService> m_unicodeService;
     std::unique_ptr<SkShaper> m_shaper;
@@ -88,22 +106,55 @@ class SatoruContext {
     satoru::UnicodeService &getUnicodeService();
     SkShaper *getShaper();
 
-    void addCss(const std::string &css) {
+    void addCss(const std::string &css, CssChangeKind kind = CssChangeKind::Generic) {
         if (css.empty()) return;
         if (!m_extraCssBlocks.insert(css).second) return;
         m_extraCss += css + "\n";
+        m_cssVersion++;
+        switch (kind) {
+            case CssChangeKind::UserScan:
+                m_userCssVersion++;
+                break;
+            case CssChangeKind::ExternalResource:
+                m_externalCssVersion++;
+                break;
+            case CssChangeKind::FontResourceCss:
+                m_fontResourceCssVersion++;
+                break;
+            case CssChangeKind::FontAliasCss:
+                m_fontAliasCssVersion++;
+                break;
+            case CssChangeKind::GeneratedFontFace:
+                m_generatedFontFaceCssVersion++;
+                break;
+            case CssChangeKind::Generic:
+                break;
+        }
     }
     const std::string &getExtraCss() const { return m_extraCss; }
+    uint64_t getCssVersion() const { return m_cssVersion; }
+    uint64_t getUserCssVersion() const { return m_userCssVersion; }
+    uint64_t getExternalCssVersion() const { return m_externalCssVersion; }
+    uint64_t getFontResourceCssVersion() const { return m_fontResourceCssVersion; }
+    uint64_t getFontAliasCssVersion() const { return m_fontAliasCssVersion; }
+    uint64_t getGeneratedFontFaceCssVersion() const { return m_generatedFontFaceCssVersion; }
+    uint64_t getFontVersion() const { return m_fontVersion; }
+    uint64_t getImageVersion() const { return m_imageVersion; }
+    void markFontChanged() { m_fontVersion++; }
     void clearCss() {
+        if (m_extraCss.empty() && m_extraCssBlocks.empty()) return;
         m_extraCss.clear();
         m_extraCssBlocks.clear();
+        m_cssVersion++;
     }
 
     void load_font(const char *name, const uint8_t *data, int size, const char *url = nullptr) {
         fontManager.loadFont(name, data, size, url);
+        m_fontVersion++;
     }
     void loadFont(const char *name, const uint8_t *data, int size, const char *url = nullptr) {
         fontManager.loadFont(name, data, size, url);
+        m_fontVersion++;
     }
 
     void load_image(const char *name, const char *data_url, int width, int height) {
@@ -115,11 +166,19 @@ class SatoruContext {
     void loadImageFromPixels(const char *name, int width, int height, const uint8_t *pixels,
                              const char *original_url = nullptr);
 
-    void clear_images() { imageCache.clear(); }
-    void clearImages() { imageCache.clear(); }
+    void clear_images() { clearImages(); }
+    void clearImages() {
+        if (imageCache.empty()) return;
+        imageCache.clear();
+        m_imageVersion++;
+        needsRelayout = true;
+    }
 
-    void clear_fonts() { fontManager.clear(); }
-    void clearFonts() { fontManager.clear(); }
+    void clear_fonts() { clearFonts(); }
+    void clearFonts() {
+        fontManager.clear();
+        m_fontVersion++;
+    }
 
     void clearAll() {
         clearFonts();

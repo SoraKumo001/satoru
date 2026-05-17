@@ -42,6 +42,7 @@ struct font_info {
     bool is_rtl;
     std::set<char32_t> used_codepoints;
     std::unordered_map<char32_t, SkFont> selected_font_cache;
+    std::unordered_map<uint64_t, float> glyph_width_cache;
 };
 
 struct font_request {

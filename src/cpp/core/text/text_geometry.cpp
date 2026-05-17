@@ -16,6 +16,17 @@ const SkFontMetrics& TextGeometry::metricsFor(const SkFont& font) const {
     return m_cached_metrics;
 }
 
+float TextGeometry::glyphWidthFor(const SkFont& font, SkGlyphID glyph_id) const {
+    auto typeface = font.getTypeface();
+    uint32_t typeface_id = typeface ? typeface->uniqueID() : 0;
+    uint64_t key = ((uint64_t)typeface_id << 32) | (uint64_t)glyph_id;
+    auto cached = m_fi->glyph_width_cache.find(key);
+    if (cached != m_fi->glyph_width_cache.end()) return cached->second;
+    float width = (float)font.getWidth(glyph_id);
+    m_fi->glyph_width_cache.emplace(key, width);
+    return width;
+}
+
 GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_offset,
                                                bool is_upright, bool is_punctuation,
                                                const SkFont& font, SkGlyphID glyph_id) const {
@@ -27,7 +38,7 @@ GlyphPlacement TextGeometry::getGlyphPlacement(float inline_offset, float block_
 
         if (is_upright) {
             float font_size = (float)m_fi->desc.size;
-            float width = (float)font.getWidth(glyph_id);
+            float width = glyphWidthFor(font, glyph_id);
             placement.x = (float)m_line_pos.x + (float)m_line_pos.width / 2.0f - width / 2.0f;
 
             // Center the character vertically in its font_size-tall slot.

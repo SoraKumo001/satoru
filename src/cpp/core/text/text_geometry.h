@@ -49,6 +49,7 @@ class TextGeometry {
 
    private:
     const SkFontMetrics& metricsFor(const SkFont& font) const;
+    float glyphWidthFor(const SkFont& font, SkGlyphID glyph_id) const;
 
     litehtml::writing_mode m_mode;
     litehtml::position m_line_pos;

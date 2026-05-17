@@ -46,7 +46,7 @@ val render_val(SatoruInstance* inst, val htmls, int width, int height, int forma
 
     RenderOptions options;
     if (options_val.hasOwnProperty("svgTextToPaths")) {
-        options.svgTextToPaths = options_val["svgTextToPaths"].as<bool>();      
+        options.svgTextToPaths = options_val["svgTextToPaths"].as<bool>();
     }
     if (options_val.hasOwnProperty("outputWidth")) {
         options.outputWidth = options_val["outputWidth"].as<int>();
@@ -126,7 +126,8 @@ void load_image_pixels_val(SatoruInstance* inst, std::string name, int width, in
     inst->load_image_pixels(name, width, height, vec, data_url);
 }
 
-void collect_resources_val(SatoruInstance* inst, std::string html, int width, int height, int mediaType) {
+void collect_resources_val(SatoruInstance* inst, std::string html, int width, int height,
+                           int mediaType) {
     if (!inst) return;
     api_collect_resources(inst, html, width, height, mediaType);
 }
@@ -154,7 +155,7 @@ val render_from_state_val(SatoruInstance* inst, int width, int height, int forma
     if (!inst) return val::null();
     RenderOptions options;
     if (options_val.hasOwnProperty("svgTextToPaths")) {
-        options.svgTextToPaths = options_val["svgTextToPaths"].as<bool>();      
+        options.svgTextToPaths = options_val["svgTextToPaths"].as<bool>();
     }
     if (options_val.hasOwnProperty("outputWidth")) {
         options.outputWidth = options_val["outputWidth"].as<int>();
@@ -232,8 +233,8 @@ void set_font_map_val(SatoruInstance* inst, val fontMap) {
 EMSCRIPTEN_BINDINGS(satoru) {
     class_<SatoruInstance>("SatoruInstance");
 
-    function("create_instance", &create_instance, allow_raw_pointers());        
-    function("destroy_instance", &destroy_instance, allow_raw_pointers());      
+    function("create_instance", &create_instance, allow_raw_pointers());
+    function("destroy_instance", &destroy_instance, allow_raw_pointers());
     function("render", &render_val, allow_raw_pointers());
     function("collect_resources", &collect_resources_val, allow_raw_pointers());
     function("get_pending_resources", &get_pending_resources_val, allow_raw_pointers());
@@ -246,8 +247,8 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("set_font_map", &set_font_map_val, allow_raw_pointers());
     function("set_log_level", &api_set_log_level);
 
-    function("init_document", &init_document_val, allow_raw_pointers());        
-    function("layout_document", &layout_document_val, allow_raw_pointers());    
+    function("init_document", &init_document_val, allow_raw_pointers());
+    function("layout_document", &layout_document_val, allow_raw_pointers());
     function("render_from_state", &render_from_state_val, allow_raw_pointers());
     function("merge_pdfs", &merge_pdfs_val, allow_raw_pointers());
 }

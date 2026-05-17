@@ -43,12 +43,12 @@ class SatoruInstance {
     // Resource Management
     void add_resource(const std::string &url, ResourceType type, const std::vector<uint8_t> &data);
     void scan_css(const std::string &css);
-    void load_font(const std::string &name, const std::vector<uint8_t> &data);  
+    void load_font(const std::string &name, const std::vector<uint8_t> &data);
     void load_image(const std::string &name, const std::string &data_url, int width, int height);
-    void load_image_pixels(const std::string &name, int width, int height,      
+    void load_image_pixels(const std::string &name, int width, int height,
                            const std::vector<uint8_t> &pixels, const std::string &data_url);
     std::string get_pending_resources_json();
-    const uint8_t* get_pending_resources_binary(int &out_size);
+    const uint8_t *get_pending_resources_binary(int &out_size);
 };
 
 SatoruInstance *api_create_instance();
@@ -64,11 +64,11 @@ const uint8_t *api_render_from_state(SatoruInstance *inst, int width, int height
 std::string api_html_to_svg(SatoruInstance *inst, const char *html, int width, int height,
                             const RenderOptions &options);
 const uint8_t *api_html_to_png(SatoruInstance *inst, const char *html, int width, int height,
-                               const RenderOptions &options, int &out_size);    
+                               const RenderOptions &options, int &out_size);
 const uint8_t *api_html_to_webp(SatoruInstance *inst, const char *html, int width, int height,
-                                const RenderOptions &options, int &out_size);   
+                                const RenderOptions &options, int &out_size);
 const uint8_t *api_html_to_pdf(SatoruInstance *inst, const char *html, int width, int height,
-                               const RenderOptions &options, int &out_size);    
+                               const RenderOptions &options, int &out_size);
 const uint8_t *api_htmls_to_pdf(SatoruInstance *inst, const std::vector<std::string> &htmls,
                                 int width, int height, const RenderOptions &options, int &out_size);
 const uint8_t *api_render(SatoruInstance *inst, const std::vector<std::string> &htmls, int width,
@@ -82,7 +82,7 @@ int api_get_last_pdf_size(SatoruInstance *inst);
 int api_get_last_svg_size(SatoruInstance *inst);
 void api_collect_resources(SatoruInstance *inst, const std::string &html, int width, int height,
                            int mediaType = 0);
-void api_add_resource(SatoruInstance *inst, const std::string &url, int type,   
+void api_add_resource(SatoruInstance *inst, const std::string &url, int type,
                       const std::vector<uint8_t> &data);
 void api_scan_css(SatoruInstance *inst, const std::string &css);
 void api_load_font(SatoruInstance *inst, const std::string &name, const std::vector<uint8_t> &data);
@@ -97,6 +97,6 @@ void satoru_log(LogLevel level, const char *message);
 void satoru_log_printf(LogLevel level, const char *format, ...);
 
 std::string api_get_pending_resources(SatoruInstance *inst);
-const uint8_t* api_get_pending_resources_binary(SatoruInstance *inst, int &out_size);
+const uint8_t *api_get_pending_resources_binary(SatoruInstance *inst, int &out_size);
 
 #endif  // SATORU_API_H

@@ -1,19 +1,15 @@
-name: Deploy to GitHub Pages
+name: Publish to npm
 
 on:
   push:
-    branches: ["**"]
-  workflow_dispatch:
+    tags:
+      - 'v*'
 
 permissions:
-  contents: write
-
-concurrency:
-  group: "pages-${{ github.ref_name }}"
-  cancel-in-progress: true
+  contents: read
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     env:
       VCPKG_ROOT: /usr/local/share/vcpkg
@@ -57,7 +53,7 @@ jobs:
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: ${{ runner.os }}-wasm
+          key: ${{ runner.os }}-wasm-publish
 
       - name: Cache Emscripten
         uses: actions/cache@v4
@@ -91,6 +87,7 @@ jobs:
         with:
           node-version: "22"
           cache: "pnpm"
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -104,70 +101,25 @@ jobs:
       - name: Wasm Build
         run: pnpm wasm:build
 
-      - name: ccache stats
-        run: ccache -s
-
       - name: Build TS Packages
         run: pnpm run build:js
 
       - name: Install Playwright Browsers
         run: pnpm --filter visual-test exec playwright install chromium --with-deps
 
-      - name: Generate Reference PNGs
-        run: pnpm --filter visual-test generate-reference
-
       - name: Run Visual Tests
         run: pnpm --filter visual-test test
 
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: packages/playground/dist
-          target-folder: ${{ github.ref_name }}
-          branch: gh-pages
-          clean: false
-
-      - name: Update Index Page
+      - name: Publish to npm
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          for i in {1..10}; do
-            git fetch origin gh-pages || true
-            if git ls-remote --exit-code --heads origin gh-pages; then
-              git checkout -B gh-pages origin/gh-pages
-              
-              # Generate index.html
-              echo "<!DOCTYPE html><html><head><title>Satoru Render - Branch Previews</title>" > index.html
-              echo "<style>body{font-family:sans-serif;padding:40px;line-height:1.6;}ul{list-style:none;padding:0;}li{margin:10px 0;}a{text-decoration:none;color:#0366d6;}a:hover{text-decoration:underline;}</style>" >> index.html
-              echo "</head><body><h1>Satoru Render Previews</h1><ul>" >> index.html
-              
-              # Get list of remote branches
-              BRANCHES=$(git ls-remote --heads origin | awk -F'refs/heads/' '{print $2}')
-              
-              for d in */ ; do
-                BN=$(basename "$d")
-                if [ "$BN" != "node_modules" ] && [ "$BN" != "assets" ] && [ -d "$d" ]; then
-                  if echo "$BRANCHES" | grep -qxw "$BN"; then
-                    echo "<li><a href=\"./$BN/\">$BN</a></li>" >> index.html
-                  fi
-                fi
-              done
-              
-              echo "</ul></body></html>" >> index.html
-              
-              git add index.html
-              if git commit -m "Update index page"; then
-                if git push origin gh-pages; then
-                  exit 0
-                fi
-              else
-                exit 0
-              fi
-            else
-              echo "gh-pages branch not found, skipping index update"
-              exit 0
-            fi
-            sleep $(( i * 2 ))
-          done
-          exit 1
-
+          # Extract version from tag (e.g. v1.2.3 -> 1.2.3)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Publishing version $VERSION"
+          
+          # Update version in package.json
+          pnpm --filter satoru-render exec npm version $VERSION --no-git-tag-version
+          
+          # Publish
+          pnpm --filter satoru-render publish --no-git-checks --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

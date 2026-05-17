@@ -396,6 +396,10 @@ std::string SatoruInstance::get_collect_profile_json() const {
        << ",\"cppSplitTextCount\":" << context.layoutProfile.container_split_text_count
        << ",\"cppBidiLevelCount\":" << context.layoutProfile.container_bidi_count
        << ",\"cppTextMeasureCount\":" << context.layoutProfile.text_measure_count
+       << ",\"cppTextMeasureCacheableCount\":"
+       << context.layoutProfile.text_measure_cacheable_count
+       << ",\"cppTextMeasureCacheHitCount\":"
+       << context.layoutProfile.text_measure_cache_hit_count
        << ",\"cppTextAnalyzeCount\":" << context.layoutProfile.text_analyze_count
        << ",\"cppTextShapeCount\":" << context.layoutProfile.text_shape_count
        << ",\"cppTextShapePreparedCount\":" << context.layoutProfile.text_shape_prepared_count

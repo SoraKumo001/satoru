@@ -287,6 +287,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     MeasureKey key;
     bool canCache = (usedCodepoints == nullptr);
     if (canCache) {
+        if (ctx->layoutProfile.enabled) ctx->layoutProfile.text_measure_cacheable_count++;
         key.text = text;
         key.font_family = fi->desc.family;
         key.font_size = (float)fi->desc.size;
@@ -300,6 +301,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         key.wordSpacing = (float)fi->desc.word_spacing;
 
         if (MeasureResult* cached = ctx->cacheManager.measureCache.get(key)) {
+            if (ctx->layoutProfile.enabled) ctx->layoutProfile.text_measure_cache_hit_count++;
             MeasureResult res = *cached;
             res.last_safe_pos = text + res.length;
             return res;

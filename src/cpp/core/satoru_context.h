@@ -50,6 +50,8 @@ class SatoruContext {
         int text_analyze_count = 0;
         int text_shape_count = 0;
         int text_shape_prepared_count = 0;
+        int text_measure_cacheable_count = 0;
+        int text_measure_cache_hit_count = 0;
 
         void reset() {
             container_create_font_ms = 0.0;
@@ -68,6 +70,8 @@ class SatoruContext {
             text_analyze_count = 0;
             text_shape_count = 0;
             text_shape_prepared_count = 0;
+            text_measure_cacheable_count = 0;
+            text_measure_cache_hit_count = 0;
         }
     };
 

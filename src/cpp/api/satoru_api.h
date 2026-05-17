@@ -27,7 +27,9 @@ class SatoruInstance {
     int last_width = -1;
     int last_height = -1;
     int last_media_type = -1;
+    bool image_sizes_scanned = false;
     bool needs_relayout = false;
+    std::string last_font_face_scan_html;
     std::string cached_full_master_css;
     std::vector<uint8_t> pending_resources_buffer;
 

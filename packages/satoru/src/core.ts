@@ -687,7 +687,9 @@ export abstract class SatoruBase {
           addProfile("collectResourcesCount", 1);
           const collectStart = now();
           mod.collect_resources(instancePtr, processedHtml, width, height, options.mediaType === "print" ? 1 : 0);
-          addProfile("collectResources", now() - collectStart);
+          const collectElapsed = now() - collectStart;
+          addProfile("collectResources", collectElapsed);
+          addProfile(`collectResourcesRound${i + 1}`, collectElapsed);
 
           const pendingStart = now();
           const binary = mod.get_pending_resources(instancePtr);
@@ -727,8 +729,20 @@ export abstract class SatoruBase {
             const key = `${r.type}:${r.url}:${r.characters ?? ""}`;
             return !resolvedResources.has(key);
           });
+          addProfile("pendingResourcesCount", pending.length);
+          addProfile(`pendingResourcesRound${i + 1}Count`, pending.length);
+          for (const r of pending) {
+            if (r.type === "font") {
+              addProfile("pendingFontResourcesCount", 1);
+            } else if (r.type === "css") {
+              addProfile("pendingCssResourcesCount", 1);
+            } else if (r.type === "image") {
+              addProfile("pendingImageResourcesCount", 1);
+            }
+          }
           addProfile("parsePendingResources", now() - parseStart);
           if (pending.length === 0) break;
+          addProfile("pendingResourceRoundsCount", 1);
 
           const loadStart = now();
           await Promise.all(

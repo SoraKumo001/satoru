@@ -204,36 +204,33 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
             last_extra_css_size = context.getExtraCss().size();
             last_width = -1;  // Force re-layout
             last_media_type = (int)mt;
+            image_sizes_scanned = false;
             int initial_height = (height > 0) ? height : 3000;
             render_container = std::make_unique<container_skia>(
                 width, initial_height, nullptr, context, &resourceManager, false, mt);
 
-            context.fontManager.scanFontFaces(html.c_str());
+            if (html != last_font_face_scan_html) {
+                context.fontManager.scanFontFaces(html.c_str());
+                last_font_face_scan_html = html;
+            }
 
-            auto t1 = std::chrono::high_resolution_clock::now();
             doc = litehtml::document::createFromString(html.c_str(), render_container.get(),
                                                        get_full_master_css().c_str(),
                                                        context.getExtraCss().c_str());
-            auto t2 = std::chrono::high_resolution_clock::now();
-            printf("createFromString took: %.2f ms\n",
-                   std::chrono::duration<double, std::milli>(t2 - t1).count());
             if (render_container) {
                 render_container->set_document(doc.get());
             }
 
-            if (is_first_pass) {
+            if (is_first_pass && !image_sizes_scanned) {
                 // For the first pass, scan images WITHOUT full render to start loading them early
                 scan_image_sizes(doc->root(), context);
+                image_sizes_scanned = true;
             }
         }
 
         if (doc) {
             if (width != last_width || height != last_height || context.needsRelayout) {
-                auto t1 = std::chrono::high_resolution_clock::now();
                 doc->render(width);
-                auto t2 = std::chrono::high_resolution_clock::now();
-                printf("doc->render took: %.2f ms\n",
-                       std::chrono::duration<double, std::milli>(t2 - t1).count());
                 last_width = width;
                 last_height = height;
                 context.needsRelayout = false;
@@ -241,7 +238,10 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
                     render_container->set_height(doc->height());
                 }
             }
-            scan_image_sizes(doc->root(), context);
+            if (!image_sizes_scanned) {
+                scan_image_sizes(doc->root(), context);
+                image_sizes_scanned = true;
+            }
         }
     } catch (const std::exception& e) {
         satoru_log_printf(LogLevel::Error, "Exception in collect_resources: %s", e.what());

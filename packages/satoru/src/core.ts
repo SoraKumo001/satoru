@@ -681,6 +681,8 @@ export abstract class SatoruBase {
 
       const inputHtmls = Array.isArray(value) ? value : [value];
       const processedHtmls: string[] = [];
+      const utf8Decoder = new TextDecoder();
+      const utf8Encoder = new TextEncoder();
 
       const resolvedResources = new Set<string>();
 
@@ -714,21 +716,20 @@ export abstract class SatoruBase {
           const count = view.getUint32(offset, true);
           offset += 4;
           const resources: RequiredResource[] = [];
-          const decoder = new TextDecoder();
           for (let j = 0; j < count; j++) {
             const typeInt = view.getUint8(offset++);
             const redraw_on_ready = view.getUint8(offset++) !== 0;
 
             const urlLen = view.getUint32(offset, true); offset += 4;
-            const url = decoder.decode(new Uint8Array(binary.buffer, binary.byteOffset + offset, urlLen));
+            const url = utf8Decoder.decode(new Uint8Array(binary.buffer, binary.byteOffset + offset, urlLen));
             offset += urlLen;
 
             const nameLen = view.getUint32(offset, true); offset += 4;
-            const name = decoder.decode(new Uint8Array(binary.buffer, binary.byteOffset + offset, nameLen));
+            const name = utf8Decoder.decode(new Uint8Array(binary.buffer, binary.byteOffset + offset, nameLen));
             offset += nameLen;
 
             const charsLen = view.getUint32(offset, true); offset += 4;
-            const characters = decoder.decode(new Uint8Array(binary.buffer, binary.byteOffset + offset, charsLen));
+            const characters = utf8Decoder.decode(new Uint8Array(binary.buffer, binary.byteOffset + offset, charsLen));
             offset += charsLen;
 
             let type: "font" | "image" | "css" = "font";
@@ -810,7 +811,7 @@ export abstract class SatoruBase {
                         );
 
                   if (r.type === "css") {
-                    const cssText = new TextDecoder().decode(finalUint8);
+                    const cssText = utf8Decoder.decode(finalUint8);
                     const isAbsolute =
                       /^[a-z][a-z0-9+.-]*:/i.test(r.url) ||
                       r.url.startsWith("data:");
@@ -842,7 +843,7 @@ export abstract class SatoruBase {
                           }
                         },
                       );
-                      finalUint8 = new TextEncoder().encode(rewrittenCss);
+                      finalUint8 = utf8Encoder.encode(rewrittenCss);
                     }
                   }
 
@@ -937,7 +938,7 @@ export abstract class SatoruBase {
 
       if (format === "svg") {
         const decodeStart = now();
-        const svg = new TextDecoder().decode(result);
+        const svg = utf8Decoder.decode(result);
         addProfile("decodeResult", now() - decodeStart);
         options.onProfile?.(profile);
         return svg;

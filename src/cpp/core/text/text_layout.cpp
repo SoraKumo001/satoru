@@ -26,6 +26,15 @@ bool isCjkFastMeasureCodepoint(char32_t u) {
            (u >= 0x20000 && u <= 0x2FA1F);    // CJK extensions and compatibility
 }
 
+bool isCjkSingleCharFastMeasureCodepoint(char32_t u) {
+    return (u >= 0x3040 && u <= 0x30FF) ||  // Hiragana, Katakana
+           (u >= 0x3400 && u <= 0x4DBF) ||  // CJK Extension A
+           (u >= 0x4E00 && u <= 0x9FFF) ||  // CJK Unified Ideographs
+           (u >= 0xAC00 && u <= 0xD7AF) ||  // Hangul Syllables
+           (u >= 0xF900 && u <= 0xFAFF) ||  // CJK Compatibility Ideographs
+           (u >= 0x20000 && u <= 0x2FA1F);  // CJK extensions and compatibility
+}
+
 class LayoutProfileTimer {
    public:
     LayoutProfileTimer(SatoruContext* ctx, double SatoruContext::LayoutProfile::*ms_field,
@@ -317,10 +326,27 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         return result;
     }
 
-    TextAnalysis analysis = analyzeText(ctx, text, total_len, fi, mode, usedCodepoints, false);
-
+    UnicodeService& unicode = ctx->getUnicodeService();
     bool is_vertical =
         (mode == litehtml::writing_mode_vertical_rl || mode == litehtml::writing_mode_vertical_lr);
+    if (!limit_width && is_vertical) {
+        const char* p = text;
+        char32_t codepoint = unicode.decodeUtf8(&p);
+        if (p == text + total_len && isCjkSingleCharFastMeasureCodepoint(codepoint)) {
+            if (usedCodepoints) usedCodepoints->insert(codepoint);
+            result.width = (double)fi->desc.size + (double)fi->desc.letter_spacing;
+            result.length = total_len;
+            result.fits = true;
+            result.last_safe_pos = text + total_len;
+            if (canCache) {
+                ctx->cacheManager.measureCache.put(key, result);
+            }
+            return result;
+        }
+    }
+
+    TextAnalysis analysis = analyzeText(ctx, text, total_len, fi, mode, usedCodepoints, false);
+
     if (!limit_width && is_vertical && analysis.chars.size() == 1) {
         const auto& ca = analysis.chars[0];
         if (ca.is_vertical_upright && !ca.is_emoji && !ca.is_mark &&
@@ -340,7 +366,6 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     size_t shape_len = analysis.substituted_text.size();
 
     // Use OffsetWidthRunHandler directly for measureText to support widthAtOffset
-    UnicodeService& unicode = ctx->getUnicodeService();
     SkShaper* shaper = ctx->getShaper();
     if (!shaper) return result;
 

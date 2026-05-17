@@ -11,7 +11,9 @@ const iterations = Number(process.env.SATORU_BENCH_ITERATIONS ?? 5);
 const warmup = Number(process.env.SATORU_BENCH_WARMUPS ?? 1);
 
 function formatProfile(key: string, value: number) {
-  if (key.endsWith("Count")) return `${key}=${value.toFixed(1)}`;
+  if (key.endsWith("Count") || /CountRound\d+$/.test(key)) {
+    return `${key}=${value.toFixed(1)}`;
+  }
   return `${key}=${value.toFixed(1)}ms`;
 }
 

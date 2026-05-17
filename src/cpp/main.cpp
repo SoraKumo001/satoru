@@ -132,6 +132,16 @@ void collect_resources_val(SatoruInstance* inst, std::string html, int width, in
     api_collect_resources(inst, html, width, height, mediaType);
 }
 
+std::string get_collect_profile_val(SatoruInstance* inst) {
+    if (!inst) return "{}";
+    return api_get_collect_profile(inst);
+}
+
+void set_collect_profile_enabled_val(SatoruInstance* inst, bool enabled) {
+    if (!inst) return;
+    api_set_collect_profile_enabled(inst, enabled);
+}
+
 val get_pending_resources_val(SatoruInstance* inst) {
     if (!inst) return val::null();
     int size = 0;
@@ -237,6 +247,8 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("destroy_instance", &destroy_instance, allow_raw_pointers());
     function("render", &render_val, allow_raw_pointers());
     function("collect_resources", &collect_resources_val, allow_raw_pointers());
+    function("get_collect_profile", &get_collect_profile_val, allow_raw_pointers());
+    function("set_collect_profile_enabled", &set_collect_profile_enabled_val, allow_raw_pointers());
     function("get_pending_resources", &get_pending_resources_val, allow_raw_pointers());
     function("add_resource", &add_resource_val, allow_raw_pointers());
     function("scan_css", &scan_css_val, allow_raw_pointers());

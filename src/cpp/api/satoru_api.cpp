@@ -137,7 +137,7 @@ SatoruInstance::SatoruInstance() : resourceManager(context) {
 
 SatoruInstance::~SatoruInstance() {}
 
-std::string SatoruInstance::get_full_master_css() const { return cached_full_master_css; }
+const std::string& SatoruInstance::get_full_master_css() const { return cached_full_master_css; }
 
 void SatoruInstance::init_document(const char* html, int width, int height) {
     int initial_height = (height > 0) ? height : 3000;
@@ -191,6 +191,18 @@ static void scan_image_sizes(litehtml::element::ptr el, SatoruContext& context) 
 
 void SatoruInstance::collect_resources(const std::string& html, int width, int height,
                                        int mediaType) {
+    auto elapsed_ms = [](const auto& start, const auto& end) {
+        return std::chrono::duration<double, std::milli>(end - start).count();
+    };
+    profile_scan_font_faces_ms = 0.0;
+    profile_create_document_ms = 0.0;
+    profile_render_layout_ms = 0.0;
+    profile_scan_image_sizes_ms = 0.0;
+    profile_font_requests_ms = 0.0;
+    profile_requested_font_count = 0;
+    context.layoutProfile.enabled = collect_profile_enabled;
+    context.layoutProfile.reset();
+
     try {
         litehtml::media_type mt =
             (mediaType == 1) ? litehtml::media_type_print : litehtml::media_type_screen;
@@ -210,27 +222,52 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
                 width, initial_height, nullptr, context, &resourceManager, false, mt);
 
             if (html != last_font_face_scan_html) {
+                auto scan_start = std::chrono::high_resolution_clock::time_point{};
+                if (collect_profile_enabled) scan_start = std::chrono::high_resolution_clock::now();
                 context.fontManager.scanFontFaces(html.c_str());
+                if (collect_profile_enabled) {
+                    auto scan_end = std::chrono::high_resolution_clock::now();
+                    profile_scan_font_faces_ms += elapsed_ms(scan_start, scan_end);
+                }
                 last_font_face_scan_html = html;
             }
 
+            auto create_start = std::chrono::high_resolution_clock::time_point{};
+            if (collect_profile_enabled) create_start = std::chrono::high_resolution_clock::now();
             doc = litehtml::document::createFromString(html.c_str(), render_container.get(),
                                                        get_full_master_css().c_str(),
                                                        context.getExtraCss().c_str());
+            if (collect_profile_enabled) {
+                auto create_end = std::chrono::high_resolution_clock::now();
+                profile_create_document_ms += elapsed_ms(create_start, create_end);
+            }
             if (render_container) {
                 render_container->set_document(doc.get());
             }
 
             if (is_first_pass && !image_sizes_scanned) {
                 // For the first pass, scan images WITHOUT full render to start loading them early
+                auto scan_images_start = std::chrono::high_resolution_clock::time_point{};
+                if (collect_profile_enabled)
+                    scan_images_start = std::chrono::high_resolution_clock::now();
                 scan_image_sizes(doc->root(), context);
+                if (collect_profile_enabled) {
+                    auto scan_images_end = std::chrono::high_resolution_clock::now();
+                    profile_scan_image_sizes_ms += elapsed_ms(scan_images_start, scan_images_end);
+                }
                 image_sizes_scanned = true;
             }
         }
 
         if (doc) {
             if (width != last_width || height != last_height || context.needsRelayout) {
+                auto render_start = std::chrono::high_resolution_clock::time_point{};
+                if (collect_profile_enabled) render_start = std::chrono::high_resolution_clock::now();
                 doc->render(width);
+                if (collect_profile_enabled) {
+                    auto render_end = std::chrono::high_resolution_clock::now();
+                    profile_render_layout_ms += elapsed_ms(render_start, render_end);
+                }
                 last_width = width;
                 last_height = height;
                 context.needsRelayout = false;
@@ -239,7 +276,14 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
                 }
             }
             if (!image_sizes_scanned) {
+                auto scan_images_start = std::chrono::high_resolution_clock::time_point{};
+                if (collect_profile_enabled)
+                    scan_images_start = std::chrono::high_resolution_clock::now();
                 scan_image_sizes(doc->root(), context);
+                if (collect_profile_enabled) {
+                    auto scan_images_end = std::chrono::high_resolution_clock::now();
+                    profile_scan_image_sizes_ms += elapsed_ms(scan_images_start, scan_images_end);
+                }
                 image_sizes_scanned = true;
             }
         }
@@ -251,6 +295,8 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
         throw;
     }
 
+    auto font_requests_start = std::chrono::high_resolution_clock::time_point{};
+    if (collect_profile_enabled) font_requests_start = std::chrono::high_resolution_clock::now();
     const auto& usedCodepoints = render_container->get_used_codepoints();
     auto requestedAttribs = render_container->get_requested_font_attributes();
     const auto& usedFontCharacters = render_container->get_used_fonts_characters();
@@ -271,6 +317,7 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
         requestedAttribs.insert(req);
     }
 
+    if (collect_profile_enabled) profile_requested_font_count = (int)requestedAttribs.size();
     for (const auto& req : requestedAttribs) {
         std::string charactersStr;
         auto it_chars = usedFontCharacters.find(req);
@@ -325,6 +372,38 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
             }
         }
     }
+    if (collect_profile_enabled) {
+        auto font_requests_end = std::chrono::high_resolution_clock::now();
+        profile_font_requests_ms += elapsed_ms(font_requests_start, font_requests_end);
+    }
+}
+
+std::string SatoruInstance::get_collect_profile_json() const {
+    std::ostringstream ss;
+    ss << "{\"cppScanFontFaces\":" << profile_scan_font_faces_ms
+       << ",\"cppCreateDocument\":" << profile_create_document_ms
+       << ",\"cppRenderLayout\":" << profile_render_layout_ms
+       << ",\"cppScanImageSizes\":" << profile_scan_image_sizes_ms
+       << ",\"cppFontRequests\":" << profile_font_requests_ms
+       << ",\"cppRequestedFontCount\":" << profile_requested_font_count
+       << ",\"cppCreateFont\":" << context.layoutProfile.container_create_font_ms
+       << ",\"cppTextWidth\":" << context.layoutProfile.container_text_width_ms
+       << ",\"cppSplitText\":" << context.layoutProfile.container_split_text_ms
+       << ",\"cppBidiLevel\":" << context.layoutProfile.container_bidi_ms
+       << ",\"cppTextMeasure\":" << context.layoutProfile.text_measure_ms
+       << ",\"cppTextAnalyze\":" << context.layoutProfile.text_analyze_ms
+       << ",\"cppTextShape\":" << context.layoutProfile.text_shape_ms
+       << ",\"cppTextShapePrepared\":" << context.layoutProfile.text_shape_prepared_ms
+       << ",\"cppCreateFontCount\":" << context.layoutProfile.container_create_font_count
+       << ",\"cppTextWidthCount\":" << context.layoutProfile.container_text_width_count
+       << ",\"cppSplitTextCount\":" << context.layoutProfile.container_split_text_count
+       << ",\"cppBidiLevelCount\":" << context.layoutProfile.container_bidi_count
+       << ",\"cppTextMeasureCount\":" << context.layoutProfile.text_measure_count
+       << ",\"cppTextAnalyzeCount\":" << context.layoutProfile.text_analyze_count
+       << ",\"cppTextShapeCount\":" << context.layoutProfile.text_shape_count
+       << ",\"cppTextShapePreparedCount\":" << context.layoutProfile.text_shape_prepared_count
+       << "}";
+    return ss.str();
 }
 
 void SatoruInstance::add_resource(const std::string& url, ResourceType type,
@@ -507,6 +586,14 @@ int api_get_last_svg_size(SatoruInstance* inst) { return (int)inst->context.get_
 void api_collect_resources(SatoruInstance* inst, const std::string& html, int width, int height,
                            int mediaType) {
     inst->collect_resources(html, width, height, mediaType);
+}
+
+std::string api_get_collect_profile(SatoruInstance* inst) {
+    return inst ? inst->get_collect_profile_json() : "{}";
+}
+
+void api_set_collect_profile_enabled(SatoruInstance* inst, bool enabled) {
+    if (inst) inst->set_collect_profile_enabled(enabled);
 }
 
 void api_add_resource(SatoruInstance* inst, const std::string& url, int type,

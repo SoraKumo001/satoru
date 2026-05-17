@@ -32,9 +32,49 @@ class SatoruContext {
     std::unique_ptr<SkShaper> m_shaper;
 
    public:
+    struct LayoutProfile {
+        bool enabled = false;
+        double container_create_font_ms = 0.0;
+        double container_text_width_ms = 0.0;
+        double container_split_text_ms = 0.0;
+        double container_bidi_ms = 0.0;
+        double text_measure_ms = 0.0;
+        double text_analyze_ms = 0.0;
+        double text_shape_ms = 0.0;
+        double text_shape_prepared_ms = 0.0;
+        int container_create_font_count = 0;
+        int container_text_width_count = 0;
+        int container_split_text_count = 0;
+        int container_bidi_count = 0;
+        int text_measure_count = 0;
+        int text_analyze_count = 0;
+        int text_shape_count = 0;
+        int text_shape_prepared_count = 0;
+
+        void reset() {
+            container_create_font_ms = 0.0;
+            container_text_width_ms = 0.0;
+            container_split_text_ms = 0.0;
+            container_bidi_ms = 0.0;
+            text_measure_ms = 0.0;
+            text_analyze_ms = 0.0;
+            text_shape_ms = 0.0;
+            text_shape_prepared_ms = 0.0;
+            container_create_font_count = 0;
+            container_text_width_count = 0;
+            container_split_text_count = 0;
+            container_bidi_count = 0;
+            text_measure_count = 0;
+            text_analyze_count = 0;
+            text_shape_count = 0;
+            text_shape_prepared_count = 0;
+        }
+    };
+
     SatoruFontManager fontManager;
     std::map<std::string, image_info> imageCache;
     satoru::SatoruCacheManager cacheManager;
+    LayoutProfile layoutProfile;
     bool needsRelayout = false;
 
     SatoruContext() {}

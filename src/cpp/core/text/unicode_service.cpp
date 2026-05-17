@@ -77,6 +77,20 @@ int UnicodeService::getBidiLevel(const char* text, int baseLevel, int* lastLevel
         }
 
         char32_t u = decodeUtf8(&p);
+
+        if ((u >= 0x3040 && u <= 0x30FF) ||    // Hiragana, Katakana
+            (u >= 0x3400 && u <= 0x4DBF) ||    // CJK Extension A
+            (u >= 0x4E00 && u <= 0x9FFF) ||    // CJK Unified Ideographs
+            (u >= 0xAC00 && u <= 0xD7AF) ||    // Hangul Syllables
+            (u >= 0xF900 && u <= 0xFAFF) ||    // CJK Compatibility Ideographs
+            (u >= 0xFF10 && u <= 0xFF5A) ||    // Fullwidth ASCII letters/digits
+            (u >= 0x20000 && u <= 0x2FA1F)) {  // CJK extensions and compatibility
+            all_neutral = false;
+            int level = (baseLevel == 1) ? 2 : 0;
+            if (lastLevel) *lastLevel = level;
+            return level;
+        }
+
         auto cat = utf8proc_category(u);
 
         // Skip punctuation, marks, and neutral characters

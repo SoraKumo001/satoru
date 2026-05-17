@@ -1,6 +1,7 @@
 #include "container_skia.h"
 
 #include <algorithm>
+#include <chrono>
 #include <iostream>
 #include <sstream>
 
@@ -374,6 +375,11 @@ container_skia::~container_skia() {
 litehtml::uint_ptr container_skia::create_font(const litehtml::font_description& desc,
                                                const litehtml::document* doc,
                                                litehtml::font_metrics* fm) {
+    auto profile_start = std::chrono::high_resolution_clock::time_point{};
+    if (m_context.layoutProfile.enabled) {
+        profile_start = std::chrono::high_resolution_clock::now();
+        m_context.layoutProfile.container_create_font_count++;
+    }
     SkFontStyle::Slant slant = desc.style == litehtml::font_style_normal
                                    ? SkFontStyle::kUpright_Slant
                                    : SkFontStyle::kItalic_Slant;
@@ -511,6 +517,11 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
     req.slant = slant;
     m_createdFonts[req].push_back(fi);
 
+    if (m_context.layoutProfile.enabled) {
+        auto profile_end = std::chrono::high_resolution_clock::now();
+        m_context.layoutProfile.container_create_font_ms +=
+            std::chrono::duration<double, std::milli>(profile_end - profile_start).count();
+    }
     return (litehtml::uint_ptr)fi;
 }
 
@@ -528,12 +539,22 @@ void container_skia::delete_font(litehtml::uint_ptr hFont) {
 
 litehtml::pixel_t container_skia::text_width(const char* text, litehtml::uint_ptr hFont,
                                              litehtml::direction dir, litehtml::writing_mode mode) {
+    auto profile_start = std::chrono::high_resolution_clock::time_point{};
+    if (m_context.layoutProfile.enabled) {
+        profile_start = std::chrono::high_resolution_clock::now();
+        m_context.layoutProfile.container_text_width_count++;
+    }
     font_info* fi = (font_info*)hFont;
     if (fi) {
         fi->is_rtl = (dir == litehtml::direction_rtl);
     }
     auto result = satoru::TextLayout::measureText(&m_context, text, fi, mode, -1.0,
                                                   m_resourceManager ? &m_usedCodepoints : nullptr);
+    if (m_context.layoutProfile.enabled) {
+        auto profile_end = std::chrono::high_resolution_clock::now();
+        m_context.layoutProfile.container_text_width_ms +=
+            std::chrono::duration<double, std::milli>(profile_end - profile_start).count();
+    }
     return (litehtml::pixel_t)result.width;
 }
 
@@ -1525,6 +1546,27 @@ int container_skia::get_bidi_level(const char* text, int base_level) {
         m_last_bidi_level = base_level;
         m_last_base_level = base_level;
     }
+
+    if (!text || !*text) return base_level;
+    const unsigned char c0 = static_cast<unsigned char>(text[0]);
+    if (c0 < 0x80) {
+        bool is_ascii_neutral = c0 <= 0x2F || (c0 >= 0x3A && c0 <= 0x40) ||
+                                (c0 >= 0x5B && c0 <= 0x60) || (c0 >= 0x7B && c0 <= 0x7F);
+        if (!is_ascii_neutral) {
+            int level = (base_level == 1) ? 2 : 0;
+            m_last_bidi_level = level;
+            return level;
+        }
+    } else {
+        const unsigned char c1 = static_cast<unsigned char>(text[1]);
+        if ((c0 >= 0xE4 && c0 <= 0xE9) ||          // CJK ideographs
+            (c0 == 0xE3 && c1 >= 0x81 && c1 <= 0x83) ||  // Hiragana/Katakana
+            (c0 >= 0xEA && c0 <= 0xED)) {          // Hangul
+            int level = (base_level == 1) ? 2 : 0;
+            m_last_bidi_level = level;
+            return level;
+        }
+    }
     return m_context.getUnicodeService().getBidiLevel(text, base_level, &m_last_bidi_level);
 }
 
@@ -1728,7 +1770,17 @@ litehtml::string container_skia::resolve_color(const litehtml::string& color) co
 
 void container_skia::split_text(const char* text, const std::function<void(const char*)>& on_word,
                                 const std::function<void(const char*)>& on_space) {
+    auto profile_start = std::chrono::high_resolution_clock::time_point{};
+    if (m_context.layoutProfile.enabled) {
+        profile_start = std::chrono::high_resolution_clock::now();
+        m_context.layoutProfile.container_split_text_count++;
+    }
     satoru::TextLayout::splitText(&m_context, text, on_word, on_space);
+    if (m_context.layoutProfile.enabled) {
+        auto profile_end = std::chrono::high_resolution_clock::now();
+        m_context.layoutProfile.container_split_text_ms +=
+            std::chrono::duration<double, std::milli>(profile_end - profile_start).count();
+    }
 }
 
 void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity, litehtml::blend_mode bm) {

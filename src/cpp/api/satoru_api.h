@@ -32,6 +32,13 @@ class SatoruInstance {
     std::string last_font_face_scan_html;
     std::string cached_full_master_css;
     std::vector<uint8_t> pending_resources_buffer;
+    double profile_scan_font_faces_ms = 0.0;
+    double profile_create_document_ms = 0.0;
+    double profile_render_layout_ms = 0.0;
+    double profile_scan_image_sizes_ms = 0.0;
+    double profile_font_requests_ms = 0.0;
+    int profile_requested_font_count = 0;
+    bool collect_profile_enabled = false;
 
     SatoruInstance();
     ~SatoruInstance();
@@ -40,7 +47,9 @@ class SatoruInstance {
     void init_document(const char *html, int width, int height);
     void layout_document(int width);
     void collect_resources(const std::string &html, int width, int height, int mediaType = 0);
-    std::string get_full_master_css() const;
+    const std::string &get_full_master_css() const;
+    std::string get_collect_profile_json() const;
+    void set_collect_profile_enabled(bool enabled) { collect_profile_enabled = enabled; }
 
     // Resource Management
     void add_resource(const std::string &url, ResourceType type, const std::vector<uint8_t> &data);
@@ -84,6 +93,8 @@ int api_get_last_pdf_size(SatoruInstance *inst);
 int api_get_last_svg_size(SatoruInstance *inst);
 void api_collect_resources(SatoruInstance *inst, const std::string &html, int width, int height,
                            int mediaType = 0);
+std::string api_get_collect_profile(SatoruInstance *inst);
+void api_set_collect_profile_enabled(SatoruInstance *inst, bool enabled);
 void api_add_resource(SatoruInstance *inst, const std::string &url, int type,
                       const std::vector<uint8_t> &data);
 void api_scan_css(SatoruInstance *inst, const std::string &css);

@@ -3,6 +3,7 @@
 #include <linebreak.h>
 
 #include <algorithm>
+#include <chrono>
 
 #include "core/satoru_context.h"
 #include "core/text/text_types.h"
@@ -15,6 +16,33 @@
 namespace satoru {
 
 namespace {
+class LayoutProfileTimer {
+   public:
+    LayoutProfileTimer(SatoruContext* ctx, double SatoruContext::LayoutProfile::*ms_field,
+                       int SatoruContext::LayoutProfile::*count_field)
+        : m_ctx(ctx), m_ms_field(ms_field), m_count_field(count_field) {
+        if (!m_ctx || !m_ctx->layoutProfile.enabled) {
+            m_ctx = nullptr;
+            return;
+        }
+        m_start = std::chrono::high_resolution_clock::now();
+        m_ctx->layoutProfile.*m_count_field += 1;
+    }
+
+    ~LayoutProfileTimer() {
+        if (!m_ctx) return;
+        auto end = std::chrono::high_resolution_clock::now();
+        m_ctx->layoutProfile.*m_ms_field +=
+            std::chrono::duration<double, std::milli>(end - m_start).count();
+    }
+
+   private:
+    SatoruContext* m_ctx;
+    double SatoruContext::LayoutProfile::*m_ms_field;
+    int SatoruContext::LayoutProfile::*m_count_field;
+    std::chrono::high_resolution_clock::time_point m_start;
+};
+
 // Records total width while delegating to another handler
 class WidthProxyRunHandler : public SkShaper::RunHandler {
    public:
@@ -234,6 +262,8 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
                                       std::set<char32_t>* usedCodepoints) {
     MeasureResult result = {0.0, 0, true, text};
     if (!text || !*text || !fi || fi->fonts.empty() || !ctx) return result;
+    LayoutProfileTimer profile_timer(ctx, &SatoruContext::LayoutProfile::text_measure_ms,
+                                     &SatoruContext::LayoutProfile::text_measure_count);
 
     MeasureKey key;
     bool canCache = (usedCodepoints == nullptr);
@@ -367,6 +397,8 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
                                      std::set<char32_t>* usedCodepoints, bool computeLineBreaks) {
     TextAnalysis analysis;
     if (!text || !len || !ctx) return analysis;
+    LayoutProfileTimer profile_timer(ctx, &SatoruContext::LayoutProfile::text_analyze_ms,
+                                     &SatoruContext::LayoutProfile::text_analyze_count);
 
     analysis.chars.reserve(len);
     analysis.substituted_text.reserve(len);
@@ -487,6 +519,8 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
                                    litehtml::writing_mode mode,
                                    std::set<char32_t>* usedCodepoints) {
     if (!text || !len || !fi || fi->fonts.empty() || !ctx) return {0.0, nullptr};
+    LayoutProfileTimer profile_timer(ctx, &SatoruContext::LayoutProfile::text_shape_ms,
+                                     &SatoruContext::LayoutProfile::text_shape_count);
 
     ShapingKey key;
     key.text.assign(text, len);
@@ -525,6 +559,8 @@ ShapedResult TextLayout::shapePreparedText(SatoruContext* ctx, const char* cache
                                            const TextAnalysis& analysis) {
     if (!cacheText || !cacheLen || !shapeText || !shapeLen || !fi || fi->fonts.empty() || !ctx)
         return {0.0, nullptr};
+    LayoutProfileTimer profile_timer(ctx, &SatoruContext::LayoutProfile::text_shape_prepared_ms,
+                                     &SatoruContext::LayoutProfile::text_shape_prepared_count);
 
     ShapingKey key;
     key.text.assign(cacheText, cacheLen);
@@ -639,6 +675,13 @@ void TextLayout::splitText(SatoruContext* ctx, const char* text,
     const char* p = text;
     const char* last_p = text;
     int prev_char_idx = -1;
+    std::string token;
+    token.reserve(std::min<size_t>(len, 256));
+    auto emit = [&token](const std::function<void(const char*)>& callback, const char* start,
+                         const char* end) {
+        token.assign(start, end - start);
+        callback(token.c_str());
+    };
 
     while (*p) {
         const char* next_p = p;
@@ -647,9 +690,9 @@ void TextLayout::splitText(SatoruContext* ctx, const char* text,
 
         if (unicode.isSpace(c)) {
             if (p > last_p) {
-                onWord(std::string(last_p, p - last_p).c_str());
+                emit(onWord, last_p, p);
             }
-            onSpace(std::string(p, next_p - p).c_str());
+            emit(onSpace, p, next_p);
             last_p = next_p;
             prev_char_idx = -1;
         } else {
@@ -662,7 +705,7 @@ void TextLayout::splitText(SatoruContext* ctx, const char* text,
                     }
                 }
                 if (can_break) {
-                    onWord(std::string(last_p, p - last_p).c_str());
+                    emit(onWord, last_p, p);
                     last_p = p;
                 }
             }
@@ -672,7 +715,7 @@ void TextLayout::splitText(SatoruContext* ctx, const char* text,
     }
 
     if (p > last_p) {
-        onWord(std::string(last_p, p - last_p).c_str());
+        emit(onWord, last_p, p);
     }
 }
 

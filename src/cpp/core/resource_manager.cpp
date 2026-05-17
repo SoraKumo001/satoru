@@ -11,6 +11,62 @@
 
 extern container_skia* g_discovery_container;
 
+namespace {
+bool starts_with_ascii_ci(const std::string& s, size_t pos, const char* needle) {
+    for (size_t i = 0; needle[i] != '\0'; ++i) {
+        if (pos + i >= s.size()) return false;
+        if (std::tolower((unsigned char)s[pos + i]) != std::tolower((unsigned char)needle[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::string replace_font_family_names(const std::string& css, const std::string& name) {
+    std::string result;
+    result.reserve(css.size());
+    size_t pos = 0;
+
+    while (pos < css.size()) {
+        size_t found = std::string::npos;
+        for (size_t i = pos; i < css.size(); ++i) {
+            if (starts_with_ascii_ci(css, i, "font-family")) {
+                found = i;
+                break;
+            }
+        }
+        if (found == std::string::npos) {
+            result.append(css, pos, std::string::npos);
+            break;
+        }
+
+        result.append(css, pos, found - pos);
+        size_t colon = css.find(':', found + 11);
+        if (colon == std::string::npos) {
+            result.append(css, found, std::string::npos);
+            break;
+        }
+
+        size_t valueStart = colon + 1;
+        while (valueStart < css.size() && std::isspace((unsigned char)css[valueStart])) {
+            valueStart++;
+        }
+        size_t valueEnd = valueStart;
+        while (valueEnd < css.size() && css[valueEnd] != ';' && css[valueEnd] != '}') {
+            valueEnd++;
+        }
+
+        result.append(css, found, valueStart - found);
+        result.push_back('\'');
+        result.append(name);
+        result.push_back('\'');
+        pos = valueEnd;
+    }
+
+    return result;
+}
+}  // namespace
+
 ResourceManager::ResourceManager(SatoruContext& context) : m_context(context) {
     m_requestedUrls.reserve(64);
     m_resolvedUrls.reserve(64);
@@ -82,15 +138,12 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
                 // Add aliases for requested names (e.g. serif -> Noto Serif JP)
                 auto it = m_urlToNames.find(url);
                 if (it != m_urlToNames.end()) {
-                    std::regex re(R"(font-family:\s*['"]?([^'\";\}]+)['\"]?)");
-
                     for (const auto& name : it->second) {
                         // Check if the name is already in the CSS (simple check)
                         if (content.find("'" + name + "'") != std::string::npos) continue;
                         if (content.find("\"" + name + "\"") != std::string::npos) continue;
 
-                        std::string alias_css =
-                            std::regex_replace(content, re, "font-family: '" + name + "'");
+                        std::string alias_css = replace_font_family_names(content, name);
                         m_context.addCss(alias_css, CssChangeKind::FontAliasCss);
                         m_context.fontManager.scanFontFaces(alias_css);
                     }

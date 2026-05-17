@@ -1,5 +1,7 @@
 #include "text_geometry.h"
 
+#include <cstring>
+
 namespace satoru {
 
 const SkFontMetrics& TextGeometry::metricsFor(const SkFont& font) const {
@@ -19,7 +21,12 @@ const SkFontMetrics& TextGeometry::metricsFor(const SkFont& font) const {
 float TextGeometry::glyphWidthFor(const SkFont& font, SkGlyphID glyph_id) const {
     auto typeface = font.getTypeface();
     uint32_t typeface_id = typeface ? typeface->uniqueID() : 0;
-    uint64_t key = ((uint64_t)typeface_id << 32) | (uint64_t)glyph_id;
+    uint32_t font_size_bits = 0;
+    static_assert(sizeof(font_size_bits) == sizeof(float));
+    float font_size = font.getSize();
+    memcpy(&font_size_bits, &font_size, sizeof(float));
+    uint64_t key = ((uint64_t)typeface_id << 32) ^ ((uint64_t)font_size_bits << 16) ^
+                   (uint64_t)glyph_id;
     auto cached = m_fi->glyph_width_cache.find(key);
     if (cached != m_fi->glyph_width_cache.end()) return cached->second;
     float width = (float)font.getWidth(glyph_id);

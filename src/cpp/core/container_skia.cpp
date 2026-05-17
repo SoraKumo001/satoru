@@ -417,6 +417,8 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
     font_info* fi = new font_info;
     fi->desc = desc;
     fi->fake_bold = fake_bold;
+    fi->selected_font_cache.reserve(256);
+    fi->glyph_width_cache.reserve(256);
 
     // Check direction from element's property (if available)
     fi->is_rtl = false;

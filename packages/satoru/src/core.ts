@@ -741,6 +741,9 @@ export abstract class SatoruBase {
 
           const pending = resources.filter((r) => {
             const key = `${r.type}:${r.url}:${r.characters ?? ""}`;
+            if (r.type === "font" && resolvedResources.has(`font:${r.url}:`)) {
+              return false;
+            }
             return !resolvedResources.has(key);
           });
           addProfile("pendingResourcesCount", pending.length);
@@ -767,6 +770,9 @@ export abstract class SatoruBase {
                 }
                 const key = `${r.type}:${r.url}:${r.characters ?? ""}`;
                 resolvedResources.add(key);
+                if (r.type === "font") {
+                  resolvedResources.add(`font:${r.url}:`);
+                }
 
                 const data = await cachedResolver({ ...r });
                 if (!data) return;

@@ -98,30 +98,25 @@ const uint8_t* render_and_store(SatoruInstance* inst, F render_func,
     return bytes;
 }
 
-std::string encode_utf8(char32_t cp) {
-    std::string res;
-    if (cp <= 0x7F) {
-        res += (char)cp;
-    } else if (cp <= 0x7FF) {
-        res += (char)(0xC0 | (cp >> 6));
-        res += (char)(0x80 | (cp & 0x3F));
-    } else if (cp <= 0xFFFF) {
-        res += (char)(0xE0 | (cp >> 12));
-        res += (char)(0x80 | ((cp >> 6) & 0x3F));
-        res += (char)(0x80 | (cp & 0x3F));
-    } else if (cp <= 0x10FFFF) {
-        res += (char)(0xF0 | (cp >> 18));
-        res += (char)(0x80 | ((cp >> 12) & 0x3F));
-        res += (char)(0x80 | ((cp >> 6) & 0x3F));
-        res += (char)(0x80 | (cp & 0x3F));
-    }
-    return res;
-}
-
 std::string codepoints_to_utf8(const std::set<char32_t>& cps) {
     std::string res;
+    res.reserve(cps.size() * 3);
     for (char32_t cp : cps) {
-        res += encode_utf8(cp);
+        if (cp <= 0x7F) {
+            res += (char)cp;
+        } else if (cp <= 0x7FF) {
+            res += (char)(0xC0 | (cp >> 6));
+            res += (char)(0x80 | (cp & 0x3F));
+        } else if (cp <= 0xFFFF) {
+            res += (char)(0xE0 | (cp >> 12));
+            res += (char)(0x80 | ((cp >> 6) & 0x3F));
+            res += (char)(0x80 | (cp & 0x3F));
+        } else if (cp <= 0x10FFFF) {
+            res += (char)(0xF0 | (cp >> 18));
+            res += (char)(0x80 | ((cp >> 12) & 0x3F));
+            res += (char)(0x80 | ((cp >> 6) & 0x3F));
+            res += (char)(0x80 | (cp & 0x3F));
+        }
     }
     return res;
 }

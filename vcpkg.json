@@ -1,6 +1,7 @@
 {
   "name": "satoru-wasm",
   "version-string": "1.0.0",
+  "builtin-baseline": "610f8a9b9f554730cf86d9b6324fff92a630548b",
   "dependencies": [
     {
       "name": "freetype",

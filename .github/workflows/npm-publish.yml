@@ -15,6 +15,7 @@ jobs:
       VCPKG_ROOT: /usr/local/share/vcpkg
       VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg_cache,readwrite"
       VCPKG_DOWNLOADS: "${{ github.workspace }}/vcpkg_downloads"
+      EMSDK_VERSION: "4.0.15"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,14 +60,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: emsdk-cache
-          key: ${{ runner.os }}-emsdk-${{ hashFiles('package.json') }}
+          key: ${{ runner.os }}-emsdk-${{ env.EMSDK_VERSION }}-${{ hashFiles('package.json') }}
           restore-keys: |
-            ${{ runner.os }}-emsdk-
+            ${{ runner.os }}-emsdk-${{ env.EMSDK_VERSION }}-
 
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
         with:
-          version: latest
+          version: ${{ env.EMSDK_VERSION }}
           actions-cache-folder: "emsdk-cache"
 
       - name: Install pnpm

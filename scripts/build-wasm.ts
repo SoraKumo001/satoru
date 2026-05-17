@@ -21,6 +21,7 @@ const isWin = process.platform === "win32";
 const action = process.argv[2];
 
 const EMSDK = process.env.EMSDK;
+const EMSDK_VERSION = process.env.EMSDK_VERSION ?? "latest";
 const VCPKG_ROOT = process.env.VCPKG_ROOT;
 
 if (!EMSDK || !VCPKG_ROOT) {
@@ -78,8 +79,8 @@ function run(cmd: string, cwd?: string) {
   const fullCmd = process.env.GITHUB_ACTIONS
     ? cmd
     : isWin
-      ? `call "${emsdkEnv}" && emsdk activate latest && ${cmd}`
-      : `. ${path.join(EMSDK!, "emsdk_env.sh")} && emsdk activate latest && ${cmd}`;
+      ? `call "${emsdkEnv}" && emsdk activate ${EMSDK_VERSION} && ${cmd}`
+      : `. ${path.join(EMSDK!, "emsdk_env.sh")} && emsdk activate ${EMSDK_VERSION} && ${cmd}`;
 
   console.log(`> ${cmd}`);
   execSync(fullCmd, { stdio: "inherit", shell, cwd });

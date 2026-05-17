@@ -2511,13 +2511,11 @@ litehtml::element::ptr container_skia::create_element(
     return nullptr;
 }
 
-std::map<font_request, std::set<char32_t>> container_skia::get_used_fonts_characters() const {
-    std::map<font_request, std::set<char32_t>> res;
-    for (const auto& entry : m_createdFonts) {
-        auto& set = res[entry.first];
-        for (auto fi : entry.second) {
-            set.insert(fi->used_codepoints.begin(), fi->used_codepoints.end());
-        }
+void container_skia::collect_used_font_characters(const font_request& req,
+                                                  std::vector<char32_t>& out) const {
+    auto it = m_createdFonts.find(req);
+    if (it == m_createdFonts.end()) return;
+    for (auto fi : it->second) {
+        out.insert(out.end(), fi->used_codepoints.begin(), fi->used_codepoints.end());
     }
-    return res;
 }

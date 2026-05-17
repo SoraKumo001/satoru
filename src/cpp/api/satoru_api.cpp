@@ -98,7 +98,9 @@ const uint8_t* render_and_store(SatoruInstance* inst, F render_func,
     return bytes;
 }
 
-std::string codepoints_to_utf8(const std::set<char32_t>& cps) {
+std::string codepoints_to_utf8(std::vector<char32_t>& cps) {
+    std::sort(cps.begin(), cps.end());
+    cps.erase(std::unique(cps.begin(), cps.end()), cps.end());
     std::string res;
     res.reserve(cps.size() * 3);
     for (char32_t cp : cps) {
@@ -294,7 +296,6 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
     if (collect_profile_enabled) font_requests_start = std::chrono::high_resolution_clock::now();
     const auto& usedCodepoints = render_container->get_used_codepoints();
     auto requestedAttribs = render_container->get_requested_font_attributes();
-    const auto& usedFontCharacters = render_container->get_used_fonts_characters();
 
     // Ensure sans-serif is always requested as a fallback if not already present
     bool hasSansSerif = false;
@@ -315,9 +316,10 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
     if (collect_profile_enabled) profile_requested_font_count = (int)requestedAttribs.size();
     for (const auto& req : requestedAttribs) {
         std::string charactersStr;
-        auto it_chars = usedFontCharacters.find(req);
-        if (it_chars != usedFontCharacters.end()) {
-            charactersStr = codepoints_to_utf8(it_chars->second);
+        std::vector<char32_t> usedFontCharacters;
+        render_container->collect_used_font_characters(req, usedFontCharacters);
+        if (!usedFontCharacters.empty()) {
+            charactersStr = codepoints_to_utf8(usedFontCharacters);
         }
 
         std::vector<std::string> urls =

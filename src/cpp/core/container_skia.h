@@ -206,7 +206,7 @@ class container_skia : public litehtml::document_container {
 
     const std::set<font_request> &get_missing_fonts() const { return m_missingFonts; }
 
-    std::map<font_request, std::set<char32_t>> get_used_fonts_characters() const;
+    void collect_used_font_characters(const font_request& req, std::vector<char32_t>& out) const;
 
     // litehtml::document_container implementations
     virtual litehtml::uint_ptr create_font(const litehtml::font_description &desc,

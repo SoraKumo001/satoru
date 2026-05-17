@@ -326,6 +326,7 @@ std::vector<std::string> SatoruFontManager::getFontUrls(
     const std::string& family, int weight, SkFontStyle::Slant slant,
     const std::set<char32_t>* usedCodepoints) const {
     std::vector<std::string> urls;
+    urls.reserve(4);
     std::stringstream ss(family);
     std::string item;
 

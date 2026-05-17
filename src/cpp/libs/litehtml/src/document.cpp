@@ -555,6 +555,9 @@ pixel_t document::render( pixel_t max_width, render_type rt )
 			// Container Queries support: 
 			// After the first layout, container sizes are known.
 			// We trigger a style refresh and a second layout pass.
+			bool has_cq = m_master_css.has_container_queries() || m_styles.has_container_queries() || m_user_css.has_container_queries();
+			bool has_tables = !m_tabular_elements.empty();
+			if (has_cq || has_tables) {
 			m_root->refresh_styles();
 			m_root->compute_styles();
 
@@ -568,6 +571,7 @@ pixel_t document::render( pixel_t max_width, render_type rt )
 			
 			// Second pass
 			ret = m_root_render->measure(cb_context, nullptr); m_root_render->place(0, 0, cb_context, nullptr);
+			}
 
 			if(m_root_render->fetch_positioned())
 			{

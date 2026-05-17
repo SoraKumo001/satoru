@@ -8,6 +8,8 @@
 #include <sstream>
 #include <vector>
 
+#include <stdio.h>
+#include <chrono>
 #include "core/container_skia.h"
 #include "core/master_css.h"
 #include "core/resource_manager.h"
@@ -205,9 +207,12 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
 
             context.fontManager.scanFontFaces(html.c_str());
 
+            auto t1 = std::chrono::high_resolution_clock::now();
             doc = litehtml::document::createFromString(html.c_str(), render_container.get(),
                                                        get_full_master_css().c_str(),
                                                        context.getExtraCss().c_str());
+            auto t2 = std::chrono::high_resolution_clock::now();
+            printf("createFromString took: %.2f ms\n", std::chrono::duration<double, std::milli>(t2-t1).count());
             if (render_container) {
                 render_container->set_document(doc.get());
             }
@@ -220,7 +225,10 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
 
         if (doc) {
             if (width != last_width || height != last_height || context.needsRelayout) {
+                auto t1 = std::chrono::high_resolution_clock::now();
                 doc->render(width);
+                auto t2 = std::chrono::high_resolution_clock::now();
+                printf("doc->render took: %.2f ms\n", std::chrono::duration<double, std::milli>(t2-t1).count());
                 last_width = width;
                 last_height = height;
                 context.needsRelayout = false;

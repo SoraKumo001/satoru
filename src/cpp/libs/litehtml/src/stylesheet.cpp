@@ -70,6 +70,7 @@ void css::parse_css_stylesheet(const Input& input, string baseurl, document::ptr
 			{
 				new_container = make_shared<container_query_list_list>(container ? *container : container_query_list_list());
 				new_container->add(cq_list);
+				m_has_container_queries = true;
 			}
 			parse_css_stylesheet(rule->block.value, baseurl, doc, media, new_container, false, layer, layer_prefix);
 			import_allowed = false;

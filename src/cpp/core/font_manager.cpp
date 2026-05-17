@@ -46,9 +46,16 @@ struct global_typeface_clone_key {
 std::map<global_typeface_clone_key, sk_sp<SkTypeface>> g_variable_clone_cache;
 
 uint64_t compute_data_hash(const uint8_t* data, size_t size) {
-    uint64_t h = 14695981039346656037ULL;
-    for (size_t i = 0; i < size; ++i) {
-        h ^= static_cast<uint64_t>(data[i]);
+    if (size == 0) return 0;
+    uint64_t h = size;
+    size_t head = size < 256 ? size : 256;
+    for (size_t i = 0; i < head; ++i) {
+        h ^= data[i];
+        h *= 1099511628211ULL;
+    }
+    size_t tail_start = size > 256 ? size - 256 : 0;
+    for (size_t i = tail_start; i < size; ++i) {
+        h ^= data[i];
         h *= 1099511628211ULL;
     }
     return h;

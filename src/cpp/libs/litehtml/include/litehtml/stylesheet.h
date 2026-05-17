@@ -42,6 +42,10 @@ public:
 
 class css
 {
+	bool	m_has_container_queries = false;
+public:
+	bool has_container_queries() const { return m_has_container_queries; }
+private:
 	css_selector::vector	m_selectors;
 	std::map<string_id, css_selector::vector> m_id_selectors;
 	std::map<string_id, css_selector::vector> m_class_selectors;

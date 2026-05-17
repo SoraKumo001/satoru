@@ -16,6 +16,16 @@
 namespace satoru {
 
 namespace {
+bool isCjkFastMeasureCodepoint(char32_t u) {
+    return (u >= 0x3040 && u <= 0x30FF) ||    // Hiragana, Katakana
+           (u >= 0x3400 && u <= 0x4DBF) ||    // CJK Extension A
+           (u >= 0x4E00 && u <= 0x9FFF) ||    // CJK Unified Ideographs
+           (u >= 0xAC00 && u <= 0xD7AF) ||    // Hangul Syllables
+           (u >= 0xF900 && u <= 0xFAFF) ||    // CJK Compatibility Ideographs
+           (u >= 0xFF10 && u <= 0xFF5A) ||    // Fullwidth ASCII letters/digits
+           (u >= 0x20000 && u <= 0x2FA1F);    // CJK extensions and compatibility
+}
+
 class LayoutProfileTimer {
    public:
     LayoutProfileTimer(SatoruContext* ctx, double SatoruContext::LayoutProfile::*ms_field,
@@ -308,6 +318,24 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     }
 
     TextAnalysis analysis = analyzeText(ctx, text, total_len, fi, mode, usedCodepoints, false);
+
+    bool is_vertical =
+        (mode == litehtml::writing_mode_vertical_rl || mode == litehtml::writing_mode_vertical_lr);
+    if (!limit_width && is_vertical && analysis.chars.size() == 1) {
+        const auto& ca = analysis.chars[0];
+        if (ca.is_vertical_upright && !ca.is_emoji && !ca.is_mark &&
+            isCjkFastMeasureCodepoint(ca.codepoint)) {
+            result.width = ca.font.getSize() + (double)fi->desc.letter_spacing;
+            result.length = total_len;
+            result.fits = true;
+            result.last_safe_pos = text + total_len;
+            if (canCache) {
+                ctx->cacheManager.measureCache.put(key, result);
+            }
+            return result;
+        }
+    }
+
     const char* shape_text = analysis.substituted_text.c_str();
     size_t shape_len = analysis.substituted_text.size();
 

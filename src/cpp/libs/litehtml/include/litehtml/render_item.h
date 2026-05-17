@@ -77,6 +77,8 @@ namespace litehtml
         containing_block_context m_self_size;
         pixel_t m_cached_parent_width = -1;
         bool m_is_measured = false;
+        int m_cached_bidi_base_level = -1;
+        int m_cached_bidi_level = 0;
 
                 containing_block_context calculate_containing_block_context(const containing_block_context& cb_context);
                 void calc_cb_length(const css_length& len, pixel_t percent_base, containing_block_context::typed_pixel& out_value) const;
@@ -578,6 +580,17 @@ namespace litehtml
 
         virtual std::shared_ptr<render_item> init();
         virtual void apply_vertical_align() {}
+        bool get_cached_bidi_level(int base_level, int& out_level) const
+        {
+            if (m_cached_bidi_base_level != base_level) return false;
+            out_level = m_cached_bidi_level;
+            return true;
+        }
+        void set_cached_bidi_level(int base_level, int level)
+        {
+            m_cached_bidi_base_level = base_level;
+            m_cached_bidi_level = level;
+        }
                 /**
                  * Get first baseline position. Default position is element bottom without bottom margin.
                  * @returns offset of the first baseline from element top

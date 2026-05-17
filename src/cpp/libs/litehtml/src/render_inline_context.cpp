@@ -1,6 +1,7 @@
 #include "render_inline_context.h"
 #include "document.h"
 #include "document_container.h"
+#include "el_text.h"
 #include "iterators.h"
 #include "types.h"
 
@@ -377,9 +378,19 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
     item->set_rendered_min_width(min_rendered_width);
 
     // For inline-block, we still want to detect if it's primarily RTL or LTR
-            string text;
-    item->get_el()->src_el()->get_text(text);
-    item->set_bidi_level(src_el()->get_document()->container()->get_bidi_level(text.c_str(), base_level));
+            int cached_level = 0;
+            if (item->get_el()->get_cached_bidi_level(base_level, cached_level))
+            {
+                item->set_bidi_level(cached_level);
+            }
+            else
+            {
+                string text;
+                item->get_el()->src_el()->get_text(text);
+                int level = src_el()->get_document()->container()->get_bidi_level(text.c_str(), base_level);
+                item->get_el()->set_cached_bidi_level(base_level, level);
+                item->set_bidi_level(level);
+            }
     }
     else if (item->get_el()->src_el()->css().get_display() == display_inline_text)
     {
@@ -392,9 +403,31 @@ void litehtml::render_item_inline_context::place_inline(std::unique_ptr<line_box
                 item->set_rendered_min_width(sz.height);
 
             // Detect BiDi level for text part
-            string text;
-            item->get_el()->src_el()->get_text(text);
-            item->set_bidi_level(src_el()->get_document()->container()->get_bidi_level(text.c_str(), base_level));
+            int cached_level = 0;
+            if (item->get_el()->get_cached_bidi_level(base_level, cached_level))
+            {
+                item->set_bidi_level(cached_level);
+            }
+            else
+            {
+                const string* text_ptr = nullptr;
+                string text;
+                if (item->get_el()->src_el()->is_text())
+                {
+                    if (auto el_text = std::dynamic_pointer_cast<litehtml::el_text>(item->get_el()->src_el()))
+                    {
+                        text_ptr = &el_text->text();
+                    }
+                }
+                if (!text_ptr)
+                {
+                    item->get_el()->src_el()->get_text(text);
+                    text_ptr = &text;
+                }
+                int level = src_el()->get_document()->container()->get_bidi_level(text_ptr->c_str(), base_level);
+                item->get_el()->set_cached_bidi_level(base_level, level);
+                item->set_bidi_level(level);
+            }
         }
     }
 

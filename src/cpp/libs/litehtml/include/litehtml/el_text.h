@@ -18,6 +18,7 @@ namespace litehtml
 		el_text(const char* text, const document::ptr& doc);
 
 		void				get_text(string& text) const override;
+		const string&		text() const { return m_use_transformed ? m_transformed_text : m_text; }
 		void				set_text(const char* text) override;
 		void				compute_styles(bool recursive) override;
 		virtual void		apply_word_break() override;

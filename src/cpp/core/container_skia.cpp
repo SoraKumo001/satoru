@@ -417,6 +417,7 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
 
     std::vector<sk_sp<SkTypeface>> typefaces;
     bool fake_bold = false;
+    std::vector<std::string> requestedFamilies;
 
     std::stringstream ss(desc.family);
     std::string item;
@@ -437,6 +438,7 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
             req.weight = desc.weight;
             req.slant = slant;
             m_requestedFontAttributes.insert(req);
+            requestedFamilies.push_back(family);
         }
     }
 
@@ -544,11 +546,16 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
     fi->fm_ascent_raw = ascent;
     fi->fm_height = (int)css_line_height;
 
-    font_request req;
-    req.family = desc.family;
-    req.weight = desc.weight;
-    req.slant = slant;
-    m_createdFonts[req].push_back(fi);
+    if (requestedFamilies.empty()) {
+        requestedFamilies.push_back(desc.family);
+    }
+    for (const auto& family : requestedFamilies) {
+        font_request req;
+        req.family = family;
+        req.weight = desc.weight;
+        req.slant = slant;
+        m_createdFonts[req].push_back(fi);
+    }
 
     if (m_context.layoutProfile.enabled) {
         auto profile_end = std::chrono::high_resolution_clock::now();

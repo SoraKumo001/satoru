@@ -108,6 +108,9 @@ jobs:
       - name: Install Playwright Browsers
         run: pnpm --filter visual-test exec playwright install chromium --with-deps
 
+      - name: Generate Reference PNGs
+        run: pnpm --filter visual-test generate-reference
+
       - name: Run Visual Tests
         run: pnpm --filter visual-test test
 

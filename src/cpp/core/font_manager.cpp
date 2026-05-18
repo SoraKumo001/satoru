@@ -1,7 +1,7 @@
 #include "font_manager.h"
 
 #include <algorithm>
-#include <ctre.hpp>
+#include <charconv>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -28,6 +28,13 @@ std::string trim(std::string_view s) {
     if (start == std::string::npos) return "";
     auto end = s.find_last_not_of(" \t\r\n'\"");
     return std::string(s.substr(start, end - start + 1));
+}
+
+std::string_view trim_view(std::string_view s) {
+    auto start = s.find_first_not_of(" \t\r\n'\"");
+    if (start == std::string_view::npos) return {};
+    auto end = s.find_last_not_of(" \t\r\n'\"");
+    return s.substr(start, end - start + 1);
 }
 
 // Global font registries to minimize instantiation overhead
@@ -64,6 +71,73 @@ uint64_t compute_data_hash(const uint8_t* data, size_t size) {
 sk_sp<SkFontMgr> get_global_font_mgr() {
     static sk_sp<SkFontMgr> mgr = SkFontMgr_New_Custom_Empty();
     return mgr;
+}
+
+char ascii_lower(char c) {
+    return (c >= 'A' && c <= 'Z') ? (char)(c + ('a' - 'A')) : c;
+}
+
+bool starts_with_ascii_ci(std::string_view s, size_t pos, std::string_view target) {
+    if (target.empty()) return true;
+    if (pos + target.size() > s.size()) return false;
+    for (size_t i = 0; i < target.size(); ++i) {
+        if (ascii_lower(s[pos + i]) != ascii_lower(target[i])) return false;
+    }
+    return true;
+}
+
+size_t find_ascii_ci(std::string_view s, std::string_view target, size_t start = 0) {
+    if (target.empty()) return start <= s.size() ? start : std::string_view::npos;
+    if (start + target.size() > s.size()) return std::string_view::npos;
+    for (size_t i = start; i <= s.size() - target.size(); ++i) {
+        if (starts_with_ascii_ci(s, i, target)) return i;
+    }
+    return std::string_view::npos;
+}
+
+bool contains_ascii_ci(std::string_view s, std::string_view target) {
+    return find_ascii_ci(s, target) != std::string_view::npos;
+}
+
+bool equals_ascii_ci(std::string_view a, std::string_view b) {
+    a = trim_view(a);
+    b = trim_view(b);
+    if (a.size() != b.size()) return false;
+    for (size_t i = 0; i < a.size(); ++i) {
+        if (ascii_lower(a[i]) != ascii_lower(b[i])) return false;
+    }
+    return true;
+}
+
+std::string_view css_property_value(std::string_view body, std::string_view property) {
+    size_t prop_pos = find_ascii_ci(body, property);
+    if (prop_pos == std::string_view::npos) return {};
+    size_t colon_pos = body.find(':', prop_pos + property.size());
+    if (colon_pos == std::string_view::npos) return {};
+    size_t value_start = colon_pos + 1;
+    size_t value_end = body.find(';', value_start);
+    if (value_end == std::string_view::npos) value_end = body.size();
+    return body.substr(value_start, value_end - value_start);
+}
+
+bool parse_int(std::string_view s, int& value) {
+    s = trim_view(s);
+    if (s.empty()) return false;
+    const char* first = s.data();
+    const char* last = s.data() + s.size();
+    auto [ptr, ec] = std::from_chars(first, last, value);
+    return ec == std::errc() && ptr == last;
+}
+
+bool parse_weight_range(std::string_view s, int& start, int& end) {
+    s = trim_view(s);
+    size_t sep = s.find_first_of(" \t\r\n");
+    if (sep == std::string::npos) return false;
+    std::string_view first = s.substr(0, sep);
+    size_t second_start = s.find_first_not_of(" \t\r\n", sep);
+    if (second_start == std::string::npos) return false;
+    std::string_view second = s.substr(second_start);
+    return parse_int(first, start) && parse_int(second, end);
 }
 }  // namespace
 
@@ -164,30 +238,13 @@ void SatoruFontManager::clear() {
 }
 
 void SatoruFontManager::scanFontFaces(const std::string& css) {
-    if (css.find("@font-face") == std::string::npos && css.find("@FONT-FACE") == std::string::npos)
-        return;
-
     std::string_view css_sv = css;
+    if (!contains_ascii_ci(css_sv, "@font-face")) return;
+
     size_t pos = 0;
 
-    auto case_insensitive_find = [](std::string_view s, std::string_view target, size_t start) {
-        if (target.empty()) return std::string_view::npos;
-        if (start + target.size() > s.size()) return std::string_view::npos;
-        for (size_t i = start; i <= s.size() - target.size(); ++i) {
-            bool match = true;
-            for (size_t j = 0; j < target.size(); ++j) {
-                if (tolower(s[i + j]) != tolower(target[j])) {
-                    match = false;
-                    break;
-                }
-            }
-            if (match) return i;
-        }
-        return std::string_view::npos;
-    };
-
     while (true) {
-        size_t start_pos = case_insensitive_find(css_sv, "@font-face", pos);
+        size_t start_pos = find_ascii_ci(css_sv, "@font-face", pos);
         if (start_pos == std::string_view::npos) break;
 
         size_t block_start = css_sv.find('{', start_pos);
@@ -215,74 +272,70 @@ void SatoruFontManager::scanFontFaces(const std::string& css) {
         std::vector<int> weights;
         SkFontStyle::Slant slant = SkFontStyle::kUpright_Slant;
 
-        if (auto m = ctre::search<R"((?i)font-family:\s*([^;\}]+);?)">(body_sv)) {
-            family = cleanName(m.get<1>());
+        if (std::string_view family_value = css_property_value(body_sv, "font-family");
+            !family_value.empty()) {
+            family = cleanName(family_value);
         }
 
-        if (auto m = ctre::search<R"((?i)font-weight:\s*([^;\}]+);?)">(body_sv)) {
-            std::string w = trim(m.get<1>());
-            if (w == "bold")
+        if (std::string_view weight_value = css_property_value(body_sv, "font-weight");
+            !weight_value.empty()) {
+            std::string_view w = trim_view(weight_value);
+            if (equals_ascii_ci(w, "bold"))
                 weights.push_back(700);
-            else if (w == "normal")
+            else if (equals_ascii_ci(w, "normal"))
                 weights.push_back(400);
             else {
-                try {
-                    if (auto rm = ctre::search<R"((\d+)\s+(\d+))">(w)) {
-                        int start = std::stoi(rm.get<1>().to_string());
-                        int end = std::stoi(rm.get<2>().to_string());
-                        for (int v = 100; v <= 900; v += 100) {
-                            if (v >= start && v <= end) weights.push_back(v);
-                        }
-                    } else {
-                        weights.push_back(std::stoi(w));
+                int start = 0;
+                int end = 0;
+                if (parse_weight_range(w, start, end)) {
+                    for (int v = 100; v <= 900; v += 100) {
+                        if (v >= start && v <= end) weights.push_back(v);
                     }
-                } catch (...) {
+                } else {
+                    int parsed = 0;
+                    if (parse_int(w, parsed)) weights.push_back(parsed);
                 }
             }
         }
 
         if (weights.empty()) weights.push_back(400);
 
-        if (auto m = ctre::search<R"((?i)font-style:\s*([^;\}]+);?)">(body_sv)) {
-            std::string s = trim(m.get<1>());
-            if (s == "italic" || s == "oblique") slant = SkFontStyle::kItalic_Slant;
+        if (std::string_view style_value = css_property_value(body_sv, "font-style");
+            !style_value.empty()) {
+            std::string_view s = trim_view(style_value);
+            if (equals_ascii_ci(s, "italic") || equals_ascii_ci(s, "oblique"))
+                slant = SkFontStyle::kItalic_Slant;
         }
 
         if (!family.empty()) {
-            std::string best_url;
+            std::string_view best_url;
             int best_score = -1;
 
             size_t url_search_pos = 0;
             while (true) {
-                size_t url_idx = case_insensitive_find(body_sv, "url(", url_search_pos);
+                size_t url_idx = find_ascii_ci(body_sv, "url(", url_search_pos);
                 if (url_idx == std::string_view::npos) break;
 
                 size_t url_content_start = url_idx + 4;
                 size_t url_content_end = body_sv.find(')', url_content_start);
                 if (url_content_end == std::string_view::npos) break;
 
-                std::string url =
-                    trim(body_sv.substr(url_content_start, url_content_end - url_content_start));
+                std::string_view url =
+                    trim_view(body_sv.substr(url_content_start, url_content_end - url_content_start));
                 url_search_pos = url_content_end + 1;
 
-                auto contains_insensitive = [](std::string_view s, std::string_view target) {
-                    auto it = std::search(s.begin(), s.end(), target.begin(), target.end(),
-                                          [](char a, char b) { return tolower(a) == tolower(b); });
-                    return it != s.end();
-                };
-
                 int score = 0;
-                if (contains_insensitive(url, "woff2"))
+                if (contains_ascii_ci(url, "woff2"))
                     score = 5;
-                else if (contains_insensitive(url, "woff"))
+                else if (contains_ascii_ci(url, "woff"))
                     score = 4;
-                else if (contains_insensitive(url, "ttf") || contains_insensitive(url, "truetype"))
+                else if (contains_ascii_ci(url, "ttf") || contains_ascii_ci(url, "truetype"))
                     score = 3;
-                else if (contains_insensitive(url, "otf") || contains_insensitive(url, "opentype"))
+                else if (contains_ascii_ci(url, "otf") || contains_ascii_ci(url, "opentype"))
                     score = 2;
-                else if (contains_insensitive(url, "ttc"))
+                else if (contains_ascii_ci(url, "ttc"))
                     score = 1;
-                else if (contains_insensitive(url, ".eot"))
+                else if (contains_ascii_ci(url, ".eot"))
                     score = -1;
 
                 if (score > best_score) {
@@ -293,10 +346,11 @@ void SatoruFontManager::scanFontFaces(const std::string& css) {
 
             if (!best_url.empty() && best_score >= 0) {
                 font_face_source src;
-                src.url = best_url;
+                src.url = std::string(best_url);
 
-                if (auto m2 = ctre::search<R"((?i)unicode-range:\s*([^;\}]+);?)">(body_sv)) {
-                    src.unicode_range = trim(m2.get<1>().to_string());
+                if (std::string_view range_value = css_property_value(body_sv, "unicode-range");
+                    !range_value.empty()) {
+                    src.unicode_range = trim(range_value);
                     parseUnicodeRange(src.unicode_range, src.ranges);
                 }
 
@@ -306,15 +360,16 @@ void SatoruFontManager::scanFontFaces(const std::string& css) {
                     req.weight = w;
                     req.slant = slant;
 
+                    auto& sources = m_fontFaces[req];
                     bool duplicate = false;
-                    for (const auto& existing_src : m_fontFaces[req]) {
+                    for (const auto& existing_src : sources) {
                         if (existing_src.url == src.url) {
                             duplicate = true;
                             break;
                         }
                     }
                     if (!duplicate) {
-                        m_fontFaces[req].push_back(src);
+                        sources.push_back(src);
                     }
                 }
             }

@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 #include <iostream>
 #include <sstream>
+#include <string_view>
 
 #include "bridge/magic_tags.h"
 #include "core/text/text_layout.h"
@@ -39,6 +41,35 @@
 namespace litehtml {
 vector<css_token_vector> parse_comma_separated_list(const css_token_vector& tokens);
 }
+
+namespace {
+char ascii_lower(char c) {
+    return (c >= 'A' && c <= 'Z') ? (char)(c + ('a' - 'A')) : c;
+}
+
+bool starts_with_ascii_ci(std::string_view s, size_t pos, const char* needle) {
+    size_t needle_len = std::strlen(needle);
+    if (pos + needle_len > s.size()) return false;
+    for (size_t i = 0; i < needle_len; ++i) {
+        if (ascii_lower(s[pos + i]) != ascii_lower(needle[i])) return false;
+    }
+    return true;
+}
+
+bool contains_any_ascii_ci(std::string_view s, const char* const* needles, size_t needle_count) {
+    for (size_t i = 0; i < s.size(); ++i) {
+        for (size_t j = 0; j < needle_count; ++j) {
+            if (starts_with_ascii_ci(s, i, needles[j])) return true;
+        }
+    }
+    return false;
+}
+
+bool looks_like_font_url(std::string_view url) {
+    static constexpr const char* needles[] = {".woff2", ".woff", ".ttf", ".otf", ".ttc"};
+    return contains_any_ascii_ci(url, needles, sizeof(needles) / sizeof(needles[0]));
+}
+}  // namespace
 
 void container_skia::push_backdrop_filter(litehtml::uint_ptr hdc,
                                           const std::shared_ptr<litehtml::render_item>& el) {
@@ -1667,13 +1698,7 @@ void container_skia::transform_text(litehtml::string& text, litehtml::text_trans
 void container_skia::import_css(litehtml::string& text, const litehtml::string& url,
                                 litehtml::string& baseurl) {
     if (!url.empty() && m_resourceManager) {
-        std::string lowerUrl = url;
-        std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::tolower);
-        if (lowerUrl.find(".woff2") != std::string::npos ||
-            lowerUrl.find(".woff") != std::string::npos ||
-            lowerUrl.find(".ttf") != std::string::npos ||
-            lowerUrl.find(".otf") != std::string::npos ||
-            lowerUrl.find(".ttc") != std::string::npos) {
+        if (looks_like_font_url(url)) {
             m_resourceManager->request(url, "", ResourceType::Font);
         } else {
             m_resourceManager->request(url, url, ResourceType::Css);

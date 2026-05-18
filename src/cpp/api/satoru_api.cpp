@@ -197,6 +197,11 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
     profile_scan_image_sizes_ms = 0.0;
     profile_font_requests_ms = 0.0;
     profile_requested_font_count = 0;
+    profile_font_url_count = 0;
+    profile_font_requests_with_urls_count = 0;
+    profile_provider_font_request_count = 0;
+    profile_mapped_font_url_request_count = 0;
+    profile_font_character_count = 0;
     profile_rebuild_count = 0;
     profile_rebuild_initial_count = 0;
     profile_rebuild_html_count = 0;
@@ -348,9 +353,14 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
         if (!usedFontCharacters.empty()) {
             charactersStr = codepoints_to_utf8(usedFontCharacters);
         }
+        if (collect_profile_enabled) profile_font_character_count += (int)usedFontCharacters.size();
 
         std::vector<std::string> urls =
             context.fontManager.getFontUrls(req.family, req.weight, req.slant, &usedCodepoints);
+        if (collect_profile_enabled) {
+            profile_font_url_count += (int)urls.size();
+            if (!urls.empty()) profile_font_requests_with_urls_count++;
+        }
 
         if (urls.empty()) {
             auto loaded = context.fontManager.matchFonts(req.family, req.weight, req.slant);
@@ -372,6 +382,7 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
                 if (it != fontMap.end()) {
                     const std::string& mapped = it->second;
                     if (mapped.substr(0, 7) == "http://" || mapped.substr(0, 8) == "https://") {
+                        if (collect_profile_enabled) profile_mapped_font_url_request_count++;
                         resourceManager.request(mapped, req.family, ResourceType::Font, false,
                                                 charactersStr);
                     } else {
@@ -387,6 +398,7 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
 
                         resourceManager.request(providerUrl, req.family, ResourceType::Font, false,
                                                 charactersStr);
+                        if (collect_profile_enabled) profile_provider_font_request_count++;
                     }
                 }
             }
@@ -410,6 +422,11 @@ std::string SatoruInstance::get_collect_profile_json() const {
        << ",\"cppScanImageSizes\":" << profile_scan_image_sizes_ms
        << ",\"cppFontRequests\":" << profile_font_requests_ms
        << ",\"cppRequestedFontCount\":" << profile_requested_font_count
+       << ",\"cppFontUrlCount\":" << profile_font_url_count
+       << ",\"cppFontRequestsWithUrlsCount\":" << profile_font_requests_with_urls_count
+       << ",\"cppProviderFontRequestCount\":" << profile_provider_font_request_count
+       << ",\"cppMappedFontUrlRequestCount\":" << profile_mapped_font_url_request_count
+       << ",\"cppFontCharacterCount\":" << profile_font_character_count
        << ",\"cppDocumentRebuildCount\":" << profile_rebuild_count
        << ",\"cppDocumentRebuildInitialCount\":" << profile_rebuild_initial_count
        << ",\"cppDocumentRebuildHtmlCount\":" << profile_rebuild_html_count
@@ -424,6 +441,12 @@ std::string SatoruInstance::get_collect_profile_json() const {
        << ",\"cppFontResourceCssVersion\":" << context.getFontResourceCssVersion()
        << ",\"cppFontAliasCssVersion\":" << context.getFontAliasCssVersion()
        << ",\"cppGeneratedFontFaceCssVersion\":" << context.getGeneratedFontFaceCssVersion()
+       << ",\"cppFontResourceNamedLoadCount\":" << context.getFontResourceNamedLoadCount()
+       << ",\"cppFontResourceFallbackLoadCount\":" << context.getFontResourceFallbackLoadCount()
+       << ",\"cppGeneratedFontFaceAttemptCount\":" << context.getGeneratedFontFaceAttemptCount()
+       << ",\"cppGeneratedFontFaceAddedCount\":" << context.getGeneratedFontFaceAddedCount()
+       << ",\"cppGeneratedFontFaceDuplicateCount\":"
+       << context.getGeneratedFontFaceDuplicateCount()
        << ",\"cppCreateFont\":" << context.layoutProfile.container_create_font_ms
        << ",\"cppTextWidth\":" << context.layoutProfile.container_text_width_ms
        << ",\"cppSplitText\":" << context.layoutProfile.container_split_text_ms
@@ -452,8 +475,9 @@ void SatoruInstance::add_resource(const std::string& url, ResourceType type,
 }
 
 void SatoruInstance::scan_css(const std::string& css) {
-    context.addCss(css.c_str(), CssChangeKind::UserScan);
-    context.fontManager.scanFontFaces(css.c_str());
+    if (context.addCss(css.c_str(), CssChangeKind::UserScan)) {
+        context.fontManager.scanFontFaces(css.c_str());
+    }
 }
 
 void SatoruInstance::load_font(const std::string& name, const std::vector<uint8_t>& data) {

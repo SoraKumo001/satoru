@@ -45,6 +45,11 @@ class SatoruContext {
     uint64_t m_generatedFontFaceCssVersion = 0;
     uint64_t m_fontVersion = 0;
     uint64_t m_imageVersion = 0;
+    uint64_t m_fontResourceNamedLoadCount = 0;
+    uint64_t m_fontResourceFallbackLoadCount = 0;
+    uint64_t m_generatedFontFaceAttemptCount = 0;
+    uint64_t m_generatedFontFaceAddedCount = 0;
+    uint64_t m_generatedFontFaceDuplicateCount = 0;
 
     std::unique_ptr<satoru::UnicodeService> m_unicodeService;
     std::unique_ptr<SkShaper> m_shaper;
@@ -106,9 +111,9 @@ class SatoruContext {
     satoru::UnicodeService &getUnicodeService();
     SkShaper *getShaper();
 
-    void addCss(const std::string &css, CssChangeKind kind = CssChangeKind::Generic) {
-        if (css.empty()) return;
-        if (!m_extraCssBlocks.insert(css).second) return;
+    bool addCss(const std::string &css, CssChangeKind kind = CssChangeKind::Generic) {
+        if (css.empty()) return false;
+        if (!m_extraCssBlocks.insert(css).second) return false;
         m_extraCss += css + "\n";
         m_cssVersion++;
         switch (kind) {
@@ -130,6 +135,7 @@ class SatoruContext {
             case CssChangeKind::Generic:
                 break;
         }
+        return true;
     }
     const std::string &getExtraCss() const { return m_extraCss; }
     uint64_t getCssVersion() const { return m_cssVersion; }
@@ -140,6 +146,22 @@ class SatoruContext {
     uint64_t getGeneratedFontFaceCssVersion() const { return m_generatedFontFaceCssVersion; }
     uint64_t getFontVersion() const { return m_fontVersion; }
     uint64_t getImageVersion() const { return m_imageVersion; }
+    uint64_t getFontResourceNamedLoadCount() const { return m_fontResourceNamedLoadCount; }
+    uint64_t getFontResourceFallbackLoadCount() const { return m_fontResourceFallbackLoadCount; }
+    uint64_t getGeneratedFontFaceAttemptCount() const { return m_generatedFontFaceAttemptCount; }
+    uint64_t getGeneratedFontFaceAddedCount() const { return m_generatedFontFaceAddedCount; }
+    uint64_t getGeneratedFontFaceDuplicateCount() const {
+        return m_generatedFontFaceDuplicateCount;
+    }
+    void noteFontResourceNamedLoad() { m_fontResourceNamedLoadCount++; }
+    void noteFontResourceFallbackLoad() { m_fontResourceFallbackLoadCount++; }
+    void noteGeneratedFontFace(bool added) {
+        m_generatedFontFaceAttemptCount++;
+        if (added)
+            m_generatedFontFaceAddedCount++;
+        else
+            m_generatedFontFaceDuplicateCount++;
+    }
     void markFontChanged() { m_fontVersion++; }
     void clearCss() {
         if (m_extraCss.empty() && m_extraCssBlocks.empty()) return;

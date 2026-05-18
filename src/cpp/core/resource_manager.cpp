@@ -1,8 +1,8 @@
 #include "resource_manager.h"
 
-#include <ctre.hpp>
+#include <cctype>
+#include <cstring>
 #include <iostream>
-#include <regex>
 
 #include "../utils/skia_utils.h"
 #include "container_skia.h"
@@ -20,6 +20,50 @@ bool starts_with_ascii_ci(const std::string& s, size_t pos, const char* needle) 
         }
     }
     return true;
+}
+
+bool contains_ascii(const uint8_t* data, size_t size, const char* needle) {
+    size_t needleLen = std::strlen(needle);
+    if (!data || needleLen == 0 || size < needleLen) return false;
+
+    for (size_t i = 0; i <= size - needleLen; ++i) {
+        if (std::memcmp(data + i, needle, needleLen) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool contains_ascii_ci(const std::string& s, const char* needle) {
+    if (!needle || !*needle) return true;
+    size_t needleLen = std::strlen(needle);
+    if (s.size() < needleLen) return false;
+
+    for (size_t i = 0; i <= s.size() - needleLen; ++i) {
+        if (starts_with_ascii_ci(s, i, needle)) return true;
+    }
+    return false;
+}
+
+bool contains_any_ascii_ci(const std::string& s, const char* const* needles, size_t needleCount) {
+    for (size_t i = 0; i < s.size(); ++i) {
+        for (size_t j = 0; j < needleCount; ++j) {
+            if (starts_with_ascii_ci(s, i, needles[j])) return true;
+        }
+    }
+    return false;
+}
+
+bool looks_like_font_url(const std::string& url) {
+    static constexpr const char* needles[] = {".woff2",    ".woff",    ".ttf",
+                                              ".otf",      ".ttc",     "font-woff",
+                                              "font-ttf",  "font-otf", "application/font"};
+    return contains_any_ascii_ci(url, needles, sizeof(needles) / sizeof(needles[0]));
+}
+
+bool contains_weight_marker(const std::string& url, const char* a, const char* b) {
+    const char* needles[] = {a, b};
+    return contains_any_ascii_ci(url, needles, 2);
 }
 
 std::string replace_font_family_names(const std::string& css, const std::string& name) {
@@ -83,12 +127,12 @@ void ResourceManager::request(const std::string& url, const std::string& name, R
         m_urlToNames[url].insert(name);
     }
 
-    if (url.substr(0, 5) == "data:") {
+    if (url.compare(0, 5, "data:") == 0) {
         size_t commaPos = url.find(',');
         if (commaPos != std::string::npos) {
-            std::string metadata = url.substr(0, commaPos);
             std::string rawData = url.substr(commaPos + 1);
-            if (metadata.find(";base64") != std::string::npos) {
+            size_t base64Pos = url.find(";base64", 0);
+            if (base64Pos != std::string::npos && base64Pos < commaPos) {
                 std::vector<uint8_t> decoded = base64_decode(rawData);
                 if (!decoded.empty()) {
                     this->add(url, decoded.data(), decoded.size(), type);
@@ -130,10 +174,11 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
         // Check if the data is actually a CSS file (e.g. from Google Fonts API)
         if (size > 0 && size < 1024 * 1024) {  // Limit check to 1MB
             // Simple heuristic: check for @font-face
-            std::string content((const char*)data, size);
-            if (content.find("@font-face") != std::string::npos) {
-                m_context.addCss(content, CssChangeKind::FontResourceCss);
-                m_context.fontManager.scanFontFaces(content);
+            if (contains_ascii(data, size, "@font-face")) {
+                std::string content((const char*)data, size);
+                if (m_context.addCss(content, CssChangeKind::FontResourceCss)) {
+                    m_context.fontManager.scanFontFaces(content);
+                }
 
                 // Add aliases for requested names (e.g. serif -> Noto Serif JP)
                 auto it = m_urlToNames.find(url);
@@ -144,8 +189,9 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
                         if (content.find("\"" + name + "\"") != std::string::npos) continue;
 
                         std::string alias_css = replace_font_family_names(content, name);
-                        m_context.addCss(alias_css, CssChangeKind::FontAliasCss);
-                        m_context.fontManager.scanFontFaces(alias_css);
+                        if (m_context.addCss(alias_css, CssChangeKind::FontAliasCss)) {
+                            m_context.fontManager.scanFontFaces(alias_css);
+                        }
                     }
                 }
 
@@ -163,6 +209,7 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
                 m_context.loadFont(name.c_str(), data, size, url.c_str());
                 if (primaryName.empty()) primaryName = name;
                 registered = true;
+                m_context.noteFontResourceNamedLoad();
 
                 if (name == "sans-serif" || name == "serif" || name == "monospace") {
                     auto tfs =
@@ -187,55 +234,49 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
             if (url.find("noto-sans-jp") != std::string::npos) fontName = "Noto Sans JP";
             primaryName = fontName;
             m_context.loadFont(fontName.c_str(), data, size, url.c_str());
+            m_context.noteFontResourceFallbackLoad();
         }
 
         // Generate @font-face and add it to extra CSS so litehtml knows about it
         std::string weight = "400";
-        if (ctre::search<"(?i)700|bold">(url))
+        if (contains_weight_marker(url, "700", "bold"))
             weight = "700";
-        else if (ctre::search<"(?i)300|light">(url))
+        else if (contains_weight_marker(url, "300", "light"))
             weight = "300";
-        else if (ctre::search<"(?i)500|medium">(url))
+        else if (contains_weight_marker(url, "500", "medium"))
             weight = "500";
-        else if (ctre::search<"(?i)900|black">(url))
+        else if (contains_weight_marker(url, "900", "black"))
             weight = "900";
-        else if (ctre::search<"(?i)100|thin">(url))
+        else if (contains_weight_marker(url, "100", "thin"))
             weight = "100";
 
         std::string style = "normal";
-        if (ctre::search<"(?i)italic|oblique">(url)) style = "italic";
+        if (contains_weight_marker(url, "italic", "oblique")) style = "italic";
 
-        if (url.substr(0, 5) != "data:") {
+        if (url.compare(0, 5, "data:") != 0) {
             std::string fontFace = "@font-face { font-family: '" + primaryName +
                                    "'; font-weight: " + weight + "; font-style: " + style +
                                    "; src: url('" + url + "'); }";
-            m_context.addCss(fontFace, CssChangeKind::GeneratedFontFace);
-            m_context.fontManager.scanFontFaces(fontFace);
+            bool added = m_context.addCss(fontFace, CssChangeKind::GeneratedFontFace);
+            m_context.noteGeneratedFontFace(added);
+            if (added) {
+                m_context.fontManager.scanFontFaces(fontFace);
+            }
         }
 
     } else if (type == ResourceType::Image) {
         m_context.loadImageFromData(url.c_str(), data, size, url.c_str());
     } else if (type == ResourceType::Css) {
-        std::string lowerUrl = url;
-        std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::tolower);
-        if (lowerUrl.find(".woff2") != std::string::npos ||
-            lowerUrl.find(".woff") != std::string::npos ||
-            lowerUrl.find(".ttf") != std::string::npos ||
-            lowerUrl.find(".otf") != std::string::npos ||
-            lowerUrl.find(".otf") != std::string::npos ||
-            lowerUrl.find(".ttc") != std::string::npos ||
-            lowerUrl.find("font-woff") != std::string::npos ||
-            lowerUrl.find("font-ttf") != std::string::npos ||
-            lowerUrl.find("font-otf") != std::string::npos ||
-            lowerUrl.find("application/font") != std::string::npos) {
+        if (looks_like_font_url(url)) {
             // This is actually a font file that was requested as CSS (likely due to <link
             // rel="stylesheet">)
             this->add(url, data, size, ResourceType::Font);
             return;
         }
         std::string css((const char*)data, size);
-        m_context.addCss(css, CssChangeKind::ExternalResource);
-        m_context.fontManager.scanFontFaces(css);
+        if (m_context.addCss(css, CssChangeKind::ExternalResource)) {
+            m_context.fontManager.scanFontFaces(css);
+        }
     }
 }
 

@@ -41,6 +41,11 @@ class SatoruInstance {
     double profile_scan_image_sizes_ms = 0.0;
     double profile_font_requests_ms = 0.0;
     int profile_requested_font_count = 0;
+    int profile_font_url_count = 0;
+    int profile_font_requests_with_urls_count = 0;
+    int profile_provider_font_request_count = 0;
+    int profile_mapped_font_url_request_count = 0;
+    int profile_font_character_count = 0;
     int profile_rebuild_count = 0;
     int profile_rebuild_initial_count = 0;
     int profile_rebuild_html_count = 0;

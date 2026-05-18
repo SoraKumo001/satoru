@@ -79,7 +79,17 @@ async function main() {
   if (options.jsonReport) {
     renderOptions.diagnostics = true;
     renderOptions.onDiagnostics = (report: any) => {
-      fs.writeFileSync(options.jsonReport, JSON.stringify(report, null, 2));
+      const deterministicReport = {
+        ...report,
+        timings: { omitted: 1 },
+      };
+      if (deterministicReport.resources) {
+        deterministicReport.resources.sort((a: any, b: any) => (a.url || "").localeCompare(b.url || ""));
+      }
+      if (deterministicReport.fonts) {
+        deterministicReport.fonts.sort((a: any, b: any) => (a.family || "").localeCompare(b.family || ""));
+      }
+      fs.writeFileSync(options.jsonReport, JSON.stringify(deterministicReport, null, 2));
       if (options.verbose) {
         console.error(`[Satoru] Diagnostics report written to ${options.jsonReport}`);
       }

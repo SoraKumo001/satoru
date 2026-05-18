@@ -320,6 +320,28 @@ const png = await satoru.render({
 });
 ```
 
+### 8. Rendering Diagnostics
+
+Get detailed insights into the rendering process, including resource loading status, font resolution, and performance timings.
+
+```typescript
+import { render } from "satoru-render";
+
+const png = await render({
+  value: "<h1>Hello World</h1>",
+  width: 800,
+  format: "png",
+  diagnostics: true,
+  onDiagnostics: (report) => {
+    console.log(`Version: ${report.version}`);
+    console.log(`Format: ${report.format}`);
+    console.log("Resources:", report.resources);
+    console.log("Fonts:", report.fonts);
+    console.log("Timings:", report.timings);
+  },
+});
+```
+
 ---
 
 ## 💻 CLI Tool

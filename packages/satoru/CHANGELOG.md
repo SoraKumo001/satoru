@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.13 - 2026-05-19
+
+- **Diagnostics & Tooling**:
+  - [Feature] Stabilize `RenderDiagnostics` schema (version 1) for reliable automated analysis.
+  - [Feature] Add Inspection Workspace to Playground with Resources, Fonts, Timings, and Logs tabs.
+  - [Improvement] Make CLI `--json-report` output deterministic by sorting resources and fonts.
+  - [Improvement] Add regression tests for diagnostics and resource resolution.
+
 ## v1.0.12 - 2026-05-18
 
 - **Performance**:

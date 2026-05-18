@@ -88,6 +88,7 @@ export type ResourceResolver = (
 ) => Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null>;
 
 export interface RenderDiagnostics {
+  version: 1;
   format: "svg" | "png" | "webp" | "pdf";
   width: number;
   height?: number;
@@ -580,6 +581,7 @@ export abstract class SatoruBase {
     };
 
     const diagnosticsReport: RenderDiagnostics | null = options.diagnostics ? {
+      version: 1,
       format: format as any,
       width: options.width,
       height: options.height,

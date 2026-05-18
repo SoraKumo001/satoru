@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { render, LogLevel, DEFAULT_FONT_MAP } from "satoru-render/workers";
+import { render, LogLevel, DEFAULT_FONT_MAP, type RenderDiagnostics } from "satoru-render/workers";
 
 type Params = {
   asset?: string;
@@ -58,6 +58,9 @@ const App: React.FC = () => {
   const [renderResult, setRenderResult] = useState<string | Uint8Array | null>(
     null,
   );
+  const [diagnostics, setDiagnostics] = useState<RenderDiagnostics | null>(null);
+  const [logs, setLogs] = useState<{ level: LogLevel; message: string }[]>([]);
+  const [inspectorTab, setInspectorTab] = useState<string>("Output");
   const [renderTime, setRenderTime] = useState<number | null>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -234,6 +237,8 @@ const App: React.FC = () => {
     setIsRendering(true);
     setError(null);
     setRenderTime(null);
+    setDiagnostics(null);
+    setLogs([]);
 
     if (objectUrl) {
       URL.revokeObjectURL(objectUrl);
@@ -259,9 +264,16 @@ const App: React.FC = () => {
         textToPaths,
         fontMap,
         mediaType,
+        diagnostics: true,
+        onDiagnostics: (report) => {
+          if (requestId === latestRenderId.current) {
+            setDiagnostics(report);
+          }
+        },
         // logLevel: LogLevel.Info,
         onLog: (level, message) => {
           if (requestId !== latestRenderId.current) return;
+          setLogs((prev) => [...prev, { level, message }]);
           const prefix = "[Satoru Worker]";
           switch (level) {
             case LogLevel.Debug:
@@ -765,22 +777,226 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div>
-        <h3>Output Source {params.format !== "svg" ? "(Base64)" : ""}:</h3>
-        <textarea
-          value={outputSource}
-          readOnly
+      <div style={{ marginTop: "30px" }}>
+        <div style={{ display: "flex", borderBottom: "1px solid #ccc" }}>
+          {["Output", "Diagnostics", "Resources", "Fonts", "Timings", "Logs"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setInspectorTab(tab)}
+              style={{
+                padding: "10px 20px",
+                cursor: "pointer",
+                background: inspectorTab === tab ? "white" : "#eee",
+                border: "1px solid #ccc",
+                borderBottom: inspectorTab === tab ? "none" : "1px solid #ccc",
+                borderRadius: "4px 4px 0 0",
+                marginRight: "4px",
+                fontWeight: inspectorTab === tab ? "bold" : "normal",
+                color: inspectorTab === tab ? "#2196F3" : "#666",
+              }}
+            >
+              {tab}
+              {tab === "Logs" && logs.length > 0 && (
+                <span style={{ marginLeft: "6px", background: "#f44336", color: "white", borderRadius: "10px", padding: "0 6px", fontSize: "11px" }}>
+                  {logs.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        <div
           style={{
-            width: "100%",
-            height: "300px",
-            fontFamily: "monospace",
-            padding: "10px",
-            borderRadius: "4px",
             border: "1px solid #ccc",
-            boxSizing: "border-box",
-            background: "#fdfdfd",
+            borderTop: "none",
+            padding: "20px",
+            background: "white",
+            minHeight: "400px",
+            borderRadius: "0 0 4px 4px",
           }}
-        />
+        >
+          {inspectorTab === "Output" && (
+            <div>
+              <h3>Output Source {params.format !== "svg" ? "(Base64)" : ""}:</h3>
+              <textarea
+                value={outputSource}
+                readOnly
+                style={{
+                  width: "100%",
+                  height: "300px",
+                  fontFamily: "monospace",
+                  padding: "10px",
+                  borderRadius: "4px",
+                  border: "1px solid #ccc",
+                  boxSizing: "border-box",
+                  background: "#fdfdfd",
+                }}
+              />
+            </div>
+          )}
+
+          {inspectorTab === "Diagnostics" && (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h3>Diagnostics JSON:</h3>
+                {diagnostics && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(diagnostics, null, 2));
+                    }}
+                    style={{
+                      padding: "4px 10px",
+                      cursor: "pointer",
+                      background: "#2196F3",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    Copy JSON
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={diagnostics ? JSON.stringify(diagnostics, null, 2) : "No diagnostics available"}
+                readOnly
+                style={{
+                  width: "100%",
+                  height: "400px",
+                  fontFamily: "monospace",
+                  padding: "10px",
+                  borderRadius: "4px",
+                  border: "1px solid #ccc",
+                  boxSizing: "border-box",
+                  background: "#fdfdfd",
+                }}
+              />
+            </div>
+          )}
+
+          {inspectorTab === "Resources" && (
+            <div>
+              <h3>Resolved Resources:</h3>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#f5f5f5", textAlign: "left" }}>
+                    <th style={{ padding: "8px", borderBottom: "2px solid #ddd" }}>Type</th>
+                    <th style={{ padding: "8px", borderBottom: "2px solid #ddd" }}>URL</th>
+                    <th style={{ padding: "8px", borderBottom: "2px solid #ddd" }}>Status</th>
+                    <th style={{ padding: "8px", borderBottom: "2px solid #ddd" }}>Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {diagnostics?.resources?.map((res, i) => (
+                    <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
+                      <td style={{ padding: "8px" }}>{res.type}</td>
+                      <td style={{ padding: "8px", maxWidth: "400px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={res.url}>
+                        {res.url}
+                      </td>
+                      <td style={{ padding: "8px" }}>
+                        <span style={{
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                          color: "white",
+                          background: res.status === "loaded" ? "#4caf50" : res.status === "failed" ? "#f44336" : "#ff9800"
+                        }}>
+                          {res.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: "8px" }}>{res.bytes ? `${(res.bytes / 1024).toFixed(1)} KB` : "-"}</td>
+                    </tr>
+                  ))}
+                  {(!diagnostics?.resources || diagnostics.resources.length === 0) && (
+                    <tr><td colSpan={4} style={{ padding: "20px", textAlign: "center", color: "#999" }}>No resources recorded</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {inspectorTab === "Fonts" && (
+            <div>
+              <h3>Font Usage:</h3>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#f5f5f5", textAlign: "left" }}>
+                    <th style={{ padding: "8px", borderBottom: "2px solid #ddd" }}>Family</th>
+                    <th style={{ padding: "8px", borderBottom: "2px solid #ddd" }}>Weight/Style</th>
+                    <th style={{ padding: "8px", borderBottom: "2px solid #ddd" }}>Status</th>
+                    <th style={{ padding: "8px", borderBottom: "2px solid #ddd" }}>Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {diagnostics?.fonts?.map((f, i) => (
+                    <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
+                      <td style={{ padding: "8px" }}>{f.family}</td>
+                      <td style={{ padding: "8px" }}>{f.weight} {f.style}</td>
+                      <td style={{ padding: "8px" }}>
+                        <span style={{
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                          color: "white",
+                          background: f.status === "loaded" ? "#4caf50" : f.status === "missing" ? "#f44336" : "#2196f3"
+                        }}>
+                          {f.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: "8px", maxWidth: "300px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={f.source}>
+                        {f.source || "-"}
+                      </td>
+                    </tr>
+                  ))}
+                  {(!diagnostics?.fonts || diagnostics.fonts.length === 0) && (
+                    <tr><td colSpan={4} style={{ padding: "20px", textAlign: "center", color: "#999" }}>No font information available</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {inspectorTab === "Timings" && (
+            <div>
+              <h3>Render Timings:</h3>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#f5f5f5", textAlign: "left" }}>
+                    <th style={{ padding: "8px", borderBottom: "2px solid #ddd" }}>Phase</th>
+                    <th style={{ padding: "8px", borderBottom: "2px solid #ddd" }}>Duration (ms)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {diagnostics && Object.entries(diagnostics.timings).map(([name, ms], i) => (
+                    <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
+                      <td style={{ padding: "8px" }}>{name}</td>
+                      <td style={{ padding: "8px" }}>{ms.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                  {!diagnostics && (
+                    <tr><td colSpan={2} style={{ padding: "20px", textAlign: "center", color: "#999" }}>No timing data available</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {inspectorTab === "Logs" && (
+            <div>
+              <h3>Worker Logs:</h3>
+              <div style={{ maxHeight: "400px", overflowY: "auto", fontFamily: "monospace", fontSize: "12px", background: "#333", color: "#eee", padding: "10px", borderRadius: "4px" }}>
+                {logs.map((log, i) => (
+                  <div key={i} style={{ marginBottom: "4px", borderBottom: "1px solid #444", paddingBottom: "2px", color: log.level === LogLevel.Error ? "#ff8a80" : log.level === LogLevel.Warning ? "#ffd180" : "#eee" }}>
+                    <span style={{ opacity: 0.6, marginRight: "8px" }}>[{LogLevel[log.level]}]</span>
+                    {log.message}
+                  </div>
+                ))}
+                {logs.length === 0 && (
+                  <div style={{ textAlign: "center", color: "#888", padding: "20px" }}>No logs recorded</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

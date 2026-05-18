@@ -751,10 +751,13 @@ export abstract class SatoruBase {
           for (const r of pending) {
             if (r.type === "font") {
               addProfile("pendingFontResourcesCount", 1);
+              addProfile(`pendingFontResourcesRound${i + 1}Count`, 1);
             } else if (r.type === "css") {
               addProfile("pendingCssResourcesCount", 1);
+              addProfile(`pendingCssResourcesRound${i + 1}Count`, 1);
             } else if (r.type === "image") {
               addProfile("pendingImageResourcesCount", 1);
+              addProfile(`pendingImageResourcesRound${i + 1}Count`, 1);
             }
           }
           addProfile("parsePendingResources", now() - parseStart);

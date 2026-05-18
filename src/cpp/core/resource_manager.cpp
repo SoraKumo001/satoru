@@ -55,9 +55,9 @@ bool contains_any_ascii_ci(const std::string& s, const char* const* needles, siz
 }
 
 bool looks_like_font_url(const std::string& url) {
-    static constexpr const char* needles[] = {".woff2",    ".woff",    ".ttf",
-                                              ".otf",      ".ttc",     "font-woff",
-                                              "font-ttf",  "font-otf", "application/font"};
+    static constexpr const char* needles[] = {".woff2",   ".woff",    ".ttf",
+                                              ".otf",     ".ttc",     "font-woff",
+                                              "font-ttf", "font-otf", "application/font"};
     return contains_any_ascii_ci(url, needles, sizeof(needles) / sizeof(needles[0]));
 }
 
@@ -206,7 +206,8 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
         auto it = m_urlToNames.find(url);
         if (it != m_urlToNames.end()) {
             for (const auto& name : it->second) {
-                m_context.loadFont(name.c_str(), data, size, url.c_str());
+                bool changed = m_context.loadFont(name.c_str(), data, size, url.c_str());
+                m_context.noteFontResourceRegistered(changed);
                 if (primaryName.empty()) primaryName = name;
                 registered = true;
                 m_context.noteFontResourceNamedLoad();
@@ -233,7 +234,8 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
             }
             if (url.find("noto-sans-jp") != std::string::npos) fontName = "Noto Sans JP";
             primaryName = fontName;
-            m_context.loadFont(fontName.c_str(), data, size, url.c_str());
+            bool changed = m_context.loadFont(fontName.c_str(), data, size, url.c_str());
+            m_context.noteFontResourceRegistered(changed);
             m_context.noteFontResourceFallbackLoad();
         }
 
@@ -253,7 +255,8 @@ void ResourceManager::add(const std::string& url, const uint8_t* data, size_t si
         std::string style = "normal";
         if (contains_weight_marker(url, "italic", "oblique")) style = "italic";
 
-        if (url.compare(0, 5, "data:") != 0) {
+        if (url.compare(0, 5, "data:") != 0 &&
+            !m_context.fontManager.hasFontFaceSource(primaryName, url)) {
             std::string fontFace = "@font-face { font-family: '" + primaryName +
                                    "'; font-weight: " + weight + "; font-style: " + style +
                                    "; src: url('" + url + "'); }";

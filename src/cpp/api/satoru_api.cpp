@@ -202,10 +202,12 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
     profile_provider_font_request_count = 0;
     profile_mapped_font_url_request_count = 0;
     profile_font_character_count = 0;
+    profile_measured_font_character_count = 0;
     profile_rebuild_count = 0;
     profile_rebuild_initial_count = 0;
     profile_rebuild_html_count = 0;
     profile_rebuild_css_count = 0;
+    profile_rebuild_font_count = 0;
     profile_rebuild_media_count = 0;
     profile_layout_count = 0;
     profile_layout_size_count = 0;
@@ -220,14 +222,16 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
         bool rebuild_initial = !doc;
         bool rebuild_html = html != last_parsed_html;
         bool rebuild_css = cssVersion != last_css_version;
+        bool rebuild_font = context.getFontVersion() != last_font_version;
         bool rebuild_media = mt != (litehtml::media_type)last_media_type;
-        if (rebuild_initial || rebuild_html || rebuild_css || rebuild_media) {
+        if (rebuild_initial || rebuild_html || rebuild_css || rebuild_font || rebuild_media) {
             bool is_first_pass = (doc == nullptr);
             if (collect_profile_enabled) {
                 profile_rebuild_count++;
                 if (rebuild_initial) profile_rebuild_initial_count++;
                 if (rebuild_html) profile_rebuild_html_count++;
                 if (rebuild_css) profile_rebuild_css_count++;
+                if (rebuild_font) profile_rebuild_font_count++;
                 if (rebuild_media) profile_rebuild_media_count++;
             }
 
@@ -350,13 +354,29 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
         std::string charactersStr;
         std::vector<char32_t> usedFontCharacters;
         render_container->collect_used_font_characters(req, usedFontCharacters);
+        const std::set<char32_t>* measuredFontCodepoints =
+            usedFontCharacters.empty() ? render_container->get_measured_font_codepoints(req)
+                                       : nullptr;
         if (!usedFontCharacters.empty()) {
             charactersStr = codepoints_to_utf8(usedFontCharacters);
         }
-        if (collect_profile_enabled) profile_font_character_count += (int)usedFontCharacters.size();
+        if (collect_profile_enabled) {
+            profile_font_character_count += (int)usedFontCharacters.size();
+            if (measuredFontCodepoints) {
+                profile_measured_font_character_count += (int)measuredFontCodepoints->size();
+            }
+        }
 
+        std::set<char32_t> usedFontCodepoints;
+        const std::set<char32_t>* fontUrlCodepoints = &usedCodepoints;
+        if (!usedFontCharacters.empty()) {
+            usedFontCodepoints.insert(usedFontCharacters.begin(), usedFontCharacters.end());
+            fontUrlCodepoints = &usedFontCodepoints;
+        } else if (measuredFontCodepoints) {
+            fontUrlCodepoints = measuredFontCodepoints;
+        }
         std::vector<std::string> urls =
-            context.fontManager.getFontUrls(req.family, req.weight, req.slant, &usedCodepoints);
+            context.fontManager.getFontUrls(req.family, req.weight, req.slant, fontUrlCodepoints);
         if (collect_profile_enabled) {
             profile_font_url_count += (int)urls.size();
             if (!urls.empty()) profile_font_requests_with_urls_count++;
@@ -427,10 +447,12 @@ std::string SatoruInstance::get_collect_profile_json() const {
        << ",\"cppProviderFontRequestCount\":" << profile_provider_font_request_count
        << ",\"cppMappedFontUrlRequestCount\":" << profile_mapped_font_url_request_count
        << ",\"cppFontCharacterCount\":" << profile_font_character_count
+       << ",\"cppMeasuredFontCharacterCount\":" << profile_measured_font_character_count
        << ",\"cppDocumentRebuildCount\":" << profile_rebuild_count
        << ",\"cppDocumentRebuildInitialCount\":" << profile_rebuild_initial_count
        << ",\"cppDocumentRebuildHtmlCount\":" << profile_rebuild_html_count
        << ",\"cppDocumentRebuildCssCount\":" << profile_rebuild_css_count
+       << ",\"cppDocumentRebuildFontCount\":" << profile_rebuild_font_count
        << ",\"cppDocumentRebuildMediaCount\":" << profile_rebuild_media_count
        << ",\"cppLayoutCount\":" << profile_layout_count
        << ",\"cppLayoutSizeCount\":" << profile_layout_size_count
@@ -443,10 +465,11 @@ std::string SatoruInstance::get_collect_profile_json() const {
        << ",\"cppGeneratedFontFaceCssVersion\":" << context.getGeneratedFontFaceCssVersion()
        << ",\"cppFontResourceNamedLoadCount\":" << context.getFontResourceNamedLoadCount()
        << ",\"cppFontResourceFallbackLoadCount\":" << context.getFontResourceFallbackLoadCount()
+       << ",\"cppFontResourceRegisteredCount\":" << context.getFontResourceRegisteredCount()
+       << ",\"cppFontResourceDuplicateLoadCount\":" << context.getFontResourceDuplicateLoadCount()
        << ",\"cppGeneratedFontFaceAttemptCount\":" << context.getGeneratedFontFaceAttemptCount()
        << ",\"cppGeneratedFontFaceAddedCount\":" << context.getGeneratedFontFaceAddedCount()
-       << ",\"cppGeneratedFontFaceDuplicateCount\":"
-       << context.getGeneratedFontFaceDuplicateCount()
+       << ",\"cppGeneratedFontFaceDuplicateCount\":" << context.getGeneratedFontFaceDuplicateCount()
        << ",\"cppCreateFont\":" << context.layoutProfile.container_create_font_ms
        << ",\"cppTextWidth\":" << context.layoutProfile.container_text_width_ms
        << ",\"cppSplitText\":" << context.layoutProfile.container_split_text_ms
@@ -457,6 +480,9 @@ std::string SatoruInstance::get_collect_profile_json() const {
        << ",\"cppTextShapePrepared\":" << context.layoutProfile.text_shape_prepared_ms
        << ",\"cppCreateFontCount\":" << context.layoutProfile.container_create_font_count
        << ",\"cppTextWidthCount\":" << context.layoutProfile.container_text_width_count
+       << ",\"cppTextWidthUniqueCount\":" << context.layoutProfile.container_text_width_unique_count
+       << ",\"cppTextWidthDuplicateCount\":"
+       << context.layoutProfile.container_text_width_duplicate_count
        << ",\"cppSplitTextCount\":" << context.layoutProfile.container_split_text_count
        << ",\"cppBidiLevelCount\":" << context.layoutProfile.container_bidi_count
        << ",\"cppTextMeasureCount\":" << context.layoutProfile.text_measure_count

@@ -22,7 +22,7 @@ class SatoruFontManager {
     ~SatoruFontManager() = default;
 
     // フォントデータのロード
-    void loadFont(const char* name, const uint8_t* data, int size, const char* url = nullptr);
+    bool loadFont(const char* name, const uint8_t* data, int size, const char* url = nullptr);
     void clear();
 
     // @font-face 解析と URL 解決
@@ -31,6 +31,7 @@ class SatoruFontManager {
                                          SkFontStyle::Slant slant,
                                          const std::set<char32_t>* usedCodepoints = nullptr) const;
     std::string getFontUrl(const std::string& family, int weight, SkFontStyle::Slant slant) const;
+    bool hasFontFaceSource(const std::string& family, const std::string& url) const;
 
     // フォントマッチング
     std::vector<sk_sp<SkTypeface>> matchFonts(const std::string& family, int weight,

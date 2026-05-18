@@ -43,9 +43,7 @@ vector<css_token_vector> parse_comma_separated_list(const css_token_vector& toke
 }
 
 namespace {
-char ascii_lower(char c) {
-    return (c >= 'A' && c <= 'Z') ? (char)(c + ('a' - 'A')) : c;
-}
+char ascii_lower(char c) { return (c >= 'A' && c <= 'Z') ? (char)(c + ('a' - 'A')) : c; }
 
 bool starts_with_ascii_ci(std::string_view s, size_t pos, const char* needle) {
     size_t needle_len = std::strlen(needle);
@@ -68,6 +66,29 @@ bool contains_any_ascii_ci(std::string_view s, const char* const* needles, size_
 bool looks_like_font_url(std::string_view url) {
     static constexpr const char* needles[] = {".woff2", ".woff", ".ttf", ".otf", ".ttc"};
     return contains_any_ascii_ci(url, needles, sizeof(needles) / sizeof(needles[0]));
+}
+
+void collect_text_codepoints(SatoruContext& context, const char* text,
+                             std::set<char32_t>& codepoints) {
+    if (!text) return;
+    const char* p = text;
+    auto& unicode = context.getUnicodeService();
+    while (*p) {
+        char32_t cp = unicode.decodeUtf8(&p);
+        if (cp != 0) codepoints.insert(cp);
+    }
+}
+
+std::vector<char32_t> decode_text_codepoints(SatoruContext& context, const char* text) {
+    std::vector<char32_t> codepoints;
+    if (!text) return codepoints;
+    const char* p = text;
+    auto& unicode = context.getUnicodeService();
+    while (*p) {
+        char32_t cp = unicode.decodeUtf8(&p);
+        if (cp != 0) codepoints.push_back(cp);
+    }
+    return codepoints;
 }
 }  // namespace
 
@@ -554,6 +575,7 @@ litehtml::uint_ptr container_skia::create_font(const litehtml::font_description&
         req.family = family;
         req.weight = desc.weight;
         req.slant = slant;
+        fi->requests.push_back(req);
         m_createdFonts[req].push_back(fi);
     }
 
@@ -583,10 +605,35 @@ litehtml::pixel_t container_skia::text_width(const char* text, litehtml::uint_pt
     if (m_context.layoutProfile.enabled) {
         profile_start = std::chrono::high_resolution_clock::now();
         m_context.layoutProfile.container_text_width_count++;
+        std::string profile_key;
+        profile_key.reserve(strlen(text ? text : "") + 64);
+        profile_key.append(std::to_string(hFont));
+        profile_key.push_back('|');
+        profile_key.append(std::to_string((int)dir));
+        profile_key.push_back('|');
+        profile_key.append(std::to_string((int)mode));
+        profile_key.push_back('|');
+        if (text) profile_key.append(text);
+        if (m_context.layoutProfile.container_text_width_keys.insert(profile_key).second) {
+            m_context.layoutProfile.container_text_width_unique_count++;
+        } else {
+            m_context.layoutProfile.container_text_width_duplicate_count++;
+        }
     }
     font_info* fi = (font_info*)hFont;
     if (fi) {
         fi->is_rtl = (dir == litehtml::direction_rtl);
+        if (m_resourceManager && !fi->requests.empty()) {
+            if (fi->requests.size() == 1) {
+                collect_text_codepoints(m_context, text, m_measuredFontCodepoints[fi->requests[0]]);
+            } else {
+                auto codepoints = decode_text_codepoints(m_context, text);
+                for (const auto& req : fi->requests) {
+                    auto& measured = m_measuredFontCodepoints[req];
+                    measured.insert(codepoints.begin(), codepoints.end());
+                }
+            }
+        }
     }
     auto result = satoru::TextLayout::measureText(&m_context, text, fi, mode, -1.0,
                                                   m_resourceManager ? &m_usedCodepoints : nullptr);
@@ -2550,4 +2597,18 @@ void container_skia::collect_used_font_characters(const font_request& req,
     for (auto fi : it->second) {
         out.insert(out.end(), fi->used_codepoints.begin(), fi->used_codepoints.end());
     }
+}
+
+void container_skia::collect_measured_font_characters(const font_request& req,
+                                                      std::vector<char32_t>& out) const {
+    auto it = m_measuredFontCodepoints.find(req);
+    if (it == m_measuredFontCodepoints.end()) return;
+    out.insert(out.end(), it->second.begin(), it->second.end());
+}
+
+const std::set<char32_t>* container_skia::get_measured_font_codepoints(
+    const font_request& req) const {
+    auto it = m_measuredFontCodepoints.find(req);
+    if (it == m_measuredFontCodepoints.end() || it->second.empty()) return nullptr;
+    return &it->second;
 }

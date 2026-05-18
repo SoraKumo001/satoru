@@ -73,9 +73,7 @@ sk_sp<SkFontMgr> get_global_font_mgr() {
     return mgr;
 }
 
-char ascii_lower(char c) {
-    return (c >= 'A' && c <= 'Z') ? (char)(c + ('a' - 'A')) : c;
-}
+char ascii_lower(char c) { return (c >= 'A' && c <= 'Z') ? (char)(c + ('a' - 'A')) : c; }
 
 bool starts_with_ascii_ci(std::string_view s, size_t pos, std::string_view target) {
     if (target.empty()) return true;
@@ -143,8 +141,8 @@ bool parse_weight_range(std::string_view s, int& start, int& end) {
 
 SatoruFontManager::SatoruFontManager() { m_fontMgr = get_global_font_mgr(); }
 
-void SatoruFontManager::loadFont(const char* name, const uint8_t* data, int size, const char* url) {
-    if (!name || !*name) return;
+bool SatoruFontManager::loadFont(const char* name, const uint8_t* data, int size, const char* url) {
+    if (!name || !*name) return false;
     if (!m_fontMgr) m_fontMgr = get_global_font_mgr();
 
     sk_sp<SkTypeface> typeface;
@@ -183,6 +181,7 @@ void SatoruFontManager::loadFont(const char* name, const uint8_t* data, int size
     }
 
     if (typeface) {
+        bool changed = false;
         std::stringstream ss(name);
         std::string item;
         while (std::getline(ss, item, ',')) {
@@ -217,6 +216,7 @@ void SatoruFontManager::loadFont(const char* name, const uint8_t* data, int size
 
             if (!duplicate) {
                 m_typefaceCache[cleaned].push_back({typeface, intended_style});
+                changed = true;
                 if (!m_defaultTypeface) m_defaultTypeface = typeface;
 
                 // If it's an emoji font, also register it under "notocoloremoji"
@@ -225,9 +225,11 @@ void SatoruFontManager::loadFont(const char* name, const uint8_t* data, int size
                 }
             }
         }
+        return changed;
     } else {
         SATORU_LOG_ERROR("[Satoru] FAILED to create typeface for '%s'", name);
     }
+    return false;
 }
 
 void SatoruFontManager::clear() {
@@ -320,8 +322,8 @@ void SatoruFontManager::scanFontFaces(const std::string& css) {
                 size_t url_content_end = body_sv.find(')', url_content_start);
                 if (url_content_end == std::string_view::npos) break;
 
-                std::string_view url =
-                    trim_view(body_sv.substr(url_content_start, url_content_end - url_content_start));
+                std::string_view url = trim_view(
+                    body_sv.substr(url_content_start, url_content_end - url_content_start));
                 url_search_pos = url_content_end + 1;
 
                 int score = 0;
@@ -402,8 +404,9 @@ std::vector<std::string> SatoruFontManager::getFontUrls(
                 bool needed = true;
                 if (usedCodepoints && !src.unicode_range.empty()) {
                     needed = false;
-                    for (char32_t cp : *usedCodepoints) {
-                        if (checkUnicodeRange(cp, src.ranges)) {
+                    for (const auto& range : src.ranges) {
+                        auto cp = usedCodepoints->lower_bound((char32_t)range.first);
+                        if (cp != usedCodepoints->end() && *cp <= range.second) {
                             needed = true;
                             break;
                         }
@@ -426,8 +429,9 @@ std::vector<std::string> SatoruFontManager::getFontUrls(
                         bool needed = true;
                         if (usedCodepoints && !src.unicode_range.empty()) {
                             needed = false;
-                            for (char32_t cp : *usedCodepoints) {
-                                if (checkUnicodeRange(cp, src.ranges)) {
+                            for (const auto& range : src.ranges) {
+                                auto cp = usedCodepoints->lower_bound((char32_t)range.first);
+                                if (cp != usedCodepoints->end() && *cp <= range.second) {
                                     needed = true;
                                     break;
                                 }
@@ -449,6 +453,17 @@ std::string SatoruFontManager::getFontUrl(const std::string& family, int weight,
                                           SkFontStyle::Slant slant) const {
     auto urls = getFontUrls(family, weight, slant);
     return urls.empty() ? "" : urls[0];
+}
+
+bool SatoruFontManager::hasFontFaceSource(const std::string& family, const std::string& url) const {
+    std::string cleanedFamily = cleanName(family);
+    for (const auto& entry : m_fontFaces) {
+        if (entry.first.family != cleanedFamily) continue;
+        for (const auto& src : entry.second) {
+            if (src.url == url) return true;
+        }
+    }
+    return false;
 }
 
 std::vector<sk_sp<SkTypeface>> SatoruFontManager::matchFonts(const std::string& family, int weight,

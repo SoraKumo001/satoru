@@ -47,6 +47,8 @@ class SatoruContext {
     uint64_t m_imageVersion = 0;
     uint64_t m_fontResourceNamedLoadCount = 0;
     uint64_t m_fontResourceFallbackLoadCount = 0;
+    uint64_t m_fontResourceRegisteredCount = 0;
+    uint64_t m_fontResourceDuplicateLoadCount = 0;
     uint64_t m_generatedFontFaceAttemptCount = 0;
     uint64_t m_generatedFontFaceAddedCount = 0;
     uint64_t m_generatedFontFaceDuplicateCount = 0;
@@ -67,6 +69,8 @@ class SatoruContext {
         double text_shape_prepared_ms = 0.0;
         int container_create_font_count = 0;
         int container_text_width_count = 0;
+        int container_text_width_unique_count = 0;
+        int container_text_width_duplicate_count = 0;
         int container_split_text_count = 0;
         int container_bidi_count = 0;
         int text_measure_count = 0;
@@ -75,6 +79,7 @@ class SatoruContext {
         int text_shape_prepared_count = 0;
         int text_measure_cacheable_count = 0;
         int text_measure_cache_hit_count = 0;
+        std::unordered_set<std::string> container_text_width_keys;
 
         void reset() {
             container_create_font_ms = 0.0;
@@ -87,6 +92,8 @@ class SatoruContext {
             text_shape_prepared_ms = 0.0;
             container_create_font_count = 0;
             container_text_width_count = 0;
+            container_text_width_unique_count = 0;
+            container_text_width_duplicate_count = 0;
             container_split_text_count = 0;
             container_bidi_count = 0;
             text_measure_count = 0;
@@ -95,6 +102,7 @@ class SatoruContext {
             text_shape_prepared_count = 0;
             text_measure_cacheable_count = 0;
             text_measure_cache_hit_count = 0;
+            container_text_width_keys.clear();
         }
     };
 
@@ -148,6 +156,8 @@ class SatoruContext {
     uint64_t getImageVersion() const { return m_imageVersion; }
     uint64_t getFontResourceNamedLoadCount() const { return m_fontResourceNamedLoadCount; }
     uint64_t getFontResourceFallbackLoadCount() const { return m_fontResourceFallbackLoadCount; }
+    uint64_t getFontResourceRegisteredCount() const { return m_fontResourceRegisteredCount; }
+    uint64_t getFontResourceDuplicateLoadCount() const { return m_fontResourceDuplicateLoadCount; }
     uint64_t getGeneratedFontFaceAttemptCount() const { return m_generatedFontFaceAttemptCount; }
     uint64_t getGeneratedFontFaceAddedCount() const { return m_generatedFontFaceAddedCount; }
     uint64_t getGeneratedFontFaceDuplicateCount() const {
@@ -155,6 +165,12 @@ class SatoruContext {
     }
     void noteFontResourceNamedLoad() { m_fontResourceNamedLoadCount++; }
     void noteFontResourceFallbackLoad() { m_fontResourceFallbackLoadCount++; }
+    void noteFontResourceRegistered(bool registered) {
+        if (registered)
+            m_fontResourceRegisteredCount++;
+        else
+            m_fontResourceDuplicateLoadCount++;
+    }
     void noteGeneratedFontFace(bool added) {
         m_generatedFontFaceAttemptCount++;
         if (added)
@@ -170,13 +186,15 @@ class SatoruContext {
         m_cssVersion++;
     }
 
-    void load_font(const char *name, const uint8_t *data, int size, const char *url = nullptr) {
-        fontManager.loadFont(name, data, size, url);
-        m_fontVersion++;
+    bool load_font(const char *name, const uint8_t *data, int size, const char *url = nullptr) {
+        bool changed = fontManager.loadFont(name, data, size, url);
+        if (changed) m_fontVersion++;
+        return changed;
     }
-    void loadFont(const char *name, const uint8_t *data, int size, const char *url = nullptr) {
-        fontManager.loadFont(name, data, size, url);
-        m_fontVersion++;
+    bool loadFont(const char *name, const uint8_t *data, int size, const char *url = nullptr) {
+        bool changed = fontManager.loadFont(name, data, size, url);
+        if (changed) m_fontVersion++;
+        return changed;
     }
 
     void load_image(const char *name, const char *data_url, int width, int height) {

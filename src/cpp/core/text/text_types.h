@@ -3,6 +3,7 @@
 #define SATORU_TEXT_TYPES_H
 
 #include <algorithm>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,7 @@ struct MeasureResult {
     size_t length;              // bytes processed that fit
     bool fits;                  // true if all text fits within max_width
     const char* last_safe_pos;  // pointer to the end of the last character that fits
+    std::vector<char32_t> usedCodepoints;
 };
 
 struct TextCharAnalysis {
@@ -87,13 +89,15 @@ struct MeasureKey {
     litehtml::text_combine_upright textCombineUpright;
     float letterSpacing;
     float wordSpacing;
+    uint64_t fontVersion;
 
     bool operator==(const MeasureKey& other) const {
         return font_size == other.font_size && font_weight == other.font_weight &&
                italic == other.italic && maxWidth == other.maxWidth &&
                font_family == other.font_family && text == other.text && mode == other.mode &&
                orientation == other.orientation && textCombineUpright == other.textCombineUpright &&
-               letterSpacing == other.letterSpacing && wordSpacing == other.wordSpacing;
+               letterSpacing == other.letterSpacing && wordSpacing == other.wordSpacing &&
+               fontVersion == other.fontVersion;
     }
 };
 
@@ -110,6 +114,7 @@ struct MeasureKeyHash {
         h ^= std::hash<int>{}(k.textCombineUpright) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<float>{}(k.letterSpacing) + 0x9e3779b9 + (h << 6) + (h >> 2);
         h ^= std::hash<float>{}(k.wordSpacing) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<uint64_t>{}(k.fontVersion) + 0x9e3779b9 + (h << 6) + (h >> 2);
         return h;
     }
 };

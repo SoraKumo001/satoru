@@ -31,20 +31,6 @@ struct RenderOptions {
 
 void satoru_log(LogLevel level, const char *message);
 
-struct font_info {
-    litehtml::font_description desc;
-    std::vector<class SkFont *> fonts;
-    int fm_ascent;
-    int fm_height;
-    float fm_ascent_raw;
-    bool fake_bold;
-    bool fake_italic;
-    bool is_rtl;
-    std::set<char32_t> used_codepoints;
-    std::unordered_map<char32_t, SkFont> selected_font_cache;
-    std::unordered_map<uint64_t, float> glyph_width_cache;
-};
-
 struct font_request {
     std::string family;
     int weight;
@@ -55,6 +41,21 @@ struct font_request {
         if (weight != other.weight) return weight < other.weight;
         return slant < other.slant;
     }
+};
+
+struct font_info {
+    litehtml::font_description desc;
+    std::vector<class SkFont *> fonts;
+    int fm_ascent;
+    int fm_height;
+    float fm_ascent_raw;
+    bool fake_bold;
+    bool fake_italic;
+    bool is_rtl;
+    std::vector<font_request> requests;
+    std::set<char32_t> used_codepoints;
+    std::unordered_map<char32_t, SkFont> selected_font_cache;
+    std::unordered_map<uint64_t, float> glyph_width_cache;
 };
 
 struct shadow_info {

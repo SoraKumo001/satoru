@@ -16,6 +16,25 @@
 namespace satoru {
 
 namespace {
+void replayUsedCodepoints(const MeasureResult& result, std::set<char32_t>* usedCodepoints) {
+    if (!usedCodepoints) return;
+    for (char32_t codepoint : result.usedCodepoints) {
+        usedCodepoints->insert(codepoint);
+    }
+}
+
+void captureUsedCodepoints(MeasureResult& result, const TextAnalysis& analysis) {
+    result.usedCodepoints.clear();
+    result.usedCodepoints.reserve(analysis.chars.size());
+    for (const auto& ca : analysis.chars) {
+        result.usedCodepoints.push_back(ca.codepoint);
+    }
+    std::sort(result.usedCodepoints.begin(), result.usedCodepoints.end());
+    result.usedCodepoints.erase(
+        std::unique(result.usedCodepoints.begin(), result.usedCodepoints.end()),
+        result.usedCodepoints.end());
+}
+
 bool isCjkFastMeasureCodepoint(char32_t u) {
     return (u >= 0x3040 && u <= 0x30FF) ||  // Hiragana, Katakana
            (u >= 0x3400 && u <= 0x4DBF) ||  // CJK Extension A
@@ -285,7 +304,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
                                      &SatoruContext::LayoutProfile::text_measure_count);
 
     MeasureKey key;
-    bool canCache = (usedCodepoints == nullptr);
+    bool canCache = true;
     if (canCache) {
         if (ctx->layoutProfile.enabled) ctx->layoutProfile.text_measure_cacheable_count++;
         key.text = text;
@@ -299,11 +318,13 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         key.textCombineUpright = fi->desc.text_combine_upright;
         key.letterSpacing = (float)fi->desc.letter_spacing;
         key.wordSpacing = (float)fi->desc.word_spacing;
+        key.fontVersion = ctx->getFontVersion();
 
         if (MeasureResult* cached = ctx->cacheManager.measureCache.get(key)) {
             if (ctx->layoutProfile.enabled) ctx->layoutProfile.text_measure_cache_hit_count++;
             MeasureResult res = *cached;
             res.last_safe_pos = text + res.length;
+            replayUsedCodepoints(res, usedCodepoints);
             return res;
         }
     }
@@ -321,6 +342,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         result.length = total_len;
         result.fits = true;
         result.last_safe_pos = text + total_len;
+        result.usedCodepoints.clear();
 
         if (canCache) {
             ctx->cacheManager.measureCache.put(key, result);
@@ -340,6 +362,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
             result.length = total_len;
             result.fits = true;
             result.last_safe_pos = text + total_len;
+            result.usedCodepoints = {codepoint};
             if (canCache) {
                 ctx->cacheManager.measureCache.put(key, result);
             }
@@ -357,6 +380,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
             result.length = total_len;
             result.fits = true;
             result.last_safe_pos = text + total_len;
+            result.usedCodepoints = {ca.codepoint};
             if (canCache) {
                 ctx->cacheManager.measureCache.put(key, result);
             }
@@ -439,6 +463,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     }
 
     result.last_safe_pos = text + result.length;
+    captureUsedCodepoints(result, analysis);
 
     if (canCache) {
         ctx->cacheManager.measureCache.put(key, result);

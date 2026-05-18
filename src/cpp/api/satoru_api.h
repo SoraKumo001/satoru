@@ -129,5 +129,6 @@ void satoru_log_printf(LogLevel level, const char *format, ...);
 
 std::string api_get_pending_resources(SatoruInstance *inst);
 const uint8_t *api_get_pending_resources_binary(SatoruInstance *inst, int &out_size);
+std::string api_get_font_diagnostics(SatoruInstance *inst);
 
 #endif  // SATORU_API_H

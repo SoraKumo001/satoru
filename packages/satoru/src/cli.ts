@@ -23,6 +23,8 @@ async function main() {
       options.format = args[++i];
     } else if (arg === "-o" || arg === "--output") {
       options.output = args[++i];
+    } else if (arg === "--json-report") {
+      options.jsonReport = args[++i];
     } else if (arg === "--no-jsdom") {
       options.jsdom = false;
     } else if (arg === "--verbose") {
@@ -73,6 +75,16 @@ async function main() {
     mediaType: options.mediaType,
     css: "body { background-color: white; }",
   };
+
+  if (options.jsonReport) {
+    renderOptions.diagnostics = true;
+    renderOptions.onDiagnostics = (report: any) => {
+      fs.writeFileSync(options.jsonReport, JSON.stringify(report, null, 2));
+      if (options.verbose) {
+        console.error(`[Satoru] Diagnostics report written to ${options.jsonReport}`);
+      }
+    };
+  }
 
   if (options.verbose) {
     renderOptions.onLog = (level: LogLevel, message: string) => {
@@ -152,6 +164,7 @@ Options:
   -w, --width <number>   Viewport width (default: 800)
   -h, --height <number>  Viewport height (default: 0, auto-calculate)
   -f, --format <format>  Output format: svg, png, webp, pdf
+  --json-report <path>   Write diagnostics report to a JSON file
   --no-jsdom             Disable JSDOM hydration (enabled by default)
   --media <type>         Media type: screen, print (default: screen)
   --verbose              Enable detailed logging

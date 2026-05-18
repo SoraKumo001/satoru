@@ -6,7 +6,7 @@ This document lists high-value feature work for Satoru. The current engine alrea
 
 | Priority | Feature | Main Value | Suggested Scope |
 | --- | --- | --- | --- |
-| P0 | Render diagnostics report | Makes rendering failures explainable | Core API, C++ resource/font reporting, CLI |
+| Done (P0) | Render diagnostics report | Makes rendering failures explainable | Core API, C++ resource/font reporting, CLI |
 | P1 | Browser/Satoru diff viewer | Makes visual differences easy to inspect | Playground, visual-test utilities |
 | P1 | CLI production options | Makes batch/CI usage practical | `packages/satoru/src/cli.ts` |
 | P2 | Resource cache helpers | Reduces repeated userland boilerplate | TS resource resolver helpers |
@@ -383,11 +383,11 @@ These items are more engine-specific and should be prioritized after diagnostics
 
 The first milestone should be:
 
-1. Add `RenderDiagnostics` TypeScript types.
-2. Collect resource and font diagnostics in `SatoruBase.render`.
-3. Expose missing font data from C++ if needed.
-4. Add `--json-report` to the CLI.
-5. Add one visual-test fixture with a missing image and one with a missing font.
-6. Document the diagnostics feature in `packages/satoru/README.md`.
+- [x] 1. Add `RenderDiagnostics` TypeScript types.
+- [x] 2. Collect resource and font diagnostics in `SatoruBase.render`.
+- [x] 3. Expose missing font data from C++ if needed.
+- [x] 4. Add `--json-report` to the CLI.
+- [x] 5. Add one visual-test fixture with a missing image and one with a missing font.
+- [x] 6. Document the diagnostics feature in `packages/satoru/README.md`.
 
 This milestone is deliberately small enough to ship, but it creates the foundation for the Playground diff viewer, better CLI workflows, and compatibility documentation.

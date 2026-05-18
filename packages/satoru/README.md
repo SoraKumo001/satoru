@@ -338,6 +338,9 @@ npx satoru-render https://example.com --no-jsdom -o example.pdf
 
 # WebP conversion with verbose logs
 npx satoru-render input.html -f webp --verbose
+
+# Write rendering diagnostics to a JSON file
+npx satoru-render input.html -o output.png --json-report report.json
 ```
 
 ---
@@ -363,6 +366,14 @@ npx satoru-render input.html -f webp --verbose
 | `baseUrl`         | `string`                                   | Base URL for relative path resolution.                  |
 | `logLevel`        | `LogLevel`                                 | Verbosity: `None`, `Error`, `Warning`, `Info`, `Debug`. |
 | `mediaType`       | `"screen" \| "print"`                      | CSS media type for `@media` queries. Default: `"screen"`. |
+| `diagnostics`     | `boolean`                                  | Enable detailed rendering diagnostics. |
+| `onDiagnostics`   | `(report: RenderDiagnostics) => void`      | Callback that receives the full diagnostics report. |
+
+---
+
+## 📝 Changelog
+
+Please see [CHANGELOG.md](./CHANGELOG.md) for a history of changes.
 
 ---
 

@@ -13,6 +13,7 @@ export interface SatoruModule {
   get_collect_profile: (inst: any) => string;
   set_collect_profile_enabled: (inst: any, enabled: boolean) => void;
   get_pending_resources: (inst: any) => Uint8Array | null;
+  get_font_diagnostics: (inst: any) => string;
   add_resource: (
     inst: any,
     url: string,
@@ -86,6 +87,42 @@ export type ResourceResolver = (
   ) => Promise<Uint8Array | ResolvedFontResult | null>,
 ) => Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null>;
 
+export interface RenderDiagnostics {
+  format: "svg" | "png" | "webp" | "pdf";
+  width: number;
+  height?: number;
+  mediaType: "screen" | "print";
+  timings: Record<string, number>;
+  resources: ResourceDiagnostic[];
+  fonts: FontDiagnostic[];
+  warnings: DiagnosticMessage[];
+  errors: DiagnosticMessage[];
+}
+
+export interface ResourceDiagnostic {
+  type: "font" | "css" | "image";
+  url: string;
+  name?: string;
+  status: "pending" | "loaded" | "failed" | "skipped";
+  bytes?: number;
+  reason?: string;
+}
+
+export interface FontDiagnostic {
+  family: string;
+  weight?: number;
+  style?: "normal" | "italic" | "oblique";
+  status: "loaded" | "fallback" | "missing";
+  source?: string;
+  characters?: string;
+}
+
+export interface DiagnosticMessage {
+  code: string;
+  message: string;
+  source?: string;
+}
+
 export interface RenderOptions {
   /** Input content (HTML string or state object) */
   value?: string | string[] | any | any[];
@@ -126,6 +163,10 @@ export interface RenderOptions {
   profile?: boolean;
   /** Receives coarse render timings when profile is enabled */
   onProfile?: (profile: Record<string, number>) => void;
+  /** Enable full rendering diagnostics */
+  diagnostics?: boolean;
+  /** Receives the full diagnostics report if diagnostics is enabled */
+  onDiagnostics?: (report: RenderDiagnostics) => void;
 }
 const emojiUrl =
   "https://cdn.jsdelivr.net/npm/@fontsource/noto-color-emoji/files/noto-color-emoji-emoji-400-normal.woff2";
@@ -527,7 +568,7 @@ export abstract class SatoruBase {
   async render(options: RenderOptions): Promise<string | Uint8Array>;
   async render(options: RenderOptions): Promise<string | Uint8Array> {
     let { format = "svg", value, url, baseUrl } = options;
-    const profileEnabled = options.profile === true;
+    const profileEnabled = options.profile === true || options.diagnostics === true;
     const profile: Record<string, number> = {};
     const now = () =>
       typeof performance !== "undefined" && performance.now
@@ -537,6 +578,18 @@ export abstract class SatoruBase {
       if (!profileEnabled) return;
       profile[name] = (profile[name] ?? 0) + elapsed;
     };
+
+    const diagnosticsReport: RenderDiagnostics | null = options.diagnostics ? {
+      format: format as any,
+      width: options.width,
+      height: options.height,
+      mediaType: options.mediaType ?? "screen",
+      timings: profile,
+      resources: [],
+      fonts: [],
+      warnings: [],
+      errors: [],
+    } : null;
 
     if (format === "pdf" && Array.isArray(value) && value.length > 1) {
       const pagePdfs: Uint8Array[] = [];
@@ -548,6 +601,7 @@ export abstract class SatoruBase {
           ...options,
           value: html,
           format: "pdf",
+          diagnostics: false, // Don't merge child diagnostics yet
         });
         pagePdfs.push(pagePdf);
       }
@@ -614,12 +668,44 @@ export abstract class SatoruBase {
       ): Promise<Uint8Array | ArrayBufferView | ResolvedFontResult | null> => {
         const cacheKey = `${r.type}:${r.url}:${r.characters ?? ""}`;
         const cached = this.resourceCache.get(cacheKey);
+        
+        let resourceDiag: ResourceDiagnostic | undefined;
+        if (diagnosticsReport) {
+           resourceDiag = {
+              type: r.type,
+              url: r.url,
+              name: r.name,
+              status: "pending",
+           };
+           diagnosticsReport.resources.push(resourceDiag);
+        }
+
         if (cached) {
           addProfile("resourceCacheHitsCount", 1);
+          if (resourceDiag) {
+             resourceDiag.status = "loaded";
+             if (cached instanceof Uint8Array) {
+               resourceDiag.bytes = cached.byteLength;
+             }
+          }
           return cached;
         }
         const resolveStart = now();
-        const result = await resolver(r);
+        let result: Uint8Array | ArrayBufferView | ResolvedFontResult | null = null;
+        try {
+          result = await resolver(r);
+          if (resourceDiag) {
+             resourceDiag.status = result ? "loaded" : "failed";
+             if (result && result instanceof Uint8Array) {
+               resourceDiag.bytes = result.byteLength;
+             }
+          }
+        } catch (e: any) {
+          if (resourceDiag) {
+             resourceDiag.status = "failed";
+             resourceDiag.reason = e.message || String(e);
+          }
+        }
         addProfile("resolveResources", now() - resolveStart);
         if (result) {
           if (result instanceof Uint8Array) {
@@ -941,6 +1027,12 @@ export abstract class SatoruBase {
 
       if (!result) {
         options.onProfile?.(profile);
+        if (diagnosticsReport) {
+          try {
+            diagnosticsReport.fonts = JSON.parse(mod.get_font_diagnostics(instancePtr));
+          } catch {}
+          options.onDiagnostics?.(diagnosticsReport);
+        }
         if (format === "svg") return "";
         return new Uint8Array();
       }
@@ -950,6 +1042,12 @@ export abstract class SatoruBase {
         const svg = utf8Decoder.decode(result);
         addProfile("decodeResult", now() - decodeStart);
         options.onProfile?.(profile);
+        if (diagnosticsReport) {
+          try {
+            diagnosticsReport.fonts = JSON.parse(mod.get_font_diagnostics(instancePtr));
+          } catch {}
+          options.onDiagnostics?.(diagnosticsReport);
+        }
         return svg;
       }
 
@@ -957,6 +1055,12 @@ export abstract class SatoruBase {
       const bytes = new Uint8Array(result);
       addProfile("copyResult", now() - copyStart);
       options.onProfile?.(profile);
+      if (diagnosticsReport) {
+        try {
+          diagnosticsReport.fonts = JSON.parse(mod.get_font_diagnostics(instancePtr));
+        } catch {}
+        options.onDiagnostics?.(diagnosticsReport);
+      }
       return bytes;
     } finally {
       mod.destroy_instance(instancePtr);

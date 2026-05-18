@@ -240,6 +240,11 @@ void set_font_map_val(SatoruInstance* inst, val fontMap) {
     api_set_font_map(inst, map);
 }
 
+std::string get_font_diagnostics_val(SatoruInstance* inst) {
+    if (!inst) return "[]";
+    return api_get_font_diagnostics(inst);
+}
+
 EMSCRIPTEN_BINDINGS(satoru) {
     class_<SatoruInstance>("SatoruInstance");
 
@@ -250,6 +255,7 @@ EMSCRIPTEN_BINDINGS(satoru) {
     function("get_collect_profile", &get_collect_profile_val, allow_raw_pointers());
     function("set_collect_profile_enabled", &set_collect_profile_enabled_val, allow_raw_pointers());
     function("get_pending_resources", &get_pending_resources_val, allow_raw_pointers());
+    function("get_font_diagnostics", &get_font_diagnostics_val, allow_raw_pointers());
     function("add_resource", &add_resource_val, allow_raw_pointers());
     function("scan_css", &scan_css_val, allow_raw_pointers());
     function("load_font", &load_font_val, allow_raw_pointers());

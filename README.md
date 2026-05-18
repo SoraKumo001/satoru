@@ -303,6 +303,12 @@ pnpm --filter visual-test test
 
 ---
 
+## 📝 Changelog
+
+Please see [packages/satoru/CHANGELOG.md](./packages/satoru/CHANGELOG.md) for a history of changes.
+
+---
+
 ## 📜 License
 
 MIT License - SoraKumo <info@croud.jp>

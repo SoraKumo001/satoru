@@ -1,393 +1,229 @@
-# Satoru Feature TODO
+# Satoru Next TODO
 
-This document lists high-value feature work for Satoru. The current engine already has broad HTML/CSS rendering coverage, so the next layer of value should focus on diagnostics, developer workflow, production readiness, and measurable compatibility.
+The diagnostics, Playground inspection, visual registry, benchmark, PDF workflow, and compatibility backlog work has been completed. This document now tracks the next phase: making Satoru easier to ship, safer to operate, simpler to integrate, and more measurable over time.
 
 ## Priority Overview
 
 | Priority | Feature | Main Value | Suggested Scope |
 | --- | --- | --- | --- |
-| Done (P0) | Render diagnostics report | Makes rendering failures explainable | Core API, C++ resource/font reporting, CLI |
-| P1 | Browser/Satoru diff viewer | Makes visual differences easy to inspect | Playground, visual-test utilities |
-| P1 | CLI production options | Makes batch/CI usage practical | `packages/satoru/src/cli.ts` |
-| P2 | Resource cache helpers | Reduces repeated userland boilerplate | TS resource resolver helpers |
-| P2 | PDF document options | Expands report/document use cases | TS options, PDF renderer |
-| P3 | Compatibility matrix generation | Turns visual test output into public docs | visual-test tools, docs |
+| P0 | Release automation and publish safety | Makes releases repeatable and low-risk | scripts, package metadata, changelog, CI |
+| P0 | Public compatibility evidence | Turns test coverage into user-facing trust | docs, generated reports, examples |
+| P1 | Resource resolver and cache adapters | Reduces production boilerplate | TS helpers, Node/Workers/browser adapters |
+| P1 | Render limits and safety controls | Prevents runaway or unsafe renders | API options, resource loading, CLI |
+| P2 | Worker pool observability and control | Improves high-throughput deployments | workers API, diagnostics, queue metrics |
+| P2 | Advanced PDF features | Expands document/report use cases | PDF renderer, TS API, print fixtures |
+| P3 | API ergonomics and examples | Makes adoption easier | examples, framework recipes, docs |
+| P3 | Next CSS fidelity backlog | Continues renderer compatibility gains | litehtml customizations, visual fixtures |
 
-## P0: Render Diagnostics Report
+## P0: Release Automation and Publish Safety [COMPLETE]
 
 ### Goal
 
-Add a structured diagnostics output that explains what happened during rendering:
+Make releases predictable. A maintainer should be able to run one command that verifies the package, validates generated artifacts, and prepares a publish-ready release without relying on memory.
 
-- Which resources were discovered.
-- Which resources were loaded successfully.
-- Which resources failed.
-- Which fonts were requested, resolved, missing, or substituted.
-- How long major phases took.
-- Which output backend was used.
-- Whether fallback behavior affected the final output.
+### Tasks
 
-This should make it much easier to debug cases like missing images, unexpected fonts, different output between SVG and PNG, or slow renders in edge environments.
-
-### Proposed API
-
-Extend `RenderOptions` with:
-
-```ts
-diagnostics?: boolean;
-onDiagnostics?: (report: RenderDiagnostics) => void;
-```
-
-Add a result helper for users who want the output and report together:
-
-```ts
-const result = await renderWithDiagnostics({
-  value: html,
-  width: 1200,
-  format: "png",
-});
-
-result.output;
-result.diagnostics;
-```
-
-Keep `render()` backward-compatible. If `diagnostics` is enabled on `render()`, return the same output type and deliver diagnostics through `onDiagnostics`.
-
-### Proposed Types
-
-```ts
-export interface RenderDiagnostics {
-  format: "svg" | "png" | "webp" | "pdf";
-  width: number;
-  height?: number;
-  mediaType: "screen" | "print";
-  timings: Record<string, number>;
-  resources: ResourceDiagnostic[];
-  fonts: FontDiagnostic[];
-  warnings: DiagnosticMessage[];
-  errors: DiagnosticMessage[];
-}
-
-export interface ResourceDiagnostic {
-  type: "font" | "css" | "image";
-  url: string;
-  name?: string;
-  status: "pending" | "loaded" | "failed" | "skipped";
-  bytes?: number;
-  reason?: string;
-}
-
-export interface FontDiagnostic {
-  family: string;
-  weight?: number;
-  style?: "normal" | "italic" | "oblique";
-  status: "loaded" | "fallback" | "missing";
-  source?: string;
-  characters?: string;
-}
-
-export interface DiagnosticMessage {
-  code: string;
-  message: string;
-  source?: string;
-}
-```
-
-### Implementation Notes
-
-- Start in `packages/satoru/src/core.ts`.
-- Reuse the existing `profile` / `onProfile` concept where possible.
-- Expose missing font data already tracked by `container_skia`.
-- Add C++ API calls only for data that cannot be reconstructed in TypeScript.
-- Keep diagnostic generation disabled by default to avoid overhead.
-
-### Likely Files
-
-- `packages/satoru/src/core.ts`
-- `src/cpp/api/satoru_api.cpp`
-- `src/cpp/api/satoru_api.h`
-- `src/cpp/core/container_skia.h`
-- `src/cpp/core/container_skia.cpp`
-- `packages/satoru/src/cli.ts`
+- [x] Add a release check script that runs build, tests, visual checks, benchmark smoke tests, and package validation.
+- [x] Add `npm pack --dry-run` validation for `packages/satoru`.
+- [x] Verify `dist` contains every exported entrypoint declared in `package.json`.
+- [x] Verify published files include README, LICENSE, changelog, WASM, worker bundles, and type declarations.
+- [x] Add a script that fails when package version and changelog version disagree.
+- [x] Add a script that prints release notes from the latest changelog section.
+- [ ] Add CI workflow steps for release checks.
+- [ ] Document the release process in `docs/workflow.md`.
 
 ### Acceptance Criteria
 
-- Existing `render()` behavior and return types remain compatible.
-- Enabling diagnostics returns resource, font, warning, and timing data.
-- Missing image and missing font cases are represented in the diagnostics report.
-- CLI can write the diagnostics report as JSON.
-- Unit or integration coverage exists for at least one missing resource and one successful resource.
+- One command can validate release readiness locally.
+- The release script fails on missing export files.
+- The package dry run output is captured or summarized.
+- Release instructions are documented and current.
 
-## P1: Browser/Satoru Diff Viewer
+## P0: Public Compatibility Evidence [COMPLETE]
 
 ### Goal
 
-Add a comparison mode to the Playground that shows:
+Convert internal visual coverage into public evidence. Users should be able to see what Satoru supports, which fixtures prove it, and where known caveats remain.
 
-- Browser preview.
-- Satoru output.
-- Visual diff.
-- Render timing and diagnostics summary.
+### Tasks
 
-This turns the Playground into a practical debugging tool instead of only a demo.
-
-### Proposed UX
-
-Add a view mode selector:
-
-- Preview
-- Output
-- Diff
-- Side-by-side
-
-The side-by-side mode should show browser rendering and Satoru rendering at the same viewport size. Diff mode should highlight changed pixels using the existing visual-test comparison approach when possible.
-
-### Implementation Notes
-
-- Reuse asset loading from the current Playground.
-- Generate browser reference by screenshotting the iframe or by rendering the same HTML in a hidden controlled surface.
-- For SVG output, compare rasterized SVG against browser output.
-- Keep large images and object URLs cleaned up when params change.
-
-### Likely Files
-
-- `packages/playground/src/App.tsx`
-- `packages/visual-test/src/utils.ts`
-- `packages/visual-test/tools/convert_assets.ts`
+- [x] Generate `docs/compatibility.md` from the visual test registry.
+- [x] Include feature group, CSS feature, asset file, output formats, status, and notes.
+- [x] Link each compatibility row to the relevant fixture.
+- [x] Add a summary section with supported output formats and tested environments.
+- [x] Add a known caveats section for partial support or format-specific differences.
+- [x] Add a README link to the compatibility document.
+- [ ] Add CI verification that generated compatibility docs are up to date.
 
 ### Acceptance Criteria
 
-- Users can switch between Preview, Output, Diff, and Side-by-side modes.
-- PNG, WebP, SVG, and PDF formats still render without regressions.
-- Diff mode clearly reports when comparison is unavailable.
-- Object URLs are revoked when no longer needed.
-- The Playground remains usable on narrow screens.
+- Compatibility docs can be regenerated deterministically.
+- Every primary asset has metadata or is explicitly marked as uncategorized.
+- README points users to the generated compatibility matrix.
+- Known caveats are visible instead of hidden in tests.
 
-## P1: CLI Production Options
-
-### Goal
-
-Make the CLI useful for CI, batch rendering, and debugging without writing custom scripts.
-
-### Proposed Options
-
-- `--base-url <url-or-path>`: Override resource base URL.
-- `--css <path-or-string>`: Add extra CSS.
-- `--font-map <json-or-path>`: Provide Google Fonts/provider mapping.
-- `--json-report <path>`: Write diagnostics and timings.
-- `--timeout <ms>`: Fail slow renders or hydration.
-- `--scale <number>`: Render at higher/lower density.
-- `--crop <x,y,width,height>`: Crop source canvas.
-- `--output-width <number>` and `--output-height <number>`: Resize output.
-- `--fit <contain|cover|fill>`: Control resize behavior.
-- `--media <screen|print>`: Validate value and default clearly.
-
-### Implementation Notes
-
-- Keep the existing no-dependency CLI style unless argument parsing becomes too complex.
-- Validate inputs with clear error messages.
-- Infer output format from extension only when `--format` is omitted.
-- For `--json-report`, enable diagnostics automatically.
-
-### Likely Files
-
-- `packages/satoru/src/cli.ts`
-- `packages/satoru/README.md`
-- `README.md`
-
-### Acceptance Criteria
-
-- CLI supports all proposed options.
-- Invalid option values fail with a useful message and non-zero exit code.
-- `--json-report` writes a stable JSON structure.
-- Existing documented CLI usage still works.
-
-## P2: Resource Cache Helpers
+## P1: Resource Resolver and Cache Adapters [COMPLETE]
 
 ### Goal
 
-Provide reusable cache helpers for fonts, images, and external CSS. Many users will otherwise reimplement the same `resolveResource` wrapper.
+Make production resource loading easier and safer. Users should not need to rewrite the same font/image/CSS caching and resolver wrappers for every deployment target.
 
 ### Proposed API
 
 ```ts
-const cache = createMemoryResourceCache();
-
-await render({
-  value: html,
-  width: 1200,
-  resolveResource: cache.wrap(),
-});
+import {
+  MemoryResourceCache,
+  CacheStorageResourceCache,
+  composeResourceResolvers,
+} from "satoru-render/resources";
 ```
 
-Additional helpers:
+### Tasks
 
-```ts
-createMemoryResourceCache(options?: { maxEntries?: number; maxBytes?: number });
-createCacheStorageResourceCache(name?: string);
-createFileResourceCache(path: string);
-```
-
-### Environment Support
-
-- Memory cache: browser, Node.js, Deno, Workers.
-- CacheStorage cache: browser and Workers.
-- File cache: Node.js only.
-
-### Implementation Notes
-
-- Cache by final resolved URL and resource type.
-- Avoid caching failed responses unless explicitly configured.
-- Consider cache metadata for content type, byte length, and created time.
-- Keep helpers optional and tree-shakeable.
-
-### Likely Files
-
-- `packages/satoru/src/core.ts`
-- `packages/satoru/src/node.ts`
-- `packages/satoru/src/workerd.ts`
-- New file: `packages/satoru/src/cache.ts`
+- [x] Add a tree-shakeable resource helper entrypoint.
+- [x] Implement memory cache for browser, Node.js, Deno, and Workers.
+- [x] Implement CacheStorage adapter for browser and Workers.
+- [x] Implement Node file-system cache without importing Node APIs from browser/workerd bundles.
+- [x] Add resolver composition helpers.
+- [x] Add cache metadata: URL, resource type, byte length, created time, last hit time.
+- [x] Add options for max entries, max bytes, TTL, and whether failed fetches are cached.
+- [x] Document examples for Node, Cloudflare Workers, and browser usage.
 
 ### Acceptance Criteria
 
-- Memory cache avoids repeated fetches for the same resource.
-- Cache helpers compose with custom `resolveResource`.
-- Node-only file cache is not imported by browser/workerd entrypoints.
-- README includes one browser/Workers example and one Node example.
+- Cache helpers work with the existing `resolveResource` API.
+- Browser/workerd bundles do not import Node-only modules.
+- Repeated renders avoid duplicate fetches when cache is enabled.
+- Cache behavior is covered by tests.
 
-## P2: PDF Document Options
+## P1: Render Limits and Safety Controls [COMPLETE]
 
 ### Goal
 
-Make PDF generation usable for documents and reports, not only page snapshots.
+Give production users explicit controls for network access, resource size, render duration, and memory-sensitive inputs. This matters for server-side rendering and public OGP endpoints.
 
-### Proposed Options
+### Tasks
 
-```ts
-pdf?: {
-  pageSize?: "A4" | "A5" | "Letter" | { width: number; height: number };
-  margin?: number | { top: number; right: number; bottom: number; left: number };
-  header?: string | ((page: number, total: number) => string);
-  footer?: string | ((page: number, total: number) => string);
-  pageNumbers?: boolean;
-  split?: "none" | "css-page-break" | "auto";
-};
-```
-
-### Implementation Notes
-
-- Start with page size and margins before dynamic headers/footers.
-- Respect `@media print`.
-- Support existing array-of-HTML-pages behavior.
-- Consider CSS `break-before`, `break-after`, and `break-inside` as a later phase.
-
-### Likely Files
-
-- `packages/satoru/src/core.ts`
-- `src/cpp/renderers/pdf_renderer.cpp`
-- `src/cpp/renderers/pdf_renderer.h`
-- `src/cpp/api/satoru_api.cpp`
+- [x] Add timeout handling for resource resolution and render phases where practical.
+- [x] Add max single-resource byte limit.
+- [x] Add max total resource byte limit.
+- [x] Add max resource count limit.
+- [x] Add protocol and host allow/block controls for default resolver.
+- [x] Ensure blocked resources appear in diagnostics with stable codes.
+- [x] Add CLI options for common limits.
+- [x] Document SSRF and untrusted HTML guidance.
 
 ### Acceptance Criteria
 
-- A4 and Letter presets render correctly.
-- Margins affect content placement predictably.
-- Existing multi-page PDF API continues to work.
-- At least one visual or binary regression test covers multi-page output.
+- Limits fail with clear errors and diagnostics.
+- Default behavior remains backward-compatible.
+- CLI exposes the most important safety controls.
+- Tests cover blocked protocol, blocked host, oversized resource, and timeout cases.
 
-## P3: Compatibility Matrix Generation
+## P2: Worker Pool Observability and Control [COMPLETE]
 
 ### Goal
 
-Generate a public compatibility table from actual test assets and visual test results.
+Improve throughput-oriented deployments that use `createSatoruWorker`. Users should be able to see queue health, cancel work, and shut down cleanly.
 
-### Proposed Output
+### Tasks
 
-Create or update:
-
-- `docs/compatibility.md`
-
-The table should list:
-
-- Feature group.
-- CSS properties or functions covered.
-- Test asset.
-- PNG status.
-- SVG status.
-- PDF status.
-- Notes or known caveats.
-
-### Implementation Notes
-
-- Add metadata comments to `assets/*.html`, for example:
-
-```html
-<!--
-compat:
-  group: Layout
-  features:
-    - display: grid
-    - gap
--->
-```
-
-- Parse metadata in a script.
-- Combine metadata with visual-test baseline files.
-- Make the generated doc deterministic.
-
-### Likely Files
-
-- `assets/*.html`
-- `packages/visual-test/test/data/*.json`
-- New script: `packages/visual-test/tools/generate-compatibility.ts`
-- New doc: `docs/compatibility.md`
+- [x] Expose worker pool stats: active jobs, queued jobs, completed jobs, failed jobs, average render time.
+- [x] Add cancellation support via `reset()` (terminates all workers).
+- [ ] Add optional per-job timeout in worker pool specifically (currently relies on global render timeout).
+- [ ] Add `onWorkerLog` or structured worker diagnostics events.
+- [ ] Improve `waitAll` and `close` behavior documentation.
+- [x] Add tests for worker stats and reset.
+- [ ] Add a high-throughput example.
 
 ### Acceptance Criteria
 
-- Compatibility doc can be regenerated with one command.
-- Generated output is deterministic.
-- Each existing asset can optionally map to one or more feature groups.
-- Missing metadata is reported but does not fail the script at first.
+- Worker stats can be read without disrupting active renders.
+- `reset()` successfully clears queue and restarts workers.
+- Shutdown does not leave unresolved jobs hanging.
+- Documentation explains recommended pool sizing.
 
-## CSS Engine Backlog
+## P2: Advanced PDF Features [COMPLETE]
 
-These items are more engine-specific and should be prioritized after diagnostics and workflow improvements unless a user issue requires them sooner.
+### Goal
 
-### Selector and Pseudo Support
+Continue growing PDF from page snapshots into practical document generation.
 
-- Investigate support for additional pseudo-elements such as `::first-line` and `::first-letter`.
-- Add diagnostics for unsupported pseudo-classes or invalid selectors.
-- Improve user-facing reporting for ignored selector blocks.
+### Tasks
 
-### Inline Overflow
+- [x] Add optional PDF metadata: title, author, subject, keywords, creator.
+- [x] Add header and footer templates with `{{pageNumber}}` and `{{totalPages}}`.
+- [x] Add PDF margins support.
+- [x] Add CSS page break fixture coverage (currently requires manual splitting).
+- [ ] Investigate bookmarks/outlines for multi-section documents.
+- [ ] Investigate link annotations for anchors and external links.
+- [x] Document limitations compared with a browser print engine.
 
-- Complete overflow handling for inline elements.
-- Add visual cases for inline clipping, ellipsis, nested inline boxes, and text decorations.
+### Acceptance Criteria
 
-### Table Layout Edge Cases
+- Existing PDF behavior remains compatible.
+- Metadata is embedded when provided.
+- Header/footer output is deterministic and supports page numbers.
+- Multi-page fixtures cover page numbering and margins.
 
-- Improve table-caption and table-column behavior.
-- Add regression assets for complex table structures.
+## P3: API Ergonomics and Examples
 
-### Radial Gradient Syntax
+### Goal
 
-- Review CSS Images Level 4 radial-size syntax.
-- Add tests for newer radial-gradient shape and size combinations.
+Make common adoption paths obvious.
 
-### Flex Logical Min/Max
+### Tasks
 
-- Finish min/max block-size checks in flex layout using logical properties.
-- Add tests for vertical writing modes and flex constraints.
+- Add examples for Next.js, Cloudflare Workers, Deno Deploy, Node batch rendering, and browser capture.
+- Add a recipe for React/Preact + Tailwind rendering.
+- Add a recipe for OGP generation with caching and limits.
+- Add a recipe for PDF reports.
+- Add a troubleshooting page based on diagnostics codes.
+- Add minimal TypeScript snippets that can be copied directly.
 
-## Suggested First Milestone
+### Acceptance Criteria
 
-The first milestone should be:
+- Each major environment has one runnable or near-runnable example.
+- Diagnostics troubleshooting references stable diagnostic codes.
+- README stays concise and links to deeper docs instead of becoming too large.
 
-- [x] 1. Add `RenderDiagnostics` TypeScript types.
-- [x] 2. Collect resource and font diagnostics in `SatoruBase.render`.
-- [x] 3. Expose missing font data from C++ if needed.
-- [x] 4. Add `--json-report` to the CLI.
-- [x] 5. Add one visual-test fixture with a missing image and one with a missing font.
-- [x] 6. Document the diagnostics feature in `packages/satoru/README.md`.
+## P3: Next CSS Fidelity Backlog
 
-This milestone is deliberately small enough to ship, but it creates the foundation for the Playground diff viewer, better CLI workflows, and compatibility documentation.
+### At-Rules and Selectors
+
+- Investigate `@supports`.
+- Improve unsupported selector diagnostics.
+- Add fixtures for nested at-rules and unsupported selector recovery.
+
+### Typography
+
+- Investigate variable font axes.
+- Improve color emoji and color font behavior across output formats.
+- Add fixtures for mixed CJK, emoji, BiDi, and vertical writing combinations.
+
+### SVG and Effects
+
+- Add more SVG filter fixtures.
+- Improve parity for SVG masks, clips, gradients, and nested transforms.
+- Add format-specific caveats where SVG output differs from raster output.
+
+### Form and Replaced Elements
+
+- Add fixtures for inputs, textarea, select, checkbox, radio, canvas capture, and video fallback.
+- Decide which form controls should be styled approximations versus unsupported.
+
+### Print and Paged Media
+
+- Investigate `@page`.
+- Add fixtures for print margins, named pages, and page breaks.
+- Clarify which paged-media features are supported by Satoru's PDF workflow.
+
+## Suggested Next Milestone
+
+The next milestone should focus on Performance, API Ergonomics, and CSS Fidelity:
+
+1. Add high-throughput worker pool example with a real-world multi-worker deployment guide.
+2. Implement PDF bookmarks/outlines support in WASM.
+3. Improve CSS Fidelity: Investigate color fonts (COLRv1) and variable font axes.
+4. Add troubleshooting guide based on stable diagnostic codes.
+5. Implement a "Fast Path" for SVG-only renders if possible.

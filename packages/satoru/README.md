@@ -397,6 +397,16 @@ npx satoru-render input.html -o output.png --json-report report.json
 
 Please see [CHANGELOG.md](./CHANGELOG.md) for a history of changes.
 
+## 📖 Recipes
+
+- [Production OGP Generation](../../docs/recipes/ogp-production.md): Caching, safety limits, and diagnostics for high-traffic services.
+
+---
+
+## 🔬 Compatibility Evidence
+
+For a detailed breakdown of CSS feature support and visual test coverage, see our [Compatibility Matrix](../../docs/compatibility.md).
+
 ---
 
 ## 📜 License

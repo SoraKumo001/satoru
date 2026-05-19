@@ -67,6 +67,21 @@ export interface SatoruModule {
   logLevel: LogLevel;
 }
 
+export interface WorkerPoolStats {
+  /** Number of workers in the pool */
+  workerCount: number;
+  /** Jobs currently being executed */
+  activeJobs: number;
+  /** Jobs waiting for a free worker */
+  queuedJobs: number;
+  /** Total jobs completed successfully since start */
+  completedJobs: number;
+  /** Total jobs that failed since start */
+  failedJobs: number;
+  /** Average time per job in milliseconds */
+  avgJobTimeMs: number;
+}
+
 export interface RequiredResource {
   type: "font" | "css" | "image";
   url: string;
@@ -124,7 +139,35 @@ export interface DiagnosticMessage {
   source?: string;
 }
 
+export const DIAGNOSTIC_CODES = {
+  LIMIT_TIMEOUT: "LIMIT_TIMEOUT",
+  LIMIT_RESOURCE_SIZE: "LIMIT_RESOURCE_SIZE",
+  LIMIT_TOTAL_SIZE: "LIMIT_TOTAL_SIZE",
+  LIMIT_RESOURCE_COUNT: "LIMIT_RESOURCE_COUNT",
+  LIMIT_PROTOCOL_BLOCKED: "LIMIT_PROTOCOL_BLOCKED",
+  LIMIT_HOST_BLOCKED: "LIMIT_HOST_BLOCKED",
+} as const;
+
+export interface RenderLimits {
+  /** Timeout for the entire render process in milliseconds */
+  timeoutMs?: number;
+  /** Maximum bytes for a single resource */
+  maxResourceBytes?: number;
+  /** Maximum total bytes for all resources */
+  maxTotalResourceBytes?: number;
+  /** Maximum number of resources to load */
+  maxResourceCount?: number;
+  /** Allowed URL protocols (e.g., ["http:", "https:"]) */
+  allowedProtocols?: string[];
+  /** Allowed hostnames (e.g., ["example.com", "fonts.googleapis.com"]) */
+  allowedHosts?: string[];
+  /** Blocked hostnames */
+  blockedHosts?: string[];
+}
+
 export interface RenderOptions {
+  /** Abort signal to cancel rendering */
+  signal?: AbortSignal;
   /** Input content (HTML string or state object) */
   value?: string | string[] | any | any[];
   /** Source URL */
@@ -160,6 +203,8 @@ export interface RenderOptions {
   onLog?: (level: LogLevel, message: string) => void;
   /** Media type for CSS @media queries (default: "screen") */
   mediaType?: "screen" | "print";
+  /** Rendering limits for safety and performance */
+  limits?: RenderLimits;
   /** Collect coarse render timings for diagnostics */
   profile?: boolean;
   /** Receives coarse render timings when profile is enabled */
@@ -168,6 +213,26 @@ export interface RenderOptions {
   diagnostics?: boolean;
   /** Receives the full diagnostics report if diagnostics is enabled */
   onDiagnostics?: (report: RenderDiagnostics) => void;
+
+  /** PDF Title metadata */
+  pdfTitle?: string;
+  /** PDF Author metadata */
+  pdfAuthor?: string;
+  /** PDF Subject metadata */
+  pdfSubject?: string;
+  /** PDF Keywords metadata */
+  pdfKeywords?: string;
+  /** PDF Creator metadata */
+  pdfCreator?: string;
+  /** PDF Producer metadata */
+  pdfProducer?: string;
+
+  /** PDF page margins in pixels */
+  pdfMargin?: { top?: number; right?: number; bottom?: number; left?: number };
+  /** PDF header HTML template. Supports {{pageNumber}} and {{totalPages}} */
+  pdfHeader?: string;
+  /** PDF footer HTML template. Supports {{pageNumber}} and {{totalPages}} */
+  pdfFooter?: string;
 }
 const emojiUrl =
   "https://cdn.jsdelivr.net/npm/@fontsource/noto-color-emoji/files/noto-color-emoji-emoji-400-normal.woff2";
@@ -575,6 +640,11 @@ export abstract class SatoruBase {
       typeof performance !== "undefined" && performance.now
         ? performance.now()
         : Date.now();
+    const startTime = now();
+    const limits = options.limits ?? {};
+    let totalResourceBytes = 0;
+    let resourceCount = 0;
+    
     const addProfile = (name: string, elapsed: number) => {
       if (!profileEnabled) return;
       profile[name] = (profile[name] ?? 0) + elapsed;
@@ -592,32 +662,6 @@ export abstract class SatoruBase {
       warnings: [],
       errors: [],
     } : null;
-
-    if (format === "pdf" && Array.isArray(value) && value.length > 1) {
-      const pagePdfs: Uint8Array[] = [];
-      const SatoruClass = this.constructor as any;
-
-      for (const html of value) {
-        const engine = await SatoruClass.create();
-        const pagePdf = await engine.render({
-          ...options,
-          value: html,
-          format: "pdf",
-          diagnostics: false, // Don't merge child diagnostics yet
-        });
-        pagePdfs.push(pagePdf);
-      }
-
-      const mod = await this.getModule();
-      const instancePtr = mod.create_instance();
-      try {
-        const result = mod.merge_pdfs(instancePtr, pagePdfs);
-        if (!result) return new Uint8Array();
-        return new Uint8Array(result);
-      } finally {
-        mod.destroy_instance(instancePtr);
-      }
-    }
 
     let mod = await this.getModule();
     const { width, height = 0, fonts, images, css, logLevel, onLog } = options;
@@ -692,14 +736,84 @@ export abstract class SatoruBase {
           }
           return cached;
         }
+
+        // Apply Limits
+        if (limits.maxResourceCount && resourceCount >= limits.maxResourceCount) {
+          const msg = `Maximum resource count (${limits.maxResourceCount}) exceeded`;
+          if (resourceDiag) {
+            resourceDiag.status = "skipped";
+            resourceDiag.reason = msg;
+            diagnosticsReport?.errors.push({ code: DIAGNOSTIC_CODES.LIMIT_RESOURCE_COUNT, message: msg, source: r.url });
+          }
+          return null;
+        }
+
+        if (limits.allowedProtocols || limits.allowedHosts || limits.blockedHosts) {
+          try {
+            const urlObj = new URL(r.url);
+            if (limits.allowedProtocols && !limits.allowedProtocols.includes(urlObj.protocol)) {
+              const msg = `Protocol ${urlObj.protocol} is blocked`;
+              if (resourceDiag) {
+                resourceDiag.status = "skipped";
+                resourceDiag.reason = msg;
+                diagnosticsReport?.errors.push({ code: DIAGNOSTIC_CODES.LIMIT_PROTOCOL_BLOCKED, message: msg, source: r.url });
+              }
+              return null;
+            }
+            if (limits.allowedHosts && !limits.allowedHosts.includes(urlObj.hostname)) {
+              const msg = `Host ${urlObj.hostname} is not in allowed list`;
+              if (resourceDiag) {
+                resourceDiag.status = "skipped";
+                resourceDiag.reason = msg;
+                diagnosticsReport?.errors.push({ code: DIAGNOSTIC_CODES.LIMIT_HOST_BLOCKED, message: msg, source: r.url });
+              }
+              return null;
+            }
+            if (limits.blockedHosts && limits.blockedHosts.includes(urlObj.hostname)) {
+              const msg = `Host ${urlObj.hostname} is blocked`;
+              if (resourceDiag) {
+                resourceDiag.status = "skipped";
+                resourceDiag.reason = msg;
+                diagnosticsReport?.errors.push({ code: DIAGNOSTIC_CODES.LIMIT_HOST_BLOCKED, message: msg, source: r.url });
+              }
+              return null;
+            }
+          } catch (e) {
+            // Invalid URL - skip protocol/host checks for local/relative paths
+          }
+        }
+
         const resolveStart = now();
         let result: Uint8Array | ArrayBufferView | ResolvedFontResult | null = null;
         try {
           result = await resolver(r);
           if (resourceDiag) {
              resourceDiag.status = result ? "loaded" : "failed";
-             if (result && result instanceof Uint8Array) {
-               resourceDiag.bytes = result.byteLength;
+             if (result) {
+               const bytes = result instanceof Uint8Array ? result.byteLength : 
+                             (result as any).buffer ? (result as any).byteLength :
+                             ("css" in (result as any)) ? (result as any).css.byteLength + (result as any).fonts.reduce((acc: number, f: any) => acc + f.data.byteLength, 0) : 0;
+               
+               resourceDiag.bytes = bytes;
+               
+               if (limits.maxResourceBytes && bytes > limits.maxResourceBytes) {
+                 const msg = `Resource size (${bytes} bytes) exceeds limit (${limits.maxResourceBytes})`;
+                 resourceDiag.status = "skipped";
+                 resourceDiag.reason = msg;
+                 diagnosticsReport?.errors.push({ code: DIAGNOSTIC_CODES.LIMIT_RESOURCE_SIZE, message: msg, source: r.url });
+                 return null;
+               }
+
+               if (limits.maxTotalResourceBytes && totalResourceBytes + bytes > limits.maxTotalResourceBytes) {
+                 const msg = `Total resource size exceeds limit (${limits.maxTotalResourceBytes})`;
+                 resourceDiag.status = "skipped";
+                 resourceDiag.reason = msg;
+                 diagnosticsReport?.errors.push({ code: DIAGNOSTIC_CODES.LIMIT_TOTAL_SIZE, message: msg, source: r.url });
+                 return null;
+               }
+
+               totalResourceBytes += bytes;
+               resourceCount++;
              }
           }
         } catch (e: any) {
@@ -777,6 +891,14 @@ export abstract class SatoruBase {
       for (const rawHtml of inputHtmls) {
         let processedHtml = rawHtml;
         for (let i = 0; i < 10; i++) {
+          if (options.signal?.aborted) {
+            throw new Error("Render aborted");
+          }
+          if (typeof limits.timeoutMs !== "undefined" && now() - startTime >= limits.timeoutMs) {
+            const msg = `Render timed out after ${limits.timeoutMs}ms`;
+            diagnosticsReport?.errors.push({ code: DIAGNOSTIC_CODES.LIMIT_TIMEOUT, message: msg });
+            throw new Error(msg);
+          }
           addProfile("collectResourcesCount", 1);
           const collectStart = now();
           mod.collect_resources(instancePtr, processedHtml, width, height, options.mediaType === "print" ? 1 : 0);
@@ -983,6 +1105,14 @@ export abstract class SatoruBase {
       };
 
       const renderStart = now();
+      if (options.signal?.aborted) {
+        throw new Error("Render aborted");
+      }
+      if (typeof limits.timeoutMs !== "undefined" && now() - startTime >= limits.timeoutMs) {
+        const msg = `Render timed out after ${limits.timeoutMs}ms`;
+        diagnosticsReport?.errors.push({ code: DIAGNOSTIC_CODES.LIMIT_TIMEOUT, message: msg });
+        throw new Error(msg);
+      }
       const result = (processedHtmls.length === 1)
         ? mod.render_from_state(
             instancePtr,
@@ -1002,6 +1132,18 @@ export abstract class SatoruBase {
               fitPositionY: options.fitPosition?.y ?? 0.5,
               backgroundColor: this.parseColor(options.backgroundColor),
               mediaType: options.mediaType === "print" ? 1 : 0,
+              pdfTitle: options.pdfTitle ?? "",
+              pdfAuthor: options.pdfAuthor ?? "",
+              pdfSubject: options.pdfSubject ?? "",
+              pdfKeywords: options.pdfKeywords ?? "",
+              pdfCreator: options.pdfCreator ?? "",
+              pdfProducer: options.pdfProducer ?? "",
+              pdfMarginTop: options.pdfMargin?.top ?? 0,
+              pdfMarginRight: options.pdfMargin?.right ?? 0,
+              pdfMarginBottom: options.pdfMargin?.bottom ?? 0,
+              pdfMarginLeft: options.pdfMargin?.left ?? 0,
+              pdfHeader: options.pdfHeader ?? "",
+              pdfFooter: options.pdfFooter ?? "",
             },
           )
         : mod.render(
@@ -1023,6 +1165,18 @@ export abstract class SatoruBase {
               fitPositionY: options.fitPosition?.y ?? 0.5,
               backgroundColor: this.parseColor(options.backgroundColor),
               mediaType: options.mediaType === "print" ? 1 : 0,
+              pdfTitle: options.pdfTitle ?? "",
+              pdfAuthor: options.pdfAuthor ?? "",
+              pdfSubject: options.pdfSubject ?? "",
+              pdfKeywords: options.pdfKeywords ?? "",
+              pdfCreator: options.pdfCreator ?? "",
+              pdfProducer: options.pdfProducer ?? "",
+              pdfMarginTop: options.pdfMargin?.top ?? 0,
+              pdfMarginRight: options.pdfMargin?.right ?? 0,
+              pdfMarginBottom: options.pdfMargin?.bottom ?? 0,
+              pdfMarginLeft: options.pdfMargin?.left ?? 0,
+              pdfHeader: options.pdfHeader ?? "",
+              pdfFooter: options.pdfFooter ?? "",
             },
           );
       addProfile("wasmRender", now() - renderStart);

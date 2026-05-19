@@ -31,6 +31,20 @@ async function main() {
       options.verbose = true;
     } else if (arg === "--media") {
       options.mediaType = args[++i];
+    } else if (arg === "--timeout") {
+      options.timeout = parseInt(args[++i]);
+    } else if (arg === "--max-resource-bytes") {
+      options.maxResourceBytes = parseInt(args[++i]);
+    } else if (arg === "--max-total-resource-bytes") {
+      options.maxTotalResourceBytes = parseInt(args[++i]);
+    } else if (arg === "--max-resource-count") {
+      options.maxResourceCount = parseInt(args[++i]);
+    } else if (arg === "--allowed-protocols") {
+      options.allowedProtocols = args[++i].split(",");
+    } else if (arg === "--allowed-hosts") {
+      options.allowedHosts = args[++i].split(",");
+    } else if (arg === "--blocked-hosts") {
+      options.blockedHosts = args[++i].split(",");
     } else if (arg === "--help") {
       printHelp();
       return;
@@ -73,6 +87,15 @@ async function main() {
     format: options.format,
     logLevel: options.verbose ? LogLevel.Debug : LogLevel.None,
     mediaType: options.mediaType,
+    limits: {
+      timeoutMs: options.timeout,
+      maxResourceBytes: options.maxResourceBytes,
+      maxTotalResourceBytes: options.maxTotalResourceBytes,
+      maxResourceCount: options.maxResourceCount,
+      allowedProtocols: options.allowedProtocols,
+      allowedHosts: options.allowedHosts,
+      blockedHosts: options.blockedHosts,
+    },
     css: "body { background-color: white; }",
   };
 
@@ -177,6 +200,13 @@ Options:
   --json-report <path>   Write diagnostics report to a JSON file
   --no-jsdom             Disable JSDOM hydration (enabled by default)
   --media <type>         Media type: screen, print (default: screen)
+  --timeout <ms>         Rendering timeout in milliseconds
+  --max-resource-bytes <bytes>       Max size for a single resource
+  --max-total-resource-bytes <bytes> Max total size for all resources
+  --max-resource-count <count>       Max number of resources to load
+  --allowed-protocols <list>         Comma-separated allowed protocols (e.g. http:,https:)
+  --allowed-hosts <list>             Comma-separated allowed hostnames
+  --blocked-hosts <list>             Comma-separated blocked hostnames
   --verbose              Enable detailed logging
   --help                 Show this help message
 `);

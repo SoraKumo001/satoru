@@ -1,8 +1,8 @@
 import { createWorker, Worker } from "worker-lib";
 import type { SatoruWorker } from "./child-workers.js";
 export type { SatoruWorker } from "./child-workers.js";
-import { type RenderOptions } from "./index.js";
-export { type RenderOptions } from "./index.js";
+import { type RenderOptions, type WorkerPoolStats } from "./core.js";
+export { type RenderOptions } from "./core.js";
 export { Satoru } from "./index.js";
 export * from "./index.js";
 export * from "./log-level.js";
@@ -42,25 +42,78 @@ export const createSatoruWorker = (params?: {
 
   const workerInstance = createWorker<SatoruWorker>(factory, maxParallel);
 
+  let totalPendingJobs = 0;
+  let completedJobs = 0;
+  let failedJobs = 0;
+  let totalJobTimeMs = 0;
+
+  const getStats = (): WorkerPoolStats => ({
+    workerCount: maxParallel,
+    activeJobs: Math.min(totalPendingJobs, maxParallel),
+    queuedJobs: Math.max(0, totalPendingJobs - maxParallel),
+    completedJobs,
+    failedJobs,
+    avgJobTimeMs: completedJobs > 0 ? totalJobTimeMs / completedJobs : 0,
+  });
+
+  const reset = () => {
+    workerInstance.setLimit(0);
+    workerInstance.setLimit(maxParallel);
+    totalPendingJobs = 0;
+    completedJobs = 0;
+    failedJobs = 0;
+    totalJobTimeMs = 0;
+  };
+
   const proxy = new Proxy(workerInstance, {
     get(target, prop, receiver) {
+      if (prop === "getStats") {
+        return getStats;
+      }
+      if (prop === "reset") {
+        return reset;
+      }
       if (prop === "render") {
         return async (options: RenderOptions) => {
-          return await target.execute("render", options as any);
+          totalPendingJobs++;
+          const startTime = Date.now();
+          try {
+            const result = await target.execute("render", options as any);
+            completedJobs++;
+            totalJobTimeMs += Date.now() - startTime;
+            return result;
+          } catch (e) {
+            failedJobs++;
+            throw e;
+          } finally {
+            totalPendingJobs--;
+          }
         };
       }
 
       if (prop in target) {
         return Reflect.get(target, prop, receiver);
       }
-      return (...args: any[]) => target.execute(prop as any, ...args);
+      return async (...args: any[]) => {
+        totalPendingJobs++;
+        try {
+          return await target.execute(prop as any, ...args);
+        } finally {
+          totalPendingJobs--;
+        }
+      };
     },
-  }) as unknown as Omit<typeof workerInstance, "execute"> & SatoruWorker;
+  }) as unknown as Omit<typeof workerInstance, "execute"> &
+    SatoruWorker & { getStats: () => WorkerPoolStats; reset: () => void };
 
   return proxy;
 };
 
-const { close, render, launchWorker, setLimit, waitAll, waitReady } =
-  createSatoruWorker({ maxParallel: 1 });
+const defaultWorker = createSatoruWorker({ maxParallel: 1 });
 
-export { close, render, launchWorker, setLimit, waitAll, waitReady };
+export const { close, render, launchWorker, setLimit, waitAll, waitReady } =
+  defaultWorker;
+
+export const reset = () => defaultWorker.reset();
+
+export const getStats = () => defaultWorker.getStats();

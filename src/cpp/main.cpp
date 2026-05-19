@@ -29,22 +29,8 @@ std::vector<uint8_t> val_to_vector(val data) {
     return vec;
 }
 
-// EMSCRIPTEN_BINDINGS helper
-val render_val(SatoruInstance* inst, val htmls, int width, int height, int format,
-               val options_val) {
-    if (!inst) return val::null();
-
-    std::vector<std::string> html_vector;
-    if (htmls.isArray()) {
-        auto l = htmls["length"].as<unsigned>();
-        for (unsigned i = 0; i < l; ++i) {
-            html_vector.push_back(htmls[i].as<std::string>());
-        }
-    } else {
-        html_vector.push_back(htmls.as<std::string>());
-    }
-
-    RenderOptions options;
+// Helper to parse RenderOptions from val
+void parse_options(RenderOptions& options, val options_val) {
     if (options_val.hasOwnProperty("svgTextToPaths")) {
         options.svgTextToPaths = options_val["svgTextToPaths"].as<bool>();
     }
@@ -81,6 +67,67 @@ val render_val(SatoruInstance* inst, val htmls, int width, int height, int forma
     if (options_val.hasOwnProperty("mediaType")) {
         options.mediaType = options_val["mediaType"].as<int>();
     }
+
+    // PDF Metadata
+    if (options_val.hasOwnProperty("pdfTitle")) {
+        options.pdfTitle = options_val["pdfTitle"].as<std::string>();
+    }
+    if (options_val.hasOwnProperty("pdfAuthor")) {
+        options.pdfAuthor = options_val["pdfAuthor"].as<std::string>();
+    }
+    if (options_val.hasOwnProperty("pdfSubject")) {
+        options.pdfSubject = options_val["pdfSubject"].as<std::string>();
+    }
+    if (options_val.hasOwnProperty("pdfKeywords")) {
+        options.pdfKeywords = options_val["pdfKeywords"].as<std::string>();
+    }
+    if (options_val.hasOwnProperty("pdfCreator")) {
+        options.pdfCreator = options_val["pdfCreator"].as<std::string>();
+    }
+    if (options_val.hasOwnProperty("pdfProducer")) {
+        options.pdfProducer = options_val["pdfProducer"].as<std::string>();
+    }
+
+    // PDF Margins
+    if (options_val.hasOwnProperty("pdfMarginTop")) {
+        options.pdfMarginTop = options_val["pdfMarginTop"].as<int>();
+    }
+    if (options_val.hasOwnProperty("pdfMarginRight")) {
+        options.pdfMarginRight = options_val["pdfMarginRight"].as<int>();
+    }
+    if (options_val.hasOwnProperty("pdfMarginBottom")) {
+        options.pdfMarginBottom = options_val["pdfMarginBottom"].as<int>();
+    }
+    if (options_val.hasOwnProperty("pdfMarginLeft")) {
+        options.pdfMarginLeft = options_val["pdfMarginLeft"].as<int>();
+    }
+
+    // PDF Templates
+    if (options_val.hasOwnProperty("pdfHeader")) {
+        options.pdfHeader = options_val["pdfHeader"].as<std::string>();
+    }
+    if (options_val.hasOwnProperty("pdfFooter")) {
+        options.pdfFooter = options_val["pdfFooter"].as<std::string>();
+    }
+}
+
+// EMSCRIPTEN_BINDINGS helper
+val render_val(SatoruInstance* inst, val htmls, int width, int height, int format,
+               val options_val) {
+    if (!inst) return val::null();
+
+    std::vector<std::string> html_vector;
+    if (htmls.isArray()) {
+        auto l = htmls["length"].as<unsigned>();
+        for (unsigned i = 0; i < l; ++i) {
+            html_vector.push_back(htmls[i].as<std::string>());
+        }
+    } else {
+        html_vector.push_back(htmls.as<std::string>());
+    }
+
+    RenderOptions options;
+    parse_options(options, options_val);
 
     int size = 0;
     const uint8_t* data =
@@ -164,42 +211,7 @@ val render_from_state_val(SatoruInstance* inst, int width, int height, int forma
                           val options_val) {
     if (!inst) return val::null();
     RenderOptions options;
-    if (options_val.hasOwnProperty("svgTextToPaths")) {
-        options.svgTextToPaths = options_val["svgTextToPaths"].as<bool>();
-    }
-    if (options_val.hasOwnProperty("outputWidth")) {
-        options.outputWidth = options_val["outputWidth"].as<int>();
-    }
-    if (options_val.hasOwnProperty("outputHeight")) {
-        options.outputHeight = options_val["outputHeight"].as<int>();
-    }
-    if (options_val.hasOwnProperty("fitType")) {
-        options.fitType = options_val["fitType"].as<int>();
-    }
-    if (options_val.hasOwnProperty("cropX")) {
-        options.cropX = options_val["cropX"].as<int>();
-    }
-    if (options_val.hasOwnProperty("cropY")) {
-        options.cropY = options_val["cropY"].as<int>();
-    }
-    if (options_val.hasOwnProperty("cropWidth")) {
-        options.cropWidth = options_val["cropWidth"].as<int>();
-    }
-    if (options_val.hasOwnProperty("cropHeight")) {
-        options.cropHeight = options_val["cropHeight"].as<int>();
-    }
-    if (options_val.hasOwnProperty("backgroundColor")) {
-        options.backgroundColor = options_val["backgroundColor"].as<uint32_t>();
-    }
-    if (options_val.hasOwnProperty("fitPositionX")) {
-        options.fitPositionX = options_val["fitPositionX"].as<float>();
-    }
-    if (options_val.hasOwnProperty("fitPositionY")) {
-        options.fitPositionY = options_val["fitPositionY"].as<float>();
-    }
-    if (options_val.hasOwnProperty("mediaType")) {
-        options.mediaType = options_val["mediaType"].as<int>();
-    }
+    parse_options(options, options_val);
     int size = 0;
     const uint8_t* data =
         api_render_from_state(inst, width, height, (RenderFormat)format, options, size);

@@ -731,25 +731,27 @@ std::string api_get_font_diagnostics(SatoruInstance* inst) {
     if (!inst || !inst->render_container) return "[]";
     std::ostringstream ss;
     ss << "[";
-    
+
     const auto& reqs = inst->render_container->get_requested_font_attributes();
     const auto& missing = inst->render_container->get_missing_fonts();
-    
+
     bool first = true;
     for (const auto& req : reqs) {
         if (!first) ss << ",";
         first = false;
-        
+
         bool isMissing = missing.find(req) != missing.end();
-        
+
         std::vector<char32_t> usedFontCharacters;
         inst->render_container->collect_used_font_characters(req, usedFontCharacters);
         std::string chars = codepoints_to_utf8(usedFontCharacters);
-        
+
         std::string styleStr = "normal";
-        if (req.slant == SkFontStyle::kItalic_Slant) styleStr = "italic";
-        else if (req.slant == SkFontStyle::kOblique_Slant) styleStr = "oblique";
-        
+        if (req.slant == SkFontStyle::kItalic_Slant)
+            styleStr = "italic";
+        else if (req.slant == SkFontStyle::kOblique_Slant)
+            styleStr = "oblique";
+
         ss << "{";
         ss << "\"family\":\"" << json_escape(req.family) << "\",";
         ss << "\"weight\":" << req.weight << ",";

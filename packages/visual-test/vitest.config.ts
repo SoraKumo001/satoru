@@ -5,5 +5,6 @@ export default defineConfig({
     pool: "threads",
     maxWorkers: "100%",
     testTimeout: 60000,
+    hookTimeout: 30000,
   },
 });

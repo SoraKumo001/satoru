@@ -27,6 +27,24 @@ struct RenderOptions {
     float fitPositionX = 0.5f;
     float fitPositionY = 0.5f;
     int mediaType = 0;  // 0=screen, 1=print
+
+    // PDF Metadata
+    std::string pdfTitle;
+    std::string pdfAuthor;
+    std::string pdfSubject;
+    std::string pdfKeywords;
+    std::string pdfCreator;
+    std::string pdfProducer;
+
+    // PDF Margins (pixels)
+    int pdfMarginTop = 0;
+    int pdfMarginRight = 0;
+    int pdfMarginBottom = 0;
+    int pdfMarginLeft = 0;
+
+    // PDF Templates
+    std::string pdfHeader;
+    std::string pdfFooter;
 };
 
 void satoru_log(LogLevel level, const char *message);

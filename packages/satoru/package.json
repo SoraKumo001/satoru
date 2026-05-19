@@ -1,6 +1,6 @@
 {
   "name": "satoru-render",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "High-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly",
   "type": "module",
   "main": "./dist/index.js",
@@ -64,6 +64,10 @@
       "types": "./dist/tailwind.d.ts",
       "import": "./dist/tailwind.js"
     },
+    "./resources": {
+      "types": "./dist/resources.d.ts",
+      "import": "./dist/resources.js"
+    },
     "./jsdom": {
       "types": "./dist/jsdom.d.ts",
       "import": "./dist/jsdom.js"
@@ -86,6 +90,9 @@
       "tailwind": [
         "./dist/tailwind.d.ts"
       ],
+      "resources": [
+        "./dist/resources.d.ts"
+      ],
       "jsdom": [
         "./dist/jsdom.d.ts"
       ],
@@ -97,7 +104,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "repository": {
     "type": "git",

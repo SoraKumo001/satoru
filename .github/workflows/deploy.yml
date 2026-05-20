@@ -120,6 +120,14 @@ jobs:
       - name: Run Visual Tests
         run: pnpm --filter visual-test test
 
+      - name: Check Compatibility Docs
+        run: |
+          pnpm docs:compatibility
+          git diff --exit-code docs/compatibility.md
+
+      - name: Run Release Check
+        run: pnpm release:check
+
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:

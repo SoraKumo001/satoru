@@ -29,8 +29,8 @@ Make releases predictable. A maintainer should be able to run one command that v
 - [x] Verify published files include README, LICENSE, changelog, WASM, worker bundles, and type declarations.
 - [x] Add a script that fails when package version and changelog version disagree.
 - [x] Add a script that prints release notes from the latest changelog section.
-- [ ] Add CI workflow steps for release checks.
-- [ ] Document the release process in `docs/workflow.md`.
+- [x] Add CI workflow steps for release checks.
+- [x] Document the release process in `docs/workflow.md`.
 
 ### Acceptance Criteria
 
@@ -53,7 +53,7 @@ Convert internal visual coverage into public evidence. Users should be able to s
 - [x] Add a summary section with supported output formats and tested environments.
 - [x] Add a known caveats section for partial support or format-specific differences.
 - [x] Add a README link to the compatibility document.
-- [ ] Add CI verification that generated compatibility docs are up to date.
+- [x] Add CI verification that generated compatibility docs are up to date.
 
 ### Acceptance Criteria
 
@@ -130,11 +130,11 @@ Improve throughput-oriented deployments that use `createSatoruWorker`. Users sho
 
 - [x] Expose worker pool stats: active jobs, queued jobs, completed jobs, failed jobs, average render time.
 - [x] Add cancellation support via `reset()` (terminates all workers).
-- [ ] Add optional per-job timeout in worker pool specifically (currently relies on global render timeout).
-- [ ] Add `onWorkerLog` or structured worker diagnostics events.
-- [ ] Improve `waitAll` and `close` behavior documentation.
+- [x] Add optional per-job timeout in worker pool specifically (currently relies on global render timeout).
+- [x] Add `onWorkerLog` or structured worker diagnostics events.
+- [x] Improve `waitAll` and `close` behavior documentation.
 - [x] Add tests for worker stats and reset.
-- [ ] Add a high-throughput example.
+- [x] Add a high-throughput example.
 
 ### Acceptance Criteria
 

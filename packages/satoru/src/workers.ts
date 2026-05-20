@@ -5,6 +5,7 @@ import { type RenderOptions, type WorkerPoolStats } from "./core.js";
 export { type RenderOptions } from "./core.js";
 export { Satoru } from "./index.js";
 export * from "./index.js";
+import { LogLevel } from "./log-level.js";
 export * from "./log-level.js";
 
 /**
@@ -14,11 +15,23 @@ export * from "./log-level.js";
  *                      Defaults to the bundled workers.js in the same directory.
  * @param params.maxParallel Maximum number of parallel workers
  */
+/**
+ * Create a Satoru worker proxy using worker-lib.
+ * @param params Initialization parameters
+ * @param params.worker Optional: Path to the worker file, a URL, or a factory function.
+ *                      Defaults to the bundled workers.js in the same directory.
+ * @param params.maxParallel Maximum number of parallel workers (default: 4)
+ * @param params.timeoutMs Optional: Default timeout in milliseconds for each render job.
+ *                         If a render job times out, the pool is reset to prevent hung workers.
+ * @param params.onWorkerLog Optional: Global callback to intercept logs emitted by the worker threads.
+ */
 export const createSatoruWorker = (params?: {
   worker?: string | URL | (() => Worker | string | URL);
   maxParallel?: number;
+  timeoutMs?: number;
+  onWorkerLog?: (level: LogLevel, message: string) => void;
 }) => {
-  const { worker, maxParallel = 4 } = params ?? {};
+  const { worker, maxParallel = 4, timeoutMs, onWorkerLog } = params ?? {};
 
   const factory = () => {
     let w: any;
@@ -47,6 +60,9 @@ export const createSatoruWorker = (params?: {
   let failedJobs = 0;
   let totalJobTimeMs = 0;
 
+  /**
+   * Retrieve operational stats of the worker pool.
+   */
   const getStats = (): WorkerPoolStats => ({
     workerCount: maxParallel,
     activeJobs: Math.min(totalPendingJobs, maxParallel),
@@ -56,6 +72,10 @@ export const createSatoruWorker = (params?: {
     avgJobTimeMs: completedJobs > 0 ? totalJobTimeMs / completedJobs : 0,
   });
 
+  /**
+   * Reset the worker pool by terminating all running workers and recreating them.
+   * Useful to clear hung workers or reset statistics.
+   */
   const reset = () => {
     workerInstance.setLimit(0);
     workerInstance.setLimit(maxParallel);
@@ -77,8 +97,43 @@ export const createSatoruWorker = (params?: {
         return async (options: RenderOptions) => {
           totalPendingJobs++;
           const startTime = Date.now();
+          const jobTimeoutMs = options.limits?.timeoutMs ?? timeoutMs;
+
+          // Merge the user's specific onLog callback with the global onWorkerLog callback
+          const originalOnLog = options.onLog;
+          const mergedOnLog = (level: LogLevel, message: string) => {
+            if (originalOnLog) {
+              originalOnLog(level, message);
+            }
+            if (onWorkerLog) {
+              onWorkerLog(level, message);
+            }
+          };
+
+          const mergedOptions = {
+            ...options,
+            onLog: mergedOnLog,
+          };
+
+          let timeoutId: any;
+          let timeoutPromise: Promise<never> | undefined;
+
+          if (jobTimeoutMs !== undefined && jobTimeoutMs > 0) {
+            timeoutPromise = new Promise<never>((_, reject) => {
+              timeoutId = setTimeout(() => {
+                // If a job times out, terminate and recreate workers to recover from a potential hang
+                reset();
+                reject(new Error(`Render timed out after ${jobTimeoutMs}ms`));
+              }, jobTimeoutMs);
+            });
+          }
+
           try {
-            const result = await target.execute("render", options as any);
+            const executePromise = target.execute("render", mergedOptions as any);
+            const result = await (timeoutPromise
+              ? Promise.race([executePromise, timeoutPromise])
+              : executePromise);
+
             completedJobs++;
             totalJobTimeMs += Date.now() - startTime;
             return result;
@@ -86,6 +141,9 @@ export const createSatoruWorker = (params?: {
             failedJobs++;
             throw e;
           } finally {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
             totalPendingJobs--;
           }
         };
@@ -104,8 +162,28 @@ export const createSatoruWorker = (params?: {
       };
     },
   }) as unknown as Omit<typeof workerInstance, "execute"> &
-    SatoruWorker & { getStats: () => WorkerPoolStats; reset: () => void };
-
+    SatoruWorker & {
+      /**
+       * Retrieve operational stats of the worker pool.
+       */
+      getStats: () => WorkerPoolStats;
+      /**
+       * Reset the worker pool by terminating all running workers and recreating them.
+       */
+      reset: () => void;
+      /**
+       * Close and terminate all workers in the pool immediately.
+       */
+      close: () => void;
+      /**
+       * Wait for all running tasks in the pool to complete.
+       */
+      waitAll: () => Promise<void>;
+      /**
+       * Wait until there is an available worker slot in the pool.
+       */
+      waitReady: (retryTime?: number) => Promise<void>;
+    };
   return proxy;
 };
 

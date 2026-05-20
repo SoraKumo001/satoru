@@ -114,6 +114,9 @@ jobs:
       - name: Run Visual Tests
         run: pnpm --filter visual-test test
 
+      - name: Run Release Check
+        run: pnpm release:check
+
       - name: Publish to npm
         run: |
           # Extract version from tag (e.g. v1.2.3 -> 1.2.3)

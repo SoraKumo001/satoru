@@ -15,6 +15,7 @@
     "wasm:docker:build": "tsx ./scripts/wasm-docker-build.ts",
     "release:check": "tsx ./scripts/release-check.ts",
     "docs:compatibility": "tsx ./scripts/generate-compatibility.ts",
+    "example:high-throughput": "tsx ./scripts/high-throughput-example.ts",
     "format": "tsx ./scripts/format.ts"
   },
   "devDependencies": {

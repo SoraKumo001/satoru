@@ -59,7 +59,7 @@ md += "- **Vertical Writing**: Basic support is implemented but complex combinat
 md += "- **Container Queries**: Supported via JSDOM hydration phase.\n";
 md += "- **Backdrop Filter**: Requires Skia backend support (PNG/WebP/PDF). Not available in raw SVG output as it depends on background pixels.\n";
 
-md += "\n---\n*This document is automatically generated from the visual test registry. Last updated: " + new Date().toISOString().split('T')[0] + "*\n";
+md += "\n---\n*This document is automatically generated from the visual test registry.*\n";
 
 if (!fs.existsSync(DOCS_DIR)) fs.mkdirSync(DOCS_DIR);
 fs.writeFileSync(OUTPUT_FILE, md);

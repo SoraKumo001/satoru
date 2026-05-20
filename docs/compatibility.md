@@ -30,6 +30,7 @@ This document tracks the rendering capabilities of Satoru across various CSS fea
 | Modern CSS | modern features | [22-modern-features.html](../assets/22-modern-features.html) | ✅ | ✅ | ✅ | Diff: 13.08% |
 | Layout | test repro black | [23-test-repro-black.html](../assets/23-test-repro-black.html) | ✅ | ✅ | ✅ | Diff: 8.08% |
 | Print | media print | [24-media-print.html](../assets/24-media-print.html) | ✅ | ✅ | ✅ | Diff: 3.30% |
+| Layout | page breaks | [25-page-breaks.html](../assets/25-page-breaks.html) | ⚠️ | ⚠️ | ✅ | Not in baseline |
 
 ## Supported Output Formats
 
@@ -47,4 +48,4 @@ This document tracks the rendering capabilities of Satoru across various CSS fea
 - **Backdrop Filter**: Requires Skia backend support (PNG/WebP/PDF). Not available in raw SVG output as it depends on background pixels.
 
 ---
-*This document is automatically generated from the visual test registry. Last updated: 2026-05-18*
+*This document is automatically generated from the visual test registry.*

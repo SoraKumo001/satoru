@@ -1,0 +1,1 @@
+var e=``+new URL(`25-page-breaks-C4uDan8W.html`,import.meta.url).href;export{e as default};

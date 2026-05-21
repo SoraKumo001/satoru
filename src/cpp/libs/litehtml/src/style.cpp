@@ -2097,20 +2097,21 @@ namespace litehtml
   {
     if (args.empty())
       return false;
-    string name = args[0].ident();
+    if (args[0].type != IDENT)
+      return false;
+    string name = args[0].name;
     if (name.substr(0, 2) != "--" || name.size() <= 2)
       return false;
     if (args.size() > 1 && args[1].ch != ',')
-      return false;
-    if (args.size() > 2 && !is_declaration_value(args, 2))
       return false;
     return true;
   }
 
   bool evaluate_calc(css_token_vector &tokens, const html_tag *el);
 
-  bool subst_var(css_token_vector &tokens, const html_tag *el, std::set<string_id> &used_vars)
+  bool subst_var_nested(css_token_vector &tokens, const html_tag *el, std::set<string_id> used_vars)
   {
+    bool replaced_any = false;
     for (int i = 0; i < (int)tokens.size(); i++)
     {
       auto &tok = tokens[i];
@@ -2118,31 +2119,55 @@ namespace litehtml
       {
         auto args = tok.value;
         if (!check_var_syntax(args))
-          return false;
+          continue;
         auto name = _id(args[0].name);
-        if (name in used_vars)
-          return false;
-        used_vars.insert(name);
+        if (used_vars.count(name))
+        {
+          remove(tokens, i);
+          i--;
+          replaced_any = true;
+          continue;
+        }
+        std::set<string_id> next_used_vars = used_vars;
+        next_used_vars.insert(name);
         css_token_vector value;
         if (el->get_custom_property(name, value))
         {
+          subst_var_nested(value, el, next_used_vars);
           remove(tokens, i);
           insert(tokens, i, value);
+          i += (int)value.size() - 1;
+          replaced_any = true;
         }
         else
         {
-          if (args.size() == 1)
-            return false;
-          remove(args, 0, 2);
-          remove(tokens, i);
-          insert(tokens, i, args);
+          if (args.size() > 1)
+          {
+            css_token_vector fallback = args;
+            remove(fallback, 0, 2);
+            subst_var_nested(fallback, el, next_used_vars);
+            remove(tokens, i);
+            insert(tokens, i, fallback);
+            i += (int)fallback.size() - 1;
+            replaced_any = true;
+          }
+          else
+          {
+            remove(tokens, i);
+            i--;
+            replaced_any = true;
+          }
         }
-        return true;
       }
-      if (tok.is_component_value() && subst_var(tok.value, el, used_vars))
-        return true;
+      else if (tok.is_component_value())
+      {
+        if (subst_var_nested(tok.value, el, used_vars))
+        {
+          replaced_any = true;
+        }
+      }
     }
-    return false;
+    return replaced_any;
   }
 
   bool evaluate_light_dark(css_token_vector &tokens, document_container *container)
@@ -2180,6 +2205,82 @@ namespace litehtml
     return changed;
   }
 
+  bool evaluate_op(const css_token &left, char op, const css_token &right, css_token &result)
+  {
+    if (left.type == NUMBER && right.type == NUMBER)
+    {
+      result = left;
+      if (op == '+') result.n.number = left.n.number + right.n.number;
+      else if (op == '-') result.n.number = left.n.number - right.n.number;
+      else if (op == '*') result.n.number = left.n.number * right.n.number;
+      else if (op == '/' && right.n.number != 0) result.n.number = left.n.number / right.n.number;
+      else return false;
+      return true;
+    }
+    if ((left.type == DIMENSION || left.type == PERCENTAGE) && right.type == NUMBER)
+    {
+      result = left;
+      if (op == '*') result.n.number = left.n.number * right.n.number;
+      else if (op == '/' && right.n.number != 0) result.n.number = left.n.number / right.n.number;
+      else return false;
+      return true;
+    }
+    if (left.type == NUMBER && (right.type == DIMENSION || right.type == PERCENTAGE))
+    {
+      result = right;
+      if (op == '*') result.n.number = right.n.number * left.n.number;
+      else return false;
+      return true;
+    }
+    if (left.type == right.type && (left.type == DIMENSION || left.type == PERCENTAGE))
+    {
+      if (left.type == DIMENSION && lowcase(left.unit) != lowcase(right.unit))
+        return false;
+      result = left;
+      if (op == '+') result.n.number = left.n.number + right.n.number;
+      else if (op == '-') result.n.number = left.n.number - right.n.number;
+      else return false;
+      return true;
+    }
+    return false;
+  }
+
+  bool simplify_calc_tokens(css_token_vector &val)
+  {
+    bool changed = false;
+    for (int i = 1; i < (int)val.size() - 1; )
+    {
+      if (val[i].ch == '*' || val[i].ch == '/')
+      {
+        css_token res;
+        if (evaluate_op(val[i - 1], val[i].ch, val[i + 1], res))
+        {
+          val[i - 1] = res;
+          val.erase(val.begin() + i, val.begin() + i + 2);
+          changed = true;
+          continue;
+        }
+      }
+      i++;
+    }
+    for (int i = 1; i < (int)val.size() - 1; )
+    {
+      if (val[i].ch == '+' || val[i].ch == '-')
+      {
+        css_token res;
+        if (evaluate_op(val[i - 1], val[i].ch, val[i + 1], res))
+        {
+          val[i - 1] = res;
+          val.erase(val.begin() + i, val.begin() + i + 2);
+          changed = true;
+          continue;
+        }
+      }
+      i++;
+    }
+    return changed;
+  }
+
   bool evaluate_calc(css_token_vector &tokens, const html_tag *el)
   {
     bool changed = false;
@@ -2189,15 +2290,16 @@ namespace litehtml
       if (tok.type == CV_FUNCTION && (lowcase(tok.name) == "calc" || lowcase(tok.name) == "min" || lowcase(tok.name) == "max" || lowcase(tok.name) == "clamp"))
       {
         evaluate_calc(tok.value, el);
-
         string func_name = lowcase(tok.name);
-
-        // Remove whitespace for evaluation
-        css_token_vector val;
-        for (const auto& t : tok.value) if (t.type != WHITESPACE) val.push_back(t);
-
         if (func_name == "calc")
         {
+          css_token_vector val;
+          for (const auto& t : tok.value) if (t.type != WHITESPACE) val.push_back(t);
+          
+          while (simplify_calc_tokens(val))
+          {
+            changed = true;
+          }
           if (val.size() == 1 && (val[0].type == DIMENSION || val[0].type == NUMBER || val[0].type == PERCENTAGE))
           {
             css_token inner = val[0];
@@ -2206,85 +2308,10 @@ namespace litehtml
             changed = true;
             continue;
           }
-
-          if (val.size() == 3)
+          if (changed)
           {
-            const auto& left = val[0];
-            const auto& op = val[1];
-            const auto& right = val[2];
-
-            if (left.type == DIMENSION && right.type == NUMBER && op.ch == '*')
-            {
-              css_token result = left;
-              result.n.number *= right.n.number;
-              remove(tokens, i);
-              insert(tokens, i, {result});
-              changed = true;
-              continue;
-            }
-            if (left.type == NUMBER && right.type == DIMENSION && op.ch == '*')
-            {
-              css_token result = right;
-              result.n.number *= left.n.number;
-              remove(tokens, i);
-              insert(tokens, i, {result});
-              changed = true;
-              continue;
-            }
-            if (left.type == DIMENSION && right.type == NUMBER && op.ch == '/' && right.n.number != 0)
-            {
-              css_token result = left;
-              result.n.number /= right.n.number;
-              remove(tokens, i);
-              insert(tokens, i, {result});
-              changed = true;
-              continue;
-            }
-            if (left.type == DIMENSION && right.type == DIMENSION && lowcase(left.unit) == lowcase(right.unit) && (op.ch == '+' || op.ch == '-'))
-            {
-              css_token result = left;
-              if (op.ch == '+') result.n.number += right.n.number;
-              else result.n.number -= right.n.number;
-              remove(tokens, i);
-              insert(tokens, i, {result});
-              changed = true;
-              continue;
-            }
-            if (left.type == NUMBER && right.type == NUMBER && (op.ch == '+' || op.ch == '-' || op.ch == '*' || op.ch == '/'))
-            {
-              css_token result = left;
-              if (op.ch == '+') result.n.number += right.n.number;
-              else if (op.ch == '-') result.n.number -= right.n.number;
-              else if (op.ch == '*') result.n.number *= right.n.number;
-              else if (op.ch == '/' && right.n.number != 0) result.n.number /= right.n.number;
-              remove(tokens, i);
-              insert(tokens, i, {result});
-              changed = true;
-              continue;
-            }
+            tok.value = val;
           }
-        }
-        else if (func_name == "min" || func_name == "max")
-        {
-          if (evaluate_calc(val, el)) changed = true;
-          /*
-          auto args = parse_comma_separated_list(val);
-          if (!args.empty())
-          {
-            // ... (DISABLE FOLDING) ...
-          }
-          */
-        }
-        else if (func_name == "clamp")
-        {
-          if (evaluate_calc(val, el)) changed = true;
-          /*
-          auto args = parse_comma_separated_list(val);
-          if (args.size() == 3)
-          {
-            // ... (DISABLE FOLDING) ...
-          }
-          */
         }
       }
       if (tok.is_component_value())
@@ -2298,8 +2325,7 @@ namespace litehtml
   void subst_vars_(string_id name, css_token_vector &tokens, const html_tag *el)
   {
     std::set<string_id> used_vars = {name};
-    while (subst_var(tokens, el, used_vars))
-      ;
+    subst_var_nested(tokens, el, used_vars);
     evaluate_calc(tokens, el);
   }
 

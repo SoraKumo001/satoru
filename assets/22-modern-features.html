@@ -69,6 +69,22 @@
         .screen { mix-blend-mode: screen; left: 180px; }
         .overlay { mix-blend-mode: overlay; left: 310px; }
         .difference { mix-blend-mode: difference; left: 440px; color: white; border-color: white; }
+        
+        /* 5. Nested Variables & Complex Calc */
+        :root {
+            --base-spacing: 10px;
+            --multiplier: 2;
+            --total-padding: calc(var(--base-spacing) * var(--multiplier) - 5px); /* 10px * 2 - 5px = 15px */
+            --nested-var-1: var(--undefined-var, var(--brand-color)); /* fallback to brand-color (vivid blue) */
+            --nested-var-2: var(--nested-var-1, red); /* nested fallback, should resolve to brand-color */
+        }
+        .nested-calc-box {
+            padding: var(--total-padding);
+            background-color: var(--nested-var-2);
+            border: calc(1px * 3) solid black; /* 3px border */
+            width: calc(40px * 2 + 10px * 2); /* 100px */
+            height: calc(100px - 20px); /* 80px */
+        }
 
     </style>
 </head>
@@ -110,6 +126,14 @@
         <h2>4. Text Wrap (Parse Only)</h2>
         <div style="width: 200px; border: 1px solid #ccc; padding: 5px; text-wrap: balance;">
             This long text should ideally be balanced across lines if the balance logic was active.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>5. Nested Variables & Complex Calc Resolution</h2>
+        <p>This box should have 15px padding, 3px solid border, 100px width, 80px height, and blue background.</p>
+        <div class="nested-calc-box" style="color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; box-sizing: border-box;">
+            Nested & Calc
         </div>
     </div>
 </body>

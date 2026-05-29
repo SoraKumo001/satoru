@@ -6,5 +6,9 @@
   "sidebar.docsSidebar.category.レシピ集": {
     "message": "Recipes",
     "description": "The label for category 'レシピ集' in sidebar 'docsSidebar'"
+  },
+  "sidebar.docsSidebar.category.API リファレンス": {
+    "message": "API Reference",
+    "description": "The label for category 'API リファレンス' in sidebar 'docsSidebar'"
   }
 }

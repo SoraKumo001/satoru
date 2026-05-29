@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @font-face {
+            font-family: 'Noto Sans Arabic';
+            src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-arabic/files/noto-sans-arabic-arabic-400-normal.woff2') format('woff2');
+        }
+        @font-face {
+            font-family: 'Noto Sans';
+            src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-sans/files/noto-sans-latin-400-normal.woff2') format('woff2');
+        }
+        body {
+            font-family: 'Noto Sans Arabic', 'Noto Sans', sans-serif;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 20px;
+            width: 400px;
+        }
+        .mixed {
+            direction: ltr; /* Mixed LTR/RTL content */
+        }
+        h2 {
+            border-bottom: 2px solid #2196F3;
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>RTL Test (Arabic)</h2>
+        <p>هذا نص باللغة العربية يتم عرضه من اليمين إلى اليسار.</p>
+        <p>Arabic and English mixed: مرحبا بكم في Satoru Engine!</p>
+    </div>
+
+    <div class="container mixed">
+        <h2>Mixed Direction (LTR Base)</h2>
+        <p>English text followed by Arabic: Hello, مرحبا!</p>
+        <p>Numbers in RTL: ١٢٣٤٥ (12345)</p>
+    </div>
+</body>
+</html>

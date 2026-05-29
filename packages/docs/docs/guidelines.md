@@ -1,3 +1,8 @@
+---
+sidebar_position: 5
+title: 運用ガイドライン
+---
+
 # Operational Guidelines (Agent Specific)
 
 This section defines the core rules for an agent's behavior within this project.

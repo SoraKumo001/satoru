@@ -1,3 +1,8 @@
+---
+sidebar_position: 2
+title: アーキテクチャ
+---
+
 # Technical Specifications & Architecture
 
 ## 3.1 Directory Structure

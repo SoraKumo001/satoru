@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 const ASSETS_DIR = "assets";
-const DOCS_DIR = "docs";
+const DOCS_DIR = "packages/docs/docs";
 const OUTPUT_FILE = path.join(DOCS_DIR, "compatibility.md");
 const PNG_BASELINE_PATH = "packages/visual-test/test/data/png-mismatch-baselines.json";
 const SVG_BASELINE_PATH = "packages/visual-test/test/data/svg-mismatch-baselines.json";
@@ -13,7 +13,7 @@ const assets = fs.readdirSync(ASSETS_DIR).filter(f => f.endsWith(".html")).sort(
 const pngBaselines = fs.existsSync(PNG_BASELINE_PATH) ? JSON.parse(fs.readFileSync(PNG_BASELINE_PATH, "utf-8")) : {};
 const svgBaselines = fs.existsSync(SVG_BASELINE_PATH) ? JSON.parse(fs.readFileSync(SVG_BASELINE_PATH, "utf-8")) : {};
 
-let md = "# Satoru Compatibility Evidence\n\n";
+let md = "---\nsidebar_position: 3\ntitle: CSS 互換性\n---\n\n# Satoru Compatibility Evidence\n\n";
 md += "This document tracks the rendering capabilities of Satoru across various CSS features and output formats. Status is derived from the visual regression test suite which compares Satoru output against browser-based reference images.\n\n";
 
 md += "## Feature Support Matrix\n\n";
@@ -35,7 +35,7 @@ for (const asset of assets) {
   if (name.includes("modern") || name.includes("container")) group = "Modern CSS";
   if (name.includes("print")) group = "Print";
 
-  const link = `[${asset}](../assets/${asset})`;
+  const link = `[${asset}](pathname:///assets/${asset})`;
   
   const pngStatus = pngBaselines[asset] ? "✅" : "⚠️";
   const svgStatus = svgBaselines[asset] ? "✅" : "⚠️";

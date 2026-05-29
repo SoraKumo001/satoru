@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Media Print Test - Satoru</title>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --bg-color: #f8fafc;
+            --text-color: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .header {
+            border-bottom: 2px solid var(--primary-color);
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 20px;
+            background: #e2e8f0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+        }
+
+        .nav-item {
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .content-box {
+            background: #eff6ff;
+            border-left: 4px solid var(--primary-color);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            background: #fef2f2;
+            border: 1px solid #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 30px;
+        }
+
+        .print-only {
+            display: none;
+        }
+
+        /* @media print styles */
+        @media print {
+            body {
+                background-color: white;
+                color: black;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                width: 100%;
+                max-width: none;
+                padding: 0;
+            }
+
+            .nav-menu {
+                display: none; /* Hide navigation during print */
+            }
+
+            .header h1 {
+                color: black;
+                font-size: 24pt;
+            }
+
+            .content-box {
+                background: white;
+                border: 1px solid #ccc;
+                color: black;
+            }
+
+            .print-only {
+                display: block;
+                margin-bottom: 20px;
+                font-style: italic;
+                color: #555;
+            }
+
+            .no-print {
+                display: none;
+            }
+
+            .header {
+                border-bottom: 1pt solid black;
+            }
+
+            .alert {
+                background: #f0f0f0;
+                border: 1pt solid black;
+                color: black;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Satoru Rendering Engine</h1>
+            <p>@media print Support Verification</p>
+        </div>
+
+        <div class="print-only">
+            This section is visible <strong>only during printing</strong>.
+        </div>
+
+        <div class="nav-menu no-print">
+            <div class="nav-item">Home</div>
+            <div class="nav-item">Features</div>
+            <div class="nav-item">Documentation</div>
+            <div class="nav-item">About</div>
+        </div>
+
+        <div class="content">
+            <h2>Media Query Test</h2>
+            <p>This document is for testing dynamic style switching based on media type settings.</p>
+            
+            <div class="content-box">
+                <strong>Status:</strong>
+                <span class="no-print">Styles for "Screen" are currently applied. You should see a blue background and side border.</span>
+                <span class="print-only">Styles for "Print" are currently applied. The background is white and the navigation menu is hidden.</span>
+            </div>
+
+            <p>
+                By specifying <code>mediaType: 'print'</code> in Satoru's <code>RenderOptions</code>,
+                the color of the "Alert" box below will change, the navigation bar will disappear,
+                and a print-only message (the grey text right above) will be displayed.
+            </p>
+
+            <div class="alert">
+                This box has a red background on screen, but will be monochrome (or grey background) during printing.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,3 +1,8 @@
+---
+sidebar_position: 4
+title: 開発ワークフロー
+---
+
 # Development & Verification Workflow
 
 ## 4.1 Build Commands

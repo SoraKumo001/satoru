@@ -16,7 +16,9 @@
     "release:check": "tsx ./scripts/release-check.ts",
     "docs:compatibility": "tsx ./scripts/generate-compatibility.ts",
     "example:high-throughput": "tsx ./scripts/high-throughput-example.ts",
-    "format": "tsx ./scripts/format.ts"
+    "format": "tsx ./scripts/format.ts",
+    "docs:dev": "pnpm --filter satoru-docs start",
+    "docs:build": "pnpm --filter satoru-docs build"
   },
   "devDependencies": {
     "@types/node": "25.7.0",

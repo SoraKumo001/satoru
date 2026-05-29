@@ -1,3 +1,8 @@
+---
+sidebar_position: 1
+title: 本番 OGP 生成
+---
+
 # Production OGP Generation Recipe
 
 This recipe demonstrates how to use Satoru for a production-grade OGP (Open Graph Protocol) image generation service. It combines **caching**, **rendering limits**, and **diagnostics** to ensure a safe, fast, and observable system.

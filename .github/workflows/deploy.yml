@@ -123,16 +123,29 @@ jobs:
       - name: Check Compatibility Docs
         run: |
           pnpm docs:compatibility
-          git diff --exit-code docs/compatibility.md
+          git diff --exit-code packages/docs/docs/compatibility.md
 
       - name: Run Release Check
         run: pnpm release:check
+
+      - name: Build Docs
+        run: pnpm docs:build
+        env:
+          DOCUSAURUS_BASE_URL: /satoru/${{ github.ref_name }}/docs/
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: packages/playground/dist
           target-folder: ${{ github.ref_name }}
+          branch: gh-pages
+          clean: false
+
+      - name: Deploy Docs to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: packages/docs/build
+          target-folder: ${{ github.ref_name }}/docs
           branch: gh-pages
           clean: false
 

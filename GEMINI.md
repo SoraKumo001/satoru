@@ -16,6 +16,6 @@ Full guidelines: [docs/guidelines.md](docs/guidelines.md)
 
 ## 📚 Project Documentation
 
-- **Project Overview**: [docs/overview.md](docs/overview.md)
-- **Technical Specifications & Architecture**: [docs/architecture.md](docs/architecture.md)
-- **Development & Verification Workflow**: [docs/workflow.md](docs/workflow.md)
+- **Project Overview**: [packages/docs/docs/overview.md](packages/docs/docs/overview.md)
+- **Technical Specifications & Architecture**: [packages/docs/docs/architecture.md](packages/docs/docs/architecture.md)
+- **Development & Verification Workflow**: [packages/docs/docs/workflow.md](packages/docs/docs/workflow.md)

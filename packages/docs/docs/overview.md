@@ -1,3 +1,8 @@
+---
+sidebar_position: 1
+title: 概要
+---
+
 # Project Overview: Satoru
 
 A high-fidelity HTML/CSS to SVG/PNG/PDF converter running in WebAssembly (Emscripten).

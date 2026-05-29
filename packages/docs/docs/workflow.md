@@ -3,44 +3,44 @@ sidebar_position: 4
 title: 開発ワークフロー
 ---
 
-# Development & Verification Workflow
+# 開発と検証ワークフロー
 
-## 4.1 Build Commands
+## 4.1 ビルドコマンド
 
-- `pnpm wasm:configure`: Configure CMake with Ninja.
-- `pnpm wasm:build`: Compile C++ to Wasm (uses Thin LTO and -O3 in production).
-- `pnpm build`: Full monorepo build.
+- `pnpm wasm:configure`: Ninja を使って CMake を構成します。
+- `pnpm wasm:build`: C++ を Wasm にコンパイルします。本番ビルドでは Thin LTO と `-O3` を使用します。
+- `pnpm build`: monorepo 全体をビルドします。
 
-## 4.2 Verification Protocol
+## 4.2 検証手順
 
-1. **Build Check**: Ensure Wasm compilation success.
-2. **Visual Audit**: Run `pnpm --filter visual-test convert-assets` and inspect outputs in `temp/`.
-3. **Log Analysis**: Use `--verbose` to inspect layout passes and cache hits/misses.
+1. **ビルド確認**: Wasm コンパイルが成功することを確認します。
+2. **視覚確認**: `pnpm --filter visual-test convert-assets` を実行し、`temp/` の出力を確認します。
+3. **ログ分析**: `--verbose` を使い、layout pass や cache hit/miss を確認します。
 
-## 4.3 Release Verification & Publish Workflow
+## 4.3 リリース検証と公開ワークフロー
 
-To ensure publish safety and API consistency, follow this protocol before making a release:
+公開時の安全性と API の一貫性を保つため、リリース前に次の手順を実行します。
 
-1. **Local Release Verification**: Run the automated release check script:
+1. **ローカルリリース検証**: 自動リリースチェックを実行します。
    ```bash
    pnpm release:check
    ```
-   This script performs the following tasks:
-   - Verifies version consistency between `packages/satoru/package.json` and `packages/satoru/CHANGELOG.md`.
-   - Runs a full clean build (`pnpm build`).
-   - Verifies that all exported entrypoints and files (such as README, LICENSE, WASM binary, worker bundles) exist.
-   - Runs the visual regression test suite.
-   - Performs a package dry-run pack (`pnpm pack --dry-run`).
+   この script は次の項目を確認します。
+   - `packages/satoru/package.json` と `packages/satoru/CHANGELOG.md` の version 整合性。
+   - clean build (`pnpm build`)。
+   - export された entrypoint と README、LICENSE、WASM binary、worker bundle などの存在。
+   - 視覚回帰テスト。
+   - package dry-run pack (`pnpm pack --dry-run`)。
 
-2. **Compatibility Evidence Documentation**:
-   Ensure the visual capability matrix documentation is updated. The CI validates this by checking for uncommitted changes. You can regenerate it locally via:
+2. **互換性エビデンス文書**:
+   視覚互換性 matrix の文書が更新されていることを確認します。CI は未コミット差分の有無でこれを検証します。ローカルでは次のコマンドで再生成できます。
    ```bash
    pnpm docs:compatibility
    ```
-   Always commit any updates to `docs/compatibility.md` prior to opening a release PR.
+   リリース PR を作成する前に、`docs/compatibility.md` の更新を必ずコミットします。
 
-3. **Worker Pool Lifecycle Management**:
-   When using `createSatoruWorker` for high-throughput renderings, understand these lifecycle controls:
-   - `waitAll()`: Returns a promise resolving only when all dispatched render jobs are finished. Useful to block script termination until completion.
-   - `close()`: Instantly terminates all worker threads/processes. Always call this during cleanup to prevent memory leaks or hanging processes.
-   - `reset()`: Recycles the worker pool by terminating current workers and spinning up new ones. Automatically triggered in case of per-job timeouts to recover from native execution hangs.
+3. **Worker Pool のライフサイクル管理**:
+   高スループットなレンダリングで `createSatoruWorker` を使う場合は、次の lifecycle control を理解しておきます。
+   - `waitAll()`: dispatch 済みの render job がすべて完了したときに resolve する promise を返します。script 終了を完了まで待つ用途に使います。
+   - `close()`: すべての worker thread/process を即座に終了します。memory leak や process の残留を防ぐため、cleanup 時に必ず呼びます。
+   - `reset()`: 現在の worker を終了し、新しい worker pool を起動します。job timeout が起きた場合、native 実行の hang から復旧するため自動的に呼ばれます。

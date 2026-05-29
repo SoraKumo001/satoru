@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import Heading from '@theme/Heading';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
 type FeatureItem = {
   title: string;
@@ -7,7 +8,7 @@ type FeatureItem = {
   description: ReactNode;
 };
 
-const FeatureList: FeatureItem[] = [
+const jaFeatureList: FeatureItem[] = [
   {
     title: 'Wasm 駆動の高性能レイアウト',
     icon: '⚡',
@@ -65,6 +66,64 @@ const FeatureList: FeatureItem[] = [
   },
 ];
 
+const enFeatureList: FeatureItem[] = [
+  {
+    title: 'High-performance Wasm layout',
+    icon: '⚡',
+    description: (
+      <>
+        <strong>Skia Graphics Engine</strong> and <strong>litehtml</strong> integrated through WebAssembly.
+        Satoru runs quickly in server-side, Edge, and Cloudflare Workers environments without relying on a browser DOM or headless browser.
+      </>
+    ),
+  },
+  {
+    title: 'Broad CSS and layout support',
+    icon: '🎨',
+    description: (
+      <>
+        Reproduces practical CSS layouts including Flexbox, basic Grid Layout, Float, Box-shadow, container queries, and media queries such as <code>@media print</code>.
+      </>
+    ),
+  },
+  {
+    title: 'Multiple output formats',
+    icon: '📄',
+    description: (
+      <>
+        Supports SVG vector output, high-quality PNG and WebP raster output, and multi-page PDF generation out of the box.
+      </>
+    ),
+  },
+  {
+    title: 'Multilingual text and font resolution',
+    icon: '🌐',
+    description: (
+      <>
+        Advanced text shaping through Unicode services and HarfBuzz. Mixed CJK text, line-breaking rules, and automatic Google Fonts loading are supported.
+      </>
+    ),
+  },
+  {
+    title: 'React integration and JSDOM hydration',
+    icon: '⚛️',
+    description: (
+      <>
+        Render React components directly to HTML, or use the JSDOM plugin to capture complex Next.js and SPA output after hydration completes.
+      </>
+    ),
+  },
+  {
+    title: 'Fast rendering with persisted state',
+    icon: '💾',
+    description: (
+      <>
+        Serialize calculated layout state as binary data with a Layout-Once, Render-Anywhere flow, skipping reflow work in later renders.
+      </>
+    ),
+  },
+];
+
 function Feature({title, icon, description}: FeatureItem) {
   return (
     <div className="feature-card">
@@ -78,10 +137,13 @@ function Feature({title, icon, description}: FeatureItem) {
 }
 
 export default function HomepageFeatures(): ReactNode {
+  const {i18n} = useDocusaurusContext();
+  const featureList = i18n.currentLocale === 'en' ? enFeatureList : jaFeatureList;
+
   return (
     <section className="features-section">
       <div className="features-grid">
-        {FeatureList.map((props, idx) => (
+        {featureList.map((props, idx) => (
           <Feature key={idx} {...props} />
         ))}
       </div>

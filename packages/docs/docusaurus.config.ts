@@ -22,7 +22,15 @@ const config: Config = {
 
   i18n: {
     defaultLocale: 'ja',
-    locales: ['ja'],
+    locales: ['ja', 'en'],
+    localeConfigs: {
+      ja: {
+        label: '日本語',
+      },
+      en: {
+        label: 'English',
+      },
+    },
   },
 
   presets: [
@@ -50,7 +58,7 @@ const config: Config = {
   themes: ['@docusaurus/theme-mermaid'],
 
   themeConfig: {
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'img/logo.svg',
     colorMode: {
       defaultMode: 'dark',
       respectPrefersColorScheme: true,
@@ -67,6 +75,10 @@ const config: Config = {
           sidebarId: 'docsSidebar',
           position: 'left',
           label: 'ドキュメント',
+        },
+        {
+          type: 'localeDropdown',
+          position: 'right',
         },
         {
           href: 'https://sorakumo001.github.io/satoru/master',

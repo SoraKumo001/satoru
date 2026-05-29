@@ -1,41 +1,41 @@
-# Website
+# Satoru Docs
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+This package contains the Docusaurus documentation site for Satoru.
 
 ## Installation
 
 ```bash
-yarn
+pnpm install
 ```
 
 ## Local Development
 
 ```bash
-yarn start
+pnpm docs:dev
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+This starts the local Docusaurus development server. Most content and style changes are reflected without restarting the server.
 
 ## Build
 
 ```bash
-yarn build
+pnpm docs:build
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+This generates the static site into `packages/docs/build`.
 
-## Deployment
+## Preview Production Output
 
-Using SSH:
+After building, preview the generated site with:
 
 ```bash
-USE_SSH=true yarn deploy
+pnpm --filter satoru-docs serve
 ```
 
-Not using SSH:
+## Content
 
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
+- Japanese source documents live in `docs/`.
+- English translations live in `i18n/en/docusaurus-plugin-content-docs/current/`.
+- Shared UI translations live under `i18n/en/`.
 
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+Run `pnpm --filter satoru-docs typecheck` and `pnpm docs:build` before publishing documentation changes.

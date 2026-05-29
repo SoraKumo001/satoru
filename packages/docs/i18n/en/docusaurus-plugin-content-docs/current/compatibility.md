@@ -1,19 +1,19 @@
 ---
 sidebar_position: 3
-title: CSS 互換性
+title: CSS Compatibility
 ---
 
-# Satoru 互換性エビデンス
+# Satoru Compatibility Evidence
 
-この文書は、さまざまな CSS 機能と出力形式に対する Satoru の描画能力を記録します。ステータスは、Satoru の出力とブラウザベースの参照画像を比較する視覚回帰テストスイートから生成されます。
+This document tracks Satoru's rendering capabilities across CSS features and output formats. Status is generated from the visual regression test suite, which compares Satoru output against browser-based reference images.
 
-## 判定基準
+## Status Criteria
 
-- `✅`: 視覚回帰テストの許容範囲内、または差分の原因が既知で実用上許容できるもの。
-- `⚠️`: 一部の出力形式に制限がある、または baseline がまだ揃っていないもの。
-- `Diff`: ブラウザ参照画像との差分率。数値が高い項目は、Notes や既知の注意点と合わせて確認してください。
+- `✅`: Within the visual regression tolerance, or a known difference that is acceptable for practical use.
+- `⚠️`: Limited in some output formats, or the baseline is not complete yet.
+- `Diff`: Difference ratio against the browser reference image. Higher values should be read together with the notes and known caveats.
 
-## 機能サポート matrix
+## Feature Support Matrix
 
 | Group | Feature | Asset | PNG | SVG | PDF | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -43,20 +43,20 @@ title: CSS 互換性
 | Print | media print | [24-media-print.html](pathname:///assets/24-media-print.html) | ✅ | ✅ | ✅ | Diff: 3.30% |
 | Layout | page breaks | [25-page-breaks.html](pathname:///assets/25-page-breaks.html) | ⚠️ | ⚠️ | ✅ | Not in baseline |
 
-## サポートする出力形式
+## Supported Output Formats
 
 | Format | Status | Description |
 | --- | --- | --- |
-| **PNG** | ✅ Supported | Skia ベースの高性能 raster 出力。 |
-| **SVG** | ✅ Supported | 高精度な XML ベースの vector 出力。 |
-| **PDF** | ✅ Supported | 複数ページ document 生成をサポート。 |
-| **WebP** | ✅ Supported | Skia による効率的な raster 出力。 |
+| **PNG** | ✅ Supported | High-performance Skia-based raster output. |
+| **SVG** | ✅ Supported | High-fidelity XML-based vector output. |
+| **PDF** | ✅ Supported | Multi-page document generation support. |
+| **WebP** | ✅ Supported | Efficient raster output using Skia. |
 
-## 既知の注意点
+## Known Caveats
 
-- **Vertical Writing**: 基本的なサポートは実装済みですが、縦書き text と float 要素の複雑な組み合わせでは、軽微な alignment 差が出る場合があります。
-- **Container Queries**: JSDOM hydration phase 経由でサポートします。
-- **Backdrop Filter**: Skia backend support (PNG/WebP/PDF) が必要です。背景 pixel に依存するため、raw SVG 出力では利用できません。
+- **Vertical writing**: Basic support is implemented, but complex combinations of vertical text and floating elements can have minor alignment differences.
+- **Container queries**: Supported through the JSDOM hydration phase.
+- **Backdrop filter**: Requires Skia backend support (PNG/WebP/PDF). It is not available in raw SVG output because it depends on background pixels.
 
 ---
-*この文書は visual test registry から自動生成されます。*
+*This document is automatically generated from the visual test registry.*

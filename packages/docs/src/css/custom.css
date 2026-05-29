@@ -113,7 +113,7 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 1.5rem;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
 }
 
 .hero-subtitle {
@@ -230,7 +230,7 @@ body {
 
 /* Sidebar and general docs styling */
 .menu__link--active {
-  background-color: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%) !important;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%) !important;
   border-left: 3px solid hsl(var(--brand-primary-hsl));
   border-radius: 0 4px 4px 0 !important;
   padding-left: calc(var(--ifm-menu-link-padding-horizontal) - 3px) !important;
@@ -239,7 +239,7 @@ body {
 .markdown > h1 {
   font-size: 2.5rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .markdown > h2 {

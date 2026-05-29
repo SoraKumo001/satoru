@@ -1,0 +1,10 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.docsSidebar.category.レシピ集": {
+    "message": "Recipes",
+    "description": "The label for category 'レシピ集' in sidebar 'docsSidebar'"
+  }
+}

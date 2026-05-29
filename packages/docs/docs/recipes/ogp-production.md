@@ -3,17 +3,17 @@ sidebar_position: 1
 title: 本番 OGP 生成
 ---
 
-# Production OGP Generation Recipe
+# 本番 OGP 生成 recipe
 
-This recipe demonstrates how to use Satoru for a production-grade OGP (Open Graph Protocol) image generation service. It combines **caching**, **rendering limits**, and **diagnostics** to ensure a safe, fast, and observable system.
+この recipe は、本番向けの OGP (Open Graph Protocol) 画像生成 service で Satoru を使う方法を示します。**caching**、**rendering limits**、**diagnostics** を組み合わせ、安全で高速かつ観測可能な system を構成します。
 
-## Key Features
+## 主なポイント
 
-1.  **Memory Caching**: Avoids redundant network requests for shared assets like fonts and branding images.
-2.  **Strict Limits**: Prevents SSRF, oversized inputs, and runaway render durations.
-3.  **Observability**: Uses diagnostics to track resource failures and performance.
+1.  **Memory Caching**: font や branding image などの共有 asset に対する重複 network request を避けます。
+2.  **Strict Limits**: SSRF、過大な input、長時間化する render を防ぎます。
+3.  **Observability**: diagnostics を使い、resource failure と performance を追跡します。
 
-## The Recipe (Node.js / Cloudflare Workers)
+## Recipe (Node.js / Cloudflare Workers)
 
 ```typescript
 import { render } from "satoru-render/single";
@@ -64,9 +64,9 @@ export async function generateOGP(html: string, url: string) {
 }
 ```
 
-## Why this is Production-Ready
+## 本番向けである理由
 
-- **Security**: Blocking `http:` and `localhost` prevents basic SSRF attacks where a malicious user might try to make your server fetch internal metadata or files.
-- **Stability**: The `timeoutMs` ensures that a complex CSS input won't hang your worker/server indefinitely.
-- **Cost**: The `MemoryResourceCache` significantly reduces egress traffic and latency by keeping expensive Google Fonts or high-res branding images in memory.
-- **Debuggability**: If an OGP image looks broken (e.g., missing font), the `onDiagnostics` callback tells you exactly which URL failed and why, without needing to reproduce it locally.
+- **Security**: `http:` と `localhost` を block することで、悪意ある user が server に内部 metadata や file を取得させる基本的な SSRF 攻撃を防ぎます。
+- **Stability**: `timeoutMs` により、複雑な CSS input が worker/server を無期限に hang させることを防ぎます。
+- **Cost**: `MemoryResourceCache` は高価な Google Fonts や高解像度 branding image を memory に保持し、egress traffic と latency を大きく減らします。
+- **Debuggability**: OGP image が壊れて見える場合 (font missing など)、`onDiagnostics` callback から、どの URL がなぜ失敗したかを local 再現なしで確認できます。

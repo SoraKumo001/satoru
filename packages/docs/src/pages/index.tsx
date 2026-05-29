@@ -6,7 +6,8 @@ import HomepageFeatures from '@site/src/components/HomepageFeatures';
 import Heading from '@theme/Heading';
 
 function HomepageHeader() {
-  const {siteConfig} = useDocusaurusContext();
+  const {siteConfig, i18n} = useDocusaurusContext();
+  const isEnglish = i18n.currentLocale === 'en';
   return (
     <header className="hero-banner">
       <div className="container text--center">
@@ -18,12 +19,12 @@ function HomepageHeader() {
           <Link
             className="btn-primary-gradient"
             to="/docs/overview">
-            ドキュメントを読む 🚀
+            {isEnglish ? 'Read the docs' : 'ドキュメントを読む'} 🚀
           </Link>
           <Link
             className="btn-secondary-outline"
             to="https://sorakumo001.github.io/satoru/master">
-            Playground デモを試す
+            {isEnglish ? 'Open Playground' : 'Playground デモを試す'}
           </Link>
         </div>
       </div>

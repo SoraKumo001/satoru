@@ -7,11 +7,11 @@
 [![npm download](https://img.shields.io/npm/dw/satoru-render.svg)](https://www.npmjs.com/package/satoru-render)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/SoraKumo001/satoru)
 
-**Satoru Render** is a high-fidelity HTML-to-Image/PDF conversion engine built with WebAssembly. It provides a lightweight, dependency-free solution for generating high-quality visuals and documents across **Node.js**, **Cloudflare Workers**, **Deno**, and **Web Browsers**.
+**Satoru Render** is a high-fidelity HTML-to-Image/PDF conversion engine built with WebAssembly. It generates high-quality visuals and documents across **Node.js**, **Cloudflare Workers**, **Deno**, and **Web Browsers** without requiring a headless browser or system-level rendering service.
 
 By combining the **Skia** graphics engine with a custom **litehtml** layout core, Satoru performs all layout and drawing operations entirely within WASM, eliminating the need for headless browsers or system-level dependencies.
 
-![Sample Output](./document/sample01.webp)
+![Sample Output](https://raw.githubusercontent.com/SoraKumo001/satoru/master/packages/satoru/document/sample01.webp)
 
 ## Example
 
@@ -24,7 +24,9 @@ By combining the **Skia** graphics engine with a custom **litehtml** layout core
 
 ---
 
-## 📋 Supported CSS Properties
+## 📋 Tested CSS Feature Coverage
+
+Satoru supports and tests a broad subset of modern CSS. The list below highlights the main feature areas covered by the renderer and visual test suite. For detailed status and known differences, see the [compatibility evidence](https://sorakumo001.github.io/satoru/master/docs/docs/compatibility/).
 
 <details>
 <summary>Click to expand supported properties list</summary>
@@ -178,12 +180,12 @@ const pdf = await render({
 });
 ```
 
-### 3. Edge/Cloudflare Workers
+### 4. Edge/Cloudflare Workers
 
 Use the specialized `workerd` export for serverless environments.
 
 ```typescript
-import { render } from "satoru-render";
+import { render } from "satoru-render/workerd";
 
 export default {
   async fetch(request) {
@@ -198,7 +200,7 @@ export default {
 };
 ```
 
-### 4. Multi-threaded Rendering (Worker Proxy)
+### 5. Multi-threaded Rendering (Worker Proxy)
 
 Distribute rendering tasks across multiple background workers for high-throughput applications.
 
@@ -214,7 +216,7 @@ const png = await satoru.render({
 });
 ```
 
-### 5. preact + tailwind
+### 6. preact + tailwind
 
 - install
 
@@ -262,7 +264,7 @@ const png = await render({
 
 ---
 
-### 6. JSDOM Hydration (For Next.js / SPAs)
+### 7. JSDOM Hydration (For Next.js / SPAs)
 
 For complex client-side applications (like Next.js) that require full Javascript evaluation and DOM hydration before rendering, Satoru provides an optional `jsdom` helper.
 
@@ -296,7 +298,7 @@ const pngBytes = await render({
 });
 ```
 
-### 7. DOM Capture (html2canvas alternative)
+### 8. DOM Capture (html2canvas alternative)
 
 Satoru can capture live DOM elements directly in the browser, preserving computed styles, pseudo-elements (`::before`/`::after`), canvas contents, and form states.
 
@@ -321,7 +323,7 @@ const png = await satoru.render({
 });
 ```
 
-### 8. Rendering Diagnostics
+### 9. Rendering Diagnostics
 
 Get detailed insights into the rendering process, including resource loading status, font resolution, and performance timings.
 
@@ -364,6 +366,13 @@ npx satoru-render input.html -f webp --verbose
 
 # Write rendering diagnostics to a JSON file
 npx satoru-render input.html -o output.png --json-report report.json
+
+# Restrict network access for safer server-side usage
+npx satoru-render https://example.com -o output.png \
+  --timeout 5000 \
+  --max-resource-count 50 \
+  --max-total-resource-bytes 10000000 \
+  --allowed-protocols https:
 ```
 
 ---
@@ -382,15 +391,29 @@ npx satoru-render input.html -o output.png --json-report report.json
 | `outputWidth`     | `number`                                   | Output image width. Default: canvas/crop width.         |
 | `outputHeight`    | `number`                                   | Output image height. Default: canvas/crop height.       |
 | `fit`             | `"contain" \| "cover" \| "fill"`           | Fit strategy when canvas/crop size differs from output. |
+| `fitPosition`     | `{ x, y }`                                 | Alignment origin for `contain`/`cover`. Default: center. |
+| `backgroundColor` | `string`                                   | Background color for raster/PDF output.                 |
 | `format`          | `"svg" \| "png" \| "webp" \| "pdf"`        | Output format. Default: `"svg"`.                        |
 | `resolveResource` | `ResourceResolver`                         | Async callback to fetch assets (fonts, images, CSS).    |
 | `fonts`           | `Object[]`                                 | Pre-load fonts: `[{ name, data: Uint8Array }]`.         |
+| `fallbackFonts`   | `Uint8Array[]`                             | Font data used as fallback faces.                       |
+| `images`          | `Object[]`                                 | Pre-load named images for resource resolution.          |
 | `css`             | `string`                                   | Extra CSS to inject into the document.                  |
 | `baseUrl`         | `string`                                   | Base URL for relative path resolution.                  |
+| `userAgent`       | `string`                                   | User agent used by the default resource resolver.       |
+| `fontMap`         | `Record<string, string>`                   | Override font-family to remote font URL mapping.        |
 | `logLevel`        | `LogLevel`                                 | Verbosity: `None`, `Error`, `Warning`, `Info`, `Debug`. |
 | `mediaType`       | `"screen" \| "print"`                      | CSS media type for `@media` queries. Default: `"screen"`. |
+| `limits`          | `RenderLimits`                             | Timeout, resource size, protocol, and host restrictions. |
+| `profile`         | `boolean`                                  | Collect coarse render timings.                          |
+| `onProfile`       | `(profile) => void`                        | Callback that receives coarse render timings.           |
 | `diagnostics`     | `boolean`                                  | Enable detailed rendering diagnostics. |
 | `onDiagnostics`   | `(report: RenderDiagnostics) => void`      | Callback that receives the full diagnostics report. |
+| `pdfTitle` / `pdfAuthor` | `string`                            | PDF metadata fields.                                    |
+| `pdfMargin`       | `{ top, right, bottom, left }`             | PDF page margins in pixels.                             |
+| `pdfHeader` / `pdfFooter` | `string`                            | PDF header/footer HTML. Supports `{{pageNumber}}` and `{{totalPages}}`. |
+
+For the full API surface, see the [API Reference](https://sorakumo001.github.io/satoru/master/docs/docs/api-reference/).
 
 ---
 
@@ -400,13 +423,13 @@ Please see [CHANGELOG.md](./CHANGELOG.md) for a history of changes.
 
 ## 📖 Recipes
 
-- [Production OGP Generation](../../docs/recipes/ogp-production.md): Caching, safety limits, and diagnostics for high-traffic services.
+- [Production OGP Generation](https://sorakumo001.github.io/satoru/master/docs/docs/recipes/ogp-production/): Caching, safety limits, and diagnostics for high-traffic services.
 
 ---
 
 ## 🔬 Compatibility Evidence
 
-For a detailed breakdown of CSS feature support and visual test coverage, see our [Compatibility Matrix](../../docs/compatibility.md).
+For a detailed breakdown of CSS feature support and visual test coverage, see the [Compatibility Matrix](https://sorakumo001.github.io/satoru/master/docs/docs/compatibility/).
 
 ---
 

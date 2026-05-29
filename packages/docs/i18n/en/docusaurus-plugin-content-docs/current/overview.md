@@ -26,6 +26,12 @@ const png = await render({
 
 Use `satoru-render/single` for Node.js, `satoru-render/workers` for high-throughput rendering, and `satoru-render/workerd` for Cloudflare Workers.
 
+## Example Repositories
+
+- [Cloudflare Workers](https://github.com/SoraKumo001/satoru-cloudflare-ogp): OGP image generation on Workers.
+- [Deno Deploy](https://github.com/SoraKumo001/satoru-deno-ogp-image): OGP image generation for Deno Deploy.
+- [Next.js / Vercel](https://github.com/SoraKumo001/next-satoru): Example usage with Next.js.
+
 ## Project Structure
 
 - **Core technologies**: `litehtml` for layout, `Skia` for rendering, and lightweight custom logging.

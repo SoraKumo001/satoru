@@ -1,6 +1,7 @@
 # Satoru Render: High-Performance HTML to Image/PDF Engine
 
 [![Playground](https://img.shields.io/badge/Demo-Playground-blueviolet)](https://sorakumo001.github.io/satoru/master)
+[![Documentation](https://img.shields.io/badge/Docs-Docusaurus-blue)](https://sorakumo001.github.io/satoru/master/docs/)
 [![npm license](https://img.shields.io/npm/l/satoru-render.svg)](https://www.npmjs.com/package/satoru-render)
 [![npm version](https://img.shields.io/npm/v/satoru-render.svg)](https://www.npmjs.com/package/satoru-render)
 [![npm download](https://img.shields.io/npm/dw/satoru-render.svg)](https://www.npmjs.com/package/satoru-render)

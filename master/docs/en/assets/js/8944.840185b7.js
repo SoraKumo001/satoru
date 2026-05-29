@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunksatoru_docs=self.webpackChunksatoru_docs||[]).push([["8944"],{5475(e,s,c){c.d(s,{createPacketServices:()=>a.$});var a=c(7441);c(3435)}}]);

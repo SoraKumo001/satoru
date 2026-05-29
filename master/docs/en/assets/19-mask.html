@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+        .box {
+            width: 100px;
+            height: 100px;
+            background-color: blue;
+        }
+        .mask-image {
+            mask: url("images/image01.png");
+            -webkit-mask: url("images/image01.png");
+        }
+        .mask-gradient {
+            background-color: red;
+            mask: linear-gradient(to bottom, black, transparent);
+            -webkit-mask: linear-gradient(to bottom, black, transparent);
+        }
+        .mask-radial {
+            background-color: green;
+            mask: radial-gradient(circle, black, transparent);
+            -webkit-mask: radial-gradient(circle, black, transparent);
+        }
+        .mask-multi {
+            background-color: orange;
+            mask: radial-gradient(circle at 30% 30%, black 20%, transparent 40%),
+                  radial-gradient(circle at 70% 70%, black 20%, transparent 40%);
+            -webkit-mask: radial-gradient(circle at 30% 30%, black 20%, transparent 40%),
+                          radial-gradient(circle at 70% 70%, black 20%, transparent 40%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="box">Normal</div>
+        <div class="box mask-image">Image Mask</div>
+        <div class="box mask-gradient">Gradient Mask</div>
+        <div class="box mask-radial">Radial Mask</div>
+        <div class="box mask-multi">Multi Mask</div>
+    </div>
+</body>
+</html>

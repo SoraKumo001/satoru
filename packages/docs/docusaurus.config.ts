@@ -70,7 +70,7 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: 'img/logo.svg',
+    image: 'img/ogp.png',
     colorMode: {
       defaultMode: 'dark',
       respectPrefersColorScheme: true,

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunksatoru_docs=self.webpackChunksatoru_docs||[]).push([["8805"],{9380(e,s,c){c.d(s,{createPieServices:()=>a.f});var a=c(8557);c(3435)}}]);

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunksatoru_docs=self.webpackChunksatoru_docs||[]).push([["1176"],{2331(s,e,c){c.d(e,{createInfoServices:()=>a.v});var a=c(8014);c(3435)}}]);

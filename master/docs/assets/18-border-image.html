@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+        }
+        .box {
+            width: 200px;
+            height: 60px;
+            border: 20px solid transparent;
+            padding: 10px;
+            background-color: white;
+            font-family: sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Using image01.png which exists in assets/images/ */
+        .stretch {
+            border-image: url('images/image01.png') 30 stretch;
+        }
+        .repeat {
+            border-image: url('images/image01.png') 30 repeat;
+        }
+        .round {
+            border-image: url('images/image01.png') 30 round;
+        }
+        .fill {
+            border-image: url('images/image01.png') 30 fill stretch;
+        }
+        .width {
+            border-image: url('images/image01.png') 30 / 10px stretch;
+        }
+        .outset {
+            border-image: url('images/image01.png') 30 / 20px / 10px stretch;
+            margin: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="box stretch">Stretch</div>
+    <div class="box repeat">Repeat</div>
+    <div class="box round">Round</div>
+    <div class="box fill">Fill</div>
+    <div class="box width">Width 10px</div>
+    <div class="box outset">Outset 10px</div>
+</body>
+</html>

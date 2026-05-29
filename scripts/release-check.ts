@@ -7,6 +7,9 @@ const changelogPath = "packages/satoru/CHANGELOG.md";
 
 console.log("🚀 Starting release check...");
 
+const skipBuild = process.env.SATORU_RELEASE_CHECK_SKIP_BUILD === "1";
+const skipTests = process.env.SATORU_RELEASE_CHECK_SKIP_TESTS === "1";
+
 // 1. Version Check
 console.log("🔍 Checking version consistency...");
 const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
@@ -25,13 +28,17 @@ if (latestVersionMatch[1] !== pkg.version) {
 console.log(`✅ Versions match: v${pkg.version}`);
 
 // 2. Build Verification
-console.log("🏗️ Running build...");
-try {
-  execSync("pnpm build", { stdio: "inherit" });
-  console.log("✅ Build succeeded");
-} catch (e) {
-  console.error("❌ Build failed");
-  process.exit(1);
+if (skipBuild) {
+  console.log("⏭️ Skipping build; caller already verified it.");
+} else {
+  console.log("🏗️ Running build...");
+  try {
+    execSync("pnpm build", { stdio: "inherit" });
+    console.log("✅ Build succeeded");
+  } catch (e) {
+    console.error("❌ Build failed");
+    process.exit(1);
+  }
 }
 
 // 3. Export Verification
@@ -87,13 +94,17 @@ for (const file of requiredFiles) {
 console.log("✅ All required files present");
 
 // 5. Test Verification
-console.log("🧪 Running tests...");
-try {
-  execSync("pnpm -F visual-test test", { stdio: "inherit" });
-  console.log("✅ Tests passed");
-} catch (e) {
-  console.error("❌ Tests failed");
-  process.exit(1);
+if (skipTests) {
+  console.log("⏭️ Skipping tests; caller already verified them.");
+} else {
+  console.log("🧪 Running tests...");
+  try {
+    execSync("pnpm -F visual-test test", { stdio: "inherit" });
+    console.log("✅ Tests passed");
+  } catch (e) {
+    console.error("❌ Tests failed");
+    process.exit(1);
+  }
 }
 
 // 6. pnpm pack --dry-run

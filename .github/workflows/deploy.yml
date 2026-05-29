@@ -20,6 +20,7 @@ jobs:
       VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg_cache,readwrite"
       VCPKG_DOWNLOADS: "${{ github.workspace }}/vcpkg_downloads"
       EMSDK_VERSION: "4.0.15"
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -108,8 +109,19 @@ jobs:
       - name: ccache stats
         run: ccache -s
 
-      - name: Build TS Packages
-        run: pnpm run build:js
+      - name: Build JS Packages
+        run: |
+          pnpm --filter satoru-render build
+          pnpm --filter cloudflare-ogp build
+          pnpm --filter playground build
+
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'packages/visual-test/package.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
 
       - name: Install Playwright Browsers
         run: pnpm --filter visual-test exec playwright install chromium --with-deps
@@ -127,6 +139,9 @@ jobs:
 
       - name: Run Release Check
         run: pnpm release:check
+        env:
+          SATORU_RELEASE_CHECK_SKIP_BUILD: "1"
+          SATORU_RELEASE_CHECK_SKIP_TESTS: "1"
 
       - name: Build Docs
         run: pnpm docs:build

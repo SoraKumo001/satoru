@@ -13,10 +13,15 @@ const assets = fs.readdirSync(ASSETS_DIR).filter(f => f.endsWith(".html")).sort(
 const pngBaselines = fs.existsSync(PNG_BASELINE_PATH) ? JSON.parse(fs.readFileSync(PNG_BASELINE_PATH, "utf-8")) : {};
 const svgBaselines = fs.existsSync(SVG_BASELINE_PATH) ? JSON.parse(fs.readFileSync(SVG_BASELINE_PATH, "utf-8")) : {};
 
-let md = "---\nsidebar_position: 3\ntitle: CSS 互換性\n---\n\n# Satoru Compatibility Evidence\n\n";
-md += "This document tracks the rendering capabilities of Satoru across various CSS features and output formats. Status is derived from the visual regression test suite which compares Satoru output against browser-based reference images.\n\n";
+let md = "---\nsidebar_position: 4\ntitle: CSS 互換性\n---\n\n# Satoru 互換性エビデンス\n\n";
+md += "この文書は、さまざまな CSS 機能と出力形式に対する Satoru の描画能力を記録します。ステータスは、Satoru の出力とブラウザベースの参照画像を比較する視覚回帰テストスイートから生成されます。\n\n";
 
-md += "## Feature Support Matrix\n\n";
+md += "## 判定基準\n\n";
+md += "- `✅`: 視覚回帰テストの許容範囲内、または差分の原因が既知で実用上許容できるもの。\n";
+md += "- `⚠️`: 一部の出力形式に制限がある、または baseline がまだ揃っていないもの。\n";
+md += "- `Diff`: ブラウザ参照画像との差分率。数値が高い項目は、Notes や既知の注意点と合わせて確認してください。\n\n";
+
+md += "## 機能サポート matrix\n\n";
 md += "| Group | Feature | Asset | PNG | SVG | PDF | Notes |\n";
 md += "| --- | --- | --- | --- | --- | --- | --- |\n";
 
@@ -46,20 +51,20 @@ for (const asset of assets) {
   md += `| ${group} | ${featureName} | ${link} | ${pngStatus} | ${svgStatus} | ${pdfStatus} | ${notes} |\n`;
 }
 
-md += "\n## Supported Output Formats\n\n";
+md += "\n## サポートする出力形式\n\n";
 md += "| Format | Status | Description |\n";
 md += "| --- | --- | --- |\n";
-md += "| **PNG** | ✅ Supported | High-performance Skia-based raster output. |\n";
-md += "| **SVG** | ✅ Supported | XML-based vector output with high fidelity. |\n";
-md += "| **PDF** | ✅ Supported | Multi-page document generation support. |\n";
-md += "| **WebP** | ✅ Supported | Efficient raster output using Skia. |\n";
+md += "| **PNG** | ✅ Supported | Skia ベースの高性能 raster 出力。 |\n";
+md += "| **SVG** | ✅ Supported | 高精度な XML ベースの vector 出力。 |\n";
+md += "| **PDF** | ✅ Supported | 複数ページ document 生成をサポート。 |\n";
+md += "| **WebP** | ✅ Supported | Skia による効率的な raster 出力。 |\n";
 
-md += "\n## Known Caveats\n\n";
-md += "- **Vertical Writing**: Basic support is implemented but complex combinations of vertical text with floating elements may have minor alignment differences.\n";
-md += "- **Container Queries**: Supported via JSDOM hydration phase.\n";
-md += "- **Backdrop Filter**: Requires Skia backend support (PNG/WebP/PDF). Not available in raw SVG output as it depends on background pixels.\n";
+md += "\n## 既知の注意点\n\n";
+md += "- **Vertical Writing**: 基本的なサポートは実装済みですが、縦書き text と float 要素の複雑な組み合わせでは、軽微な alignment 差が出る場合があります。\n";
+md += "- **Container Queries**: JSDOM hydration phase 経由でサポートします。\n";
+md += "- **Backdrop Filter**: Skia backend support (PNG/WebP/PDF) が必要です。背景 pixel に依存するため、raw SVG 出力では利用できません。\n";
 
-md += "\n---\n*This document is automatically generated from the visual test registry.*\n";
+md += "\n---\n*この文書は visual test registry から自動生成されます。*\n";
 
 if (!fs.existsSync(DOCS_DIR)) fs.mkdirSync(DOCS_DIR);
 fs.writeFileSync(OUTPUT_FILE, md);

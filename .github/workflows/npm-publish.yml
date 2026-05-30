@@ -123,8 +123,12 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "Publishing version $VERSION"
           
-          # Update version in package.json
-          pnpm --filter satoru-render exec npm version $VERSION --no-git-tag-version
+          # Ensure the tag matches the package version.
+          PACKAGE_VERSION=$(node -p "require('./packages/satoru/package.json').version")
+          if [ "$VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "Tag version $VERSION does not match package version $PACKAGE_VERSION"
+            exit 1
+          fi
           
           # Publish
           pnpm --filter satoru-render publish --no-git-checks --access public

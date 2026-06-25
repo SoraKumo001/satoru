@@ -43,12 +43,6 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20260511.1
         version: 4.20260511.1
-      '@types/react':
-        specifier: ^19.2.14
-        version: 19.2.14
-      '@types/react-dom':
-        specifier: ^19.2.3
-        version: 19.2.3(@types/react@19.2.14)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -70,10 +64,6 @@ importers:
       satoru-render:
         specifier: workspace:*
         version: link:../satoru
-    devDependencies:
-      '@types/react':
-        specifier: ^19.2.14
-        version: 19.2.14
 
   packages/docs:
     dependencies:
@@ -224,6 +214,9 @@ importers:
       satoru-render:
         specifier: workspace:*
         version: link:../satoru
+      tsx:
+        specifier: ^4.19.4
+        version: 4.21.0
       typescript:
         specifier: ^6.0.3
         version: 6.0.3

@@ -14,7 +14,5 @@
     "preact-render-to-string": "^6.6.7",
     "satoru-render": "workspace:*"
   },
-  "devDependencies": {
-    "@types/react": "^19.2.14"
-  }
+  "devDependencies": {}
 }

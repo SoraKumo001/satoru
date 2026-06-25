@@ -4,7 +4,7 @@ export type { RenderOptions };
 
 export const render = (
   _params: RenderOptions,
-): Promise<string | Uint8Array<ArrayBufferLike>> => {
+): Promise<string | Uint8Array> => {
   return undefined as never;
 };
 

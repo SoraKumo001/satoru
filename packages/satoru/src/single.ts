@@ -24,7 +24,7 @@ export class Satoru extends BaseSatoru {
    */
   static async create(): Promise<Satoru> {
     const { default: createSatoruModuleSingle } =
-      // @ts-ignore
+      // @ts-expect-error — dist/satoru-single.js is generated at build time
       await import("../dist/satoru-single.js");
     return new Satoru(createSatoruModuleSingle);
   }

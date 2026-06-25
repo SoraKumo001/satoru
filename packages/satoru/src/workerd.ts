@@ -1,7 +1,7 @@
-// @ts-ignore
+// @ts-expect-error — dist/satoru.js is generated at build time
 import createSatoruModule from "../dist/satoru.js";
 import { Satoru as BaseSatoru, type RenderOptions } from "./index.js";
-// @ts-ignore
+// @ts-expect-error — dist/satoru.wasm is generated at build time
 import satoruWasm from "../dist/satoru.wasm";
 
 export type {

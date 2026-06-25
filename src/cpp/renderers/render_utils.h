@@ -8,6 +8,8 @@
 inline void apply_resize_transform(SkCanvas* canvas, int src_w, int src_h,
                                    const RenderOptions& options) {
     if (options.outputWidth > 0 || options.outputHeight > 0) {
+        if (src_w < 1) src_w = 1;
+        if (src_h < 1) src_h = 1;
         float sx = (float)options.outputWidth / src_w;
         float sy = (float)options.outputHeight / src_h;
         float scaleX = sx, scaleY = sy;

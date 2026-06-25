@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#include "include/private/base/SkSemaphore.h"
+#include "include/private/SkSemaphore.h"
 
 // SkSemaphore
 SkSemaphore::~SkSemaphore() {}

@@ -204,6 +204,7 @@ sk_sp<SkData> renderHtmlsToPdf(const std::vector<std::string>& htmls, int width,
                                         false, media_type);
         auto render_doc = litehtml::document::createFromString(html.c_str(), &render_container,
                                                                css.c_str(), user_css);
+        if (!render_doc) continue;
         render_doc->render(content_width);
         render_doc->draw(0, 0, 0, nullptr);
         render_container.flush();

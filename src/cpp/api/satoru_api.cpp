@@ -44,16 +44,17 @@ void satoru_log_printf(LogLevel level, const char* format, ...) {
         va_list args;
         va_start(args, format);
 
-        va_list args_copy;
-        va_copy(args_copy, args);
-        int size = vsnprintf(nullptr, 0, format, args_copy);
-        va_end(args_copy);
+        int size;
+        {
+            va_list args_copy;
+            va_copy(args_copy, args);
+            size = vsnprintf(nullptr, 0, format, args_copy);
+            va_end(args_copy);
+        }
 
         if (size >= 0) {
             std::vector<char> buffer(size + 1);
             vsnprintf(buffer.data(), buffer.size(), format, args);
-            // Ensure any invalid UTF-8 at the end (from truncation elsewhere) is handled
-            // although here we are not truncating.
             satoru_log_js((int)level, buffer.data());
         }
 
@@ -644,6 +645,10 @@ const uint8_t* api_htmls_to_pdf(SatoruInstance* inst, const std::vector<std::str
 const uint8_t* api_render(SatoruInstance* inst, const std::vector<std::string>& htmls, int width,
                           int height, RenderFormat format, const RenderOptions& options,
                           int& out_size) {
+    if (!inst) {
+        out_size = 0;
+        return nullptr;
+    }
     if (htmls.empty()) {
         out_size = 0;
         return nullptr;
@@ -663,6 +668,8 @@ const uint8_t* api_render(SatoruInstance* inst, const std::vector<std::string>& 
             return api_html_to_webp(inst, htmls[0].c_str(), width, height, options, out_size);
         case RenderFormat::PDF:
             return api_htmls_to_pdf(inst, htmls, width, height, options, out_size);
+        default:
+            break;
     }
     out_size = 0;
     return nullptr;
@@ -765,14 +772,22 @@ std::string api_get_font_diagnostics(SatoruInstance* inst) {
 }
 
 void api_init_document(SatoruInstance* inst, const char* html, int width, int height) {
+    if (!inst) return;
     inst->init_document(html, width, height);
 }
 
-void api_layout_document(SatoruInstance* inst, int width) { inst->layout_document(width); }
+void api_layout_document(SatoruInstance* inst, int width) {
+    if (!inst) return;
+    inst->layout_document(width);
+}
 
 const uint8_t* api_render_from_state(SatoruInstance* inst, int width, int height,
                                      RenderFormat format, const RenderOptions& options,
                                      int& out_size) {
+    if (!inst) {
+        out_size = 0;
+        return nullptr;
+    }
     if (!inst->doc) {
         out_size = 0;
         return nullptr;
@@ -798,6 +813,8 @@ const uint8_t* api_render_from_state(SatoruInstance* inst, int width, int height
             return render_and_store(
                 inst, [&]() { return renderDocumentToPdf(inst, width, height, options); },
                 &SatoruContext::set_last_pdf, out_size);
+        default:
+            break;
     }
     out_size = 0;
     return nullptr;

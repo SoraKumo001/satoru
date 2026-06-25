@@ -28,12 +28,14 @@ describe("Worker Pool Stats", () => {
     const p2 = worker.render({ value: "<div>2</div>", width: 400 });
     const p3 = worker.render({ value: "<div>3</div>", width: 400 });
 
+    // Jobs may complete before getStats() is called, so either they're
+    // still in-flight or already accounted for in completedJobs.
     const stats = worker.getStats();
-    // activeJobs + queuedJobs should be 3
-    expect(stats.activeJobs + stats.queuedJobs).toBeGreaterThanOrEqual(2); 
-    
+    const accounted = stats.completedJobs + stats.activeJobs + stats.queuedJobs;
+    expect(accounted).toBeGreaterThanOrEqual(3);
+
     await Promise.all([p1, p2, p3]);
-    
+
     const statsEnd = worker.getStats();
     expect(statsEnd.activeJobs).toBe(0);
     expect(statsEnd.queuedJobs).toBe(0);

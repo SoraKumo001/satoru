@@ -84,7 +84,7 @@ export class MemoryResourceCache {
   private calculateBytes(data: Uint8Array | ResolvedFontResult): number {
     if (data instanceof Uint8Array) return data.byteLength;
     let sum = data.css.byteLength;
-    for (const f of data.fonts) sum += f.data.byteLength;
+    for (const f of data.fonts) sum += f?.data?.byteLength ?? 0;
     return sum;
   }
 

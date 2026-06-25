@@ -778,7 +778,7 @@ export abstract class SatoruBase {
               }
               return null;
             }
-          } catch (e) {
+          } catch {
             // Invalid URL - skip protocol/host checks for local/relative paths
           }
         }
@@ -792,7 +792,7 @@ export abstract class SatoruBase {
              if (result) {
                const bytes = result instanceof Uint8Array ? result.byteLength : 
                              (result as any).buffer ? (result as any).byteLength :
-                             ("css" in (result as any)) ? (result as any).css.byteLength + (result as any).fonts.reduce((acc: number, f: any) => acc + f.data.byteLength, 0) : 0;
+                             ("css" in (result as any)) ? (result as any).css.byteLength + (result as any).fonts.reduce((acc: number, f: any) => acc + (f?.data?.byteLength ?? 0), 0) : 0;
                
                resourceDiag.bytes = bytes;
                
@@ -816,10 +816,10 @@ export abstract class SatoruBase {
                resourceCount++;
              }
           }
-        } catch (e: any) {
+        } catch (e: unknown) {
           if (resourceDiag) {
              resourceDiag.status = "failed";
-             resourceDiag.reason = e.message || String(e);
+             resourceDiag.reason = e instanceof Error ? e.message : String(e);
           }
         }
         addProfile("resolveResources", now() - resolveStart);

@@ -20,7 +20,7 @@ Updates both the **reference images** and the **baseline metrics**.
 -   **Baseline Metrics**: The `test/data/mismatch-baselines.json` file is updated with the latest difference percentages (Fill/Outline).
 -   **Comparison**: When updating, it compares the new result with the *previous* reference image and logs the amount of change before overwriting.
 
-### `pnpm gen-ref`
+### `pnpm generate-reference`
 Generates initial reference images using a browser-based rendering as the "ground truth".
 
 ### `pnpm convert-assets`

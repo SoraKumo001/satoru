@@ -1,10 +1,10 @@
 #include "resource_manager.h"
-#include "resource_string_utils.h"
 
 #include <iostream>
 
 #include "../utils/skia_utils.h"
 #include "container_skia.h"
+#include "resource_string_utils.h"
 #include "satoru_context.h"
 #include "utils/logging.h"
 

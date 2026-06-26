@@ -56,9 +56,11 @@ add_executable(satoru_tests
   test_logical_canvas.cpp
   test_bridge_types.cpp
   test_text_utils.cpp
+  test_unicode_service.cpp
   ${SATORU_CPP_DIR}/utils/logging.cpp
   ${SATORU_CPP_DIR}/core/font_manager.cpp
   stubs/skia_utils_stub.cpp
+  stubs/text_utils_stub.cpp
   stubs/unicode_service_stub.cpp
   ${LITEHTML_TEST_SRC}
 )

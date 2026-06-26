@@ -56,7 +56,8 @@ inline bool contains_ascii_ci(const std::string& s, const char* needle) {
  * Multi-needle case-insensitive search.
  * Returns true if ANY needle is found in s.
  */
-inline bool contains_any_ascii_ci(const std::string& s, const char* const* needles, size_t needleCount) {
+inline bool contains_any_ascii_ci(const std::string& s, const char* const* needles,
+                                  size_t needleCount) {
     for (size_t i = 0; i < s.size(); ++i) {
         for (size_t j = 0; j < needleCount; ++j) {
             if (starts_with_ascii_ci(s, i, needles[j])) return true;
@@ -70,11 +71,9 @@ inline bool contains_any_ascii_ci(const std::string& s, const char* const* needl
  * Checks against known font extensions and MIME types.
  */
 inline bool looks_like_font_url(const std::string& url) {
-    static constexpr const char* needles[] = {
-        ".woff2", ".woff", ".ttf", ".otf", ".ttc",
-        "font-woff", "font-ttf", "font-otf",
-        "application/font"
-    };
+    static constexpr const char* needles[] = {".woff2",   ".woff",    ".ttf",
+                                              ".otf",     ".ttc",     "font-woff",
+                                              "font-ttf", "font-otf", "application/font"};
     return contains_any_ascii_ci(url, needles, sizeof(needles) / sizeof(needles[0]));
 }
 

@@ -222,6 +222,31 @@ struct logical_rect {
     }
 };
 
+// ============================================================================
+// Position-based pure math functions extracted from render_item::logical_accessor
+// in litehtml_extensions.cpp. These operate on plain coordinates and writing
+// mode context so they can be unit-tested without instantiating a render_item.
+//
+// When litehtml_extensions.cpp is compiled in the test build, the
+// logical_accessor methods delegate to these functions. Otherwise the
+// functions are independent helpers that can be tested directly.
+// ============================================================================
+
+// Returns the inline-axis start position of a box at physical (x, y).
+// In horizontal: returns x. In vertical: returns y.
+inline pixel_t compute_inline_start_pos(const WritingModeContext& wm, pixel_t x, pixel_t y) {
+    return wm.is_vertical() ? y : x;
+}
+
+// Returns the block-axis start position of a box at physical (x, y) with width w.
+// In horizontal-tb: returns y. In vertical-lr: returns x.
+// In vertical-rl: returns container_width - x - w (mirrored).
+inline pixel_t compute_block_start_pos(const WritingModeContext& wm, pixel_t x, pixel_t y,
+                                       pixel_t w, pixel_t /*h*/) {
+    if (wm.mode() == litehtml::writing_mode_vertical_rl) return wm.container_width() - x - w;
+    return wm.is_vertical() ? x : y;
+}
+
 }  // namespace satoru
 
 #endif  // SATORU_LOGICAL_GEOMETRY_H

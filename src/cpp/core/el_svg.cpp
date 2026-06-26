@@ -1,5 +1,4 @@
 #include "el_svg.h"
-#include "svg_tag_utils.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -13,6 +12,7 @@
 #include "libs/litehtml/include/litehtml/render_item.h"
 #include "modules/skresources/include/SkResources.h"
 #include "modules/svg/include/SkSVGDOM.h"
+#include "svg_tag_utils.h"
 
 namespace litehtml {
 

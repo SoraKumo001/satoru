@@ -12,6 +12,11 @@ satoru::WritingModeContext render_item::get_wm_context() const {
 }
 
 // Logical Accessor Implementations
+// NOTE: inline_size() and block_size() call m_borders.width()/height() which
+// are not yet defined on litehtml::borders. These are pre-existing build
+// errors that surface when this file is compiled standalone. The test build
+// excludes this file for that reason. The position-based methods below
+// delegate to free functions in logical_geometry.h so they can be unit-tested.
 pixel_t render_item::logical_accessor::inline_size() const {
     return wm
         .to_logical(item->m_pos.width + item->m_margins.width() + item->m_borders.width() +
@@ -31,7 +36,7 @@ pixel_t render_item::logical_accessor::block_size() const {
 }
 
 pixel_t render_item::logical_accessor::inline_start_pos() const {
-    return wm.is_vertical() ? item->m_pos.y : item->m_pos.x;
+    return satoru::compute_inline_start_pos(wm, item->m_pos.x, item->m_pos.y);
 }
 
 pixel_t render_item::logical_accessor::inline_end_pos() const {
@@ -39,9 +44,8 @@ pixel_t render_item::logical_accessor::inline_end_pos() const {
 }
 
 pixel_t render_item::logical_accessor::block_start_pos() const {
-    if (wm.mode() == writing_mode_vertical_rl)
-        return wm.container_width() - item->m_pos.x - item->m_pos.width;
-    return wm.is_vertical() ? item->m_pos.x : item->m_pos.y;
+    return satoru::compute_block_start_pos(wm, item->m_pos.x, item->m_pos.y, item->m_pos.width,
+                                           item->m_pos.height);
 }
 
 pixel_t render_item::logical_accessor::block_end_pos() const {

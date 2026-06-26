@@ -48,6 +48,14 @@ add_executable(satoru_tests
   test_magic_tags.cpp
   test_logger.cpp
   test_font_manager.cpp
+  test_resource_string_utils.cpp
+  test_resource_manager.cpp
+  test_logical_geometry.cpp
+  test_svg_tag_utils.cpp
+  test_litehtml_extensions.cpp
+  test_logical_canvas.cpp
+  test_bridge_types.cpp
+  test_text_utils.cpp
   ${SATORU_CPP_DIR}/utils/logging.cpp
   ${SATORU_CPP_DIR}/core/font_manager.cpp
   stubs/skia_utils_stub.cpp

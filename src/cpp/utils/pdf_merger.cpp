@@ -21,7 +21,8 @@ std::vector<uint8_t> merge_pdf_binaries(const std::vector<const uint8_t*>& data_
 
         for (size_t i = 0; i < data_ptrs.size(); ++i) {
             // QPDF Buffer doesn't own memory by default if created this way
-            Buffer* buf = new Buffer(std::string(reinterpret_cast<const char*>(data_ptrs[i]), sizes[i]));
+            Buffer* buf =
+                new Buffer(std::string(reinterpret_cast<const char*>(data_ptrs[i]), sizes[i]));
             auto input_source = std::shared_ptr<InputSource>(new BufferInputSource(
                 "pdf_part_" + std::to_string(i), buf,
                 true  // own_memory = true, so it will delete buf

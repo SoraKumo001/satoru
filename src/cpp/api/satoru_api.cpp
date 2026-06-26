@@ -10,6 +10,7 @@
 #include <sstream>
 #include <vector>
 
+#include "api/js_logger.h"
 #include "core/container_skia.h"
 #include "core/master_css.h"
 #include "core/resource_manager.h"
@@ -18,49 +19,11 @@
 #include "renderers/png_renderer.h"
 #include "renderers/svg_renderer.h"
 #include "renderers/webp_renderer.h"
+#include "utils/logging.h"
 #include "utils/pdf_merger.h"
 
-// --- Logging ---
-static LogLevel g_log_level = LogLevel::None;
-
-EM_JS(void, satoru_log_js, (int level, const char* message), {
-    if (Module.onLog) {
-        try {
-            Module.onLog(level, UTF8ToString(message));
-        } catch (e) {
-            // Silently ignore log errors to prevent Wasm crash
-        }
-    }
-});
-
-void satoru_log(LogLevel level, const char* message) {
-    if (level <= g_log_level) {
-        satoru_log_js((int)level, message);
-    }
-}
-
-void satoru_log_printf(LogLevel level, const char* format, ...) {
-    if (level <= g_log_level) {
-        va_list args;
-        va_start(args, format);
-
-        int size;
-        {
-            va_list args_copy;
-            va_copy(args_copy, args);
-            size = vsnprintf(nullptr, 0, format, args_copy);
-            va_end(args_copy);
-        }
-
-        if (size >= 0) {
-            std::vector<char> buffer(size + 1);
-            vsnprintf(buffer.data(), buffer.size(), format, args);
-            satoru_log_js((int)level, buffer.data());
-        }
-
-        va_end(args);
-    }
-}
+// --- Global Logger (for legacy SATORU_LOG_* macros) ---
+static satoru::JsLogger g_js_logger;
 
 // --- Helpers ---
 namespace {
@@ -128,6 +91,10 @@ std::string codepoints_to_utf8(std::vector<char32_t>& cps) {
 // --- SatoruInstance Implementation ---
 
 SatoruInstance::SatoruInstance() : resourceManager(context) {
+    // Set up global logger for legacy SATORU_LOG_* macros
+    satoru_log_set_logger(&g_js_logger);
+    // Set logger on context for direct ILogger usage
+    context.setLogger(&g_js_logger);
     context.init();
     cached_full_master_css = std::string(litehtml::master_css) + "\n" + satoru_master_css +
                              "\nbr { display: -litehtml-br !important; }\n";
@@ -322,10 +289,12 @@ void SatoruInstance::collect_resources(const std::string& html, int width, int h
             }
         }
     } catch (const std::exception& e) {
-        satoru_log_printf(LogLevel::Error, "Exception in collect_resources: %s", e.what());
+        if (auto* logger = context.getLogger())
+            logger->logf(LogLevel::Error, "Exception in collect_resources: %s", e.what());
         throw;
     } catch (...) {
-        satoru_log_printf(LogLevel::Error, "Unknown exception in collect_resources");
+        if (auto* logger = context.getLogger())
+            logger->log(LogLevel::Error, "Unknown exception in collect_resources");
         throw;
     }
 
@@ -724,7 +693,7 @@ void api_set_font_map(SatoruInstance* inst, const std::map<std::string, std::str
     inst->context.setFontMap(fontMap);
 }
 
-void api_set_log_level(int level) { g_log_level = (LogLevel)level; }
+void api_set_log_level(int level) { g_js_logger.setLogLevel((LogLevel)level); }
 
 std::string api_get_pending_resources(SatoruInstance* inst) {
     return inst->get_pending_resources_json();

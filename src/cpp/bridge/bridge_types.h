@@ -47,8 +47,6 @@ struct RenderOptions {
     std::string pdfFooter;
 };
 
-void satoru_log(LogLevel level, const char *message);
-
 struct font_request {
     std::string family;
     int weight;

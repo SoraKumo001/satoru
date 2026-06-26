@@ -102,7 +102,8 @@ struct FastTag {
                     size_t f = a.value.find("fill:");
                     if (f != std::string_view::npos) {
                         size_t vStart = f + 5;
-                        while (vStart < a.value.size() && isspace((unsigned char)a.value[vStart])) vStart++;
+                        while (vStart < a.value.size() && isspace((unsigned char)a.value[vStart]))
+                            vStart++;
                         size_t vEnd = a.value.find_first_of(";\"", vStart);
                         colorVal = a.value.substr(vStart, vEnd - vStart);
                     }
@@ -168,7 +169,9 @@ class SvgScanner {
         }
 
         size_t nameStart = pos;
-        while (pos < svg.size() && !isspace((unsigned char)svg[pos]) && svg[pos] != '/' && svg[pos] != '>') pos++;
+        while (pos < svg.size() && !isspace((unsigned char)svg[pos]) && svg[pos] != '/' &&
+               svg[pos] != '>')
+            pos++;
         tag.name = svg.substr(nameStart, pos - nameStart);
 
         while (pos < svg.size()) {
@@ -181,8 +184,8 @@ class SvgScanner {
             }
 
             size_t attrNameStart = pos;
-            while (pos < svg.size() && !isspace((unsigned char)svg[pos]) && svg[pos] != '=' && svg[pos] != '>' &&
-                   svg[pos] != '/')
+            while (pos < svg.size() && !isspace((unsigned char)svg[pos]) && svg[pos] != '=' &&
+                   svg[pos] != '>' && svg[pos] != '/')
                 pos++;
             std::string_view attrName = svg.substr(attrNameStart, pos - attrNameStart);
 
@@ -198,8 +201,8 @@ class SvgScanner {
                     if (pos < svg.size()) pos++;  // skip quote
                 } else {
                     size_t valStart = pos;
-                    while (pos < svg.size() && !isspace((unsigned char)svg[pos]) && svg[pos] != '/' &&
-                           svg[pos] != '>')
+                    while (pos < svg.size() && !isspace((unsigned char)svg[pos]) &&
+                           svg[pos] != '/' && svg[pos] != '>')
                         pos++;
                     tag.attrs.push_back({attrName, svg.substr(valStart, pos - valStart)});
                 }
@@ -904,7 +907,9 @@ static std::string generateDefs(const container_skia& render_container,
                                 if (color.length) {
                                     offset = color.length->val() / 100.0f;
                                 } else {
-                                    offset = (g.m_colors.size() > 1) ? (float)ci / (float)(g.m_colors.size() - 1) : 0.0f;
+                                    offset = (g.m_colors.size() > 1)
+                                                 ? (float)ci / (float)(g.m_colors.size() - 1)
+                                                 : 0.0f;
                                 }
                                 defs << "<stop offset=\"" << offset << "\" stop-color=\"" << c
                                      << "\" stop-opacity=\"" << (float)color.color.alpha / 255.0f
@@ -1432,7 +1437,9 @@ static std::string finalizeSvg(std::string_view svg, SatoruContext& context,
                                         pos_vec.push_back(stop.offset);
                                     }
                                     SkMatrix matrix;
-                                    matrix.setScale(rx != 0.0f ? 1.0f : 0.0f, rx != 0.0f ? ry / rx : 1.0f, center.x(), center.y());
+                                    matrix.setScale(rx != 0.0f ? 1.0f : 0.0f,
+                                                    rx != 0.0f ? ry / rx : 1.0f, center.x(),
+                                                    center.y());
 
                                     SkGradient sk_grad(
                                         SkGradient::Colors(SkSpan(colors), SkSpan(pos_vec),
@@ -1644,8 +1651,7 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
     auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)out_width, (float)out_height), &stream,
                                     svg_options);
     if (!canvas) {
-        satoru_log_printf(LogLevel::Error,
-                          "[Satoru] renderDocumentToSvg FAILED: SkSVGCanvas::Make returned nullptr");
+        SATORU_LOG_ERROR("[Satoru] renderDocumentToSvg FAILED: SkSVGCanvas::Make returned nullptr");
         return "";
     }
 
@@ -1680,8 +1686,7 @@ std::string renderDocumentToSvg(SatoruInstance* inst, int width, int height,
     canvas.reset();
     sk_sp<SkData> data = stream.detachAsData();
     if (!data) {
-        satoru_log_printf(LogLevel::Error,
-                          "[Satoru] renderDocumentToSvg FAILED: detachAsData returned nullptr");
+        SATORU_LOG_ERROR("[Satoru] renderDocumentToSvg FAILED: detachAsData returned nullptr");
         return "";
     }
     std::string_view svg((const char*)data->data(), data->size());
@@ -1703,8 +1708,7 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
 
     auto doc = litehtml::document::createFromString(html, container.get(), css.c_str(), user_css);
     if (!doc) {
-        satoru_log_printf(
-            LogLevel::Error,
+        SATORU_LOG_ERROR(
             "[Satoru] Failed to create document in renderHtmlToSvg (returned nullptr)");
         return "";
     }
@@ -1723,8 +1727,7 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
     auto canvas = SkSVGCanvas::Make(SkRect::MakeWH((float)width, (float)content_height), &stream,
                                     svg_options);
     if (!canvas) {
-        satoru_log_printf(LogLevel::Error,
-                          "[Satoru] renderStateToSvg FAILED: SkSVGCanvas::Make returned nullptr");
+        SATORU_LOG_ERROR("[Satoru] renderStateToSvg FAILED: SkSVGCanvas::Make returned nullptr");
         return "";
     }
 
@@ -1746,8 +1749,7 @@ std::string renderHtmlToSvg(const char* html, int width, int height, SatoruConte
     canvas.reset();
     sk_sp<SkData> data = stream.detachAsData();
     if (!data) {
-        satoru_log_printf(LogLevel::Error,
-                          "[Satoru] renderStateToSvg FAILED: detachAsData returned nullptr");
+        SATORU_LOG_ERROR("[Satoru] renderStateToSvg FAILED: detachAsData returned nullptr");
         return "";
     }
     std::string_view svg((const char*)data->data(), data->size());

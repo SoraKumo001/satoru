@@ -14,6 +14,7 @@
 #include "include/docs/SkPDFDocument.h"
 #include "include/encode/SkJpegEncoder.h"
 #include "render_utils.h"
+#include "utils/logging.h"
 
 namespace {
 std::unique_ptr<SkCodec> PdfJpegDecoder(sk_sp<const SkData> data) {
@@ -57,8 +58,7 @@ void render_template(const std::string& html, int width, int height, SkCanvas* c
 sk_sp<SkData> renderDocumentToPdf(SatoruInstance* inst, int width, int height,
                                   const RenderOptions& options) {
     if (!inst->doc || !inst->render_container) {
-        satoru_log_printf(LogLevel::Error,
-                          "[Satoru] renderDocumentToPdf FAILED: null doc/container");
+        SATORU_LOG_ERROR("[Satoru] renderDocumentToPdf FAILED: null doc/container");
         return nullptr;
     }
 

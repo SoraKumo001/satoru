@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "bridge/bridge_types.h"
+#include "core/ifont_manager.h"
 #include "core/text/unicode_service.h"
 #include "include/core/SkFont.h"
 #include "include/core/SkFontMgr.h"
@@ -16,50 +17,47 @@
 #include "include/core/SkTypeface.h"
 #include "libs/litehtml/include/litehtml.h"
 
-class SatoruFontManager {
+class SatoruFontManager : public satoru::IFontManager {
    public:
     SatoruFontManager();
-    ~SatoruFontManager() = default;
+    ~SatoruFontManager() override = default;
 
-    // フォントデータのロード
-    bool loadFont(const char* name, const uint8_t* data, int size, const char* url = nullptr);
-    void clear();
+    // ── IFontManager implementation ────────────────────────────────────
+    bool loadFont(const char* name, const uint8_t* data, int size,
+                  const char* url = nullptr) override;
+    void clear() override;
 
-    // @font-face 解析と URL 解決
-    void scanFontFaces(const std::string& css);
-    std::vector<std::string> getFontUrls(const std::string& family, int weight,
-                                         SkFontStyle::Slant slant,
-                                         const std::set<char32_t>* usedCodepoints = nullptr) const;
-    std::string getFontUrl(const std::string& family, int weight, SkFontStyle::Slant slant) const;
-    bool hasFontFaceSource(const std::string& family, const std::string& url) const;
+    void scanFontFaces(const std::string& css) override;
+    std::vector<std::string> getFontUrls(
+        const std::string& family, int weight, SkFontStyle::Slant slant,
+        const std::set<char32_t>* usedCodepoints = nullptr) const override;
+    std::string getFontUrl(const std::string& family, int weight,
+                           SkFontStyle::Slant slant) const override;
+    bool hasFontFaceSource(const std::string& family, const std::string& url) const override;
 
-    // フォントマッチング
     std::vector<sk_sp<SkTypeface>> matchFonts(const std::string& family, int weight,
-                                              SkFontStyle::Slant slant);
-    int getMatchedWeight(sk_sp<SkTypeface> typeface, const std::string& family);
-    int getMatchedSlant(sk_sp<SkTypeface> typeface, const std::string& family);
+                                              SkFontStyle::Slant slant) override;
+    int getMatchedWeight(sk_sp<SkTypeface> typeface, const std::string& family) override;
+    int getMatchedSlant(sk_sp<SkTypeface> typeface, const std::string& family) override;
 
-    // SkFont インスタンスの生成 (Variable Font 軸適用含む)
-    SkFont* createSkFont(sk_sp<SkTypeface> typeface, float size, int weight);
+    SkFont* createSkFont(sk_sp<SkTypeface> typeface, float size, int weight) override;
 
-    // グローバルフォールバックの設定
-    void addFallbackTypeface(sk_sp<SkTypeface> tf) { m_fallbackTypefaces.push_back(tf); }
-    const std::vector<sk_sp<SkTypeface>>& getFallbackTypefaces() const {
+    void addFallbackTypeface(sk_sp<SkTypeface> tf) override { m_fallbackTypefaces.push_back(tf); }
+    const std::vector<sk_sp<SkTypeface>>& getFallbackTypefaces() const override {
         return m_fallbackTypefaces;
     }
 
-    sk_sp<SkTypeface> getDefaultTypeface() const { return m_defaultTypeface; }
+    sk_sp<SkTypeface> getDefaultTypeface() const override { return m_defaultTypeface; }
 
-    // 特定の文字(u)に最適な SkFont を fi->fonts から選択する
     SkFont selectFont(char32_t u, font_info* fi, SkFont* lastSelectedFont,
-                      const satoru::UnicodeService& unicode);
+                      const satoru::UnicodeService& unicode) override;
     SkFont selectFont(char32_t u, font_info* fi, SkFont* lastSelectedFont,
-                      const satoru::UnicodeService& unicode, bool isEmoji, bool isMark);
+                      const satoru::UnicodeService& unicode, bool isEmoji, bool isMark) override;
 
+    std::string generateFontFaceCSS() const override;
+
+    // ── Non-virtual extensions (SatoruFontManager-specific) ───────────
     sk_sp<SkFontMgr> getFontMgr() const { return m_fontMgr; }
-
-    // 全ての @font-face 定義を CSS 形式で取得
-    std::string generateFontFaceCSS() const;
 
    private:
     sk_sp<SkFontMgr> m_fontMgr;

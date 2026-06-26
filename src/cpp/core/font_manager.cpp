@@ -6,10 +6,11 @@
 #include <mutex>
 #include <sstream>
 
-#include "../api/satoru_api.h"
 #include "core/text/unicode_service.h"
 #include "include/core/SkData.h"
+#include "include/core/SkFont.h"
 #include "include/core/SkFontArguments.h"
+#include "include/core/SkFontTypes.h"
 #include "include/core/SkSpan.h"
 #include "utils/logging.h"
 #include "utils/skia_utils.h"

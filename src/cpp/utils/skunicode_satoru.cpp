@@ -67,10 +67,8 @@ class SkUnicode_Satoru : public SkUnicode {
     bool isTabulation(SkUnichar utf8) override { return utf8 == '\t'; }
     bool isHardBreak(SkUnichar utf8) override { return utf8 == '\n' || utf8 == '\r'; }
     bool isEmoji(SkUnichar utf8) override {
-        return (utf8 == 0xFE0F) ||
-               (utf8 >= 0x2600 && utf8 <= 0x27BF) ||
-               (utf8 >= 0x1F000 && utf8 <= 0x1FADF) ||
-               (utf8 >= 0x1F300 && utf8 <= 0x1F9FF);
+        return (utf8 == 0xFE0F) || (utf8 >= 0x2600 && utf8 <= 0x27BF) ||
+               (utf8 >= 0x1F000 && utf8 <= 0x1FADF) || (utf8 >= 0x1F300 && utf8 <= 0x1F9FF);
     }
     bool isEmojiComponent(SkUnichar utf8) override {
         return (utf8 >= 0x200D && utf8 <= 0x200D) || (utf8 >= 0xFE0F && utf8 <= 0xFE0F);

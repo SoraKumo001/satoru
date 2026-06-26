@@ -2,24 +2,45 @@
 #define SATORU_UTILS_LOGGING_H
 
 #include "../bridge/bridge_types.h"
+#include "../core/ilogger.h"
 
-// Define macros for easier logging.
-// These call direct satoru_log_printf call (printf-style).
+// Legacy macros for backward compatibility.
+// New code should use ILogger directly via SatoruContext::getLogger().
 
+#define SATORU_LOG_DEBUG(...)                                     \
+    do {                                                          \
+        auto* _logger = satoru_log_get_logger();                  \
+        if (_logger) _logger->logf(LogLevel::Debug, __VA_ARGS__); \
+    } while (0)
+
+#define SATORU_LOG_INFO(...)                                     \
+    do {                                                         \
+        auto* _logger = satoru_log_get_logger();                 \
+        if (_logger) _logger->logf(LogLevel::Info, __VA_ARGS__); \
+    } while (0)
+
+#define SATORU_LOG_WARN(...)                                        \
+    do {                                                            \
+        auto* _logger = satoru_log_get_logger();                    \
+        if (_logger) _logger->logf(LogLevel::Warning, __VA_ARGS__); \
+    } while (0)
+
+#define SATORU_LOG_ERROR(...)                                     \
+    do {                                                          \
+        auto* _logger = satoru_log_get_logger();                  \
+        if (_logger) _logger->logf(LogLevel::Error, __VA_ARGS__); \
+    } while (0)
+
+// Global logger access for legacy macros.
+// In production, set via satoru_log_set_logger().
+// In tests, set to NullLogger.
 #ifdef __cplusplus
 extern "C" {
 #endif
-void satoru_log_printf(LogLevel level, const char* format, ...);
+satoru::ILogger* satoru_log_get_logger();
+void satoru_log_set_logger(satoru::ILogger* logger);
 #ifdef __cplusplus
 }
 #endif
-
-#define SATORU_LOG_DEBUG(...) satoru_log_printf(LogLevel::Debug, __VA_ARGS__)
-
-#define SATORU_LOG_INFO(...) satoru_log_printf(LogLevel::Info, __VA_ARGS__)
-
-#define SATORU_LOG_WARN(...) satoru_log_printf(LogLevel::Warning, __VA_ARGS__)
-
-#define SATORU_LOG_ERROR(...) satoru_log_printf(LogLevel::Error, __VA_ARGS__)
 
 #endif  // SATORU_UTILS_LOGGING_H

@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "core/ilogger.h"
 #include "core/satoru_cache_manager.h"
 #include "core/text/text_types.h"
 #include "core/text/unicode_service.h"
@@ -30,6 +31,7 @@ enum class CssChangeKind {
 };
 
 class SatoruContext {
+    satoru::ILogger *m_logger = nullptr;
     sk_sp<SkData> m_lastPng;
     sk_sp<SkData> m_lastWebp;
     sk_sp<SkData> m_lastPdf;
@@ -113,8 +115,12 @@ class SatoruContext {
     bool needsRelayout = false;
 
     SatoruContext() {}
+    SatoruContext(satoru::ILogger *logger) : m_logger(logger) {}
 
     void init();
+
+    void setLogger(satoru::ILogger *logger) { m_logger = logger; }
+    satoru::ILogger *getLogger() const { return m_logger; }
 
     satoru::UnicodeService &getUnicodeService();
     SkShaper *getShaper();

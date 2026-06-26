@@ -275,6 +275,7 @@ add_library(satoru_core OBJECT)
 target_sources(satoru_core PRIVATE
     src/cpp/main.cpp
     src/cpp/api/satoru_api.cpp
+    src/cpp/api/js_logger.cpp
     src/cpp/core/container_skia.cpp
     src/cpp/core/text_utils.cpp
     src/cpp/core/text/unicode_service.cpp
@@ -292,6 +293,7 @@ target_sources(satoru_core PRIVATE
     src/cpp/renderers/png_renderer.cpp
     src/cpp/renderers/webp_renderer.cpp
     src/cpp/renderers/pdf_renderer.cpp
+    src/cpp/utils/logging.cpp
     src/cpp/utils/pdf_merger.cpp
     src/cpp/utils/skia_utils.cpp
     src/cpp/utils/skia_stubs.cpp

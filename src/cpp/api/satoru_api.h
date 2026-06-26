@@ -124,9 +124,6 @@ void api_set_font_map(SatoruInstance *inst, const std::map<std::string, std::str
 
 void api_set_log_level(int level);
 
-void satoru_log(LogLevel level, const char *message);
-void satoru_log_printf(LogLevel level, const char *format, ...);
-
 std::string api_get_pending_resources(SatoruInstance *inst);
 const uint8_t *api_get_pending_resources_binary(SatoruInstance *inst, int &out_size);
 std::string api_get_font_diagnostics(SatoruInstance *inst);

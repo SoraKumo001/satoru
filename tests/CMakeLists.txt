@@ -46,6 +46,12 @@ add_executable(satoru_tests
   test_web_color.cpp
   test_web_color_stubs.cpp
   test_magic_tags.cpp
+  test_logger.cpp
+  test_font_manager.cpp
+  ${SATORU_CPP_DIR}/utils/logging.cpp
+  ${SATORU_CPP_DIR}/core/font_manager.cpp
+  stubs/skia_utils_stub.cpp
+  stubs/unicode_service_stub.cpp
   ${LITEHTML_TEST_SRC}
 )
 

@@ -11,12 +11,12 @@
 #include "include/core/SkStream.h"
 #include "include/encode/SkPngEncoder.h"
 #include "render_utils.h"
+#include "utils/logging.h"
 
 sk_sp<SkData> renderDocumentToPng(SatoruInstance* inst, int width, int height,
                                   const RenderOptions& options) {
     if (!inst->doc || !inst->render_container) {
-        satoru_log_printf(LogLevel::Error,
-                          "[Satoru] renderDocumentToPng FAILED: null doc/container");
+        SATORU_LOG_ERROR("[Satoru] renderDocumentToPng FAILED: null doc/container");
         return nullptr;
     }
 

@@ -33,6 +33,7 @@ tsconfig.tsbuildinfo
 build-wasm-debug
 build-wasm-release
 build
+tests/build
 .env
 .cache
 .clangd

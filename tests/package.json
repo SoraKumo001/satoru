@@ -1,0 +1,10 @@
+{
+  "name": "satoru-tests",
+  "private": true,
+  "scripts": {
+    "test": "cmake -B build -G Ninja && cmake --build build && ctest --test-dir build --output-on-failure",
+    "configure": "cmake -B build -G Ninja",
+    "build": "cmake --build build",
+    "run": "ctest --test-dir build --output-on-failure"
+  }
+}

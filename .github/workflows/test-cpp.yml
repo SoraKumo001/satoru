@@ -33,7 +33,7 @@ jobs:
           sudo apt-get install -y ninja-build
 
       - name: CMake Configure
-        run: cmake -B tests/build -G Ninja
+        run: cmake -S tests -B tests/build -G Ninja
 
       - name: CMake Build
         run: cmake --build tests/build
@@ -68,7 +68,7 @@ jobs:
 
       - name: CMake Configure (ASan + UBSan)
         run: |
-          cmake -B tests/build-san -G Ninja \
+          cmake -S tests -B tests/build-san -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
@@ -116,7 +116,7 @@ jobs:
 
       - name: CMake Configure (Coverage)
         run: |
-          cmake -B tests/build-cov -G Ninja \
+          cmake -S tests -B tests/build-cov -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS="--coverage" \
             -DCMAKE_EXE_LINKER_FLAGS="--coverage"

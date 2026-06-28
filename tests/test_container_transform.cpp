@@ -1,8 +1,9 @@
-#include <gtest/gtest.h>
 #include <core/SkMatrix.h>
+#include <gtest/gtest.h>
+
+#include <cmath>
 #include <string>
 #include <vector>
-#include <cmath>
 
 // ============================================================================
 // Isomorphic copy of the CSS transform function → matrix logic from
@@ -38,17 +39,14 @@ static float convert_angle_to_degrees(float value, const std::string& unit) {
 ///              been normalised to degrees for rotate/skew functions.
 /// @return The corresponding 2D affine transformation matrix (identity when
 ///         the function is unrecognised or has insufficient arguments).
-static SkMatrix compute_transform_matrix(const std::string& name,
-                                          const std::vector<float>& vals) {
+static SkMatrix compute_transform_matrix(const std::string& name, const std::vector<float>& vals) {
     SkMatrix m;  // default-constructs as identity
 
     if (name == "matrix" && vals.size() >= 6) {
         // CSS matrix(a,b,c,d,e,f) →  [a  c  e]
         //                            [b  d  f]
         //                            [0  0  1]
-        m.setAll(vals[0], vals[2], vals[4],
-                 vals[1], vals[3], vals[5],
-                 0, 0, 1);
+        m.setAll(vals[0], vals[2], vals[4], vals[1], vals[3], vals[5], 0, 0, 1);
     } else if (name == "translate" || name == "translate3d") {
         float tx = vals.size() > 0 ? vals[0] : 0;
         float ty = vals.size() > 1 ? vals[1] : 0;
@@ -80,17 +78,12 @@ static SkMatrix compute_transform_matrix(const std::string& name,
         // 2D skew:  [1  tan(kx)  0]
         //           [tan(ky)  1  0]
         //           [0       0   1]
-        m.setAll(1, tanf(kx * 3.14159265f / 180.0f), 0,
-                 tanf(ky * 3.14159265f / 180.0f), 1, 0,
-                 0, 0, 1);
+        m.setAll(1, tanf(kx * 3.14159265f / 180.0f), 0, tanf(ky * 3.14159265f / 180.0f), 1, 0, 0, 0,
+                 1);
     } else if (name == "skewx") {
-        m.setAll(1, tanf(vals[0] * 3.14159265f / 180.0f), 0,
-                 0, 1, 0,
-                 0, 0, 1);
+        m.setAll(1, tanf(vals[0] * 3.14159265f / 180.0f), 0, 0, 1, 0, 0, 0, 1);
     } else if (name == "skewy") {
-        m.setAll(1, 0, 0,
-                 tanf(vals[0] * 3.14159265f / 180.0f), 1, 0,
-                 0, 0, 1);
+        m.setAll(1, 0, 0, tanf(vals[0] * 3.14159265f / 180.0f), 1, 0, 0, 0, 1);
     }
     // Unrecognised function name → identity (no-op in the CSS spec)
     return m;
@@ -334,7 +327,7 @@ TEST(TransformRotate, FortyFiveDeg) {
 
 TEST(TransformRotateZ, EquivalentToRotate) {
     auto m_rz = compute_transform_matrix("rotatez", {90});
-    auto m_r  = compute_transform_matrix("rotate",  {90});
+    auto m_r = compute_transform_matrix("rotate", {90});
     EXPECT_EQ(m_rz, m_r);
 }
 

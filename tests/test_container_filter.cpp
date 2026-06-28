@@ -268,12 +268,20 @@ sk_sp<SkImageFilter> build_backdrop_filter_chain(const litehtml::css_token_vecto
                 }
             } else if (name == "hue-rotate") {
                 if (!args.empty() && !args[0].empty()) {
-                    float angle = 0.0f;
+                    float angle_deg = 0.0f;
                     if (args[0][0].type == litehtml::DIMENSION) {
-                        angle = args[0][0].n.number;
+                        angle_deg = args[0][0].n.number;
+                        const std::string& unit = args[0][0].str;
+                        if (unit == "rad") {
+                            angle_deg = angle_deg * 180.0f / kSkScalarPI;
+                        } else if (unit == "turn") {
+                            angle_deg = angle_deg * 360.0f;
+                        } else if (unit == "grad") {
+                            angle_deg = angle_deg * 0.9f;
+                        }
                     }
-                    float c = cosf(angle * kSkScalarPI / 180.0f);
-                    float s = sinf(angle * kSkScalarPI / 180.0f);
+                    float c = cosf(angle_deg * kSkScalarPI / 180.0f);
+                    float s = sinf(angle_deg * kSkScalarPI / 180.0f);
                     SkColorMatrix cm;
                     float mat[20] = {0.213f + c * 0.787f - s * 0.213f,
                                      0.715f - c * 0.715f - s * 0.715f,
@@ -689,19 +697,56 @@ TEST(BackdropFilterHueRotate, ZeroDeg) {
 }
 
 TEST(BackdropFilterHueRotate, QuarterTurn) {
+    // 0.25turn → 90° → cos=0, sin=1
     auto tokens = parse_filter_string("hue-rotate(0.25turn)");
     auto filter = build_backdrop_filter_chain(tokens);
 
     ASSERT_NE(filter, nullptr);
-
-    // 0.25turn → angle = 0.25 (dimension number stored directly)
-    // The production code only checks DIMENSION type and uses n.number directly
-    // The unit conversion (turn→deg) is expected to be done by the CSS parser
-    // In litehtml's tokenizer, "0.25turn" produces DIMENSION with n.number=0.25
-    // But the production code treats this as degrees (angle * PI / 180), so
-    // 0.25 degrees ≈ 0.00436 rad, not 90 degrees.
-    // This tests the CURRENT behavior, not necessarily the correct behavior.
     ASSERT_EQ(filter->fType, SkImageFilter::kColorFilter);
+    const auto& m = filter->fColorFilter->fMatrix;
+    EXPECT_NEAR(m.fMat[0], 0.0f, 0.001f);
+    EXPECT_NEAR(m.fMat[1], 0.0f, 0.001f);
+    EXPECT_NEAR(m.fMat[2], 1.0f, 0.001f);
+    EXPECT_FLOAT_EQ(m.fMat[18], 1.0f);
+}
+
+TEST(BackdropFilterHueRotate, OneTurn) {
+    // 1turn → 360° → cos=1, sin=0 → identity matrix
+    auto tokens = parse_filter_string("hue-rotate(1turn)");
+    auto filter = build_backdrop_filter_chain(tokens);
+
+    ASSERT_NE(filter, nullptr);
+    ASSERT_EQ(filter->fType, SkImageFilter::kColorFilter);
+    const auto& m = filter->fColorFilter->fMatrix;
+    EXPECT_NEAR(m.fMat[0], 1.0f, 0.001f);
+    EXPECT_NEAR(m.fMat[6], 1.0f, 0.001f);
+    EXPECT_NEAR(m.fMat[12], 1.0f, 0.001f);
+}
+
+TEST(BackdropFilterHueRotate, Rad) {
+    // ~1.57rad → 90° → cos=0, sin=1
+    auto tokens = parse_filter_string("hue-rotate(1.57rad)");
+    auto filter = build_backdrop_filter_chain(tokens);
+
+    ASSERT_NE(filter, nullptr);
+    ASSERT_EQ(filter->fType, SkImageFilter::kColorFilter);
+    const auto& m = filter->fColorFilter->fMatrix;
+    // 1.57 rad = 89.95°, cos≈0.0, sin≈1.0
+    EXPECT_NEAR(m.fMat[0], 0.0f, 0.005f);
+    EXPECT_NEAR(m.fMat[2], 1.0f, 0.005f);
+    EXPECT_FLOAT_EQ(m.fMat[18], 1.0f);
+}
+
+TEST(BackdropFilterHueRotate, Grad) {
+    // 100grad → 90° → cos=0, sin=1
+    auto tokens = parse_filter_string("hue-rotate(100grad)");
+    auto filter = build_backdrop_filter_chain(tokens);
+
+    ASSERT_NE(filter, nullptr);
+    ASSERT_EQ(filter->fType, SkImageFilter::kColorFilter);
+    const auto& m = filter->fColorFilter->fMatrix;
+    EXPECT_NEAR(m.fMat[0], 0.0f, 0.001f);
+    EXPECT_NEAR(m.fMat[2], 1.0f, 0.001f);
 }
 
 // ── Invert ────────────────────────────────────

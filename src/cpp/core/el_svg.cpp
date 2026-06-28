@@ -82,28 +82,30 @@ void el_svg::get_content_size(size& sz, pixel_t max_width) {
     sz.width = (pixel_t)css().get_width().val();
     sz.height = (pixel_t)css().get_height().val();
 
-    if (sz.width == 0 || sz.height == 0) {
+    if (sz.width == 0) {
         const char* str_w = get_attr("width");
-        const char* str_h = get_attr("height");
         if (str_w) sz.width = (pixel_t)atof(str_w);
+    }
+    if (sz.height == 0) {
+        const char* str_h = get_attr("height");
         if (str_h) sz.height = (pixel_t)atof(str_h);
+    }
 
-        if (sz.width == 0 || sz.height == 0) {
-            const char* str_vb = get_attr("viewbox");
-            if (str_vb) {
-                float vx, vy, vw, vh;
-                // Try space-separated first
-                if (sscanf(str_vb, "%f %f %f %f", &vx, &vy, &vw, &vh) == 4 ||
-                    sscanf(str_vb, "%f,%f,%f,%f", &vx, &vy, &vw, &vh) == 4) {
-                    if (vw > 0 && vh > 0) {
-                        if (sz.width == 0 && sz.height == 0) {
-                            sz.width = vw;
-                            sz.height = vh;
-                        } else if (sz.width == 0) {
-                            sz.width = sz.height * vw / vh;
-                        } else if (sz.height == 0) {
-                            sz.height = sz.width * vh / vw;
-                        }
+    if (sz.width == 0 || sz.height == 0) {
+        const char* str_vb = get_attr("viewbox");
+        if (str_vb) {
+            float vx, vy, vw, vh;
+            // Try space-separated first
+            if (sscanf(str_vb, "%f %f %f %f", &vx, &vy, &vw, &vh) == 4 ||
+                sscanf(str_vb, "%f,%f,%f,%f", &vx, &vy, &vw, &vh) == 4) {
+                if (vw > 0 && vh > 0) {
+                    if (sz.width == 0 && sz.height == 0) {
+                        sz.width = vw;
+                        sz.height = vh;
+                    } else if (sz.width == 0) {
+                        sz.width = sz.height * vw / vh;
+                    } else if (sz.height == 0) {
+                        sz.height = sz.width * vh / vw;
                     }
                 }
             }

@@ -49,8 +49,9 @@ static int classify_bidi_level(const char* text, int base_level) {
         // Hiragana                      U+3040-U+309F   UTF-8: 0xE3 0x81-0x82
         // Katakana                      U+30A0-U+30FF   UTF-8: 0xE3 0x82-0x83
         // Hangul Syllables              U+AC00-U+D7A3   UTF-8: 0xEA-0xED
-        if ((c0 >= 0xE4 && c0 <= 0xE9) ||                // CJK ideographs
+        if ((c0 >= 0xE4 && c0 <= 0xE9) ||                // CJK Unified Ideographs (U+4E00-U+9FFF)
             (c0 == 0xE3 && c1 >= 0x81 && c1 <= 0x83) ||  // Hiragana/Katakana
+            (c0 == 0xE3 && c1 >= 0x90) ||                // CJK Extension A (U+3400-U+3FFF)
             (c0 >= 0xEA && c0 <= 0xED)) {                // Hangul syllables
             return (base_level == 1) ? 2 : 0;
         }
@@ -368,11 +369,18 @@ TEST(ContainerBidiTest, HangulCompatibilityJamoFallthrough) {
     EXPECT_EQ(classify_bidi_level("\xE3\x84\xB0", 1), 1);
 }
 
-TEST(ContainerBidiTest, CjkExtensionAFallthrough) {
+TEST(ContainerBidiTest, CjkExtensionA) {
     // U+3400 '㐀' (CJK Extension A start) = 0xE3 0x90 0x80
-    // c0=0xE3, c1=0x90 → NOT in hiragana/katakana range (c1 <= 0x83 fails)
+    // c0=0xE3, c1=0x90 → matches CJK Extension A fast-path condition
     EXPECT_EQ(classify_bidi_level("\xE3\x90\x80", 0), 0);
-    EXPECT_EQ(classify_bidi_level("\xE3\x90\x80", 1), 1);
+    EXPECT_EQ(classify_bidi_level("\xE3\x90\x80", 1), 2);
+}
+
+TEST(ContainerBidiTest, CjkExtensionA_End) {
+    // U+4DBF (last CJK Extension A) = 0xE4 0xB6 0xBF
+    // c0=0xE4 → matches CJK Unified Ideographs range (0xE4-0xE9)
+    EXPECT_EQ(classify_bidi_level("\xE4\xB6\xBF", 0), 0);
+    EXPECT_EQ(classify_bidi_level("\xE4\xB6\xBF", 1), 2);
 }
 
 // ============================================================================

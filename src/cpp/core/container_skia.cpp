@@ -252,15 +252,23 @@ void container_skia::push_backdrop_filter(litehtml::uint_ptr hdc,
                 }
             } else if (name == "hue-rotate") {
                 if (!args.empty() && !args[0].empty()) {
-                    float angle = 0.0f;
+                    float angle_deg = 0.0f;
                     if (args[0][0].type == litehtml::DIMENSION) {
-                        angle = args[0][0].n.number;
+                        angle_deg = args[0][0].n.number;
+                        // Convert to degrees based on the CSS angle unit
+                        // The unit string is in args[0][0].str (union with .unit)
+                        const std::string& unit = args[0][0].str;
+                        if (unit == "rad") {
+                            angle_deg = angle_deg * 180.0f / SK_ScalarPI;
+                        } else if (unit == "turn") {
+                            angle_deg = angle_deg * 360.0f;
+                        } else if (unit == "grad") {
+                            angle_deg = angle_deg * 0.9f;
+                        }
+                        // "deg" or no unit → use as-is
                     }
-                    // SkColorMatrix doesn't have direct hue rotation helpers, use setRowMajor with
-                    // rotation matrix For brevity, using a standard hue rotation matrix calculation
-                    // (simplified)
-                    float c = cosf(angle * SK_ScalarPI / 180.0f);
-                    float s = sinf(angle * SK_ScalarPI / 180.0f);
+                    float c = cosf(angle_deg * SK_ScalarPI / 180.0f);
+                    float s = sinf(angle_deg * SK_ScalarPI / 180.0f);
                     SkColorMatrix cm;
                     float mat[20] = {0.213f + c * 0.787f - s * 0.213f,
                                      0.715f - c * 0.715f - s * 0.715f,
@@ -1667,8 +1675,9 @@ int container_skia::get_bidi_level(const char* text, int base_level) {
         }
     } else {
         const unsigned char c1 = static_cast<unsigned char>(text[1]);
-        if ((c0 >= 0xE4 && c0 <= 0xE9) ||                // CJK ideographs
+        if ((c0 >= 0xE4 && c0 <= 0xE9) ||                // CJK Unified Ideographs (U+4E00-U+9FFF)
             (c0 == 0xE3 && c1 >= 0x81 && c1 <= 0x83) ||  // Hiragana/Katakana
+            (c0 == 0xE3 && c1 >= 0x90) ||                // CJK Extension A (U+3400-U+3FFF)
             (c0 >= 0xEA && c0 <= 0xED)) {                // Hangul
             int level = (base_level == 1) ? 2 : 0;
             m_last_bidi_level = level;

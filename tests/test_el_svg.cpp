@@ -157,24 +157,22 @@ static content_size_result parse_svg_content_size(
     float sz_w = css_width;
     float sz_h = css_height;
 
-    if (sz_w == 0 || sz_h == 0) {
-        if (attr_width)  sz_w = (float)atof(attr_width);
-        if (attr_height) sz_h = (float)atof(attr_height);
+    if (sz_w == 0 && attr_width)  sz_w = (float)atof(attr_width);
+    if (sz_h == 0 && attr_height) sz_h = (float)atof(attr_height);
 
-        if (sz_w == 0 || sz_h == 0) {
-            if (attr_viewbox) {
-                float vx, vy, vw, vh;
-                if (sscanf(attr_viewbox, "%f %f %f %f", &vx, &vy, &vw, &vh) == 4 ||
-                    sscanf(attr_viewbox, "%f,%f,%f,%f", &vx, &vy, &vw, &vh) == 4) {
-                    if (vw > 0 && vh > 0) {
-                        if (sz_w == 0 && sz_h == 0) {
-                            sz_w = vw;
-                            sz_h = vh;
-                        } else if (sz_w == 0) {
-                            sz_w = sz_h * vw / vh;
-                        } else if (sz_h == 0) {
-                            sz_h = sz_w * vh / vw;
-                        }
+    if (sz_w == 0 || sz_h == 0) {
+        if (attr_viewbox) {
+            float vx, vy, vw, vh;
+            if (sscanf(attr_viewbox, "%f %f %f %f", &vx, &vy, &vw, &vh) == 4 ||
+                sscanf(attr_viewbox, "%f,%f,%f,%f", &vx, &vy, &vw, &vh) == 4) {
+                if (vw > 0 && vh > 0) {
+                    if (sz_w == 0 && sz_h == 0) {
+                        sz_w = vw;
+                        sz_h = vh;
+                    } else if (sz_w == 0) {
+                        sz_w = sz_h * vw / vh;
+                    } else if (sz_h == 0) {
+                        sz_h = sz_w * vh / vw;
                     }
                 }
             }
@@ -201,6 +199,15 @@ TEST(ElSvgContentSizeTest, CssWidthZero_FallsBackToAttrWidth) {
     auto r = parse_svg_content_size(0, 150, "300", nullptr, nullptr);
     EXPECT_EQ(r.width, 300);
     EXPECT_EQ(r.height, 150);
+}
+
+TEST(ElSvgContentSizeTest, CssPartiallyZero_OnlyZeroDimOverriddenByAttr_Reverse) {
+    // When css width is 0 but css height is non-zero, only width should
+    // be replaced from attributes. The non-zero css height (200) must
+    // be preserved even though attr_height is "400".
+    auto r = parse_svg_content_size(0, 200, "500", "400", nullptr);
+    EXPECT_EQ(r.width, 500);
+    EXPECT_EQ(r.height, 200);
 }
 
 TEST(ElSvgContentSizeTest, AttrWidthHeightUsedWhenCssZero) {
@@ -282,12 +289,12 @@ TEST(ElSvgContentSizeTest, AttrHeightPresent_ViewBoxScalesWidth) {
     EXPECT_EQ(r.height, 300);
 }
 
-TEST(ElSvgContentSizeTest, CssPartiallyZero_AttrOverridesBoth) {
-    // NOTE: Production behavior — when EITHER css dimension is 0, both
-    // dimensions are re-read from attributes, so the non-zero css width (300)
-    // gets overwritten by attr_width "500".
+TEST(ElSvgContentSizeTest, CssPartiallyZero_OnlyZeroDimOverriddenByAttr) {
+    // When css height is 0 but css width is non-zero, only the zero
+    // dimension should be replaced from attributes. The non-zero css
+    // width (300) must be preserved even though attr_width is "500".
     auto r = parse_svg_content_size(300, 0, "500", "400", nullptr);
-    EXPECT_EQ(r.width, 500);
+    EXPECT_EQ(r.width, 300);
     EXPECT_EQ(r.height, 400);
 }
 

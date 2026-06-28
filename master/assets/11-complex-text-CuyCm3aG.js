@@ -1,0 +1,1 @@
+var e=``+new URL(`11-complex-text-BMI8f5_C.html`,import.meta.url).href;export{e as default};

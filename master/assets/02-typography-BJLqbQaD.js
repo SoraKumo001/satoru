@@ -1,0 +1,1 @@
+var e=``+new URL(`02-typography-DhJ2yeu0.html`,import.meta.url).href;export{e as default};

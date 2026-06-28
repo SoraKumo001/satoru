@@ -1,0 +1,1 @@
+var e=``+new URL(`04-box-model-oGSpo2MF.html`,import.meta.url).href;export{e as default};

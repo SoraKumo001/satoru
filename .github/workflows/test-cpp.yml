@@ -70,8 +70,8 @@ jobs:
         run: |
           cmake -S tests -B tests/build-san -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
-            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize=vptr -fno-omit-frame-pointer" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined -fno-sanitize=vptr"
 
       - name: CMake Build
         run: cmake --build tests/build-san

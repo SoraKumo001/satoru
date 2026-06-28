@@ -14,6 +14,7 @@ public:
     void setRect(const SkRect& rect) { fRect = rect; }
     const SkRect& rect() const { return fRect; }
     bool isEmpty() const { return fRect.isEmpty(); }
+    static SkRRect MakeEmpty() { return SkRRect(); }
 private:
     SkRect fRect;
 };

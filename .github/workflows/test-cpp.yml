@@ -10,6 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # --- Functional tests (existing) -------------------------------------
   test-cpp:
     runs-on: ubuntu-latest
     steps:
@@ -39,3 +40,110 @@ jobs:
 
       - name: Run Tests
         run: ctest --test-dir tests/build --output-on-failure
+
+  # --- Sanitizer tests: ASan + UBSan -----------------------------------
+  # Detects memory errors (buffer overflow, use-after-free, leaks) and
+  # undefined behavior (signed overflow, misaligned access, etc.).
+  # Build is slower (3-5x) and runs in parallel with other jobs.
+  test-cpp-sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache GoogleTest (FetchContent)
+        uses: actions/cache@v4
+        with:
+          path: tests/build-san/_deps
+          key: test-cpp-san-deps-${{ hashFiles('tests/CMakeLists.txt') }}
+          restore-keys: |
+            test-cpp-san-deps-
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+
+      - name: CMake Configure (ASan + UBSan)
+        run: |
+          cmake -B tests/build-san -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+
+      - name: CMake Build
+        run: cmake --build tests/build-san
+
+      - name: Run Tests with Sanitizers
+        run: |
+          ctest --test-dir tests/build-san --output-on-failure 2>&1 | tee test-sanitizers.log
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1
+
+      - name: Upload Test Log on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-sanitizers-log
+          path: test-sanitizers.log
+
+  # --- Coverage tests: gcov / lcov -------------------------------------
+  # Measures line and branch coverage via compiler instrumentation.
+  # Produces an HTML report uploaded as a workflow artifact.
+  test-cpp-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache GoogleTest (FetchContent)
+        uses: actions/cache@v4
+        with:
+          path: tests/build-cov/_deps
+          key: test-cpp-cov-deps-${{ hashFiles('tests/CMakeLists.txt') }}
+          restore-keys: |
+            test-cpp-cov-deps-
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build lcov
+
+      - name: CMake Configure (Coverage)
+        run: |
+          cmake -B tests/build-cov -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="--coverage" \
+            -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+
+      - name: CMake Build
+        run: cmake --build tests/build-cov
+
+      - name: Run Tests
+        run: ctest --test-dir tests/build-cov --output-on-failure
+
+      - name: Collect Coverage Data
+        run: |
+          lcov --directory tests/build-cov --capture --output-file coverage.info \
+            --rc lcov_branch_coverage=1
+
+      - name: Filter Coverage Data
+        run: |
+          lcov --remove coverage.info '/usr/*' '*/_deps/*' '*/tests/*' \
+            --output-file coverage.info --rc lcov_branch_coverage=1
+
+      - name: Generate HTML Report
+        run: |
+          genhtml coverage.info --output-directory coverage-report \
+            --rc lcov_branch_coverage=1
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-report/

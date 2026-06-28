@@ -277,6 +277,10 @@ target_sources(satoru_core PRIVATE
     src/cpp/api/satoru_api.cpp
     src/cpp/api/js_logger.cpp
     src/cpp/core/container_skia.cpp
+    src/cpp/core/container_skia_helpers.cpp
+    src/cpp/core/container_skia_filters.cpp
+    src/cpp/core/container_skia_transforms.cpp
+    src/cpp/core/container_skia_clip.cpp
     src/cpp/core/text_utils.cpp
     src/cpp/core/text/unicode_service.cpp
     src/cpp/core/text/text_layout.cpp

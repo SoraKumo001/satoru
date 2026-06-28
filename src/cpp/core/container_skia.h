@@ -311,6 +311,9 @@ class container_skia : public litehtml::document_container {
 
     static SkPath parse_clip_path(const litehtml::css_token_vector &tokens,
                                   const litehtml::position &pos);
+
+    /// Convert litehtml::blend_mode to SkBlendMode.
+    static SkBlendMode to_skia_blend_mode(litehtml::blend_mode bm);
 };
 
 #endif

@@ -273,23 +273,7 @@ void el_svg::draw(uint_ptr hdc, pixel_t x, pixel_t y, const position* clip,
 
     // Replace "currentColor" with actual computed color
     litehtml::web_color color = css().get_color();
-    std::string color_str;
-    if (color.alpha < 255) {
-        std::stringstream ss;
-        ss << "rgba(" << (int)color.red << "," << (int)color.green << "," << (int)color.blue << ","
-           << (float)color.alpha / 255.0f << ")";
-        color_str = ss.str();
-    } else {
-        char hex[8];
-        snprintf(hex, sizeof(hex), "#%02X%02X%02X", color.red, color.green, color.blue);
-        color_str = hex;
-    }
-
-    size_t start_pos = 0;
-    while ((start_pos = xml.find("currentColor", start_pos)) != std::string::npos) {
-        xml.replace(start_pos, 12, color_str);
-        start_pos += color_str.length();
-    }
+    xml = replace_current_color(xml, color);
 
     if (container->is_tagging()) {
         int index = container->add_inline_svg(xml, pos);

@@ -43,3 +43,4 @@ a.html
 a_files
 .omo/
 .slim/
+tests/build_debug

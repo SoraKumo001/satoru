@@ -1885,61 +1885,49 @@ void container_skia::split_text(const char* text, const std::function<void(const
     }
 }
 
+SkBlendMode container_skia::to_skia_blend_mode(litehtml::blend_mode bm) {
+    switch (bm) {
+        case litehtml::blend_mode_multiply:
+            return SkBlendMode::kMultiply;
+        case litehtml::blend_mode_screen:
+            return SkBlendMode::kScreen;
+        case litehtml::blend_mode_overlay:
+            return SkBlendMode::kOverlay;
+        case litehtml::blend_mode_darken:
+            return SkBlendMode::kDarken;
+        case litehtml::blend_mode_lighten:
+            return SkBlendMode::kLighten;
+        case litehtml::blend_mode_color_dodge:
+            return SkBlendMode::kColorDodge;
+        case litehtml::blend_mode_color_burn:
+            return SkBlendMode::kColorBurn;
+        case litehtml::blend_mode_hard_light:
+            return SkBlendMode::kHardLight;
+        case litehtml::blend_mode_soft_light:
+            return SkBlendMode::kSoftLight;
+        case litehtml::blend_mode_difference:
+            return SkBlendMode::kDifference;
+        case litehtml::blend_mode_exclusion:
+            return SkBlendMode::kExclusion;
+        case litehtml::blend_mode_hue:
+            return SkBlendMode::kHue;
+        case litehtml::blend_mode_saturation:
+            return SkBlendMode::kSaturation;
+        case litehtml::blend_mode_color:
+            return SkBlendMode::kColor;
+        case litehtml::blend_mode_luminosity:
+            return SkBlendMode::kLuminosity;
+        default:
+            return SkBlendMode::kSrcOver;
+    }
+}
+
 void container_skia::push_layer(litehtml::uint_ptr hdc, float opacity, litehtml::blend_mode bm) {
     m_opacity_stack.push_back(opacity);
     if (m_canvas) {
         flush();
 
-        SkBlendMode sk_bm = SkBlendMode::kSrcOver;
-        switch (bm) {
-            case litehtml::blend_mode_multiply:
-                sk_bm = SkBlendMode::kMultiply;
-                break;
-            case litehtml::blend_mode_screen:
-                sk_bm = SkBlendMode::kScreen;
-                break;
-            case litehtml::blend_mode_overlay:
-                sk_bm = SkBlendMode::kOverlay;
-                break;
-            case litehtml::blend_mode_darken:
-                sk_bm = SkBlendMode::kDarken;
-                break;
-            case litehtml::blend_mode_lighten:
-                sk_bm = SkBlendMode::kLighten;
-                break;
-            case litehtml::blend_mode_color_dodge:
-                sk_bm = SkBlendMode::kColorDodge;
-                break;
-            case litehtml::blend_mode_color_burn:
-                sk_bm = SkBlendMode::kColorBurn;
-                break;
-            case litehtml::blend_mode_hard_light:
-                sk_bm = SkBlendMode::kHardLight;
-                break;
-            case litehtml::blend_mode_soft_light:
-                sk_bm = SkBlendMode::kSoftLight;
-                break;
-            case litehtml::blend_mode_difference:
-                sk_bm = SkBlendMode::kDifference;
-                break;
-            case litehtml::blend_mode_exclusion:
-                sk_bm = SkBlendMode::kExclusion;
-                break;
-            case litehtml::blend_mode_hue:
-                sk_bm = SkBlendMode::kHue;
-                break;
-            case litehtml::blend_mode_saturation:
-                sk_bm = SkBlendMode::kSaturation;
-                break;
-            case litehtml::blend_mode_color:
-                sk_bm = SkBlendMode::kColor;
-                break;
-            case litehtml::blend_mode_luminosity:
-                sk_bm = SkBlendMode::kLuminosity;
-                break;
-            default:
-                break;
-        }
+        SkBlendMode sk_bm = to_skia_blend_mode(bm);
 
         if (m_tagging) {
             SkPaint p;

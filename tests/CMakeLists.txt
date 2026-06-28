@@ -54,12 +54,18 @@ add_executable(satoru_tests
   test_resource_manager.cpp
   test_logical_geometry.cpp
   test_svg_tag_utils.cpp
+  test_el_svg.cpp
   test_litehtml_extensions.cpp
   test_logical_canvas.cpp
   test_bridge_types.cpp
   test_text_utils.cpp
   test_clip_path.cpp
+  test_container_bidi.cpp
+  test_container_resolve.cpp
+  test_container_layer.cpp
   test_unicode_service.cpp
+  test_container_filter.cpp
+  test_container_transform.cpp
   ${SATORU_CPP_DIR}/utils/logging.cpp
   ${SATORU_CPP_DIR}/core/font_manager.cpp
   stubs/skia_utils_stub.cpp

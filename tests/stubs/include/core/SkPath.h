@@ -22,6 +22,13 @@ struct SkPathOp {
     };
     Type type;
     float params[5]{};
+    bool operator==(const SkPathOp& o) const {
+        if (type != o.type) return false;
+        for (int i = 0; i < 5; ++i)
+            if (params[i] != o.params[i]) return false;
+        return true;
+    }
+    bool operator!=(const SkPathOp& o) const { return !(*this == o); }
 };
 
 // SkPath – holds a list of operations
@@ -29,6 +36,8 @@ struct SkPath {
     std::vector<SkPathOp> fOps;
 
     bool isEmpty() const { return fOps.empty(); }
+    bool operator==(const SkPath& o) const { return fOps == o.fOps; }
+    bool operator!=(const SkPath& o) const { return !(*this == o); }
 };
 
 // SkPathBuilder – accumulates operations, detach() produces an SkPath

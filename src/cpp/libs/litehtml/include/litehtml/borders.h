@@ -304,6 +304,9 @@ namespace litehtml
 			bottom = val.bottom;
 			return *this;
 		}
+
+		pixel_t width() const { return left.width + right.width; }
+		pixel_t height() const { return top.width + bottom.width; }
 	};
 }
 

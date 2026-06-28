@@ -1,0 +1,41 @@
+name: C++ Tests
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+concurrency:
+  group: test-cpp-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-cpp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache GoogleTest (FetchContent)
+        uses: actions/cache@v4
+        with:
+          path: tests/build/_deps
+          key: test-cpp-deps-${{ hashFiles('tests/CMakeLists.txt') }}
+          restore-keys: |
+            test-cpp-deps-
+
+      - name: Install Ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+
+      - name: CMake Configure
+        run: cmake -B tests/build -G Ninja
+
+      - name: CMake Build
+        run: cmake --build tests/build
+
+      - name: Run Tests
+        run: ctest --test-dir tests/build --output-on-failure

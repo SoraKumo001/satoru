@@ -9,6 +9,9 @@ struct SkRect {
     static SkRect MakeXYWH(float x, float y, float w, float h) {
         return {x, y, x + w, y + h};
     }
+    static SkRect MakeLTRB(float l, float t, float r, float b) {
+        return {l, t, r, b};
+    }
 
     float width() const { return fRight - fLeft; }
     float height() const { return fBottom - fTop; }

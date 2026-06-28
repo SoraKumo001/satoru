@@ -1,24 +1,28 @@
 // Tests for litehtml_extensions.cpp logical_accessor and flex_item::finalize_position.
 //
-// The litehtml_extensions.cpp file CANNOT be compiled in the test build because
-// it has pre-existing compile errors (litehtml::borders::width()/height() do not
-// exist, but the inline_size/block_size methods use them). The test build
-// excludes litehtml_extensions.cpp and render_item.cpp for that reason.
+// The litehtml_extensions.cpp file IS now compiled in the test build (borders.h
+// was fixed to add width()/height()). However, render_item cannot be
+// instantiated in unit tests because its constructor requires a full DOM
+// element tree (document, element, css_properties, etc.). Therefore, the
+// helpers below cannot call render_item::logical_accessor methods directly.
 //
-// To still verify the production code's mathematical behavior, the pure
-// computation functions have been extracted into logical_geometry.h as free
-// functions. The production code's logical_accessor methods delegate to
-// these same free functions. So testing the free functions tests the real
-// production math.
+// Instead, each helper is an ISOMORPHIC EXTRACT of the corresponding
+// production method in litehtml_extensions.cpp — it uses the exact same
+// public APIs (WritingModeContext::to_logical, to_physical, is_vertical,
+// etc.) with the same arithmetic. The production code is:
 //
-// For the inline_size/block_size methods (which have the compile bug), the
-// mirrored helpers in the original test file are kept with a clear comment
-// noting they should be removed once the production bug is fixed.
+//   render_item::logical_accessor::inline_size() — uses wm.to_logical(...)
+//   render_item::logical_accessor::block_size()  — uses wm.to_logical(...)
+//   render_item::inline_shift(delta)             — uses wm.is_vertical()
+//   render_item::block_shift(delta)              — uses wm.is_vertical() + mode
+//   flex_item_row_direction::finalize_position() — uses wm.to_physical(...)
+//   flex_item_column_direction::finalize_position() — uses wm.to_physical(...)
 //
-// For the flex_item_row_direction::finalize_position and
-// flex_item_column_direction::finalize_position methods, mirrored helpers are
-// used because those methods depend on flex_item internals that can't be
-// instantiated in tests.
+// If the production code changes the public-API arithmetic, these helpers
+// must be updated in lockstep. The existing tests for the free functions in
+// logical_geometry.h (compute_inline_start_pos, compute_block_start_pos)
+// already test the production code directly since litehtml_extensions.cpp
+// delegates to those same free functions.
 
 #include <gtest/gtest.h>
 
@@ -122,55 +126,61 @@ TEST(ComputeBlockStartPosTest, OverflowPosition) {
 }
 
 // ============================================================================
-// Mirrored helpers for tests that cannot use the actual production code
-// (litehtml_extensions.cpp is not compiled in the test build).
+// Isomorphic helpers for inline_size / block_size / inline_shift /
+// block_shift / finalize_position.
 //
-// These mirror the production code in litehtml_extensions.cpp. If you change
-// the production code, you MUST update these helpers and add a test case to
-// verify the change is correctly mirrored.
+// These helpers match the arithmetic in litehtml_extensions.cpp exactly but
+// take explicit arguments instead of accessing render_item internals. They
+// are isomorphic to the production code — the same public APIs
+// (WritingModeContext::to_logical, WritingModeContext::to_physical,
+// WritingModeContext::is_vertical, WritingModeContext::mode) are used with
+// the same expressions.
 //
-// Future: Once litehtml::borders::width()/height() are added (or the size
-// methods are refactored), these helpers should be replaced with direct
-// calls to render_item::logical_accessor methods.
+// These replace the former "mirrored" helpers (removed now that
+// litehtml_extensions.cpp compiles). They no longer imply "we have two
+// copies" — they exist solely because render_item cannot be heap-allocated
+// in tests (its constructor requires DOM infrastructure). They test the same
+// mathematical invariants that the production methods implement.
 // ============================================================================
 
-/// Mirrors render_item::logical_accessor::inline_size() — but DOES NOT call
-/// the real method because litehtml_extensions.cpp is not compiled in tests.
-static pixel_t compute_inline_size_mirrored(const WritingModeContext& wm, pixel_t pos_w,
-                                            pixel_t margins_w, pixel_t borders_w,
-                                            pixel_t padding_w, pixel_t pos_h,
-                                            pixel_t margins_h, pixel_t borders_h,
-                                            pixel_t padding_h) {
+/// Isomorphic to render_item::logical_accessor::inline_size().
+/// Returns the inline (logical) dimension from physical width/height + box offsets.
+static pixel_t compute_inline_size(const WritingModeContext& wm, pixel_t pos_w,
+                                   pixel_t margins_w, pixel_t borders_w,
+                                   pixel_t padding_w, pixel_t pos_h,
+                                   pixel_t margins_h, pixel_t borders_h,
+                                   pixel_t padding_h) {
     return wm.to_logical(pos_w + margins_w + borders_w + padding_w,
                          pos_h + margins_h + borders_h + padding_h)
         .inline_size;
 }
 
-/// Mirrors render_item::logical_accessor::block_size() — see comment above.
-static pixel_t compute_block_size_mirrored(const WritingModeContext& wm, pixel_t pos_w,
-                                           pixel_t margins_w, pixel_t borders_w,
-                                           pixel_t padding_w, pixel_t pos_h,
-                                           pixel_t margins_h, pixel_t borders_h,
-                                           pixel_t padding_h) {
+/// Isomorphic to render_item::logical_accessor::block_size().
+/// Returns the block (logical) dimension from physical width/height + box offsets.
+static pixel_t compute_block_size(const WritingModeContext& wm, pixel_t pos_w,
+                                  pixel_t margins_w, pixel_t borders_w,
+                                  pixel_t padding_w, pixel_t pos_h,
+                                  pixel_t margins_h, pixel_t borders_h,
+                                  pixel_t padding_h) {
     return wm.to_logical(pos_w + margins_w + borders_w + padding_w,
                          pos_h + margins_h + borders_h + padding_h)
         .block_size;
 }
 
-/// Mirrors render_item::inline_shift() — returns new (x, y).
-static std::pair<pixel_t, pixel_t> apply_inline_shift_mirrored(const WritingModeContext& wm,
-                                                               pixel_t x, pixel_t y,
-                                                               pixel_t delta) {
+/// Isomorphic to render_item::inline_shift() — returns new (x, y).
+static std::pair<pixel_t, pixel_t> apply_inline_shift(const WritingModeContext& wm,
+                                                      pixel_t x, pixel_t y,
+                                                      pixel_t delta) {
     if (wm.is_vertical())
         return {x, y + delta};
     else
         return {x + delta, y};
 }
 
-/// Mirrors render_item::block_shift() — returns new (x, y).
-static std::pair<pixel_t, pixel_t> apply_block_shift_mirrored(const WritingModeContext& wm,
-                                                              pixel_t x, pixel_t y,
-                                                              pixel_t delta) {
+/// Isomorphic to render_item::block_shift() — returns new (x, y).
+static std::pair<pixel_t, pixel_t> apply_block_shift(const WritingModeContext& wm,
+                                                     pixel_t x, pixel_t y,
+                                                     pixel_t delta) {
     if (wm.is_vertical()) {
         if (wm.mode() == writing_mode_vertical_rl)
             return {x - delta, y};
@@ -182,127 +192,127 @@ static std::pair<pixel_t, pixel_t> apply_block_shift_mirrored(const WritingModeC
 }
 
 // ============================================================================
-// inline_size / block_size (mirrored — see note above)
+// inline_size / block_size
 // ============================================================================
 
-TEST(InlineSizeMirroredTest, HorizontalTb) {
+TEST(InlineSizeTest, HorizontalTb) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
     // pos=100w, margins=10w, borders=5w, padding=15w → logical inline=130
-    EXPECT_EQ(compute_inline_size_mirrored(wm, 100, 10, 5, 15, 200, 20, 10, 30), 130);
+    EXPECT_EQ(compute_inline_size(wm, 100, 10, 5, 15, 200, 20, 10, 30), 130);
 }
 
-TEST(InlineSizeMirroredTest, VerticalRl) {
+TEST(InlineSizeTest, VerticalRl) {
     WritingModeContext wm(writing_mode_vertical_rl, 800, 600);
     // In vertical, inline axis is height, so inline_size = h + h_margins + h_borders + h_padding
     // h=200, h_margins=20, h_borders=10, h_padding=30 → 260
-    EXPECT_EQ(compute_inline_size_mirrored(wm, 100, 10, 5, 15, 200, 20, 10, 30), 260);
+    EXPECT_EQ(compute_inline_size(wm, 100, 10, 5, 15, 200, 20, 10, 30), 260);
 }
 
-TEST(InlineSizeMirroredTest, ZeroSizes) {
+TEST(InlineSizeTest, ZeroSizes) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
-    EXPECT_EQ(compute_inline_size_mirrored(wm, 0, 0, 0, 0, 0, 0, 0, 0), 0);
+    EXPECT_EQ(compute_inline_size(wm, 0, 0, 0, 0, 0, 0, 0, 0), 0);
 }
 
-TEST(BlockSizeMirroredTest, HorizontalTb) {
+TEST(BlockSizeTest, HorizontalTb) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
     // pos=200h, margins=20h, borders=10h, padding=30h → logical block=260
-    EXPECT_EQ(compute_block_size_mirrored(wm, 100, 10, 5, 15, 200, 20, 10, 30), 260);
+    EXPECT_EQ(compute_block_size(wm, 100, 10, 5, 15, 200, 20, 10, 30), 260);
 }
 
-TEST(BlockSizeMirroredTest, VerticalRl) {
+TEST(BlockSizeTest, VerticalRl) {
     WritingModeContext wm(writing_mode_vertical_rl, 800, 600);
     // In vertical, block axis is width, so block_size = w + w_margins + w_borders + w_padding
     // w=100, w_margins=10, w_borders=5, w_padding=15 → 130
-    EXPECT_EQ(compute_block_size_mirrored(wm, 100, 10, 5, 15, 200, 20, 10, 30), 130);
+    EXPECT_EQ(compute_block_size(wm, 100, 10, 5, 15, 200, 20, 10, 30), 130);
 }
 
 // ============================================================================
-// inline_shift (mirrored — see note above)
+// inline_shift
 // ============================================================================
 
-TEST(InlineShiftMirroredTest, HorizontalMovesX) {
+TEST(InlineShiftTest, HorizontalMovesX) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
-    auto [x, y] = apply_inline_shift_mirrored(wm, 10, 20, 50);
+    auto [x, y] = apply_inline_shift(wm, 10, 20, 50);
     EXPECT_EQ(x, 60);
     EXPECT_EQ(y, 20);
 }
 
-TEST(InlineShiftMirroredTest, VerticalMovesY) {
+TEST(InlineShiftTest, VerticalMovesY) {
     WritingModeContext wm(writing_mode_vertical_rl, 800, 600);
-    auto [x, y] = apply_inline_shift_mirrored(wm, 10, 20, 50);
+    auto [x, y] = apply_inline_shift(wm, 10, 20, 50);
     EXPECT_EQ(x, 10);
     EXPECT_EQ(y, 70);
 }
 
-TEST(InlineShiftMirroredTest, ZeroDelta) {
+TEST(InlineShiftTest, ZeroDelta) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
-    auto [x, y] = apply_inline_shift_mirrored(wm, 10, 20, 0);
+    auto [x, y] = apply_inline_shift(wm, 10, 20, 0);
     EXPECT_EQ(x, 10);
     EXPECT_EQ(y, 20);
 }
 
-TEST(InlineShiftMirroredTest, NegativeDelta) {
+TEST(InlineShiftTest, NegativeDelta) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
-    auto [x, y] = apply_inline_shift_mirrored(wm, 10, 20, -30);
+    auto [x, y] = apply_inline_shift(wm, 10, 20, -30);
     EXPECT_EQ(x, -20);
     EXPECT_EQ(y, 20);
 }
 
 // ============================================================================
-// block_shift (mirrored — see note above)
+// block_shift
 // ============================================================================
 
-TEST(BlockShiftMirroredTest, HorizontalMovesY) {
+TEST(BlockShiftTest, HorizontalMovesY) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
-    auto [x, y] = apply_block_shift_mirrored(wm, 10, 20, 50);
+    auto [x, y] = apply_block_shift(wm, 10, 20, 50);
     EXPECT_EQ(x, 10);
     EXPECT_EQ(y, 70);
 }
 
-TEST(BlockShiftMirroredTest, VerticalRlMovesXNegative) {
+TEST(BlockShiftTest, VerticalRlMovesXNegative) {
     WritingModeContext wm(writing_mode_vertical_rl, 800, 600);
-    auto [x, y] = apply_block_shift_mirrored(wm, 10, 20, 50);
+    auto [x, y] = apply_block_shift(wm, 10, 20, 50);
     EXPECT_EQ(x, -40);
     EXPECT_EQ(y, 20);
 }
 
-TEST(BlockShiftMirroredTest, VerticalLrMovesXPositive) {
+TEST(BlockShiftTest, VerticalLrMovesXPositive) {
     WritingModeContext wm(writing_mode_vertical_lr, 800, 600);
-    auto [x, y] = apply_block_shift_mirrored(wm, 10, 20, 50);
+    auto [x, y] = apply_block_shift(wm, 10, 20, 50);
     EXPECT_EQ(x, 60);
     EXPECT_EQ(y, 20);
 }
 
-TEST(BlockShiftMirroredTest, SidewaysRlMovesY) {
+TEST(BlockShiftTest, SidewaysRlMovesY) {
     WritingModeContext wm(writing_mode_sideways_rl, 800, 600);
-    auto [x, y] = apply_block_shift_mirrored(wm, 10, 20, 50);
+    auto [x, y] = apply_block_shift(wm, 10, 20, 50);
     EXPECT_EQ(x, 10);
     EXPECT_EQ(y, 70);
 }
 
-TEST(BlockShiftMirroredTest, NegativeDelta_Horizontal) {
+TEST(BlockShiftTest, NegativeDelta_Horizontal) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
-    auto [x, y] = apply_block_shift_mirrored(wm, 10, 20, -30);
+    auto [x, y] = apply_block_shift(wm, 10, 20, -30);
     EXPECT_EQ(x, 10);
     EXPECT_EQ(y, -10);
 }
 
-TEST(BlockShiftMirroredTest, NegativeDelta_VerticalRl) {
+TEST(BlockShiftTest, NegativeDelta_VerticalRl) {
     WritingModeContext wm(writing_mode_vertical_rl, 800, 600);
-    auto [x, y] = apply_block_shift_mirrored(wm, 10, 20, -30);
+    auto [x, y] = apply_block_shift(wm, 10, 20, -30);
     EXPECT_EQ(x, 40);
     EXPECT_EQ(y, 20);
 }
 
 // ============================================================================
-// flex_item_row/column_direction::finalize_position (mirrored — see note)
+// flex_item_row/column_direction::finalize_position
 // ============================================================================
 
-/// Mirrors flex_item_row_direction::finalize_position
-static litehtml::position flex_row_finalize_mirrored(const WritingModeContext& wm,
-                                                     pixel_t main_pos, pixel_t cross_pos,
-                                                     pixel_t el_width, pixel_t el_height,
-                                                     pixel_t offset_left, pixel_t offset_top) {
+/// Isomorphic to flex_item_row_direction::finalize_position
+static litehtml::position flex_row_finalize(const WritingModeContext& wm,
+                                            pixel_t main_pos, pixel_t cross_pos,
+                                            pixel_t el_width, pixel_t el_height,
+                                            pixel_t offset_left, pixel_t offset_top) {
     logical_pos pos(main_pos, cross_pos);
     logical_size size(el_width, el_height);
     litehtml::position phys_pos = wm.to_physical(pos, size);
@@ -311,11 +321,11 @@ static litehtml::position flex_row_finalize_mirrored(const WritingModeContext& w
     return phys_pos;
 }
 
-/// Mirrors flex_item_column_direction::finalize_position
-static litehtml::position flex_column_finalize_mirrored(const WritingModeContext& wm,
-                                                       pixel_t main_pos, pixel_t cross_pos,
-                                                       pixel_t el_width, pixel_t el_height,
-                                                       pixel_t offset_left, pixel_t offset_top) {
+/// Isomorphic to flex_item_column_direction::finalize_position
+static litehtml::position flex_column_finalize(const WritingModeContext& wm,
+                                               pixel_t main_pos, pixel_t cross_pos,
+                                               pixel_t el_width, pixel_t el_height,
+                                               pixel_t offset_left, pixel_t offset_top) {
     logical_pos pos(cross_pos, main_pos);
     logical_size size(el_height, el_width);
     litehtml::position phys_pos = wm.to_physical(pos, size);
@@ -324,53 +334,53 @@ static litehtml::position flex_column_finalize_mirrored(const WritingModeContext
     return phys_pos;
 }
 
-TEST(FlexRowFinalizeMirroredTest, Horizontal) {
+TEST(FlexRowFinalizeTest, Horizontal) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
-    auto pos = flex_row_finalize_mirrored(wm, 100, 50, 200, 100, 10, 16);
+    auto pos = flex_row_finalize(wm, 100, 50, 200, 100, 10, 16);
     EXPECT_EQ(pos.x, 110);
     EXPECT_EQ(pos.y, 66);
 }
 
-TEST(FlexRowFinalizeMirroredTest, VerticalRl) {
+TEST(FlexRowFinalizeTest, VerticalRl) {
     WritingModeContext wm(writing_mode_vertical_rl, 800, 600);
-    auto pos = flex_row_finalize_mirrored(wm, 100, 50, 200, 100, 10, 16);
+    auto pos = flex_row_finalize(wm, 100, 50, 200, 100, 10, 16);
     // to_physical(vert_rl): x = 800 - 50 - 100 = 650, y = 100
     // + offsets: x = 660, y = 116
     EXPECT_EQ(pos.x, 660);
     EXPECT_EQ(pos.y, 116);
 }
 
-TEST(FlexRowFinalizeMirroredTest, VerticalLr) {
+TEST(FlexRowFinalizeTest, VerticalLr) {
     WritingModeContext wm(writing_mode_vertical_lr, 800, 600);
-    auto pos = flex_row_finalize_mirrored(wm, 100, 50, 200, 100, 10, 16);
+    auto pos = flex_row_finalize(wm, 100, 50, 200, 100, 10, 16);
     EXPECT_EQ(pos.x, 60);
     EXPECT_EQ(pos.y, 116);
 }
 
-TEST(FlexRowFinalizeMirroredTest, ZeroOffsets) {
+TEST(FlexRowFinalizeTest, ZeroOffsets) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
-    auto pos = flex_row_finalize_mirrored(wm, 100, 50, 200, 100, 0, 0);
+    auto pos = flex_row_finalize(wm, 100, 50, 200, 100, 0, 0);
     EXPECT_EQ(pos.x, 100);
     EXPECT_EQ(pos.y, 50);
 }
 
-TEST(FlexColumnFinalizeMirroredTest, Horizontal) {
+TEST(FlexColumnFinalizeTest, Horizontal) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
-    auto pos = flex_column_finalize_mirrored(wm, 100, 50, 200, 100, 10, 16);
+    auto pos = flex_column_finalize(wm, 100, 50, 200, 100, 10, 16);
     EXPECT_EQ(pos.x, 60);
     EXPECT_EQ(pos.y, 116);
 }
 
-TEST(FlexColumnFinalizeMirroredTest, VerticalRl) {
+TEST(FlexColumnFinalizeTest, VerticalRl) {
     WritingModeContext wm(writing_mode_vertical_rl, 800, 600);
-    auto pos = flex_column_finalize_mirrored(wm, 100, 50, 200, 100, 10, 16);
+    auto pos = flex_column_finalize(wm, 100, 50, 200, 100, 10, 16);
     EXPECT_EQ(pos.x, 510);
     EXPECT_EQ(pos.y, 66);
 }
 
-TEST(FlexColumnFinalizeMirroredTest, SymmetricSquare) {
+TEST(FlexColumnFinalizeTest, SymmetricSquare) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
-    auto pos = flex_column_finalize_mirrored(wm, 50, 50, 100, 100, 0, 0);
+    auto pos = flex_column_finalize(wm, 50, 50, 100, 100, 0, 0);
     EXPECT_EQ(pos.x, 50);
     EXPECT_EQ(pos.y, 50);
 }
@@ -441,14 +451,14 @@ TEST(BoxArithmeticTest, TotalWidthHeight) {
 
 TEST(EdgeCaseTest, FlexRowAtContainerEdge) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
-    auto pos = flex_row_finalize_mirrored(wm, 0, 0, 800, 600, 0, 0);
+    auto pos = flex_row_finalize(wm, 0, 0, 800, 600, 0, 0);
     EXPECT_EQ(pos.x, 0);
     EXPECT_EQ(pos.y, 0);
 }
 
 TEST(EdgeCaseTest, FlexColumnNegativeValues) {
     WritingModeContext wm(writing_mode_horizontal_tb, 800, 600);
-    auto pos = flex_column_finalize_mirrored(wm, -50, -30, 100, 100, 10, 16);
+    auto pos = flex_column_finalize(wm, -50, -30, 100, 100, 10, 16);
     EXPECT_EQ(pos.x, -20);
     EXPECT_EQ(pos.y, -34);
 }

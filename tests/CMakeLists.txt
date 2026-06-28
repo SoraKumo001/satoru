@@ -30,9 +30,11 @@ file(GLOB LITEHTML_TEST_SRC "${SATORU_CPP_DIR}/libs/litehtml/src/html.cpp"
                             "${SATORU_CPP_DIR}/libs/litehtml/src/url.cpp"
                             "${SATORU_CPP_DIR}/libs/litehtml/src/url_path.cpp"
                             "${SATORU_CPP_DIR}/libs/litehtml/src/codepoint.cpp"
-                            "${SATORU_CPP_DIR}/libs/litehtml/src/css_tokenizer.cpp"
+                             "${SATORU_CPP_DIR}/libs/litehtml/src/css_length.cpp"
+                             "${SATORU_CPP_DIR}/libs/litehtml/src/css_tokenizer.cpp"
                             "${SATORU_CPP_DIR}/libs/litehtml/src/string_id.cpp"
-                            "${SATORU_CPP_DIR}/libs/litehtml/src/html_microsyntaxes.cpp")
+                            "${SATORU_CPP_DIR}/libs/litehtml/src/html_microsyntaxes.cpp"
+                            "${SATORU_CPP_DIR}/core/litehtml_extensions.cpp")
 
 # --- Test executable ---
 add_executable(satoru_tests
@@ -56,12 +58,14 @@ add_executable(satoru_tests
   test_logical_canvas.cpp
   test_bridge_types.cpp
   test_text_utils.cpp
+  test_clip_path.cpp
   test_unicode_service.cpp
   ${SATORU_CPP_DIR}/utils/logging.cpp
   ${SATORU_CPP_DIR}/core/font_manager.cpp
   stubs/skia_utils_stub.cpp
   stubs/text_utils_stub.cpp
   stubs/unicode_service_stub.cpp
+  stubs/render_item_stub.cpp
   ${LITEHTML_TEST_SRC}
 )
 

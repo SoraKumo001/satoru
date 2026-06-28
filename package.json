@@ -25,11 +25,11 @@
     "docs:build": "pnpm --filter satoru-docs build"
   },
   "devDependencies": {
-    "@types/node": "25.7.0",
+    "@types/node": "26.0.1",
     "clang-format": "1.8.0",
     "next-exec": "1.0.1",
     "satoru-render": "workspace:*",
-    "tsx": "^4.21.0",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   },
   "repository": "https://github.com/SoraKumo001/satoru",

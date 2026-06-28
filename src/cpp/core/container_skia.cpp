@@ -45,6 +45,27 @@ vector<css_token_vector> parse_comma_separated_list(const css_token_vector& toke
 namespace {
 char ascii_lower(char c) { return (c >= 'A' && c <= 'Z') ? (char)(c + ('a' - 'A')) : c; }
 
+// Advance index past consecutive WHITESPACE tokens.  Returns tokens.size()
+// when the end is reached.
+static size_t skip_ws(const litehtml::css_token_vector& tokens, size_t i) {
+    while (i < tokens.size() && tokens[i].type == ' ') ++i;
+    return i;
+}
+
+// Find the first IDENT token with the given case-insensitive name,
+// starting at position i and skipping whitespace along the way.
+// Returns tokens.size() when not found.
+static size_t find_ident_in_group(const litehtml::css_token_vector& tokens, size_t i,
+                                  const std::string& name) {
+    while (i < tokens.size()) {
+        i = skip_ws(tokens, i);
+        if (i >= tokens.size()) break;
+        if (tokens[i].ident() == name) return i;
+        i++;
+    }
+    return tokens.size();
+}
+
 bool starts_with_ascii_ci(std::string_view s, size_t pos, const char* needle) {
     size_t needle_len = std::strlen(needle);
     if (pos + needle_len > s.size()) return false;
@@ -2340,29 +2361,37 @@ SkPath container_skia::parse_clip_path(const litehtml::css_token_vector& tokens,
                 float cy = (float)pos.y + (float)pos.height * 0.5f;
                 float r = std::min((float)pos.width, (float)pos.height) * 0.5f;
 
-                if (!args.empty()) {
-                    if (!args[0].empty()) {
+                if (!args.empty() && !args[0].empty()) {
+                    // --- Radius (first non-whitespace token) ---
+                    size_t idx = skip_ws(args[0], 0);
+                    if (idx < args[0].size()) {
                         litehtml::css_length len;
-                        if (len.from_token(args[0][0], litehtml::f_length_percentage)) {
+                        if (len.from_token(args[0][idx], litehtml::f_length_percentage)) {
                             r = len.calc_percent((float)std::sqrt((double)pos.width * pos.width +
                                                                   (double)pos.height * pos.height) /
                                                  (float)std::sqrt(2.0));
                         }
+                        idx++;
                     }
-                    // "at <position>"
-                    for (size_t i = 0; i < args.size(); ++i) {
-                        if (!args[i].empty() && args[i][0].ident() == "at") {
-                            if (i + 1 < args.size() && !args[i + 1].empty()) {
-                                litehtml::css_length lx;
-                                lx.from_token(args[i + 1][0], litehtml::f_length_percentage);
+
+                    // --- "at <position>" ---
+                    size_t at_pos = find_ident_in_group(args[0], idx, "at");
+                    if (at_pos < args[0].size()) {
+                        size_t k = at_pos + 1;
+                        k = skip_ws(args[0], k);
+                        if (k < args[0].size()) {
+                            litehtml::css_length lx;
+                            if (lx.from_token(args[0][k], litehtml::f_length_percentage)) {
                                 cx = lx.calc_percent((float)pos.width) + (float)pos.x;
-                                if (i + 2 < args.size() && !args[i + 2].empty()) {
-                                    litehtml::css_length ly;
-                                    ly.from_token(args[i + 2][0], litehtml::f_length_percentage);
+                            }
+                            k++;
+                            k = skip_ws(args[0], k);
+                            if (k < args[0].size()) {
+                                litehtml::css_length ly;
+                                if (ly.from_token(args[0][k], litehtml::f_length_percentage)) {
                                     cy = ly.calc_percent((float)pos.height) + (float)pos.y;
                                 }
                             }
-                            break;
                         }
                     }
                 }
@@ -2373,39 +2402,43 @@ SkPath container_skia::parse_clip_path(const litehtml::css_token_vector& tokens,
                 float rx = (float)pos.width * 0.5f;
                 float ry = (float)pos.height * 0.5f;
 
-                if (!args.empty()) {
-                    int at_idx = -1;
-                    for (size_t i = 0; i < args.size(); ++i) {
-                        if (!args[i].empty() && args[i][0].ident() == "at") {
-                            at_idx = (int)i;
-                            break;
-                        }
-                    }
-
-                    if (at_idx != 0 && !args[0].empty()) {
-                        std::vector<litehtml::css_length> r_lengths;
-                        for (const auto& t : args[0]) {
-                            litehtml::css_length l;
-                            if (l.from_token(t, litehtml::f_length_percentage)) {
-                                r_lengths.push_back(l);
-                            }
-                        }
-                        if (r_lengths.size() >= 2) {
-                            rx = r_lengths[0].calc_percent((float)pos.width);
-                            ry = r_lengths[1].calc_percent((float)pos.height);
-                        }
-                    }
-
-                    if (at_idx != -1 && (size_t)at_idx + 1 < args.size()) {
+                if (!args.empty() && !args[0].empty()) {
+                    // --- rx, ry (first two non-whitespace tokens) ---
+                    size_t idx = skip_ws(args[0], 0);
+                    if (idx < args[0].size()) {
                         litehtml::css_length lx;
-                        if (!args[at_idx + 1].empty()) {
-                            lx.from_token(args[at_idx + 1][0], litehtml::f_length_percentage);
-                            cx = lx.calc_percent((float)pos.width) + (float)pos.x;
+                        if (lx.from_token(args[0][idx], litehtml::f_length_percentage)) {
+                            rx = lx.calc_percent((float)pos.width);
                         }
-                        if ((size_t)at_idx + 2 < args.size() && !args[at_idx + 2].empty()) {
+                        idx++;
+                        idx = skip_ws(args[0], idx);
+                        if (idx < args[0].size()) {
                             litehtml::css_length ly;
-                            ly.from_token(args[at_idx + 2][0], litehtml::f_length_percentage);
-                            cy = ly.calc_percent((float)pos.height) + (float)pos.y;
+                            if (ly.from_token(args[0][idx], litehtml::f_length_percentage)) {
+                                ry = ly.calc_percent((float)pos.height);
+                            }
+                            idx++;
+                        }
+                    }
+
+                    // --- "at <position>" ---
+                    size_t at_pos = find_ident_in_group(args[0], idx, "at");
+                    if (at_pos < args[0].size()) {
+                        size_t k = at_pos + 1;
+                        k = skip_ws(args[0], k);
+                        if (k < args[0].size()) {
+                            litehtml::css_length lx;
+                            if (lx.from_token(args[0][k], litehtml::f_length_percentage)) {
+                                cx = lx.calc_percent((float)pos.width) + (float)pos.x;
+                            }
+                            k++;
+                            k = skip_ws(args[0], k);
+                            if (k < args[0].size()) {
+                                litehtml::css_length ly;
+                                if (ly.from_token(args[0][k], litehtml::f_length_percentage)) {
+                                    cy = ly.calc_percent((float)pos.height) + (float)pos.y;
+                                }
+                            }
                         }
                     }
                 }
@@ -2416,25 +2449,54 @@ SkPath container_skia::parse_clip_path(const litehtml::css_token_vector& tokens,
 
                 if (!args.empty()) {
                     std::vector<litehtml::css_length> lengths;
-                    std::vector<litehtml::css_token_vector> round_args;
                     bool has_round = false;
+                    std::vector<litehtml::css_length> round_lengths;
 
-                    for (size_t i = 0; i < args.size(); ++i) {
-                        if (!args[i].empty() && args[i][0].ident() == "round") {
+                    // Collect inset-length and round-radius tokens from each
+                    // comma-separated group, scanning within each group for
+                    // the "round" keyword and skipping whitespace.
+                    for (const auto& group : args) {
+                        if (group.empty()) continue;
+
+                        // Scan for "round" inside this group
+                        size_t round_pos = find_ident_in_group(group, 0, "round");
+                        if (round_pos < group.size()) {
                             has_round = true;
-                            for (size_t j = i; j < args.size(); ++j) {
-                                round_args.push_back(args[j]);
+                            // Collect lengths from tokens before "round"
+                            for (size_t j = 0; j < round_pos;) {
+                                j = skip_ws(group, j);
+                                if (j >= round_pos) break;
+                                litehtml::css_length l;
+                                if (l.from_token(group[j], litehtml::f_length_percentage)) {
+                                    lengths.push_back(l);
+                                }
+                                j++;
                             }
-                            break;
-                        }
-                        for (const auto& t : args[i]) {
-                            litehtml::css_length l;
-                            if (l.from_token(t, litehtml::f_length_percentage)) {
-                                lengths.push_back(l);
+                            // Collect round radii from tokens after "round"
+                            for (size_t j = round_pos + 1; j < group.size();) {
+                                j = skip_ws(group, j);
+                                if (j >= group.size()) break;
+                                litehtml::css_length l;
+                                if (l.from_token(group[j], litehtml::f_length_percentage)) {
+                                    round_lengths.push_back(l);
+                                }
+                                j++;
+                            }
+                        } else {
+                            // No "round" in this group — collect all valid length tokens
+                            for (size_t j = 0; j < group.size();) {
+                                j = skip_ws(group, j);
+                                if (j >= group.size()) break;
+                                litehtml::css_length l;
+                                if (l.from_token(group[j], litehtml::f_length_percentage)) {
+                                    lengths.push_back(l);
+                                }
+                                j++;
                             }
                         }
                     }
 
+                    // Apply inset lengths (1-4 value shorthand)
                     if (lengths.size() == 1) {
                         top = right = bottom = left = lengths[0].calc_percent((float)pos.height);
                     } else if (lengths.size() == 2) {
@@ -2451,25 +2513,14 @@ SkPath container_skia::parse_clip_path(const litehtml::css_token_vector& tokens,
                         left = lengths[3].calc_percent((float)pos.width);
                     }
 
-                    if (has_round && !round_args.empty()) {
-                        std::vector<litehtml::css_length> r_lengths;
-                        for (const auto& ra : round_args) {
-                            for (const auto& t : ra) {
-                                if (t.ident() == "round") continue;
-                                litehtml::css_length l;
-                                if (l.from_token(t, litehtml::f_length_percentage)) {
-                                    r_lengths.push_back(l);
-                                }
-                            }
-                        }
-                        if (r_lengths.size() >= 1) {
-                            float rr =
-                                r_lengths[0].calc_percent((float)std::min(pos.width, pos.height));
-                            b_radius.top_left_x = b_radius.top_left_y = (int)rr;
-                            b_radius.top_right_x = b_radius.top_right_y = (int)rr;
-                            b_radius.bottom_right_x = b_radius.bottom_right_y = (int)rr;
-                            b_radius.bottom_left_x = b_radius.bottom_left_y = (int)rr;
-                        }
+                    // Apply round radius
+                    if (has_round && !round_lengths.empty()) {
+                        float rr =
+                            round_lengths[0].calc_percent((float)std::min(pos.width, pos.height));
+                        b_radius.top_left_x = b_radius.top_left_y = (int)rr;
+                        b_radius.top_right_x = b_radius.top_right_y = (int)rr;
+                        b_radius.bottom_right_x = b_radius.bottom_right_y = (int)rr;
+                        b_radius.bottom_left_x = b_radius.bottom_left_y = (int)rr;
                     }
                 }
                 SkRect r = SkRect::MakeLTRB((float)pos.x + left, (float)pos.y + top,
@@ -2484,19 +2535,27 @@ SkPath container_skia::parse_clip_path(const litehtml::css_token_vector& tokens,
                 }
             } else if (name == "polygon") {
                 bool first = true;
-                for (const auto& arg_tokens : args) {
-                    if (arg_tokens.size() >= 2) {
-                        litehtml::css_length lx, ly;
-                        lx.from_token(arg_tokens[0], litehtml::f_length_percentage);
-                        ly.from_token(arg_tokens[1], litehtml::f_length_percentage);
-                        float px = lx.calc_percent((float)pos.width) + (float)pos.x;
-                        float py = ly.calc_percent((float)pos.height) + (float)pos.y;
-                        if (first) {
-                            builder.moveTo(px, py);
-                            first = false;
-                        } else {
-                            builder.lineTo(px, py);
-                        }
+                for (const auto& group : args) {
+                    // Read X coordinate (first non-whitespace token)
+                    size_t idx = skip_ws(group, 0);
+                    if (idx >= group.size()) continue;
+                    litehtml::css_length lx;
+                    if (!lx.from_token(group[idx], litehtml::f_length_percentage)) continue;
+                    idx++;
+
+                    // Read Y coordinate (next non-whitespace token)
+                    idx = skip_ws(group, idx);
+                    if (idx >= group.size()) continue;
+                    litehtml::css_length ly;
+                    if (!ly.from_token(group[idx], litehtml::f_length_percentage)) continue;
+
+                    float px = lx.calc_percent((float)pos.width) + (float)pos.x;
+                    float py = ly.calc_percent((float)pos.height) + (float)pos.y;
+                    if (first) {
+                        builder.moveTo(px, py);
+                        first = false;
+                    } else {
+                        builder.lineTo(px, py);
                     }
                 }
                 builder.close();

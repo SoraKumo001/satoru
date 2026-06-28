@@ -134,6 +134,23 @@ vector<css_token_vector> parse_comma_separated_list(const css_token_vector& toke
 // ============================================================================
 namespace {
 
+// --- helpers (mirror the ones in container_skia.cpp) ---
+static size_t skip_ws(const litehtml::css_token_vector& tokens, size_t i) {
+    while (i < tokens.size() && tokens[i].type == ' ') ++i;
+    return i;
+}
+
+static size_t find_ident_in_group(const litehtml::css_token_vector& tokens,
+                                  size_t i, const std::string& name) {
+    while (i < tokens.size()) {
+        i = skip_ws(tokens, i);
+        if (i >= tokens.size()) break;
+        if (tokens[i].ident() == name) return i;
+        i++;
+    }
+    return tokens.size();
+}
+
 SkPath parse_clip_path(const litehtml::css_token_vector& tokens,
                        const litehtml::position& pos) {
     SkPathBuilder builder;
@@ -149,30 +166,38 @@ SkPath parse_clip_path(const litehtml::css_token_vector& tokens,
                 float cy = (float)pos.y + (float)pos.height * 0.5f;
                 float r = std::min((float)pos.width, (float)pos.height) * 0.5f;
 
-                if (!args.empty()) {
-                    if (!args[0].empty()) {
+                if (!args.empty() && !args[0].empty()) {
+                    // --- Radius (first non-whitespace token) ---
+                    size_t idx = skip_ws(args[0], 0);
+                    if (idx < args[0].size()) {
                         litehtml::css_length len;
-                        if (len.from_token(args[0][0], litehtml::f_length_percentage)) {
+                        if (len.from_token(args[0][idx], litehtml::f_length_percentage)) {
                             r = len.calc_percent(
                                 (float)std::sqrt((double)pos.width * pos.width +
                                                  (double)pos.height * pos.height) /
                                 (float)std::sqrt(2.0));
                         }
+                        idx++;
                     }
-                    // "at <position>"
-                    for (size_t i = 0; i < args.size(); ++i) {
-                        if (!args[i].empty() && args[i][0].ident() == "at") {
-                            if (i + 1 < args.size() && !args[i + 1].empty()) {
-                                litehtml::css_length lx;
-                                lx.from_token(args[i + 1][0], litehtml::f_length_percentage);
+
+                    // --- "at <position>" ---
+                    size_t at_pos = find_ident_in_group(args[0], idx, "at");
+                    if (at_pos < args[0].size()) {
+                        size_t k = at_pos + 1;
+                        k = skip_ws(args[0], k);
+                        if (k < args[0].size()) {
+                            litehtml::css_length lx;
+                            if (lx.from_token(args[0][k], litehtml::f_length_percentage)) {
                                 cx = lx.calc_percent((float)pos.width) + (float)pos.x;
-                                if (i + 2 < args.size() && !args[i + 2].empty()) {
-                                    litehtml::css_length ly;
-                                    ly.from_token(args[i + 2][0], litehtml::f_length_percentage);
+                            }
+                            k++;
+                            k = skip_ws(args[0], k);
+                            if (k < args[0].size()) {
+                                litehtml::css_length ly;
+                                if (ly.from_token(args[0][k], litehtml::f_length_percentage)) {
                                     cy = ly.calc_percent((float)pos.height) + (float)pos.y;
                                 }
                             }
-                            break;
                         }
                     }
                 }
@@ -183,39 +208,43 @@ SkPath parse_clip_path(const litehtml::css_token_vector& tokens,
                 float rx = (float)pos.width * 0.5f;
                 float ry = (float)pos.height * 0.5f;
 
-                if (!args.empty()) {
-                    int at_idx = -1;
-                    for (size_t i = 0; i < args.size(); ++i) {
-                        if (!args[i].empty() && args[i][0].ident() == "at") {
-                            at_idx = (int)i;
-                            break;
-                        }
-                    }
-
-                    if (at_idx != 0 && !args[0].empty()) {
-                        std::vector<litehtml::css_length> r_lengths;
-                        for (const auto& t : args[0]) {
-                            litehtml::css_length l;
-                            if (l.from_token(t, litehtml::f_length_percentage)) {
-                                r_lengths.push_back(l);
-                            }
-                        }
-                        if (r_lengths.size() >= 2) {
-                            rx = r_lengths[0].calc_percent((float)pos.width);
-                            ry = r_lengths[1].calc_percent((float)pos.height);
-                        }
-                    }
-
-                    if (at_idx != -1 && (size_t)at_idx + 1 < args.size()) {
+                if (!args.empty() && !args[0].empty()) {
+                    // --- rx, ry (first two non-whitespace tokens) ---
+                    size_t idx = skip_ws(args[0], 0);
+                    if (idx < args[0].size()) {
                         litehtml::css_length lx;
-                        if (!args[at_idx + 1].empty()) {
-                            lx.from_token(args[at_idx + 1][0], litehtml::f_length_percentage);
-                            cx = lx.calc_percent((float)pos.width) + (float)pos.x;
+                        if (lx.from_token(args[0][idx], litehtml::f_length_percentage)) {
+                            rx = lx.calc_percent((float)pos.width);
                         }
-                        if ((size_t)at_idx + 2 < args.size() && !args[at_idx + 2].empty()) {
+                        idx++;
+                        idx = skip_ws(args[0], idx);
+                        if (idx < args[0].size()) {
                             litehtml::css_length ly;
-                            ly.from_token(args[at_idx + 2][0], litehtml::f_length_percentage);
-                            cy = ly.calc_percent((float)pos.height) + (float)pos.y;
+                            if (ly.from_token(args[0][idx], litehtml::f_length_percentage)) {
+                                ry = ly.calc_percent((float)pos.height);
+                            }
+                            idx++;
+                        }
+                    }
+
+                    // --- "at <position>" ---
+                    size_t at_pos = find_ident_in_group(args[0], idx, "at");
+                    if (at_pos < args[0].size()) {
+                        size_t k = at_pos + 1;
+                        k = skip_ws(args[0], k);
+                        if (k < args[0].size()) {
+                            litehtml::css_length lx;
+                            if (lx.from_token(args[0][k], litehtml::f_length_percentage)) {
+                                cx = lx.calc_percent((float)pos.width) + (float)pos.x;
+                            }
+                            k++;
+                            k = skip_ws(args[0], k);
+                            if (k < args[0].size()) {
+                                litehtml::css_length ly;
+                                if (ly.from_token(args[0][k], litehtml::f_length_percentage)) {
+                                    cy = ly.calc_percent((float)pos.height) + (float)pos.y;
+                                }
+                            }
                         }
                     }
                 }
@@ -226,25 +255,54 @@ SkPath parse_clip_path(const litehtml::css_token_vector& tokens,
 
                 if (!args.empty()) {
                     std::vector<litehtml::css_length> lengths;
-                    std::vector<litehtml::css_token_vector> round_args;
                     bool has_round = false;
+                    std::vector<litehtml::css_length> round_lengths;
 
-                    for (size_t i = 0; i < args.size(); ++i) {
-                        if (!args[i].empty() && args[i][0].ident() == "round") {
+                    // Collect inset-length and round-radius tokens from each
+                    // comma-separated group, scanning within each group for
+                    // the "round" keyword and skipping whitespace.
+                    for (const auto& group : args) {
+                        if (group.empty()) continue;
+
+                        // Scan for "round" inside this group
+                        size_t round_pos = find_ident_in_group(group, 0, "round");
+                        if (round_pos < group.size()) {
                             has_round = true;
-                            for (size_t j = i; j < args.size(); ++j) {
-                                round_args.push_back(args[j]);
+                            // Collect lengths from tokens before "round"
+                            for (size_t j = 0; j < round_pos; ) {
+                                j = skip_ws(group, j);
+                                if (j >= round_pos) break;
+                                litehtml::css_length l;
+                                if (l.from_token(group[j], litehtml::f_length_percentage)) {
+                                    lengths.push_back(l);
+                                }
+                                j++;
                             }
-                            break;
-                        }
-                        for (const auto& t : args[i]) {
-                            litehtml::css_length l;
-                            if (l.from_token(t, litehtml::f_length_percentage)) {
-                                lengths.push_back(l);
+                            // Collect round radii from tokens after "round"
+                            for (size_t j = round_pos + 1; j < group.size(); ) {
+                                j = skip_ws(group, j);
+                                if (j >= group.size()) break;
+                                litehtml::css_length l;
+                                if (l.from_token(group[j], litehtml::f_length_percentage)) {
+                                    round_lengths.push_back(l);
+                                }
+                                j++;
+                            }
+                        } else {
+                            // No "round" in this group — collect all valid length tokens
+                            for (size_t j = 0; j < group.size(); ) {
+                                j = skip_ws(group, j);
+                                if (j >= group.size()) break;
+                                litehtml::css_length l;
+                                if (l.from_token(group[j], litehtml::f_length_percentage)) {
+                                    lengths.push_back(l);
+                                }
+                                j++;
                             }
                         }
                     }
 
+                    // Apply inset lengths (1-4 value shorthand)
                     if (lengths.size() == 1) {
                         top = right = bottom = left = lengths[0].calc_percent((float)pos.height);
                     } else if (lengths.size() == 2) {
@@ -261,25 +319,14 @@ SkPath parse_clip_path(const litehtml::css_token_vector& tokens,
                         left = lengths[3].calc_percent((float)pos.width);
                     }
 
-                    if (has_round && !round_args.empty()) {
-                        std::vector<litehtml::css_length> r_lengths;
-                        for (const auto& ra : round_args) {
-                            for (const auto& t : ra) {
-                                if (t.ident() == "round") continue;
-                                litehtml::css_length l;
-                                if (l.from_token(t, litehtml::f_length_percentage)) {
-                                    r_lengths.push_back(l);
-                                }
-                            }
-                        }
-                        if (r_lengths.size() >= 1) {
-                            float rr = r_lengths[0].calc_percent(
-                                (float)std::min(pos.width, pos.height));
-                            b_radius.top_left_x = b_radius.top_left_y = (int)rr;
-                            b_radius.top_right_x = b_radius.top_right_y = (int)rr;
-                            b_radius.bottom_right_x = b_radius.bottom_right_y = (int)rr;
-                            b_radius.bottom_left_x = b_radius.bottom_left_y = (int)rr;
-                        }
+                    // Apply round radius
+                    if (has_round && !round_lengths.empty()) {
+                        float rr = round_lengths[0].calc_percent(
+                            (float)std::min(pos.width, pos.height));
+                        b_radius.top_left_x = b_radius.top_left_y = (int)rr;
+                        b_radius.top_right_x = b_radius.top_right_y = (int)rr;
+                        b_radius.bottom_right_x = b_radius.bottom_right_y = (int)rr;
+                        b_radius.bottom_left_x = b_radius.bottom_left_y = (int)rr;
                     }
                 }
                 SkRect r = SkRect::MakeLTRB((float)pos.x + left, (float)pos.y + top,
@@ -294,19 +341,27 @@ SkPath parse_clip_path(const litehtml::css_token_vector& tokens,
                 }
             } else if (name == "polygon") {
                 bool first = true;
-                for (const auto& arg_tokens : args) {
-                    if (arg_tokens.size() >= 2) {
-                        litehtml::css_length lx, ly;
-                        lx.from_token(arg_tokens[0], litehtml::f_length_percentage);
-                        ly.from_token(arg_tokens[1], litehtml::f_length_percentage);
-                        float px = lx.calc_percent((float)pos.width) + (float)pos.x;
-                        float py = ly.calc_percent((float)pos.height) + (float)pos.y;
-                        if (first) {
-                            builder.moveTo(px, py);
-                            first = false;
-                        } else {
-                            builder.lineTo(px, py);
-                        }
+                for (const auto& group : args) {
+                    // Read X coordinate (first non-whitespace token)
+                    size_t idx = skip_ws(group, 0);
+                    if (idx >= group.size()) continue;
+                    litehtml::css_length lx;
+                    if (!lx.from_token(group[idx], litehtml::f_length_percentage)) continue;
+                    idx++;
+
+                    // Read Y coordinate (next non-whitespace token)
+                    idx = skip_ws(group, idx);
+                    if (idx >= group.size()) continue;
+                    litehtml::css_length ly;
+                    if (!ly.from_token(group[idx], litehtml::f_length_percentage)) continue;
+
+                    float px = lx.calc_percent((float)pos.width) + (float)pos.x;
+                    float py = ly.calc_percent((float)pos.height) + (float)pos.y;
+                    if (first) {
+                        builder.moveTo(px, py);
+                        first = false;
+                    } else {
+                        builder.lineTo(px, py);
                     }
                 }
                 builder.close();
@@ -378,28 +433,21 @@ TEST(ClipPathCircleTest, ExplicitRadiusPercentage) {
     EXPECT_NEAR(path.fOps[0].params[2], 79.0569f, 0.01f);
 }
 
-// NOTE: The "at <position>" syntax for circle() is parsed by iterating over
-// the comma-separated argument list looking for an IDENT token whose
-// ident() == "at".  Because parse_comma_separated_list only splits by
-// commas (not spaces), the "at" keyword is buried inside a single
-// argument group and never found.  This is a known bug in the production
-// code (container_skia.cpp L2353-2366).  The center always falls back to
-// the default (50% 50%).
 TEST(ClipPathCircleTest, AtPositionPx) {
     auto path = parse("circle(40px at 50px 80px)");
     expect_single_op(path, SkPathOp::kCircle);
-    // "at" keyword NOT parsed — center stays at default
-    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 110.0f); // default cx
-    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 70.0f);  // default cy
-    EXPECT_FLOAT_EQ(path.fOps[0].params[2], 40.0f);   // r
+    // cx = 10 + 50 = 60, cy = 20 + 80 = 100
+    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 60.0f);  // cx
+    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 100.0f); // cy
+    EXPECT_FLOAT_EQ(path.fOps[0].params[2], 40.0f);  // r
 }
 
 TEST(ClipPathCircleTest, AtPositionPercentage) {
     auto path = parse("circle(40px at 25% 50%)");
     expect_single_op(path, SkPathOp::kCircle);
-    // "at" keyword NOT parsed — center stays at default
-    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 110.0f); // default cx
-    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 70.0f);  // default cy
+    // cx = 10 + 200*0.25 = 60, cy = 20 + 100*0.50 = 70
+    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 60.0f); // cx
+    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 70.0f); // cy
     EXPECT_FLOAT_EQ(path.fOps[0].params[2], 40.0f);
 }
 
@@ -466,16 +514,15 @@ TEST(ClipPathEllipseTest, PercentageRadii) {
     EXPECT_FLOAT_EQ(path.fOps[0].params[3], 120.0f);
 }
 
-// NOTE: Same "at" keyword bug as circle — center stays at default.
 TEST(ClipPathEllipseTest, AtPosition) {
     auto path = parse("ellipse(20px 30px at 50px 60px)");
     expect_single_op(path, SkPathOp::kOval);
-    // "at" keyword NOT parsed — center at default (110, 70)
-    // LTRB = (110-20, 70-30, 110+20, 70+30) = (90, 40, 130, 100)
-    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 90.0f);
-    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 40.0f);
-    EXPECT_FLOAT_EQ(path.fOps[0].params[2], 130.0f);
-    EXPECT_FLOAT_EQ(path.fOps[0].params[3], 100.0f);
+    // cx = 10+50=60, cy = 20+60=80, rx=20, ry=30
+    // LTRB = (60-20, 80-30, 60+20, 80+30) = (40, 50, 80, 110)
+    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 40.0f);
+    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 50.0f);
+    EXPECT_FLOAT_EQ(path.fOps[0].params[2], 80.0f);
+    EXPECT_FLOAT_EQ(path.fOps[0].params[3], 110.0f);
 }
 
 TEST(ClipPathEllipseTest, ZeroRadii) {
@@ -562,24 +609,22 @@ TEST(ClipPathInsetTest, Percentage) {
     EXPECT_FLOAT_EQ(path.fOps[0].params[3], 110.0f);
 }
 
-// NOTE: Same space-splitting bug — the "round" keyword is buried inside a
-// single argument group and never found.  Border-radius is always zero.
 TEST(ClipPathInsetTest, Round) {
     auto path = parse("inset(10px round 5px)");
-    // "round" NOT parsed (no space-splitting), but the 5px after "round"
-    // IS picked up as a length value → lengths = [10px, 5px]
-    // 2-value shorthand: top/bottom=10, right/left=5
-    expect_single_op(path, SkPathOp::kRect);
-    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 15.0f); // 10+5
-    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 30.0f); // 20+10
-    EXPECT_FLOAT_EQ(path.fOps[0].params[2], 205.0f);// 10+200-5
-    EXPECT_FLOAT_EQ(path.fOps[0].params[3], 110.0f);// 20+100-10
+    // lengths = [10px] (after "round", tokens go to round_lengths = [5px])
+    // inset rect = (10+10, 20+10, 10+200-10, 20+100-10) = (20, 30, 200, 110)
+    // Non-zero border-radius → addRRect
+    expect_single_op(path, SkPathOp::kRRect);
 }
 
 TEST(ClipPathInsetTest, RoundZero) {
     auto path = parse("inset(10px round 0px)");
-    // Same bug — "round" not parsed → addRect
+    // round 0px → border_radius is zero → use addRect
     expect_single_op(path, SkPathOp::kRect);
+    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 20.0f);
+    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 30.0f);
+    EXPECT_FLOAT_EQ(path.fOps[0].params[2], 200.0f);
+    EXPECT_FLOAT_EQ(path.fOps[0].params[3], 110.0f);
 }
 
 TEST(ClipPathInsetTest, FullInset) {
@@ -596,36 +641,41 @@ TEST(ClipPathInsetTest, FullInset) {
 // Polygon tests
 // ============================================================================
 
-// NOTE: Polygon uses space-separated coordinates (e.g., "10px 20px") within
-// each comma-separated vertex.  Because parse_comma_separated_list preserves
-// inner whitespace, the second coordinate in each pair reads a WHITESPACE
-// token (which from_token rejects), so ly defaults to 0.  This is a known
-// space-splitting bug in the production code.  The tests below document the
-// actual (buggy) output.
-
-// NOTE: Due to the whitespace-splitting bug, polygon coordinate parsing is
-// unreliable when coordinates are space-separated.  We only verify op types
-// and counts here, not exact coordinates.
 TEST(ClipPathPolygonTest, Triangle) {
     auto path = parse("polygon(10px 20px, 100px 20px, 10px 80px)");
     // 3 vertices → moveTo + 2 lineTo + close = 4 ops
     ASSERT_EQ(path.fOps.size(), 4u);
+    // Start point: (10+10, 20+20) = (20, 40)
     EXPECT_EQ(path.fOps[0].type, SkPathOp::kMove);
+    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 20.0f);  // px = 10 + 10
+    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 40.0f);  // py = 20 + 20
+    // Second vertex: (10+100, 20+20) = (110, 40)
     EXPECT_EQ(path.fOps[1].type, SkPathOp::kLine);
+    EXPECT_FLOAT_EQ(path.fOps[1].params[0], 110.0f); // px = 10 + 100
+    EXPECT_FLOAT_EQ(path.fOps[1].params[1], 40.0f);  // py = 20 + 20
+    // Third vertex: (10+10, 20+80) = (20, 100)
     EXPECT_EQ(path.fOps[2].type, SkPathOp::kLine);
+    EXPECT_FLOAT_EQ(path.fOps[2].params[0], 20.0f);  // px = 10 + 10
+    EXPECT_FLOAT_EQ(path.fOps[2].params[1], 100.0f); // py = 20 + 80
+    // Close
     EXPECT_EQ(path.fOps[3].type, SkPathOp::kClose);
 }
 
-// NOTE: For the following polygon tests, we only verify op counts and types
-// (move/line/close structure) since coordinate values are unreliable due to
-// the whitespace issue.
 TEST(ClipPathPolygonTest, Quadrilateral) {
     auto path = parse("polygon(0px 0px, 100px 0px, 100px 100px, 0px 100px)");
     ASSERT_EQ(path.fOps.size(), 5u); // move + 3 line + close
     EXPECT_EQ(path.fOps[0].type, SkPathOp::kMove);
+    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 10.0f);  // 10 + 0
+    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 20.0f);  // 20 + 0
     EXPECT_EQ(path.fOps[1].type, SkPathOp::kLine);
+    EXPECT_FLOAT_EQ(path.fOps[1].params[0], 110.0f); // 10 + 100
+    EXPECT_FLOAT_EQ(path.fOps[1].params[1], 20.0f);  // 20 + 0
     EXPECT_EQ(path.fOps[2].type, SkPathOp::kLine);
+    EXPECT_FLOAT_EQ(path.fOps[2].params[0], 110.0f); // 10 + 100
+    EXPECT_FLOAT_EQ(path.fOps[2].params[1], 120.0f); // 20 + 100
     EXPECT_EQ(path.fOps[3].type, SkPathOp::kLine);
+    EXPECT_FLOAT_EQ(path.fOps[3].params[0], 10.0f);  // 10 + 0
+    EXPECT_FLOAT_EQ(path.fOps[3].params[1], 120.0f); // 20 + 100
     EXPECT_EQ(path.fOps[4].type, SkPathOp::kClose);
 }
 
@@ -633,8 +683,25 @@ TEST(ClipPathPolygonTest, Pentagon) {
     auto path = parse("polygon(50px 0px, 100px 50px, 75px 100px, 25px 100px, 0px 50px)");
     ASSERT_EQ(path.fOps.size(), 6u); // move + 4 line + close
     EXPECT_EQ(path.fOps[0].type, SkPathOp::kMove);
-    for (int i = 1; i <= 4; ++i)
-        EXPECT_EQ(path.fOps[i].type, SkPathOp::kLine);
+    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 60.0f);  // 10+50
+    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 20.0f);  // 20+0
+    // lineTo vertices:
+    // 1: (100,50)  → (110, 70)  op[1]
+    // 2: (75,100)  → (85, 120)  op[2]
+    // 3: (25,100)  → (35, 120)  op[3]
+    // 4: (0,50)    → (10, 70)   op[4]
+    EXPECT_EQ(path.fOps[1].type, SkPathOp::kLine);
+    EXPECT_FLOAT_EQ(path.fOps[1].params[0], 110.0f);
+    EXPECT_FLOAT_EQ(path.fOps[1].params[1], 70.0f);
+    EXPECT_EQ(path.fOps[2].type, SkPathOp::kLine);
+    EXPECT_FLOAT_EQ(path.fOps[2].params[0], 85.0f);
+    EXPECT_FLOAT_EQ(path.fOps[2].params[1], 120.0f);
+    EXPECT_EQ(path.fOps[3].type, SkPathOp::kLine);
+    EXPECT_FLOAT_EQ(path.fOps[3].params[0], 35.0f);
+    EXPECT_FLOAT_EQ(path.fOps[3].params[1], 120.0f);
+    EXPECT_EQ(path.fOps[4].type, SkPathOp::kLine);
+    EXPECT_FLOAT_EQ(path.fOps[4].params[0], 10.0f);
+    EXPECT_FLOAT_EQ(path.fOps[4].params[1], 70.0f);
     EXPECT_EQ(path.fOps[5].type, SkPathOp::kClose);
 }
 
@@ -642,7 +709,11 @@ TEST(ClipPathPolygonTest, FloatCoordinates) {
     auto path = parse("polygon(10.5px 20.7px, 90.3px 80.1px)");
     ASSERT_EQ(path.fOps.size(), 3u); // move + line + close
     EXPECT_EQ(path.fOps[0].type, SkPathOp::kMove);
+    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 20.5f);  // 10 + 10.5
+    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 40.7f);  // 20 + 20.7
     EXPECT_EQ(path.fOps[1].type, SkPathOp::kLine);
+    EXPECT_FLOAT_EQ(path.fOps[1].params[0], 100.3f); // 10 + 90.3
+    EXPECT_FLOAT_EQ(path.fOps[1].params[1], 100.1f); // 20 + 80.1
     EXPECT_EQ(path.fOps[2].type, SkPathOp::kClose);
 }
 
@@ -783,19 +854,24 @@ TEST(ClipPathBoundaryTest, InsetExceedsBox) {
 TEST(ClipPathBoundaryTest, PolygonZeroSizeBox) {
     litehtml::position pos(0, 0, 0, 0);
     auto path = parse("polygon(10px 20px, 30px 40px)", pos);
-    // Same whitespace bug — only verify op structure
+    // Points are absolute since box has zero size
     ASSERT_EQ(path.fOps.size(), 3u);
     EXPECT_EQ(path.fOps[0].type, SkPathOp::kMove);
+    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 10.0f);  // 0 + 10
+    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 20.0f);  // 0 + 20
     EXPECT_EQ(path.fOps[1].type, SkPathOp::kLine);
+    EXPECT_FLOAT_EQ(path.fOps[1].params[0], 30.0f);  // 0 + 30
+    EXPECT_FLOAT_EQ(path.fOps[1].params[1], 40.0f);  // 0 + 40
     EXPECT_EQ(path.fOps[2].type, SkPathOp::kClose);
 }
 
 TEST(ClipPathBoundaryTest, IntegerFloatMixed) {
-    auto path = parse("circle(10px at 20 30.5px)");
+    auto path = parse("circle(10px at 20px 30.5px)");
     expect_single_op(path, SkPathOp::kCircle);
-    // "at" keyword NOT parsed — center stays at default
-    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 110.0f); // default cx
-    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 70.0f);  // default cy
+    // cx = 10 + 20 = 30
+    // cy = 20 + 30.5 = 50.5
+    EXPECT_FLOAT_EQ(path.fOps[0].params[0], 30.0f);  // cx
+    EXPECT_FLOAT_EQ(path.fOps[0].params[1], 50.5f);  // cy
     EXPECT_FLOAT_EQ(path.fOps[0].params[2], 10.0f);
 }
 

@@ -290,8 +290,9 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             continue;
         }
 
-        bool is_run_combine = (is_vertical && is_upright &&
-                               fi->desc.text_combine_upright == litehtml::text_combine_upright_all);
+        bool is_run_combine =
+            (is_vertical && is_upright &&
+             fi->desc.text_combine_upright_ == litehtml::text_combine_upright_all);
 
         if (tagging) {
             if (batcher) batcher->flush();
@@ -350,7 +351,7 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             style.line_width = is_vertical ? (float)pos.width : (float)pos.height;
             style.is_vertical_upright = is_upright;
             style.is_vertical_punctuation = is_punctuation;
-            style.text_combine_upright = fi->desc.text_combine_upright;
+            style.text_combine_upright = fi->desc.text_combine_upright_;
             style.is_emoji = shaped.is_emoji;
 
             if (is_vertical) {

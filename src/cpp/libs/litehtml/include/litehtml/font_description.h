@@ -2,60 +2,61 @@
 #define LITEHTML_FONT_DESCRIPTION
 
 #include <string>
-#include "types.h"
-#include "css_length.h"
-#include "web_color.h"
-#include "background.h"
 
-namespace litehtml
-{
-  struct font_description
-  {
-    std::string family;                              // Font Family
-    pixel_t size = 0;                                // Font size
-    font_style style = font_style_normal;            // Font stype, see the enum font_style
-    int weight;                                      // Font weight.
-    int decoration_line = text_decoration_line_none; // Decoration line. A bitset of flags of the enum text_decoration_line
+#include "background.h"
+#include "css_length.h"
+#include "types.h"
+#include "web_color.h"
+
+namespace litehtml {
+struct font_description {
+    std::string family;                               // Font Family
+    pixel_t size = 0;                                 // Font size
+    font_style style = font_style_normal;             // Font stype, see the enum font_style
+    int weight;                                       // Font weight.
+    int decoration_line = text_decoration_line_none;  // Decoration line. A bitset of flags of the
+                                                      // enum text_decoration_line
     css_length decoration_thickness;
-    css_length underline_offset;                                          // Decoration line thickness in pixels. See predefined values in enumtext_decoration_thickness
-    text_decoration_style decoration_style = text_decoration_style_solid; // Decoration line style. See enum text_decoration_style
-    web_color decoration_color = web_color::current_color;                // Decoration line color
-    std::string emphasis_style;                                           // Text emphasis style
-    web_color emphasis_color = web_color::current_color;                  // Text emphasis color
+    css_length underline_offset;  // Decoration line thickness in pixels. See predefined values in
+                                  // enumtext_decoration_thickness
+    text_decoration_style decoration_style =
+        text_decoration_style_solid;  // Decoration line style. See enum text_decoration_style
+    web_color decoration_color = web_color::current_color;  // Decoration line color
+    std::string emphasis_style;                             // Text emphasis style
+    web_color emphasis_color = web_color::current_color;    // Text emphasis color
     int emphasis_position = text_emphasis_position_over;
     text_orientation orientation = text_orientation_mixed;
-    text_combine_upright text_combine_upright = text_combine_upright_none;
+    text_combine_upright text_combine_upright_ = text_combine_upright_none;
     pixel_t letter_spacing = 0;
     pixel_t word_spacing = 0;
     shadow_vector text_shadow;
 
-    std::string hash() const
-    {
-      std::string out;
-      out += family;
-      out += ":sz=" + std::to_string(size);
-      out += ":st=" + std::to_string(style);
-      out += ":w=" + std::to_string(weight);
-      out += ":dl=" + std::to_string(decoration_line);
-      out += ":dt=" + decoration_thickness.to_string();
-      out += ":uo=" + underline_offset.to_string();
-      out += ":ds=" + std::to_string(decoration_style);
-      out += ":dc=" + decoration_color.to_string();
-      out += ":ephs=" + emphasis_style;
-      out += ":ephc=" + emphasis_color.to_string();
-      out += ":ephp=" + std::to_string(emphasis_position);
-      out += ":or=" + std::to_string(orientation);
-      out += ":tcu=" + std::to_string(text_combine_upright);
-      out += ":ls=" + std::to_string(letter_spacing);
-      out += ":ws=" + std::to_string(word_spacing);
-      for(const auto& s : text_shadow)
-      {
-          out += ":ts=" + std::to_string(s.x.val()) + "," + std::to_string(s.y.val()) + "," + std::to_string(s.blur.val()) + "," + s.color.to_string();
-      }
+    std::string hash() const {
+        std::string out;
+        out += family;
+        out += ":sz=" + std::to_string(size);
+        out += ":st=" + std::to_string(style);
+        out += ":w=" + std::to_string(weight);
+        out += ":dl=" + std::to_string(decoration_line);
+        out += ":dt=" + decoration_thickness.to_string();
+        out += ":uo=" + underline_offset.to_string();
+        out += ":ds=" + std::to_string(decoration_style);
+        out += ":dc=" + decoration_color.to_string();
+        out += ":ephs=" + emphasis_style;
+        out += ":ephc=" + emphasis_color.to_string();
+        out += ":ephp=" + std::to_string(emphasis_position);
+        out += ":or=" + std::to_string(orientation);
+        out += ":tcu=" + std::to_string(text_combine_upright_);
+        out += ":ls=" + std::to_string(letter_spacing);
+        out += ":ws=" + std::to_string(word_spacing);
+        for (const auto& s : text_shadow) {
+            out += ":ts=" + std::to_string(s.x.val()) + "," + std::to_string(s.y.val()) + "," +
+                   std::to_string(s.blur.val()) + "," + s.color.to_string();
+        }
 
-      return out;
+        return out;
     }
-  };
-}
+};
+}  // namespace litehtml
 
 #endif

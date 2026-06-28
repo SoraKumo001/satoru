@@ -315,7 +315,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
         key.maxWidth = maxWidth;
         key.mode = mode;
         key.orientation = fi->desc.orientation;
-        key.textCombineUpright = fi->desc.text_combine_upright;
+        key.textCombineUpright = fi->desc.text_combine_upright_;
         key.letterSpacing = (float)fi->desc.letter_spacing;
         key.wordSpacing = (float)fi->desc.word_spacing;
         key.fontVersion = ctx->getFontVersion();
@@ -333,7 +333,7 @@ MeasureResult TextLayout::measureText(SatoruContext* ctx, const char* text, font
     bool limit_width = maxWidth >= 0;
 
     if (mode != litehtml::writing_mode_horizontal_tb &&
-        fi->desc.text_combine_upright == litehtml::text_combine_upright_all) {
+        fi->desc.text_combine_upright_ == litehtml::text_combine_upright_all) {
         // For text-combine-upright: all, we treat the whole text as a single run
         // that is rotated and potentially scaled.
         // Its logical inline-size (physical height) should be the height of a single character
@@ -567,7 +567,7 @@ TextAnalysis TextLayout::analyzeText(SatoruContext* ctx, const char* text, size_
             ca.is_vertical_punctuation = false;
         } else {
             ca.is_vertical_punctuation = unicode.isVerticalPunctuation(ca.codepoint);
-            if (fi->desc.text_combine_upright == litehtml::text_combine_upright_all) {
+            if (fi->desc.text_combine_upright_ == litehtml::text_combine_upright_all) {
                 ca.is_vertical_upright = true;
             } else if (fi->desc.orientation == litehtml::text_orientation_upright) {
                 // For orientation: upright, characters are upright UNLESS substitution failed.
@@ -611,7 +611,7 @@ ShapedResult TextLayout::shapeText(SatoruContext* ctx, const char* text, size_t 
     key.is_rtl = fi->is_rtl;
     key.mode = mode;
     key.orientation = fi->desc.orientation;
-    key.textCombineUpright = fi->desc.text_combine_upright;
+    key.textCombineUpright = fi->desc.text_combine_upright_;
     key.letterSpacing = (float)fi->desc.letter_spacing;
     key.wordSpacing = (float)fi->desc.word_spacing;
 
@@ -651,7 +651,7 @@ ShapedResult TextLayout::shapePreparedText(SatoruContext* ctx, const char* cache
     key.is_rtl = fi->is_rtl;
     key.mode = mode;
     key.orientation = fi->desc.orientation;
-    key.textCombineUpright = fi->desc.text_combine_upright;
+    key.textCombineUpright = fi->desc.text_combine_upright_;
     key.letterSpacing = (float)fi->desc.letter_spacing;
     key.wordSpacing = (float)fi->desc.word_spacing;
 

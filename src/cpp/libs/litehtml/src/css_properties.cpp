@@ -822,7 +822,7 @@ void litehtml::css_properties::compute_font(const element* el, const document::p
     descr.emphasis_color = m_text_emphasis_color;
     descr.emphasis_position = m_text_emphasis_position;
     descr.orientation = m_text_orientation;
-    descr.text_combine_upright = m_text_combine_upright;
+    descr.text_combine_upright_ = m_text_combine_upright;
     descr.letter_spacing = m_letter_spacing.is_predefined() ? 0 : m_letter_spacing.val();
     descr.word_spacing = m_word_spacing.is_predefined() ? 0 : m_word_spacing.val();
     descr.text_shadow = m_text_shadow;

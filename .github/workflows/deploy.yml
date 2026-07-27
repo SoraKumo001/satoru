@@ -38,8 +38,8 @@ jobs:
       - name: Pre-download gumbo
         run: |
           mkdir -p ${{ github.workspace }}/vcpkg_downloads
-          if [ ! -f ${{ github.workspace }}/vcpkg_downloads/gumbo-0.13.2.tar.gz ]; then
-            curl -L --retry 5 --retry-delay 10 -o ${{ github.workspace }}/vcpkg_downloads/gumbo-0.13.2.tar.gz https://codeberg.org/gumbo-parser/gumbo-parser/archive/0.13.2.tar.gz
+          if [ ! -f ${{ github.workspace }}/vcpkg_downloads/gumbo-0.12.3.tar.gz ]; then
+            curl -L --retry 5 --retry-delay 10 -o ${{ github.workspace }}/vcpkg_downloads/gumbo-0.12.3.tar.gz https://codeberg.org/gumbo-parser/gumbo-parser/archive/0.12.3.tar.gz
           fi
 
       - name: Cache vcpkg binaries

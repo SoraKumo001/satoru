@@ -113,6 +113,7 @@ if (action === "configure") {
     `-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${emscriptenCmake}" ` +
     `-DVCPKG_TARGET_TRIPLET=wasm32-emscripten-wasm-eh ` +
     `-DVCPKG_OVERLAY_TRIPLETS="${projectRoot}/triplets" ` +
+    `-DVCPKG_OVERLAY_PORTS="${projectRoot}/ports" ` +
     `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` +
     (useNinja && ninjaPath ? ` -DCMAKE_MAKE_PROGRAM="${ninjaPath.replace(/\\/g, "/")}"` : "");
 

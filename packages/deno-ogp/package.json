@@ -9,8 +9,8 @@
     "deploy": "npx next-exec -- deployctl deploy --project deno-ogp2 --prod"
   },
   "dependencies": {
-    "@unocss/core": "^66.7.3",
-    "preact": "^10.29.3",
+    "@unocss/core": "^66.7.5",
+    "preact": "^10.29.7",
     "preact-render-to-string": "^6.7.0",
     "satoru-render": "workspace:*"
   },

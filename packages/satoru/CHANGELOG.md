@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.14 - 2026-07-27
+
+- **Build Infrastructure & CI**:
+  - [Fix] Resolve `gumbo` SHA512 hash mismatch during `vcpkg` build by introducing a vcpkg overlay port (`ports/gumbo`).
+  - [Fix] Align `gumbo` pre-download version to 0.12.3 in GitHub Actions workflows (`deploy.yml`, `npm-publish.yml`).
+
 ## v1.0.13 - 2026-05-19
 
 - **Diagnostics & Tooling**:

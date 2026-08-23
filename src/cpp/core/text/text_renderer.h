@@ -68,6 +68,7 @@ class TextBatcher {
 
     sk_sp<SkTextBlob> m_firstBlob;
     double m_firstTx, m_firstTy;
+    float m_firstTyShift = 0.0f;
 
     bool m_active;
 };

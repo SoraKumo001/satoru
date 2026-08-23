@@ -25,6 +25,37 @@
 
 namespace satoru {
 
+namespace {
+// Vertical shift needed to align a run's baseline with the primary font's
+// baseline in horizontal text. SkTextBlobBuilderRunHandler places each run's
+// baseline at (origin.y + run ascent), while litehtml computes the line
+// baseline from the primary font's metrics. Fallback fonts (e.g. CJK) with a
+// different ascent would otherwise be vertically offset.
+float baselineShiftForRun(const font_info* fi, const SkFont& run_font) {
+    if (!fi || fi->fonts.empty()) return 0.0f;
+    float primary_ascent = fi->fm_ascent_raw;
+    if (primary_ascent <= 0.0f) {
+        SkFontMetrics pm;
+        fi->fonts[0]->getMetrics(&pm);
+        primary_ascent = -pm.fAscent;
+    }
+    SkFontMetrics rm;
+    run_font.getMetrics(&rm);
+    return primary_ascent + rm.fAscent;
+}
+
+// Baseline shift for a blob shaped from a single font run.
+float baselineShiftForBlob(const font_info* fi, const sk_sp<SkTextBlob>& blob) {
+    if (!blob) return 0.0f;
+    SkTextBlob::Iter it(*blob);
+    SkTextBlob::Iter::ExperimentalRun run;
+    if (it.experimentalNext(&run)) {
+        return baselineShiftForRun(fi, run.font);
+    }
+    return 0.0f;
+}
+}  // namespace
+
 void TextBatcher::addText(const sk_sp<SkTextBlob>& blob, double tx, double ty, const Style& style) {
     if (m_active && m_currentStyle != style) {
         flush();
@@ -43,6 +74,7 @@ void TextBatcher::addText(const sk_sp<SkTextBlob>& blob, double tx, double ty, c
             m_firstBlob = blob;
             m_firstTx = tx;
             m_firstTy = ty;
+            m_firstTyShift = baselineShiftForBlob(style.fi, blob);
         }
         m_active = true;
         return;
@@ -56,6 +88,11 @@ void TextBatcher::addText(const sk_sp<SkTextBlob>& blob, double tx, double ty, c
 }
 
 void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, double ty) {
+    // Baseline normalization for horizontal text (see baselineShiftForRun):
+    // align each run's baseline with the primary font's baseline.
+    bool is_vertical = (m_currentStyle.mode == litehtml::writing_mode_vertical_rl ||
+                        m_currentStyle.mode == litehtml::writing_mode_vertical_lr);
+
     SkTextBlob::Iter it(*blob);
     SkTextBlob::Iter::ExperimentalRun run;
     while (it.experimentalNext(&run)) {
@@ -73,6 +110,8 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
                 builder_run.xforms()[i] = SkRSXform::Make(0, 1, p.x, p.y);
             }
         } else {
+            float run_baseline_shift =
+                is_vertical ? 0.0f : baselineShiftForRun(m_currentStyle.fi, run.font);
             auto builder_run = m_builder.allocRunPos(run.font, run.count);
             memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
             for (int i = 0; i < run.count; ++i) {
@@ -80,7 +119,7 @@ void TextBatcher::addBlobToBuilder(const sk_sp<SkTextBlob>& blob, double tx, dou
                     run.positions[i].fX, run.positions[i].fY, m_currentStyle.is_vertical_upright,
                     m_currentStyle.is_vertical_punctuation, run.font, run.glyphs[i]);
                 builder_run.pos[i * 2] = p.x;
-                builder_run.pos[i * 2 + 1] = p.y;
+                builder_run.pos[i * 2 + 1] = p.y + run_baseline_shift;
             }
         }
     }
@@ -107,7 +146,8 @@ void TextBatcher::flush() {
     }
 
     if (m_firstBlob) {
-        m_canvas->drawTextBlob(m_firstBlob, (float)m_firstTx, (float)m_firstTy, paint);
+        m_canvas->drawTextBlob(m_firstBlob, (float)m_firstTx,
+                               (float)(m_firstTy + m_firstTyShift), paint);
         m_firstBlob = nullptr;
     } else {
         sk_sp<SkTextBlob> blob = m_builder.make();
@@ -327,12 +367,15 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
             } else {
                 TextGeometry geom(mode, pos, fi);
                 while (it.experimentalNext(&run)) {
+                    float run_baseline_shift =
+                        is_vertical ? 0.0f : baselineShiftForRun(fi, run.font);
                     float logical_run_start = (float)current_l_pos.inline_offset;
                     for (int i = 0; i < run.count; ++i) {
                         auto p = geom.getGlyphPlacement(logical_run_start + run.positions[i].fX,
                                                         run.positions[i].fY, is_upright,
                                                         is_punctuation, run.font, run.glyphs[i]);
-                        tagging_ctx.drawGlyph(run.font, run.glyphs[i], p.x, p.y, p.rotation, paint);
+                        tagging_ctx.drawGlyph(run.font, run.glyphs[i], p.x,
+                                              p.y + run_baseline_shift, p.rotation, paint);
                     }
                 }
             }
@@ -419,10 +462,28 @@ double TextRenderer::drawTextInternal(SatoruContext* ctx, SkCanvas* canvas, cons
                 if (shaped.is_emoji) p_emoji.setColor(SK_ColorWHITE);
                 canvas->drawTextBlob(verticalBlob, 0, 0, p_emoji);
             } else {
+                // Horizontal text: rebuild the blob with per-run baseline
+                // normalization so fallback-font runs align with the primary
+                // font's baseline (see comment at the top of this function).
+                SkTextBlobBuilder builder;
+                SkTextBlob::Iter it(*shaped.blob);
+                SkTextBlob::Iter::ExperimentalRun run;
+                while (it.experimentalNext(&run)) {
+                    float run_baseline_shift = baselineShiftForRun(fi, run.font);
+                    auto builder_run = builder.allocRunPos(run.font, run.count);
+                    memcpy(builder_run.glyphs, run.glyphs, run.count * sizeof(uint16_t));
+                    for (int i = 0; i < run.count; ++i) {
+                        builder_run.pos[i * 2] =
+                            (float)pos.x + (float)current_l_pos.inline_offset +
+                            run.positions[i].fX;
+                        builder_run.pos[i * 2 + 1] =
+                            (float)pos.y + run.positions[i].fY + run_baseline_shift;
+                    }
+                }
+                sk_sp<SkTextBlob> normalizedBlob = builder.make();
                 SkPaint p_emoji = paint;
                 if (shaped.is_emoji) p_emoji.setColor(SK_ColorWHITE);
-                canvas->drawTextBlob(shaped.blob, (float)pos.x + (float)current_l_pos.inline_offset,
-                                     (float)pos.y, p_emoji);
+                canvas->drawTextBlob(normalizedBlob, 0, 0, p_emoji);
             }
             canvas->restore();
         }

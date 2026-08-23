@@ -27,21 +27,21 @@ title: CSS 互換性
 | Layout | list marker | [08-list-marker.html](pathname:///assets/08-list-marker.html) | ✅ | ✅ | ✅ | Diff: 1.03% |
 | Grid | grid | [09-grid.html](pathname:///assets/09-grid.html) | ✅ | ✅ | ✅ | Diff: 2.50% |
 | Modern CSS | container queries | [10-container-queries.html](pathname:///assets/10-container-queries.html) | ✅ | ✅ | ✅ | Diff: 4.71% |
-| Text | complex text | [11-complex-text.html](pathname:///assets/11-complex-text.html) | ✅ | ✅ | ✅ | Diff: 1.63% |
-| Text | bidi text | [12-bidi-text.html](pathname:///assets/12-bidi-text.html) | ✅ | ✅ | ✅ | Diff: 2.52% |
+| Text | complex text | [11-complex-text.html](pathname:///assets/11-complex-text.html) | ✅ | ✅ | ✅ | Diff: 1.50% |
+| Text | bidi text | [12-bidi-text.html](pathname:///assets/12-bidi-text.html) | ✅ | ✅ | ✅ | Diff: 1.85% |
 | Effects | backdrop filter | [13-backdrop-filter.html](pathname:///assets/13-backdrop-filter.html) | ✅ | ✅ | ✅ | Diff: 0.18% |
 | Layout | line clamp | [14-line-clamp.html](pathname:///assets/14-line-clamp.html) | ✅ | ✅ | ✅ | Diff: 4.12% |
 | Layout | showcase | [15-showcase.html](pathname:///assets/15-showcase.html) | ✅ | ✅ | ✅ | Diff: 3.71% |
-| Layout | advanced shapes | [16-advanced-shapes.html](pathname:///assets/16-advanced-shapes.html) | ✅ | ✅ | ✅ | Diff: 0.67% |
+| Layout | advanced shapes | [16-advanced-shapes.html](pathname:///assets/16-advanced-shapes.html) | ✅ | ✅ | ✅ | Diff: 0.69% |
 | Effects | background clip | [17-background-clip.html](pathname:///assets/17-background-clip.html) | ✅ | ✅ | ✅ | Diff: 1.19% |
 | Graphics | border image | [18-border-image.html](pathname:///assets/18-border-image.html) | ✅ | ✅ | ✅ | Diff: 1.90% |
 | Effects | mask | [19-mask.html](pathname:///assets/19-mask.html) | ✅ | ✅ | ✅ | Diff: 1.11% |
-| Flexbox | flex absolute | [20-flex-absolute.html](pathname:///assets/20-flex-absolute.html) | ✅ | ✅ | ✅ | Diff: 1.09% |
+| Flexbox | flex absolute | [20-flex-absolute.html](pathname:///assets/20-flex-absolute.html) | ✅ | ✅ | ✅ | Diff: 0.92% |
 | Text | vertical writing | [21-vertical-writing.html](pathname:///assets/21-vertical-writing.html) | ✅ | ✅ | ✅ | Diff: 1.92% |
-| Modern CSS | modern features | [22-modern-features.html](pathname:///assets/22-modern-features.html) | ✅ | ✅ | ✅ | Diff: 13.08% |
-| Layout | test repro black | [23-test-repro-black.html](pathname:///assets/23-test-repro-black.html) | ✅ | ✅ | ✅ | Diff: 8.08% |
+| Modern CSS | modern features | [22-modern-features.html](pathname:///assets/22-modern-features.html) | ✅ | ✅ | ✅ | Diff: 12.78% |
+| Layout | test repro black | [23-test-repro-black.html](pathname:///assets/23-test-repro-black.html) | ✅ | ✅ | ✅ | Diff: 8.09% |
 | Print | media print | [24-media-print.html](pathname:///assets/24-media-print.html) | ✅ | ✅ | ✅ | Diff: 3.30% |
-| Layout | page breaks | [25-page-breaks.html](pathname:///assets/25-page-breaks.html) | ⚠️ | ⚠️ | ✅ | Not in baseline |
+| Layout | page breaks | [25-page-breaks.html](pathname:///assets/25-page-breaks.html) | ✅ | ✅ | ✅ | Diff: 0.27% |
 
 ## サポートする出力形式
 

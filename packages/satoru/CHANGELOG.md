@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.15 - 2026-08-23
+
+- **Rendering Engine & Text Layout**:
+  - [Fix] Align fallback-font baselines with the primary font in horizontal text. Mixed Latin/CJK text (e.g. `Inter` + `Noto Sans JP`) no longer renders with vertically offset baselines.
+
 ## v1.0.14 - 2026-07-27
 
 - **Build Infrastructure & CI**:

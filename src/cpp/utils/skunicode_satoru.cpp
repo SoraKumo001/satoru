@@ -66,6 +66,9 @@ class SkUnicode_Satoru : public SkUnicode {
     bool isSpace(SkUnichar utf8) override { return utf8 == ' '; }
     bool isTabulation(SkUnichar utf8) override { return utf8 == '\t'; }
     bool isHardBreak(SkUnichar utf8) override { return utf8 == '\n' || utf8 == '\r'; }
+    bool isDefaultIgnorable(SkUnichar utf8) override {
+        return utf8proc_get_property(utf8)->ignorable != 0;
+    }
     bool isEmoji(SkUnichar utf8) override {
         return (utf8 == 0xFE0F) || (utf8 >= 0x2600 && utf8 <= 0x27BF) ||
                (utf8 >= 0x1F000 && utf8 <= 0x1FADF) || (utf8 >= 0x1F300 && utf8 <= 0x1F9FF);

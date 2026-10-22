@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.19 - 2026-10-22
+
+- **Build Infrastructure & Upstream Compatibility**:
+  - [Fix] Support updated upstream Skia by defining `SK_CODEC_DECODES_PNG_WITH_LIBPNG` and `SK_CODEC_DECODES_ICO` for ICO/PNG image decoding.
+  - [Fix] Implement `isDefaultIgnorable(SkUnichar)` pure virtual method in `SkUnicode_Satoru` using `utf8proc` property lookup.
+- **Documentation**:
+  - [Chore] Revise README for project migration notice.
+
 ## v1.0.15 - 2026-08-23
 
 - **Rendering Engine & Text Layout**:
